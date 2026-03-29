@@ -100,6 +100,13 @@ _NEW_CONSULTATION_PATTERNS = [
     # ID Renewal / Replacement
     r"\b(renew|replace).{1,15}(id|kimlik|student id)\b",
 ]
+
+# Patterns to catch an isolated answer to a clarifying question (matched against query alone)
+_ISOLATED_ANSWER_PATTERNS = [
+    r"^(a |an |my )?(cafe|kafe|restaurant|restoran|retail|office|ofis|pharmacy|eczane|bakery|f[\u0131i]r[\u0131i]n|barber|berber|gym|spor|shop|store|company|ma[\u011fg]aza|d[\u00fcu]kkan)$",
+    r"^(in |at )?(adalar|arnavutkoy|arnavutköy|atasehir|ataşehir|avcilar|avcılar|bagcilar|bağcılar|bahcelievler|bahçelievler|bakirkoy|bakırköy|basaksehir|başakşehir|bayrampasa|bayrampaşa|besiktas|beşiktaş|beykoz|beylikduzu|beylikdüzü|beyoglu|beyoğlu|buyukcekmece|büyükçekmece|catalca|çatalca|cekmekoy|çekmeköy|esenler|esenyurt|eyup|eyüp|eyüpsultan|fatih|gaziosmanpasa|gaziosmanpaşa|gungoren|güngören|kadikoy|kadıköy|kagithane|kağıthane|kartal|kucukcekmece|küçükçekmece|maltepe|pendik|sancaktepe|sariyer|sarıyer|sile|şile|silivri|sisli|şişli|sultanbeyli|sultangazi|tuzla|umraniye|ümraniye|uskudar|üsküdar|zeytinburnu)$"
+]
+
 # NOTE: The following chip buttons are intentionally EXCLUDED from this gate because
 # they are clarifying questions — the user hasn't told us their business type yet.
 # They fall through to the keyword router and get a helpful clarifying response:
@@ -112,6 +119,10 @@ _NEW_CONSULTATION_PATTERNS = [
 #   "How does it work?"
 _NEW_CONSULTATION_RE = re.compile(
     "|".join(_NEW_CONSULTATION_PATTERNS), flags=re.IGNORECASE
+)
+
+_ISOLATED_ANSWER_RE = re.compile(
+    "|".join(_ISOLATED_ANSWER_PATTERNS), flags=re.IGNORECASE
 )
 
 
@@ -153,6 +164,7 @@ async def smart_router_handle(
     gemini_model=None,
     student_model=None,
     lawyer_model=None,
+    history_text: str = ""
 ) -> Optional[str]:
     """
     Try to handle the query without (or with minimal) AI usage.
@@ -161,6 +173,8 @@ async def smart_router_handle(
         A ready-to-send response string, or None if this query needs
         the full orchestrator pipeline.
     """
+
+    query = query.strip()
 
     # ------------------------------------------------------------------
     # 1. Cache check (0 tokens)
@@ -174,7 +188,17 @@ async def smart_router_handle(
     # If the query is an initial plan request, we bypass AI completely
     # and generate the 14-step permit dashboard directly in Python.
     # ------------------------------------------------------------------
-    if _NEW_CONSULTATION_RE.search(query):
+    # Include history text so we can catch isolated answers like 'Cafe' or 'Kadikoy'
+    combined_context = f"{history_text} {query}".lower()
+    
+    # If the AI just asked the user to clarify business type or district, ANY response should route back here.
+    last_assistant_msg = history_text.lower().split("[assistant]:")[-1] if "[assistant]:" in history_text.lower() else ""
+    is_clarifying = any(k in last_assistant_msg for k in [
+        "what type of business", "hangi tür işletme", "ما هو نوع العمل",
+        "which district", "hangi ilçesinde", "في أي منطقة"
+    ])
+    
+    if _NEW_CONSULTATION_RE.search(combined_context) or _ISOLATED_ANSWER_RE.match(query) or is_clarifying:
         print(f"[SmartRouter] NEW CONSULTATION detected — generating dashboard offline (0 tokens) for {assistant_type}")
         
         from models.schemas import PermitState, CombinedPermitResult, ExecutionPlan, StepDetail, PermitPlan
@@ -188,7 +212,6 @@ async def smart_router_handle(
             # ------------------------------------------------------------------
             # Detect ACTUAL business type from query keywords (not the intent sub-category)
             # ------------------------------------------------------------------
-            lower_q = query.lower()
             _BUSINESS_KEYWORDS = [
                 (["restaurant", "restoran", "lokanta", "dining", "dinner"], "Restaurant"),
                 (["cafe", "kafe", "coffee shop", "kahve", "pastane", "tea house"], "Café"),
@@ -204,9 +227,10 @@ async def smart_router_handle(
                 (["clinic", "klinik", "medical", "dental", "doctor", "doktor", "diş"], "Medical Clinic"),
                 (["school", "okul", "education", "dershane", "kurs"], "Educational Centre"),
             ]
+            
             business_type = "Business"  # fallback
             for kw_list, display_name in _BUSINESS_KEYWORDS:
-                if any(kw in lower_q for kw in kw_list):
+                if any(kw in combined_context for kw in kw_list):
                     business_type = display_name
                     break
 
@@ -288,63 +312,71 @@ async def smart_router_handle(
             district_note = ""
 
             for key, (dname, mun_en, note) in _DISTRICT_INFO.items():
-                if key in lower_q:
+                if key in combined_context:
                     district_en = dname
                     district_display = dname
                     mun_name_en = mun_en
                     district_note = note
                     break
 
-            # If no district found, ask which district
             no_district = district_display is None
+            
+            # --- OVERRIDE: IF EITHER DISTRICT OR BUSINESS TYPE IS MISSING, ASK AND HALT ---
+            missing_items = []
+            if business_type == "Business": missing_items.append("business")
+            if no_district: missing_items.append("district")
+
+            if missing_items:
+                if language == "tr":
+                    msg = "Harika bir adım! 🚀 Sana spesifik bir yol haritası çizebilmem için lütfen şunları belirt: "
+                    if "business" in missing_items: msg += "**Hangi tür işletme** (Kafe, Mağaza vb.) açacaksın? "
+                    if "district" in missing_items: msg += "**İstanbul'un hangi ilçesinde** açacaksın?"
+                elif language == "ar":
+                    msg = "خطوة رائعة! 🚀 لكي أرسم لك خريطة طريق مخصصة، يرجى تحديد: "
+                    if "business" in missing_items: msg += "**ما هو نوع العمل** (مقهى، متجر)؟ "
+                    if "district" in missing_items: msg += "**في أي منطقة في إسطنبول** ستفتح؟"
+                else:
+                    msg = "Great step! 🚀 Before I map out your exact roadmap, could you please tell me: "
+                    if "business" in missing_items: msg += "**What type of business** (e.g., Cafe, Retail)? "
+                    if "district" in missing_items: msg += "**Which district of Istanbul** are you opening in?"
+                    
+                # Returning ONLY the string halts the dashboard generation and asks the question as normal chat
+                return msg
+
             district = district_display or "Istanbul"
 
             # Localized Municipality Name
             mun_name = mun_name_en
             if language == "tr":
-                mun_name = f"{district} Belediyesi" if not no_district else "İlçe Belediyesi"
+                mun_name = f"{district} Belediyesi"
             elif language == "ar":
-                mun_name = f"بلدية {district}" if not no_district else "بلدية المنطقة"
+                mun_name = f"بلدية {district}"
 
             if language == "tr":
                 permits = [f"{district} İşyeri Açma ve Çalışma Ruhsatı"]
                 agencies = [mun_name, "Vergi Dairesi"]
                 docs = ["Kimlik", "Kira Sözleşmesi", "Vergi Levhası", "NACE Kodu Belgesi"]
-                if no_district:
-                    summ = f"Mükemmel! {business_type} açmak için harika bir karar. 🎉 Adım adım yol haritanız aşağıda hazır — ancak başvuracağınız belediye ilçenize göre değişir. Hangi ilçedesiniz? (Örn: Kadıköy, Beşiktaş, Şişli, Üsküdar...)"
-                else:
-                    summ = f"Mükemmel seçim! {district}'de {business_type} açmak için bilmeniz gereken her şeyi hazırladım. 🎉 Önemli not: {district_note} Aşağıdaki yol haritasını takip edin ve merak ettiğinizi sorun!"
+                summ = f"Mükemmel seçim! {district}'de {business_type} açmak için bilmeniz gereken her şeyi hazırladım. 🎉 Önemli not: {district_note} Aşağıdaki yol haritasını takip edin ve merak ettiğinizi sorun!"
                 labels = {"ag": "Kurumlar", "dc": "Gerekli Belgeler", "st": "Adımlar", "tm": "Tahmini Süre", "dy": "gün"}
             elif language == "ar":
                 permits = [f"رخصة فتح وتشغيل من {district}"]
                 agencies = [mun_name, "مكتب الضرائب"]
                 docs = ["الهوية", "عقد الإيجار", "اللوحة الضريبية", "وثيقة رمز NACE"]
-                if no_district:
-                    summ = f"رائع! فتح {business_type} قرار ممتاز. 🎉 خريطة الطريق جاهزة أدناه — لكن الجهة المختصة تختلف حسب المنطقة. في أي منطقة ستفتح؟ (مثل: كاديكوي، بشيكتاش، شيشلي...)"
-                else:
-                    summ = f"اختيار رائع! أعددت لك كل ما تحتاجه لفتح {business_type} في {district}. 🎉 ملاحظة مهمة: {district_note} راجع الخطوات أدناه واسألني عن أي شيء!"
+                summ = f"اختيار رائع! أعددت لك كل ما تحتاجه لفتح {business_type} في {district}. 🎉 ملاحظة مهمة: {district_note} راجع الخطوات أدناه واسألني عن أي شيء!"
                 labels = {"ag": "المؤسسات", "dc": "المستندات المطلوبة", "st": "الخطوات", "tm": "المدة الزمنية المتوقعة", "dy": "يوم"}
             else:
                 permits = [f"{district} Workplace Operating License"]
                 agencies = [mun_name, "Tax Office (Vergi Dairesi)"]
                 docs = ["ID / Passport", "Lease Agreement", "Tax Plate", "NACE Code Certificate"]
-                if no_district:
-                    summ = (
-                        f"Great choice — opening a {business_type} is an exciting step! 🚀 "
-                        f"I've mapped out your full roadmap below. One thing: the exact municipality you'll apply to depends on your district. "
-                        f"**Which district of Istanbul are you opening in?** (e.g. Kadıköy, Beşiktaş, Şişli, Üsküdar, Bakırköy, Ataşehir…) "
-                        f"Each district has its own belediye with slightly different processing times and rules."
-                    )
-                else:
-                    summ = (
-                        f"Great choice — I've put together your complete roadmap for opening a {business_type} in {district}! 🚀 "
-                        f"📍 **{district} note:** {district_note} "
-                        f"Follow the steps below and feel free to ask me anything along the way."
-                    )
+                summ = (
+                    f"Great choice — I've put together your complete roadmap for opening a {business_type} in {district}! 🚀 "
+                    f"📍 **{district} note:** {district_note} "
+                    f"Follow the steps below and feel free to ask me anything along the way."
+                )
                 labels = {"ag": "Institutions / Agencies", "dc": "Documents You'll Need", "st": "Your Action Steps", "tm": "Estimated Timeline", "dy": "days"}
 
             timeline = 30
-            if any(kw in lower_q for kw in ["restaurant", "restoran", "cafe", "kafe", "bakery", "fırın", "firın", "food", "gıda"]):
+            if any(kw in combined_context for kw in ["restaurant", "restoran", "cafe", "kafe", "bakery", "fırın", "firın", "food", "gıda"]):
                 timeline = 45
                 if language == "tr":
                     permits.extend(["İtfaiye Uygunluk Raporu", "Baca Uygunluğu"])
@@ -557,6 +589,31 @@ async def smart_router_handle(
 
     if confidence > 0:
         raw_response = _pick_response(intent_group, sub_intent)
+        
+        # Override general greetings to be domain-specific and highly professional
+        if intent_group == "greeting":
+            if assistant_type == "permit":
+                if language == "tr":
+                    raw_response = "Merhaba! 👋 Ben profesyonel Ruhsat ve İzin Danışmanınızım. İster kafe, ister mağaza veya ofis açıyor olun; ihtiyacınız olan belgeleri, maliyetleri ve adımları sizin için planlayabilirim. Ne tür bir işletme açmayı düşünüyorsunuz?"
+                elif language == "ar":
+                    raw_response = "أهلاً بك! 👋 أنا مستشارك المهني للتراخيص. سواء كنت تفتح مقهى، متجر، أو مكتب؛ يمكنني تخطيط كل المستندات والتكاليف والخطوات لك. ما نوع العمل الذي تخطط لفتحه؟"
+                else:
+                    raw_response = "Hello! 👋 I am your professional Permit Advisor. Whether you're opening a café, retail shop, or tech company, I will map out your exact roadmap, timelines, and required documents. What type of business are you planning to start?"
+            elif assistant_type == "lawyer":
+                if language == "tr":
+                    raw_response = "Merhaba! ⚖️ Ben uzman Hukuk Danışmanınızım. Sözleşme incelemesi, şirket kuruluşu veya iş hukuku uyuşmazlıkları konusunda size yol gösterebilirim. Size nasıl yardımcı olabilirim?"
+                elif language == "ar":
+                    raw_response = "أهلاً بك! ⚖️ أنا مستشارك القانوني المتخصص. أخبرني بوضعك — سواء كنت تحتاج لمراجعة عقد، تأسيس شركة، أو توجيه بشأن نزاع عمالي — لكي نرسم أفضل مسار قانوني لك."
+                else:
+                    raw_response = "Hello! ⚖️ I am your dedicated Legal Advisor. Tell me about your situation—whether you need a contract reviewed, a company formed, or guidance on a legal dispute—so we can chart the best path forward."
+            elif assistant_type == "student":
+                if language == "tr":
+                    raw_response = "Merhaba! 🎓 Ben özel Öğrenci Danışmanınızım. Kayıt işlemlerinden Kimlik yenilenmesine kadar arkanı kolluyorum. Bugün sana nasıl yardımcı olabilirim?"
+                elif language == "ar":
+                    raw_response = "مرحباً! 🎓 أنا مستشارك الطلابي المخصص. من تجديد الإقامة (الكيمليك) إلى العثور على أفضل جامعة، أنا هنا لدعمك. كيف يمكنني مساعدتك اليوم؟"
+                else:
+                    raw_response = "Hi there! 🎓 I am your dedicated Student Advisor. From renewing your Kimlik to university registrations, I've got your back. How can I help you today?"
+
 
         if raw_response:
             variables = build_variables(user_name=user_name)

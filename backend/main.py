@@ -612,6 +612,9 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
         # ------------------------------------------------------------------
         if _smart_router_available and _smart_router_handle is not None and not file_obj:
             try:
+                # get history for smart router context to detect isolated answers (e.g. "Kadikoy")
+                history_text = await _get_history_context(session_id, db, limit=4, strip_boilerplate=True)
+                
                 smart_result = await _smart_router_handle(
                     query=query_text,
                     assistant_type=assistant_type,
@@ -620,6 +623,7 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
                     gemini_model=gemini_model,
                     student_model=student_model,
                     lawyer_model=lawyer_model,
+                    history_text=history_text
                 )
                 
                 smart_answer = None

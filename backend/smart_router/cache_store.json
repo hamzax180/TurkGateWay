@@ -18,5 +18,17 @@
   "81e040e9ddffe2c8a4ba9411831fe3bd": {
     "response": "Great place to start! Opening a business in Istanbul involves three pillars: ① Company registration (Tax ID, Trade Registry, MERSİS), ② Operating licence (district municipality), ③ Sector-specific licences (fire, hygiene, TAPDK, etc. depending on your business). Want the full step-by-step?",
     "ts": 1774824696.9408853
+  },
+  "5d41402abc4b2a76b9719d911017c592": {
+    "response": "Hi there! Ready to help — what's on your mind?",
+    "ts": 1774827133.8125412
+  },
+  "b4b643cb1547b52057fdd15336581ca8": {
+    "response": "In Istanbul, permits are issued by your district municipality (ilçe belediyesi) — so Beşiktaş, Kadıköy, Şişli, etc. each have their own permit office. Which district are you opening in?",
+    "ts": 1774827777.1660397
+  },
+  "1b4f5862d9b125c6631dd523b209c4ec": {
+    "response": "For most permits, you submit to your district municipality either via e-Devlet or in person. The Trade Registry and Tax Office are separate stops. Want me to walk you through where to go for each step?",
+    "ts": 1774827793.3016663
   }
 }
