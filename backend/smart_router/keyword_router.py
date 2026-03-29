@@ -148,6 +148,21 @@ INTENT_MAP = {
     "student.residence_permit": [
         r"\b(student (residence|ikamet)|ikamet (permit|izni)|residence permit (for student)|g[o\xf6]\xc3\xa7 idaresi)\b"
     ],
+    "student.transport_card": [
+        r"\b(istanbulkart|transport card|student card|bus card|travel card|metro card|m\u00fczekart|discount card)\b"
+    ],
+    "student.dormitory": [
+        r"\b(dormitory|dorm|yurt|kyk|housing|accommodation|where to stay|student housing)\b"
+    ],
+    "student.equivalency": [
+        r"\b(equivalency|denklik|diploma recognition|high school equivalency|y\u00f6k denklik)\b"
+    ],
+    "student.scholarships": [
+        r"\b(scholarship|scholarships|burs|turkiye burslari|ytb|financial aid|tuition funding)\b"
+    ],
+    "student.work_rules": [
+        r"\b(can i work|work permit for student|student jobs|part time|part-time|working while studying|legal to work)\b"
+    ],
 
     # --- Lawyer Agent intents ---
     "lawyer.company_formation": [
