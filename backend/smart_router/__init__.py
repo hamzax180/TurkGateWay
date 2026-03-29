@@ -38,20 +38,20 @@ from .ai_fallback import ai_fallback_response
 # ---------------------------------------------------------------------------
 # Load response library once at module import time
 # ---------------------------------------------------------------------------
-_LIBRARY_DIR = os.path.join(os.path.dirname(__file__), "responses")
+_AGENTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agents")
 _library: dict = {}
 
 try:
     # Load each intent domain into the library dictionary
-    with open(os.path.join(_LIBRARY_DIR, "permit.json"), "r", encoding="utf-8") as f:
+    with open(os.path.join(_AGENTS_DIR, "permit", "responses.json"), "r", encoding="utf-8") as f:
         _library["permit"] = json.load(f)
-    with open(os.path.join(_LIBRARY_DIR, "student.json"), "r", encoding="utf-8") as f:
+    with open(os.path.join(_AGENTS_DIR, "student", "responses.json"), "r", encoding="utf-8") as f:
         _library["student"] = json.load(f)
-    with open(os.path.join(_LIBRARY_DIR, "lawyer.json"), "r", encoding="utf-8") as f:
+    with open(os.path.join(_AGENTS_DIR, "lawyer", "responses.json"), "r", encoding="utf-8") as f:
         _library["lawyer"] = json.load(f)
     
     # Load general conversational and support responses
-    with open(os.path.join(_LIBRARY_DIR, "general.json"), "r", encoding="utf-8") as f:
+    with open(os.path.join(_AGENTS_DIR, "general", "responses.json"), "r", encoding="utf-8") as f:
         general_data = json.load(f)
         for k, v in general_data.items():
             _library[k] = v
