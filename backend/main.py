@@ -33,7 +33,9 @@ Base.metadata.create_all(bind=engine)
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
 
 # --- Load AI Assistant Models ---
-from agents.agent_models import gemini_model, chat_model, student_model, student_chat_model, lawyer_model, lawyer_chat_model
+from agents.permit import gemini_model, chat_model
+from agents.student import student_model, student_chat_model
+from agents.lawyer import lawyer_model, lawyer_chat_model
 
 
 app = FastAPI(title="PermitOps AI Backend")
