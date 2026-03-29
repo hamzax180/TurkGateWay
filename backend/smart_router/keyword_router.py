@@ -139,6 +139,10 @@ INTENT_MAP = {
     "lawyer.general_legal": [
         r"\b(legal (question|advice|help|guidance)|turkish law|lawyer|attorney|need a lawyer|legal matter)\b"
     ],
+    "lawyer.legal_timelines": [
+        r"\b(how long (does|will)|timeline|time frame|how many (days|weeks)|duration|processing time|when will i).{0,40}(permit|company|contract|court|case|dispute|visa|ikamet|formation)\b",
+        r"\b(company formation|contract review|work permit|residence permit|court case).{0,30}(take|long|weeks|days|months)\b"
+    ],
 }
 
 # ---------------------------------------------------------------------------

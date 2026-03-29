@@ -95,8 +95,19 @@ def _detect_type(business_type: str) -> str:
     bt = business_type.lower()
     if any(k in bt for k in ["student", "öğrenci", "university", "kimlik", "degree", "academic", "bachelor", "master", "phd", "college"]):
         return "student"
-    if any(k in bt for k in ["lawyer", "law", "legal", "hukuk", "avukat", "mahkeme", "contract", "sözleşme"]):
-        return "lawyer"
+    # Lawyer sub-types — checked before generic 'lawyer'
+    if any(k in bt for k in ["contract", "sözleşme", "nda", "agreement", "clause", "review", "contract_review"]):
+        return "lawyer_contract"
+    if any(k in bt for k in ["company", "formation", "incorporate", "ltd", "aş", "mersis", "company_formation", "şirket"]):
+        return "lawyer_company"
+    if any(k in bt for k in ["employment", "fired", "dismissed", "severance", "labour", "labor", "termination", "işçi", "kıdem", "employment_law"]):
+        return "lawyer_employment"
+    if any(k in bt for k in ["dispute", "lawsuit", "court", "mediation", "arabuluculuk", "sue", "ihtarname", "legal_dispute"]):
+        return "lawyer_dispute"
+    if any(k in bt for k in ["work permit", "work visa", "ikamet", "residency", "stay in turkey", "legal to work", "residence_permit", "lawyer_residency"]):
+        return "lawyer_residency"
+    if any(k in bt for k in ["lawyer", "law", "legal", "hukuk", "avukat", "mahkeme"]):
+        return "lawyer_contract"  # default lawyer sub-type
     if any(k in bt for k in ["cafe","kafe","restaur","lokanta","food","yemek","gıda","mutfak",
                                "pasta","bakery","fırın","döner","kebab","pizza","burger",
                                "kantin","patisserie","tatlı","dondurma","bar","pub"]):
@@ -409,23 +420,225 @@ def _steps_student(lang):
               {"en":"Card arrives via PTT mail to your registered address in 15-45 days.","tr":"Kimlik kartı PTT ile 15-45 gün içinde adresinize gelir.","ar":"تصل البطاقة عبر PTT إلى عنوانك خلال 15-45 يوماً."}[lang]),
     ]
 
-def _steps_lawyer(lang):
+# ---------------------------------------------------------------------------
+# Lawyer sub-type step builders
+# ---------------------------------------------------------------------------
+
+def _steps_lawyer_contract(lang):
+    """Contract Review — 8 professional steps."""
     return [
-        (1,  {"en":"Initial Legal Consultation","tr":"İlk Hukuki Danışmanlık","ar":"الاستشارة القانونية الأولية"}[lang],
-              {"en":"Agent/Human","tr":"Ajan/İnsan","ar":"وكيل/بشري"}[lang],
-              {"en":"Discuss your legal situation and identify required documents and actions.","tr":"Hukuki durumunuzu tartışın ve gerekli belge ve eylemleri belirleyin.","ar":"ناقش وضعك القانوني وحدد المستندات والإجراءات المطلوبة."}[lang]),
-        (2,  {"en":"Document Collection","tr":"Belgelerin Toplanması","ar":"جمع المستندات"}[lang],
+        (1,  {"en":"Identify Your Concern","tr":"Sorununuzu Belirleyin","ar":"تحديد المشكلة"}[lang],
               {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
-              {"en":"Gather necessary contracts, IDs, or court documents for review.","tr":"İncelenmesi için gerekli sözleşmeleri, kimlikleri veya mahkeme belgelerini toplayın.","ar":"اجمع العقود أو الهويات أو مستندات المحكمة اللازمة للمراجعة."}[lang]),
-        (3,  {"en":"Power of Attorney (Vekaletname)","tr":"Vekaletname Çıkarılması","ar":"إصدار توكيل"}[lang],
+              {"en":"Clearly note which clauses or terms feel unfair, unclear, or problematic. Write down your main concern before the consultation.",
+               "tr":"Hangi maddelerin haksız, belirsiz veya sorunlu göründüğünü not edin. Danışmanlık öncesinde ana sorununuzu yazın.",
+               "ar":"حدد البنود التي تبدو غير عادلة أو غير واضحة. دون ملاحظاتك قبل الاستشارة."}[lang]),
+        (2,  {"en":"Gather All Contract Documents","tr":"Tüm Sözleşme Belgelerini Toplayın","ar":"جمع جميع وثائق العقد"}[lang],
               {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
-              {"en":"Visit a Notary Public to issue a Power of Attorney if formal representation is needed.","tr":"Resmi temsil gerekiyorsa vekaletname çıkarmak için Notere gidin.","ar":"قم بزيارة كاتب العدل لإصدار توكيل إذا كانت هناك حاجة للتمثيل الرسمي."}[lang]),
-        (4,  {"en":"Legal Analysis & Drafting","tr":"Hukuki Analiz ve Taslak Oluşturma","ar":"التحليل القانوني والصياغة"}[lang],
+              {"en":"Collect the signed contract, any addendums, email correspondence, and prior agreements related to the dispute. Digital copies are acceptable.",
+               "tr":"İmzalı sözleşme, ekler, e-posta yazışmaları ve ilgili önceki anlaşmaları toplayın. Dijital kopyalar kabul edilir.",
+               "ar":"اجمع العقد الموقّع والملاحق والمراسلات الإلكترونية وأي اتفاقيات سابقة. النسخ الرقمية مقبولة."}[lang]),
+        (3,  {"en":"Legal Analysis of Contract Terms","tr":"Sözleşme Şartlarının Hukuki Analizi","ar":"التحليل القانوني لشروط العقد"}[lang],
               {"en":"Agent/Human","tr":"Ajan/İnsan","ar":"وكيل/بشري"}[lang],
-              {"en":"The lawyer reviews documents and prepares necessary contracts or petitions.","tr":"Avukat belgeleri inceler ve gerekli sözleşme veya dilekçeleri hazırlar.","ar":"يراجع المحامي المستندات ويعد العقود أو الالتماسات اللازمة."}[lang]),
-        (5,  {"en":"Action Execution","tr":"İşlemin Tesis Edilmesi","ar":"تنفيذ الإجراء"}[lang],
+              {"en":"A qualified lawyer reviews the contract under the Turkish Code of Obligations (TBK). They identify void clauses, unfair terms, and your legal rights.",
+               "tr":"Nitelikli bir avukat, sözleşmeyi Türk Borçlar Kanunu (TBK) kapsamında inceler. Geçersiz maddeler, haksız şartlar ve haklarınız belirlenir.",
+               "ar":"يراجع المحامي العقد بموجب قانون الالتزامات التركي. يُحدّد البنود الباطلة والشروط غير العادلة وحقوقك القانونية."}[lang]),
+        (4,  {"en":"Risk Assessment & Flag Dangerous Clauses","tr":"Risk Değerlendirmesi ve Tehlikeli Maddelerin İşaretlenmesi","ar":"تقييم المخاطر وتحديد البنود الخطيرة"}[lang],
               {"en":"Agent/Human","tr":"Ajan/İnsan","ar":"وكيل/بشري"}[lang],
-              {"en":"Submit documents to court, registry, or relevant institutions.","tr":"Belgeleri mahkemeye, sicile veya ilgili kurumlara sunun.","ar":"تقديم المستندات إلى المحكمة أو السجل أو المؤسسات ذات الصلة."}[lang]),
+              {"en":"Your lawyer prepares a written risk report listing clauses that expose you to liability, excessive penalties, or are legally unenforceable in Turkey.",
+               "tr":"Avukatınız; sizi sorumluluğa, aşırı cezalara maruz bırakan veya Türkiye'de uygulanamaz olan maddeleri içeren yazılı bir risk raporu hazırlar.",
+               "ar":"يُعدّ محاميك تقرير مخاطر مكتوباً يحدد البنود التي تعرّضك للمسؤولية أو العقوبات المفرطة أو غير القابلة للتنفيذ."}[lang]),
+        (5,  {"en":"Negotiation & Proposed Amendments","tr":"Müzakere ve Önerilen Değişiklikler","ar":"التفاوض والتعديلات المقترحة"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Your lawyer drafts a counter-proposal or amendment letter for negotiation with the other party. Keep all negotiations in writing.",
+               "tr":"Avukatınız, karşı tarafla müzakere için bir karşı öneri veya değişiklik mektubu hazırlar. Tüm müzakereleri yazılı tutun.",
+               "ar":"يُعدّ محاميك مقترحاً مضاداً أو خطاب تعديل للتفاوض مع الطرف الآخر. احتفظ بجميع المفاوضات كتابةً."}[lang]),
+        (6,  {"en":"Finalize & Sign Revised Contract","tr":"Revize Sözleşmeyi Sonuçlandırın ve İmzalayın","ar":"صياغة العقد المنقّح والتوقيع عليه"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Once both parties agree, sign the revised contract. Ensure all previous drafts and any oral agreements are properly superseded in writing.",
+               "tr":"Her iki taraf anlaştığında revize sözleşmeyi imzalayın. Önceki tüm taslaklar ve sözlü anlaşmaların yazılı olarak geçersiz kılındığından emin olun.",
+               "ar":"بعد موافقة الطرفين، وقّع العقد المعدّل. تأكد من أن جميع المسودات والاتفاقات الشفهية السابقة مستبدَلة كتابةً."}[lang]),
+        (7,  {"en":"Notarize if Required","tr":"Gerekirse Noterde Onaylayın","ar":"التصديق لدى كاتب العدل إذا لزم"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Certain contracts (real estate, power of attorney, shareholder agreements) must be notarized under Turkish law. Visit a Notary (Noter) with both parties and valid IDs.",
+               "tr":"Belirli sözleşmeler (gayrimenkul, vekaletname, ortaklık sözleşmeleri) Türk hukukuna göre noter onayı gerektirir. Geçerli kimliklerle notere gidin.",
+               "ar":"بعض العقود (العقارات، التوكيلات، اتفاقيات المساهمين) تتطلب التصديق لدى كاتب العدل بموجب القانون التركي."}[lang]),
+        (8,  {"en":"Archive & Record Keeping","tr":"Arşivleme ve Kayıt Tutma","ar":"الأرشفة وحفظ السجلات"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Store signed originals in a secure location. Keep digital backups. Turkish law allows contract disputes to be raised up to 10 years after signing.",
+               "tr":"İmzalı asıl nüshaları güvenli bir yerde saklayın. Dijital yedek alın. Türk hukuku, imzalamadan sonra 10 yıla kadar sözleşme ihtilafı açılmasına olanak tanır.",
+               "ar":"احفظ النسخ الأصلية الموقّعة في مكان آمن. احتفظ بنسخ احتياطية رقمية. يُتيح القانون التركي رفع نزاعات العقود حتى 10 سنوات بعد التوقيع."}[lang]),
+    ]
+
+
+def _steps_lawyer_company(lang):
+    """Company Formation in Turkey — 8 professional steps."""
+    return [
+        (1,  {"en":"Choose Your Company Structure","tr":"Şirket Yapınızı Seçin","ar":"اختر هيكل شركتك"}[lang],
+              {"en":"Human/Agent","tr":"İnsan/Ajan","ar":"بشري/وكيل"}[lang],
+              {"en":"Decide between Ltd. Şirket (LLC, minimum 10,000 TL capital) or A.Ş. (Joint Stock Co., min. 250,000 TL). Ltd. is the most common for foreigners and SMEs.",
+               "tr":"Ltd. Şirket (min. 10.000 TL sermaye) veya A.Ş. (min. 250.000 TL) arasında karar verin. Ltd. yabancılar ve KOBİ'ler için en yaygın seçenektir.",
+               "ar":"اختر بين شركة ذات مسؤولية محدودة (Ltd., الحد الأدنى 10,000 TL) أو شركة مساهمة (A.Ş., أدنى 250,000 TL). الشركة ذات المسؤولية المحدودة هي الأكثر شيوعاً للأجانب."}[lang]),
+        (2,  {"en":"Reserve Company Name via MERSİS","tr":"MERSİS'te Şirket Unvanını Rezerve Et","ar":"حجز اسم الشركة عبر MERSİS"}[lang],
+              {"en":"Agent","tr":"Ajan","ar":"وكيل"}[lang],
+              _n("mersis_name", lang)),
+        (3,  {"en":"Prepare Articles of Association (Ana Sözleşme)","tr":"Ana Sözleşmeyi Hazırlayın","ar":"إعداد النظام الأساسي للشركة"}[lang],
+              {"en":"Agent/Human","tr":"Ajan/İnsan","ar":"وكيل/بشري"}[lang],
+              {"en":"MERSİS generates the draft Articles after steps 1–2. Review carefully, print 3 copies for the notary. Your lawyer should review before signing.",
+               "tr":"MERSİS, 1–2. adımlardan sonra taslak Ana Sözleşme'yi oluşturur. 3 kopya yazdırın. İmzalamadan önce avukatınız incelemelidir.",
+               "ar":"يُنشئ MERSİS مسودة النظام الأساسي بعد الخطوتين 1–2. اطبع 3 نسخ. يجب مراجعة محاميك قبل التوقيع."}[lang]),
+        (4,  {"en":"Notarize Articles & Signatures","tr":"Sözleşme ve İmzaları Noter'de Onaylayın","ar":"تصديق النظام الأساسي والتوقيعات لدى كاتب العدل"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"All shareholders must attend the notary in person with valid IDs. Foreign nationals need a certified Turkish translation of their passport.",
+               "tr":"Tüm hissedarlar geçerli kimliklerle notere bizzat gitmelidir. Yabancı uyrukluların pasaportlarının onaylı Türkçe tercümesi gerekmektedir.",
+               "ar":"يجب على جميع المساهمين الحضور شخصياً لدى كاتب العدل مع هوياتهم. الأجانب يحتاجون ترجمة تركية معتمدة لجوازات سفرهم."}[lang]),
+        (5,  {"en":"Register with the Trade Registry (Ticaret Sicili)","tr":"Ticaret Siciline Kayıt Yaptırın","ar":"التسجيل في السجل التجاري"}[lang],
+              {"en":"Agent/Human","tr":"Ajan/İnsan","ar":"وكيل/بشري"}[lang],
+              {"en":"Submit notarized Articles, shareholder list, lease agreement, and ID copies to your local Trade Registry Office. Pay the registration fee (~500–1,500 TL). Processing takes 1–3 business days.",
+               "tr":"Noter onaylı sözleşme, hissedar listesi, kira sözleşmesi ve kimlik kopyalarını yerel Ticaret Sicili'ne teslim edin. Kayıt ücreti: ~500–1.500 TL. İşlem süresi: 1–3 iş günü.",
+               "ar":"قدم إلى السجل التجاري المحلي: النظام الأساسي الموثّق، قائمة المساهمين، عقد الإيجار. الرسوم: ~500–1,500 TL. المعالجة: 1–3 أيام عمل."}[lang]),
+        (6,  {"en":"Register with the Tax Office (Vergi Dairesi)","tr":"Vergi Dairesine Kayıt Olun","ar":"التسجيل في مكتب الضرائب"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Bring your Trade Registry certificate to your local tax office to register for corporate income tax (kurumlar vergisi) and VAT (KDV). Receive your official tax plate to display at your premises.",
+               "tr":"Tescil belgenizle yerel vergi dairesine gidin. Kurumlar vergisi ve KDV kaydı yapın. İşyerinizde asılacak resmi vergi levhasını alın.",
+               "ar":"أحضر شهادة السجل التجاري إلى مكتب الضرائب. سجّل للضريبة على دخل الشركات وضريبة القيمة المضافة. استلم لوحة الضرائب الرسمية."}[lang]),
+        (7,  {"en":"Open a Corporate Bank Account","tr":"Kurumsal Banka Hesabı Açın","ar":"فتح حساب بنكي للشركة"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Open a corporate account at any Turkish bank (Ziraat, İş Bankası, Garanti BBVA, VakıfBank). Bring your Trade Registry certificate and tax registration. The account activates your company for transactions.",
+               "tr":"Herhangi bir Türk bankasında (Ziraat, İş, Garanti, VakıfBank) kurumsal hesap açın. Tescil belgesi ve vergi kaydınızı getirin. Hesap, şirketinizi işlemlere açar.",
+               "ar":"افتح حساباً في أي بنك تركي. أحضر شهادة التسجيل التجاري وإيصال التسجيل الضريبي. الحساب يُفعّل شركتك للمعاملات المالية."}[lang]),
+        (8,  {"en":"Hire an Accountant & Begin Operations","tr":"Muhasebeci Tutun ve Faaliyete Başlayın","ar":"توظيف محاسب وبدء العمليات"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Turkish law requires a certified accountant (SMMM) for companies. They handle monthly VAT filings, annual tax returns, and SGK employee registrations. Register any employees before their first day.",
+               "tr":"Türk hukuku, şirketler için sertifikalı muhasebeci (SMMM) zorunlu kılar. Aylık KDV beyannamesi, yıllık vergi beyannamesi ve SGK işlemlerini yürütürler.",
+               "ar":"القانون التركي يُلزم الشركات بتعيين محاسب معتمد (SMMM). يتولى إدارة إقرارات ضريبة القيمة المضافة الشهرية والإقرارات السنوية وتسجيلات العمالة."}[lang]),
+    ]
+
+
+def _steps_lawyer_employment(lang):
+    """Employment Law dispute — 8 professional steps."""
+    return [
+        (1,  {"en":"Understand Your Employment Rights","tr":"İş Haklarınızı Anlayın","ar":"فهم حقوق العمل"}[lang],
+              {"en":"Human/Agent","tr":"İnsan/Ajan","ar":"بشري/وكيل"}[lang],
+              {"en":"Under Turkish Labour Law No. 4857, employees working 1+ year are entitled to notice pay and severance (kıdem tazminatı = 30 days' pay per year of service). Review your contract and payslips.",
+               "tr":"4857 sayılı İş Kanunu'na göre 1+ yıl çalışan işçiler ihbar tazminatı ve kıdem tazminatına (her hizmet yılı için 30 günlük ücret) hak kazanır. Sözleşme ve bordrolarınızı gözden geçirin.",
+               "ar":"بموجب قانون العمل 4857، يحق للعمال الذين أمضوا +1 سنة الحصول على بدل إشعار ومكافأة نهاية خدمة (kıdem = 30 يوماً لكل سنة خدمة). راجع عقدك وكشوف الراتب."}[lang]),
+        (2,  {"en":"Collect All Employment Evidence","tr":"Tüm İş Kanıtlarını Toplayın","ar":"جمع جميع أدلة العمل"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Gather: signed employment contract, all payslips, written termination notice, any emails/messages from your employer, HR letters, and proof of worked hours (if relevant).",
+               "tr":"Toplayın: imzalı iş sözleşmesi, tüm bordroları, yazılı iş akdi fesih bildirimi, işverenden gelen e-postalar/mesajlar, İK mektupları ve çalışma saatleri kanıtı.",
+               "ar":"اجمع: عقد العمل الموقّع، جميع كشوف الراتب، إشعار الفسخ الخطي، رسائل البريد الإلكتروني من صاحب العمل، خطابات الموارد البشرية."}[lang]),
+        (3,  {"en":"Review the Termination Notice","tr":"Fesih Bildirimini İnceleyin","ar":"مراجعة إشعار الفسخ"}[lang],
+              {"en":"Agent/Human","tr":"Ajan/İnsan","ar":"وكيل/بشري"}[lang],
+              {"en":"Your lawyer checks whether the termination complied with Turkish law: Was it in writing? Valid reason stated? Correct notice period given? Wrongful termination opens the door to reinstatement or compensation.",
+               "tr":"Avukatınız feshin Türk hukukuna uygun olup olmadığını kontrol eder: Yazılı mıydı? Geçerli neden belirtildi mi? Doğru ihbar süresi verildi mi? Haksız fesih; işe iade veya tazminat hakkı doğurur.",
+               "ar":"يتحقق محاميك مما إذا كان الفسخ متوافقاً مع القانون التركي: هل كان خطياً؟ هل سُرد سبب صحيح؟ هل مُنح إشعار صحيح؟ الفسخ التعسفي يُفتح باب إعادة التوظيف أو التعويض."}[lang]),
+        (4,  {"en":"Calculate Compensation Entitlements","tr":"Tazminat Haklarını Hesaplayın","ar":"حساب مستحقات التعويض"}[lang],
+              {"en":"Agent/Human","tr":"Ajan/İnsan","ar":"وكيل/بشري"}[lang],
+              {"en":"A lawyer calculates your total entitlement: severance pay (kıdem tazminatı), notice pay (ihbar tazminatı), unused annual leave, and any unpaid overtime. This forms the basis of your claim.",
+               "tr":"Avukat toplam hakkınızı hesaplar: kıdem tazminatı, ihbar tazminatı, kullanılmamış yıllık izin ve ödenmemiş fazla mesai. Bu, davanızın temelini oluşturur.",
+               "ar":"يحسب المحامي استحقاقاتك: مكافأة نهاية الخدمة، بدل الإشعار، الإجازات السنوية غير المستخدمة، والعمل الإضافي غير المدفوع."}[lang]),
+        (5,  {"en":"Mandatory Mediation (Zorunlu Arabuluculuk)","tr":"Zorunlu Arabuluculuk","ar":"الوساطة الإجبارية"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Turkish law requires mediation before filing a Labour Court (İş Mahkemesi) claim. Apply at the courthouse for a mediator. Most cases resolve here in 1–3 sessions within 3 weeks — saving both time and money.",
+               "tr":"Türk hukuku, İş Mahkemesi davası açmadan önce arabuluculuğu zorunlu kılar. Adliyede arabulucu başvurusu yapın. Çoğu dava bu aşamada 3 hafta içinde 1–3 seansta çözülür.",
+               "ar":"يُلزم القانون التركي بالوساطة قبل رفع دعوى في محكمة العمل. تقدّم بطلب وسيط في المحكمة. تُحسم معظم القضايا هنا خلال 3 أسابيع في 1–3 جلسات."}[lang]),
+        (6,  {"en":"File a Claim at Labour Court (İş Mahkemesi)","tr":"İş Mahkemesine Dava Açın","ar":"رفع دعوى في محكمة العمل"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"If mediation fails, your lawyer files the formal lawsuit. Wrongful dismissal claims must be filed within 1 month of termination. Other compensation claims have a 5-year statute of limitations.",
+               "tr":"Arabuluculuk başarısız olursa avukatınız resmi davayı açar. Haksız fesih davaları, fesihten itibaren 1 ay içinde açılmalıdır. Diğer tazminat davalarında 5 yıllık zamanaşımı uygulanır.",
+               "ar":"إذا فشلت الوساطة، يرفع محاميك الدعوى الرسمية. دعاوى الفصل التعسفي يجب رفعها خلال شهر من الفسخ. دعاوى التعويض الأخرى تخضع لتقادم 5 سنوات."}[lang]),
+        (7,  {"en":"Court Hearings & Evidence Submission","tr":"Duruşmalar ve Delil Sunumu","ar":"جلسات المحكمة وتقديم الأدلة"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Attend all scheduled hearings. Your lawyer presents the evidence, witnesses if any, and legal arguments. Turkish labour courts are generally employee-friendly — the burden of proof shifts to the employer.",
+               "tr":"Tüm duruşmalara katılın. Avukatınız delilleri, tanıkları ve hukuki argümanları sunar. Türk iş mahkemeleri genellikle işçi lehine tavır alır; ispat yükü işverene aittir.",
+               "ar":"احضر جميع الجلسات المحددة. يقدم محاميك الأدلة والشهود والحجج القانونية. محاكم العمل التركية عموماً تميل لصالح الموظف والعبء الإثباتي يقع على صاحب العمل."}[lang]),
+        (8,  {"en":"Verdict & Enforcement","tr":"Karar ve İcra Takibi","ar":"الحكم والتنفيذ"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"If the court rules in your favour, the employer must pay or reinstate you within a set period. If they refuse, your lawyer initiates enforcement proceedings (icra takibi) to compel payment.",
+               "tr":"Mahkeme lehinize karar verirse, işveren belirli süre içinde ödeme yapmak veya sizi işe iade etmek zorundadır. Reddederlerse avukatınız ödemeyi zorlamak için icra takibi başlatır.",
+               "ar":"إذا حكمت المحكمة لصالحك، يجب على صاحب العمل الدفع أو إعادة توظيفك. إذا رفضوا، يبدأ محاميك إجراءات الإنفاذ لإلزامهم بالدفع."}[lang]),
+    ]
+
+
+def _steps_lawyer_dispute(lang):
+    """Legal Disputes & Litigation — 7 professional steps."""
+    return [
+        (1,  {"en":"Document the Dispute Thoroughly","tr":"İhtilafı Kapsamlı Olarak Belgeleyin","ar":"توثيق النزاع بشكل شامل"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Compile all relevant evidence: contracts, invoices, emails, text messages, photos, and any witness information. Well-documented cases have a significantly higher success rate in Turkish courts.",
+               "tr":"Tüm ilgili delilleri toplayın: sözleşmeler, faturalar, e-postalar, mesajlar, fotoğraflar ve tanık bilgileri. İyi belgelenmiş davalar Türk mahkemelerinde çok daha yüksek başarı oranına sahiptir.",
+               "ar":"اجمع جميع الأدلة ذات الصلة: العقود والفواتير والرسائل الإلكترونية والصور ومعلومات الشهود. القضايا الموثّقة جيداً تتمتع بمعدل نجاح أعلى بكثير."}[lang]),
+        (2,  {"en":"Legal Assessment of Your Case","tr":"Davanızın Hukuki Değerlendirmesi","ar":"التقييم القانوني لقضيتك"}[lang],
+              {"en":"Agent/Human","tr":"Ajan/İnsan","ar":"وكيل/بشري"}[lang],
+              {"en":"Your lawyer reviews the facts and applicable Turkish law (civil, commercial, or criminal) to assess your legal standing, realistic outcomes, and the risks and costs of litigation.",
+               "tr":"Avukatınız gerçekleri ve uygulanabilir Türk hukukunu (medeni, ticari veya cezai) inceleyerek hukuki durumunuzu, gerçekçi sonuçları ve dava maliyetlerini değerlendirir.",
+               "ar":"يراجع محاميك الوقائع والقانون التركي المنطبق (مدني أو تجاري أو جنائي) لتقييم وضعك القانوني والنتائج المحتملة وتكاليف التقاضي."}[lang]),
+        (3,  {"en":"Send a Formal Written Notice (İhtarname)","tr":"Resmi Yazılı İhtar Gönderin (İhtarname)","ar":"إرسال إشعار خطي رسمي (إخطار)"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Before filing a lawsuit, your lawyer sends a notarized warning letter (ihtarname) to the other party via a notary. This officially notifies them of your claim and grants a deadline to comply. Required for many dispute types.",
+               "tr":"Dava açmadan önce avukatınız noter aracılığıyla karşı tarafa noter ihtarnamesi gönderir. Bu, talebinizi resmi olarak bildirir ve uyum için süre tanır. Pek çok ihtilaf türü için zorunludur.",
+               "ar":"قبل رفع الدعوى، يُرسل محاميك إخطاراً رسمياً موثّقاً إلى الطرف الآخر عبر كاتب العدل. يُعلمهم رسمياً بمطالبتك ويمنحهم مهلة للامتثال. مطلوب لأنواع كثيرة من النزاعات."}[lang]),
+        (4,  {"en":"Mandatory Mediation Attempt","tr":"Zorunlu Arabuluculuk Girişimi","ar":"محاولة الوساطة الإجبارية"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Turkish law mandates mediation before filing commercial or labour disputes in court. Apply at the nearest courthouse. Mediation is confidential and typically resolved in 3 sessions — saving months of litigation.",
+               "tr":"Türk hukuku, ticari veya iş anlaşmazlıklarını mahkemeye taşımadan önce arabuluculuğu zorunlu kılar. En yakın adliyede başvurun. Arabuluculuk gizlidir ve genellikle 3 seansta çözülür.",
+               "ar":"يُلزم القانون التركي بالوساطة قبل رفع النزاعات التجارية أو العمالية. تقدّم بطلب في أقرب محكمة. الوساطة سرية وتُحسم عادةً في 3 جلسات."}[lang]),
+        (5,  {"en":"File the Court Petition (Dava Dilekçesi)","tr":"Dava Dilekçesini Mahkemeye Sunun","ar":"تقديم عريضة الدعوى"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"If mediation fails, your lawyer files a formal court petition at the appropriate court (Commercial, Civil, or Administrative). The case is assigned a docket number and a hearing date is set.",
+               "tr":"Arabuluculuk başarısız olursa avukatınız uygun mahkemeye (Ticaret, Asliye Hukuk veya İdare) resmi dava dilekçesi sunar. Dava; dosya numarası ve duruşma tarihi alır.",
+               "ar":"إذا فشلت الوساطة، يُقدّم محاميك عريضة رسمية إلى المحكمة المختصة. يُخصّص للقضية رقم ملف وتاريخ جلسة."}[lang]),
+        (6,  {"en":"Hearings, Evidence & Witnesses","tr":"Duruşmalar, Deliler ve Tanıklar","ar":"الجلسات والأدلة والشهود"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Attend all hearings. Your lawyer presents arguments and evidence, cross-examines witnesses, and responds to the opposing counsel. Turkish court proceedings are conducted in Turkish — your lawyer handles all communications.",
+               "tr":"Tüm duruşmalara katılın. Avukatınız argümanları ve delilleri sunar, tanıkları sorgular ve karşı avukata yanıt verir. Türk mahkeme süreçleri Türkçe yürütülür.",
+               "ar":"احضر جميع الجلسات. يقدم محاميك الحجج والأدلة ويستجوب الشهود ويرد على محامي الخصم. إجراءات المحاكم التركية تُجرى باللغة التركية."}[lang]),
+        (7,  {"en":"Court Ruling & Enforcement (İcra Takibi)","tr":"Mahkeme Kararı ve İcra Takibi","ar":"حكم المحكمة والتنفيذ"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"After the ruling, the losing party has 30 days to comply or appeal. If they don't comply voluntarily, your lawyer initiates enforcement (icra takibi) through the Enforcement Directorate to seize assets or enforce payment.",
+               "tr":"Karar sonrası kaybeden tarafın 30 gün uyum veya itiraz hakkı vardır. Gönüllü uymayı reddederlerse avukatınız; varlıklara el koymak veya ödemeyi zorlamak için İcra Müdürlüğü üzerinden icra takibi başlatır.",
+               "ar":"بعد الحكم، للطرف الخاسر 30 يوماً للامتثال أو الاستئناف. في حال الرفض، يبدأ محاميك إجراءات الإنفاذ عبر مديرية التنفيذ لحجز الأصول أو إلزام الدفع."}[lang]),
+    ]
+
+
+def _steps_lawyer_residency(lang):
+    """Residency / Work Permit in Turkey — 7 professional steps."""
+    return [
+        (1,  {"en":"Determine Your Permit Type","tr":"İzin Türünüzü Belirleyin","ar":"تحديد نوع التصريح"}[lang],
+              {"en":"Human/Agent","tr":"İnsan/Ajan","ar":"بشري/وكيل"}[lang],
+              {"en":"Identify which permit you need: Work Permit (Çalışma İzni, employer-sponsored), Residence Permit (İkamet, self-applied), or a combined Work + Residence permit. Your situation determines the application path.",
+               "tr":"Hangi izni ihtiyaç duyduğunuzu belirleyin: Çalışma İzni (işveren destekli), İkamet İzni (bireysel başvuru) veya birleşik Çalışma + İkamet izni. Durumunuz başvuru yolunu belirler.",
+               "ar":"حدد نوع التصريح المطلوب: تصريح عمل (بكفالة صاحب العمل)، إذن إقامة (بطلب شخصي)، أو تصريح مشترك. وضعك يحدد مسار الطلب."}[lang]),
+        (2,  {"en":"Gather Required Documents","tr":"Gerekli Belgeleri Toplayın","ar":"جمع المستندات المطلوبة"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Core documents: valid passport (6+ months remaining), biometric photos, health insurance policy, proof of address (notarized rental contract or dormitory letter). Work permit also needs: employment contract, Social Security Number, employer company registration.",
+               "tr":"Temel belgeler: geçerli pasaport (6+ ay), biyometrik fotoğraf, sağlık sigortası, adres kanıtı (noter onaylı kira veya yurt belgesi). Çalışma izni için ayrıca: iş sözleşmesi, SGK numarası, işverenin şirket tescili.",
+               "ar":"المستندات الأساسية: جواز سفر ساري (6+ أشهر)، صور بيومترية، وثيقة تأمين صحي، إثبات عنوان. تصريح العمل يحتاج أيضاً: عقد العمل، رقم الضمان الاجتماعي، تسجيل الشركة."}[lang]),
+        (3,  {"en":"Submit Work Permit Application (Employer Step)","tr":"Çalışma İzni Başvurusunu Yapın (İşveren Adımı)","ar":"تقديم طلب تصريح العمل (خطوة صاحب العمل)"}[lang],
+              {"en":"Agent/Human","tr":"Ajan/İnsan","ar":"وكيل/بشري"}[lang],
+              {"en":"Work permits MUST be applied for by your employer via the Ministry of Labour's online portal (calismaizni.ailevecalisma.gov.tr). You cannot apply independently. Your employer submits the application and you complete any required forms.",
+               "tr":"Çalışma izinleri MUTLAKA işvereniniz tarafından Aile ve Çalışma Bakanlığı'nın online portalı üzerinden başvurulmalıdır. Bağımsız başvuru yapamazsınız. İşveren başvuruyu yapar, siz gerekli formları tamamlarsınız.",
+               "ar":"يجب تقديم طلبات تصريح العمل من قِبل صاحب العمل عبر بوابة وزارة العمل الإلكترونية. لا يمكنك التقدم باستقلالية. يُقدّم صاحب العمل الطلب وتُكمل الاستمارات المطلوبة."}[lang]),
+        (4,  {"en":"Residence Permit Online Application (e-İkamet)","tr":"İkamet İzni Online Başvurusu (e-İkamet)","ar":"تقديم طلب الإقامة عبر الإنترنت (e-İkamet)"}[lang],
+              {"en":"Agent","tr":"Ajan","ar":"وكيل"}[lang],
+              {"en":"For a residence permit, apply at e-ikamet.goc.gov.tr BEFORE your tourist visa or entry stamp expires. Choose the correct permit type (short-term, student, family). Reserve your appointment date immediately — slots fill fast in major cities.",
+               "tr":"İkamet izni için, turist vizanız veya giriş damganız dolmadan e-ikamet.goc.gov.tr üzerinden başvurun. Doğru izin türünü seçin (kısa dönemli, öğrenci, aile). Randevu tarihinizi hemen ayırtın; büyük şehirlerde hızla dolmaktadır.",
+               "ar":"لإذن الإقامة، قدّم طلبك على e-ikamet.goc.gov.tr قبل انتهاء تأشيرتك السياحية. اختر نوع التصريح الصحيح. احجز موعدك فوراً — المواعيد تمتلئ بسرعة في المدن الكبرى."}[lang]),
+        (5,  {"en":"Attend Your Göç İdaresi Appointment","tr":"Göç İdaresi Randevusuna Katılın","ar":"حضور موعد إدارة الهجرة"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Bring your complete 'pink folder': passport + copy, biometric photos, health insurance, notarized address document, application confirmation printout, and application fee receipt. Arrive 15 minutes early.",
+               "tr":"Tam 'pembe dosyanızı' getirin: pasaport + kopyası, biyometrik fotoğraf, sağlık sigortası, noter onaylı adres belgesi, başvuru onayı çıktısı ve başvuru ücreti makbuzu. 15 dakika erken gelin.",
+               "ar":"أحضر 'المجلد الوردي' الكامل: جواز السفر + نسخة، صور بيومترية، تأمين صحي، إثبات عنوان موثّق، طباعة تأكيد الطلب، وإيصال رسوم الطلب. اوصل قبل 15 دقيقة."}[lang]),
+        (6,  {"en":"Await Approval & Track Application","tr":"Onayı Bekleyin ve Başvuruyu Takip Edin","ar":"انتظار الموافقة وتتبع الطلب"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Processing takes 4–8 weeks for work permits and 3–5 weeks for residence permits. Track your application status online. You can legally stay in Turkey while your application is under review — keep your appointment receipt as proof.",
+               "tr":"İşlem süresi: çalışma izinleri için 4–8 hafta, ikamet izinleri için 3–5 hafta. Başvurunuzu çevrimiçi takip edin. Başvurunuz incelendikçe Türkiye'de yasal olarak kalabilirsiniz; randevu makbuzunuzu kanıt olarak saklayın.",
+               "ar":"تستغرق المعالجة 4–8 أسابيع لتصاريح العمل و3–5 أسابيع لإذن الإقامة. تتبع طلبك عبر الإنترنت. يحق لك البقاء في تركيا قانونياً أثناء مراجعة طلبك — احتفظ بإيصال الموعد كدليل."}[lang]),
+        (7,  {"en":"Receive Permit & Plan Renewal","tr":"İzninizi Alın ve Yenilemeyi Planlayın","ar":"استلام التصريح والتخطيط للتجديد"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Your Kimlik card or work permit arrives by PTT mail. Mark the expiry date in your calendar and begin renewal 60 days before it expires. Never overstay — it results in bans and fines.",
+               "tr":"Kimlik kartınız veya çalışma izniniz PTT ile gelir. Takvime son kullanma tarihini not edin ve dolmadan 60 gün önce yenileme başvurusu yapın. Hiçbir zaman süre aşımı yapmayın — yasak ve para cezasına yol açar.",
+               "ar":"تصل بطاقة الكيمليك أو تصريح العمل عبر PTT. سجّل تاريخ انتهاء الصلاحية في التقويم وابدأ التجديد قبل 60 يوماً من الانتهاء. لا تتجاوز المدة — يُفضي إلى حظر وغرامات."}[lang]),
     ]
 
 def _steps_student_renew(lang):
@@ -445,13 +658,17 @@ def _steps_student_renew(lang):
     ]
 
 _BUILDERS = {
-    "food":    _steps_food,
-    "retail":  _steps_retail,
-    "service": _steps_service,
-    "general": _steps_general,
-    "student": _steps_student,
-    "student_renew": _steps_student_renew,
-    "lawyer":  _steps_lawyer,
+    "food":              _steps_food,
+    "retail":            _steps_retail,
+    "service":           _steps_service,
+    "general":           _steps_general,
+    "student":           _steps_student,
+    "student_renew":     _steps_student_renew,
+    "lawyer_contract":   _steps_lawyer_contract,
+    "lawyer_company":    _steps_lawyer_company,
+    "lawyer_employment": _steps_lawyer_employment,
+    "lawyer_dispute":    _steps_lawyer_dispute,
+    "lawyer_residency":  _steps_lawyer_residency,
 }
 
 

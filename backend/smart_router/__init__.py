@@ -71,9 +71,17 @@ _NEW_CONSULTATION_PATTERNS = [
     # Lawyer: I need legal help for / I need to form a company
     r"\b(form|create|register|incorporate|set up) (a |my |an )?(company|business|firm|ltd|aş)\b",
     r"\b(i need|i have|i got) (a |an )?(legal|contract|lawyer|employment) (problem|issue|dispute|case|question|matter)\b",
+    # Lawyer topic button exact labels (sent verbatim by the frontend chip buttons)
+    r"^(contract review|company formation|employment law|legal disputes|legal timelines|residency/permit|residency permit|work permit)$",
+    # Lawyer general consultation triggers (typed queries)
+    r"\b(review (my |a |the )?(contract|agreement|nda|clause)|check (my |this )?(contract|agreement))\b",
+    r"\b(form|open|start|register|incorporate) (a |my )?(company|ltd|limited şirket|anonim şirket|business|firm)\b",
+    r"\b(fired|wrongfully dismissed|unfair dismissal|severance pay|kıdem tazminat|employment dispute|labour court|iş mahkemesi)\b",
+    r"\b(work permit|residence permit|ikamet (başvuru|application)|çalışma izni|stay in turkey legally|legal to work)\b",
+    r"\b(legal dispute|lawsuit|mediation|arabuluculuk|ihtarname|file a claim|take to court|sue (someone|my|the))\b",
+    r"\b(how long (does|will|do)).{0,40}(company|permit|contract|court|case|formation|residency|ikamet)\b",
     # Naked location changes mid-session ("cafe in besiktas")
     r"\b(cafe|kafe|restaurant|restoran|retail|office|ofis|pharmacy|eczane|bakery|f[ıi]r[ıi]n|barber|berber|gym|spor|shop|store|company|ma[ğg]aza|d[üu]kkan) (in|at) \b",
-    # ID Renewal / Replacement
     # ID Renewal / Replacement
     r"\b(renew|replace).{1,15}(id|kimlik|student id)\b",
 ]
@@ -233,28 +241,132 @@ async def smart_router_handle(
                 labels = {"ag":"Institutions/Agencies", "dc":"Required Docs", "st":"Action Steps", "tm":"Timeline", "dy":"days"}
 
         elif assistant_type == "lawyer":
-            business_type = "Lawyer"
-            district = "Turkey"
-            timeline = 15
+            # Detect specific legal topic from the user's query
+            lower_q = query.lower()
             
-            if language == "tr":
-                permits = ["Hukuki İşlem"]
-                agencies = ["Noter", "Mahkeme / Adliye"]
-                docs = ["Kimlik", "Sözleşme / Evrak", "Vekaletname"]
-                summ = "Hukuki süreciniz için hazırladığımız çözüm adımları. Görüşmeyi başlatmak veya belgeleri yüklemek için Dashboard panelini kullanabilirsiniz."
-                labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Adımlar", "tm":"Süre", "dy":"gün"}
-            elif language == "ar":
-                permits = ["الإجراء القانوني"]
-                agencies = ["كاتب العدل", "المحكمة"]
-                docs = ["الهوية", "العقد / المستندات", "توكيل قانوني"]
-                summ = "خطوات العملية القانونية الخاصة بك. يمكنك استخدام لوحة التحكم لبدء التشاور أو رفع المستندات."
-                labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"الخطوات", "tm":"الجدول الزمني", "dy":"يوم"}
+            # Determine lawyer sub-type
+            if any(k in lower_q for k in ["contract", "sözleşme", "nda", "agreement", "clause", "review my", "check my", "service agreement", "lease agreement"]):
+                lawyer_subtype = "lawyer_contract"
+            elif any(k in lower_q for k in ["company", "form a company", "formation", "incorporate", "ltd", "a.ş", "mersis", "şirket kur", "register a company", "start a company", "business registration"]):
+                lawyer_subtype = "lawyer_company"
+            elif any(k in lower_q for k in ["fired", "dismissed", "termination", "severance", "labour", "labor", "employment", "işten çıkar", "kıdem", "unfair dismissal", "notice period", "job rights"]):
+                lawyer_subtype = "lawyer_employment"
+            elif any(k in lower_q for k in ["work permit", "work visa", "residence permit", "ikamet", "stay in turkey", "work legally", "çalışma izni", "legal to work"]):
+                lawyer_subtype = "lawyer_residency"
+            elif any(k in lower_q for k in ["dispute", "lawsuit", "sue", "court", "mediation", "arabuluculuk", "arbitration", "claim against", "ihtarname", "legal action"]):
+                lawyer_subtype = "lawyer_dispute"
             else:
-                permits = ["Legal Procedure"]
-                agencies = ["Notary Public", "Courthouse"]
-                docs = ["ID Card", "Contracts / Evidence", "Power of Attorney"]
-                summ = "Here are the outlined steps for your legal procedure. Please use the Dashboard to upload documents or execute actions."
-                labels = {"ag":"Institutions/Agencies", "dc":"Required Docs", "st":"Action Steps", "tm":"Timeline", "dy":"days"}
+                lawyer_subtype = "lawyer_contract"  # default
+
+            district = "Turkey"
+            
+            if lawyer_subtype == "lawyer_contract":
+                timeline = 14
+                if language == "tr":
+                    permits = ["Sözleşme İncelemesi", "Hukuki İzleme"]
+                    agencies = ["Avukat/Hukuk Bürosu", "Noter", "Türkiye Barolar Birliği"]
+                    docs = ["İmzalı Sözleşme", "Ekler ve Değişiklikler", "İlgili E-posta Yazışmaları", "Kimlik Belgesi"]
+                    summ = "Sözleşmenizi dikkatle inceliyoruz. Hangi maddelerin sizi rahatsız ettiğini belirtirseniz avukat ekibimiz riskleri analiz edip yazılı bir revizyon taslağı hazırlayacak. Belgelerinizi yüklemek için Dashboard'ı kullanın."
+                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Adımlar", "tm":"Süre", "dy":"gün"}
+                elif language == "ar":
+                    permits = ["مراجعة العقد", "الإجراء القانوني"]
+                    agencies = ["محامٍ / مكتب قانوني", "كاتب العدل", "نقابة المحامين التركية"]
+                    docs = ["العقد الموقّع", "الملاحق والتعديلات", "المراسلات الإلكترونية ذات الصلة", "وثيقة هوية"]
+                    summ = "نراجع عقدك بعناية. حدد البنود التي تقلقك وسيقوم فريقنا القانوني بتحليل المخاطر وإعداد مسودة تعديل خطية. استخدم لوحة التحكم لرفع مستنداتك."
+                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"الخطوات", "tm":"الجدول الزمني", "dy":"يوم"}
+                else:
+                    permits = ["Contract Review", "Legal Advisory"]
+                    agencies = ["Lawyer / Law Firm", "Notary Public", "Turkish Bar Association"]
+                    docs = ["Signed Contract", "Addendums & Amendments", "Relevant Email Correspondence", "Valid ID Document"]
+                    summ = "We're reviewing your contract carefully. Tell us which clauses concern you, and our legal team will analyze the risks and prepare a written amendment draft. Use the Dashboard to upload your documents."
+                    labels = {"ag":"Institutions/Agencies", "dc":"Required Docs", "st":"Action Steps", "tm":"Timeline", "dy":"days"}
+                    
+            elif lawyer_subtype == "lawyer_company":
+                timeline = 10
+                if language == "tr":
+                    permits = ["Ltd. Şirket Tescili", "Vergi Kaydı", "Ticaret Sicili Tescili"]
+                    agencies = ["Ticaret Sicili Müdürlüğü", "Vergi Dairesi", "MERSİS Portalı", "Noter"]
+                    docs = ["Pasaport / Kimlik (Tüm Ortaklar)", "Ana Sözleşme Taslağı", "Kira Sözleşmesi / Ofis Adresi", "Sermaye Deposu Makbuzu (Gerekirse)"]
+                    summ = "Şirket kuruluşunuz için adım adım yol haritanız hazır. MERSİS'te ad rezervasyonundan Ticaret Sicili ve vergi kaydına kadar tüm süreci aşağıda görebilirsiniz. Dashboard üzerinden belge yükleyip işlemlerinizi takip edebilirsiniz."
+                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Adımlar", "tm":"Süre", "dy":"gün"}
+                elif language == "ar":
+                    permits = ["تسجيل شركة ذات مسؤولية محدودة", "التسجيل الضريبي", "تسجيل السجل التجاري"]
+                    agencies = ["مديرية السجل التجاري", "مكتب الضرائب", "بوابة MERSİS", "كاتب العدل"]
+                    docs = ["جواز السفر / الهوية (جميع المساهمين)", "مسودة النظام الأساسي", "عقد الإيجار / عنوان المكتب", "إيصال إيداع رأس المال (إذا لزم)"]
+                    summ = "خريطة طريقك للتأسيس الشركة جاهزة. من حجز الاسم في MERSİS إلى التسجيل في السجل التجاري ومكتب الضرائب. استخدم لوحة التحكم لرفع مستنداتك وتتبع تقدمك."
+                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"الخطوات", "tm":"الجدول الزمني", "dy":"يوم"}
+                else:
+                    permits = ["Ltd. Şirket Registration", "Tax Registration", "Trade Registry Entry"]
+                    agencies = ["Trade Registry Directorate", "Tax Office (Vergi Dairesi)", "MERSİS Portal", "Notary Public (Noter)"]
+                    docs = ["Passport / ID (All Shareholders)", "Articles of Association Draft", "Office Lease or Address Proof", "Capital Deposit Receipt (if applicable)"]
+                    summ = "Your company formation roadmap is ready. From reserving your name in MERSİS to completing the Trade Registry and tax registrations — every step is mapped out below. Use the Dashboard to upload documents and track your progress."
+                    labels = {"ag":"Institutions/Agencies", "dc":"Required Docs", "st":"Action Steps", "tm":"Timeline", "dy":"days"}
+                    
+            elif lawyer_subtype == "lawyer_employment":
+                timeline = 21
+                if language == "tr":
+                    permits = ["İş Mahkemesi Başvurusu", "Zorunlu Arabuluculuk"]
+                    agencies = ["İş Mahkemesi", "Arabuluculuk Merkezi", "SGK", "Türkiye İş Kurumu (İŞKUR)"]
+                    docs = ["İmzalı İş Sözleşmesi", "Tüm Bordro Belgeleri", "Yazılı Fesih Bildirimi", "İşverenden Gelen Her Türlü Yazışma", "Fazla Mesai / Mesai Kanıtı"]
+                    summ = "İş haklarınızı savunmak için gerekli tüm adımlar aşağıda. Zorunlu arabuluculuktan başlayarak İş Mahkemesi sürecine kadar tüm hukuki yolu covering ediyoruz. Belgeleri Dashboard'a yükleyin, avukat ekibimiz değerlendirsin."
+                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Adımlar", "tm":"Süre", "dy":"gün"}
+                elif language == "ar":
+                    permits = ["دعوى محكمة العمل", "الوساطة الإجبارية"]
+                    agencies = ["محكمة العمل", "مركز الوساطة", "SGK", "إدارة التوظيف التركية (İŞKUR)"]
+                    docs = ["عقد العمل الموقّع", "جميع كشوف الرواتب", "إشعار الفسخ الخطي", "أي مراسلات من صاحب العمل", "دليل العمل الإضافي"]
+                    summ = "جميع الخطوات اللازمة للدفاع عن حقوقك العمالية موضّحة أدناه. من الوساطة الإجبارية حتى رفع الدعوى في محكمة العمل. ارفع مستنداتك في لوحة التحكم وسيراجعها فريقنا القانوني."
+                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"الخطوات", "tm":"الجدول الزمني", "dy":"يوم"}
+                else:
+                    permits = ["Labour Court Claim", "Mandatory Mediation (Arabuluculuk)"]
+                    agencies = ["Labour Court (İş Mahkemesi)", "Mediation Centre", "SGK (Social Security)", "Turkish Employment Agency (İŞKUR)"]
+                    docs = ["Signed Employment Contract", "All Payslips / Salary Records", "Written Termination Notice", "Any Employer Correspondence", "Overtime / Hours Worked Proof"]
+                    summ = "All the steps to defend your employment rights are mapped out below. From mandatory mediation through to the Labour Court — we cover the full legal path. Upload your documents to the Dashboard and our legal team will assess your case."
+                    labels = {"ag":"Institutions/Agencies", "dc":"Required Docs", "st":"Action Steps", "tm":"Timeline", "dy":"days"}
+                    
+            elif lawyer_subtype == "lawyer_residency":
+                timeline = 35
+                if language == "tr":
+                    permits = ["Çalışma İzni", "İkamet İzni (Kimlik)"]
+                    agencies = ["Göç İdaresi Genel Müdürlüğü", "Aile ve Çalışma Bakanlığı", "Sigorta Sağlayıcısı", "e-İkamet Portalı"]
+                    docs = ["Geçerli Pasaport (6+ ay)", "Biyometrik Fotoğraflar (4 adet)", "Yabancı Sağlık Sigortası", "Noter Onaylı Kira Sözleşmesi", "İş Sözleşmesi (Çalışma İzni için)", "Başvuru Ücreti Makbuzu"]
+                    summ = "Türkiye'de ikamet veya çalışma izni için hazırladığımız adım adım kılavuz. İzin türünüzü belirleyip e-İkamet sistemine başvurmaktan Göç İdaresi randevusuna kadar tüm süreci kapsıyor. Dashboard'dan belgelerinizi yükleyebilirsiniz."
+                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Adımlar", "tm":"Süre", "dy":"gün"}
+                elif language == "ar":
+                    permits = ["تصريح العمل", "إذن الإقامة (Kimlik)"]
+                    agencies = ["الإدارة العامة للهجرة", "وزارة العمل والشؤون الاجتماعية", "شركة التأمين الصحي", "بوابة e-İkamet"]
+                    docs = ["جواز سفر ساري (6+ أشهر)", "صور بيومترية (4 صور)", "تأمين صحي للأجانب", "عقد إيجار موثّق لدى كاتب العدل", "عقد العمل (لتصريح العمل)", "إيصال رسوم الطلب"]
+                    summ = "دليلنا خطوة بخطوة للحصول على إقامة أو تصريح عمل في تركيا. من تحديد نوع التصريح والتقديم عبر e-İkamet إلى حضور موعد إدارة الهجرة. ارفع مستنداتك من لوحة التحكم."
+                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"الخطوات", "tm":"الجدول الزمني", "dy":"يوم"}
+                else:
+                    permits = ["Work Permit (Çalışma İzni)", "Residence Permit / Kimlik (İkamet)"]
+                    agencies = ["Directorate General of Migration (Göç İdaresi)", "Ministry of Labour & Social Security", "Health Insurance Provider", "e-İkamet Portal"]
+                    docs = ["Valid Passport (6+ months remaining)", "Biometric Photos (4 copies)", "Foreign Health Insurance Policy", "Notarized Rental Contract", "Employment Contract (for Work Permit)", "Application Fee Receipt"]
+                    summ = "Your step-by-step guide to obtaining a residence or work permit in Turkey. From identifying your permit type and applying via e-İkamet to attending your Göç İdaresi appointment — the full process is below. Upload your documents from the Dashboard."
+                    labels = {"ag":"Institutions/Agencies", "dc":"Required Docs", "st":"Action Steps", "tm":"Timeline", "dy":"days"}
+                    
+            else:  # lawyer_dispute (default for general legal disputes)
+                timeline = 25
+                lawyer_subtype = "lawyer_dispute"
+                if language == "tr":
+                    permits = ["Hukuki İhtilaf Çözümü", "Arabuluculuk / Dava"]
+                    agencies = ["Arabuluculuk Merkezi", "Ticaret Mahkemesi / Asliye Hukuk", "İcra Müdürlüğü", "Noter"]
+                    docs = ["İlgili Tüm Sözleşmeler / Belgeler", "Fatura ve Ödeme Kayıtları", "E-posta / Yazışma Kayıtları", "Tanık Bilgileri (Varsa)", "Kimlik Belgesi"]
+                    summ = "Hukuki ihtilafınızı çözmek için gereken tüm adımlar aşağıda. Resmi ihtarnameden zorunlu arabuluculuğa, oradan da mahkeme sürecine kadar tüm hukuki yolu kapsıyoruz. Belgelerinizi yüklemek için Dashboard'ı kullanın."
+                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Adımlar", "tm":"Süre", "dy":"gün"}
+                elif language == "ar":
+                    permits = ["حل النزاع القانوني", "الوساطة / التقاضي"]
+                    agencies = ["مركز الوساطة", "المحكمة التجارية / المدنية", "مديرية التنفيذ", "كاتب العدل"]
+                    docs = ["جميع العقود / المستندات ذات الصلة", "الفواتير وسجلات الدفع", "سجلات البريد الإلكتروني / المراسلات", "معلومات الشهود (إن وجدوا)", "وثيقة هوية"]
+                    summ = "جميع الخطوات اللازمة لحل نزاعك القانوني موضّحة أدناه. من الإخطار الرسمي إلى الوساطة الإجبارية وصولاً إلى التقاضي — نغطي المسار القانوني الكامل. ارفع مستنداتك من لوحة التحكم."
+                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"الخطوات", "tm":"الجدول الزمني", "dy":"يوم"}
+                else:
+                    permits = ["Legal Dispute Resolution", "Mediation / Litigation"]
+                    agencies = ["Mediation Centre (Arabuluculuk)", "Commercial or Civil Court", "Enforcement Directorate (İcra Müdürlüğü)", "Notary Public (for ihtarname)"]
+                    docs = ["All Relevant Contracts / Documents", "Invoices & Payment Records", "Email & Communication Logs", "Witness Information (if any)", "Valid ID Document"]
+                    summ = "All the steps to resolve your legal dispute are mapped out below. From a formal warning letter (ihtarname) through mandatory mediation, and into court proceedings if needed — we cover the complete legal path. Upload your documents from the Dashboard."
+                    labels = {"ag":"Institutions/Agencies", "dc":"Required Docs", "st":"Action Steps", "tm":"Timeline", "dy":"days"}
+            
+            business_type = lawyer_subtype
         else:
             return None
 
