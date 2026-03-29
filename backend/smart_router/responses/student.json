@@ -1,0 +1,51 @@
+{
+  "renew_id": [
+    "To renew your Student ID (Kimlik), visit your university's Student Affairs office with your current ID, a passport photo, and your enrollment certificate.",
+    "Kimlik renewal is handled at Student Affairs. Bring a current photo, your expired card, and proof of enrollment. Need the step-by-step guide?",
+    "Whether your Kimlik is expired, damaged, or lost — start at the Student Affairs office. Want me to tailor the steps to your situation?",
+    "For a lost Student ID you'll also need a police report (kayıp belgesi) before visiting Student Affairs.",
+    "Kimlik renewals usually take 3–5 business days. Got your enrollment certificate ready?"
+  ],
+  "register_uni": [
+    "University registration in Turkey starts on the YÖKSİS portal. Do you know which university you're enrolling in?",
+    "The main steps are: YÖKSİS portal → document upload → in-person enrollment day → Student Affairs. Want me to tailor this to a specific university?",
+    "Registering at a Turkish university? You'll need your acceptance letter, passport, health insurance, and apostilled diploma. Shall I list all the steps?",
+    "Enrollment periods vary by university — most run in September and February. Which university are you joining?",
+    "For transfer students, registration also involves credit transfer approval from your faculty. Want the full transfer checklist?"
+  ],
+  "top_universities": [
+    "Turkey's top universities include Boğaziçi, METU, ITU, Koç, and Sabancı. Reply with a university name and I'll give you its full registration guide!",
+    "The most competitive universities in Turkey are Boğaziçi, METU, and Koç. Want details on any of them?",
+    "Top picks for international students include Boğaziçi, Bilkent, Koç, and Sabancı — all offer English-taught programs. Interested in any?",
+    "Turkey has excellent universities! Boğaziçi and METU are top-ranked. What field are you studying?",
+    "Here are the top 5: Boğaziçi, METU, ITU, Koç University, Sabancı University. Want registration steps for one of them?"
+  ],
+  "health_insurance": [
+    "International students in Turkey must have health insurance — either the state SGK plan or a private policy. Want help choosing?",
+    "You can apply for SGK student health insurance at the Social Security Institution office. Need the document list?",
+    "SGK student insurance costs around 500 TL/month and covers basic healthcare. Private insurance gives broader coverage.",
+    "Health insurance is mandatory for your residence permit application. Don't skip this step!",
+    "Most universities have a health center on campus covered by SGK. Want to know how to enroll?"
+  ],
+  "documents": [
+    "For university registration you'll need: passport, acceptance letter, apostilled high school diploma, health insurance, and biometric photos.",
+    "Standard student documents are: passport, acceptance letter, health insurance proof, and 4 biometric photos. Some universities also need bank statements.",
+    "Your full document checklist: passport (valid 6+ months), acceptance letter, health insurance, apostilled diploma, biometric photos, and online application confirmation.",
+    "Don't forget to apostille your diploma before arriving — Turkish universities require it for foreign qualifications.",
+    "Need the document checklist for a specific university? Tell me the name and I'll tailor it."
+  ],
+  "residence_permit": [
+    "As a student in Turkey you need a Student Residence Permit (ikamet) within 30 days of arriving. Have you started the application on the Göç İdaresi portal?",
+    "Student residence permits are applied for online at goc.gov.tr. You'll need your passport, enrollment certificate, health insurance, and address document.",
+    "The ikamet application takes about 3–4 weeks. Book your appointment early — slots fill up fast in September!",
+    "For your residence permit you'll need proof of accommodation (rental contract or dormitory letter). Got that sorted?",
+    "Missing your ikamet appointment can cause problems — apply as soon as you have your enrollment certificate!"
+  ],
+  "kimlik_lost": [
+    "For a lost Student ID, first go to the nearest police station and get a loss declaration (kayıp belgesi), then head to Student Affairs.",
+    "Lost your Kimlik? Don't worry — get a police report first, then visit Student Affairs with your enrollment certificate and a photo.",
+    "A lost Kimlik requires a police report (kayıp belgesi) before Student Affairs can issue a replacement.",
+    "The replacement process for a lost ID is: 1. Police report, 2. Student Affairs with photo + enrollment proof, 3. Wait 3–5 days.",
+    "Police reports for lost IDs are usually issued same-day at any police station. After that, Student Affairs takes care of the rest."
+  ]
+}

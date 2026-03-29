@@ -1,0 +1,76 @@
+{
+  "greeting": [
+    "Hey {name}! What can I help you with today?",
+    "Hi there! Ready to help — what's on your mind?",
+    "Hello {name}! How can I assist you?",
+    "Hey! What brings you here today?",
+    "Hi! Great to have you here. What do you need help with?"
+  ],
+  "farewell": [
+    "Goodbye! Feel free to come back anytime.",
+    "Take care, {name}! Good luck with everything.",
+    "See you around! Don't hesitate to reach out if you need anything.",
+    "Bye for now! We're here whenever you need us.",
+    "Goodbye! Wishing you all the best."
+  ],
+  "thanks": [
+    "You're welcome! Let me know if there's anything else I can help with.",
+    "Happy to help! Is there anything else on your mind?",
+    "Anytime! Don't hesitate to ask if you need more info.",
+    "Glad I could help! Anything else?",
+    "No problem at all! Feel free to ask away."
+  ],
+  "billing": {
+    "price": [
+      "Our plans start at a flat monthly fee — reply 'pricing' for the full breakdown.",
+      "Pricing depends on your plan tier. Want me to walk you through the options?",
+      "We have flexible plans for individuals and businesses. What are you looking for?",
+      "Our subscription costs vary by plan — want me to compare them for you?",
+      "The cost depends on which features you need. I can walk you through each plan if you'd like!"
+    ],
+    "refund": [
+      "Refunds are typically processed within 5 business days to your original payment method.",
+      "We process refunds within 5 working days. Got a specific order or invoice I can look into?",
+      "Our refund policy covers requests made within 14 days of the charge. Would you like me to initiate one?",
+      "Refunds go back to your original payment method within 5 business days — no worries there.",
+      "Happy to help with a refund. Can you share your account email so I can pull up the details?"
+    ],
+    "invoice": [
+      "You can download invoices from your account dashboard under Billing > Invoices.",
+      "Invoices are emailed automatically after every charge. Need a copy resent?",
+      "All your invoices are in the Billing section of your dashboard.",
+      "We email PDF invoices after every payment. Let me know if you need a duplicate.",
+      "Your invoice history lives in your account dashboard. Want me to guide you there?"
+    ],
+    "subscription": [
+      "You can manage, upgrade, or cancel your subscription from the Account Settings page.",
+      "Subscription changes take effect immediately. What would you like to do — upgrade, downgrade, or cancel?",
+      "You're in control — subscriptions can be changed anytime from your account.",
+      "To cancel, just head to Account > Subscription and hit 'Cancel Plan'. Want to keep it and just downgrade instead?",
+      "Your plan renews monthly. Want me to check when the next charge is?"
+    ]
+  },
+  "support": {
+    "error": [
+      "Sounds like a technical hiccup! Could you share a screenshot or the exact error message?",
+      "Let me look into that — what error are you seeing and on which page?",
+      "Sorry about that! Can you tell me what you were trying to do when the error appeared?",
+      "Errors can usually be fixed quickly. What does the message say?",
+      "That doesn't sound right. What browser or device are you using?"
+    ],
+    "not_working": [
+      "Sorry to hear something's not working. What feature is affected?",
+      "That's not right! Tell me which part isn't behaving and I'll dig in.",
+      "Let me help get that sorted — what exactly isn't working for you?",
+      "Is this happening every time, or just occasionally? That'll help me narrow it down.",
+      "Thanks for flagging that! Can you walk me through what you did before it stopped working?"
+    ],
+    "slow": [
+      "Sorry for the slow experience! Try refreshing the page or clearing your browser cache.",
+      "Performance issues can be caused by a few things — are you on a slow connection or a shared network?",
+      "Try a hard refresh (Ctrl+Shift+R) — that usually clears things up.",
+      "Is it slow on all pages or just one specific section?",
+      "We'll look into it. In the meantime, try a different browser to see if it helps."
+    ]
+  }
+}

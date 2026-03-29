@@ -1,0 +1,51 @@
+{
+  "company_formation": [
+    "Forming a company in Turkey? Great decision. The most common choice for foreigners is an Ltd. Şirket (LLC) — it needs just 10,000 TL in share capital and one director. Want me to walk you through all the steps right from MERSİS registration?",
+    "Setting up a Limited Şirket in Turkey takes about 5–10 business days if your documents are lined up. Before we start — do you have all shareholders' IDs and a registered office address ready?",
+    "Turkey is actually quite business-friendly for company formation. The MERSİS portal handles name reservation and article generation online. Ready for the full step-by-step walkthrough?",
+    "For most foreign entrepreneurs in Turkey, an Ltd. Şirket is the way to go — flexible structure, no maximum shareholder cap, and low minimum capital. Shall I generate your complete company formation roadmap?",
+    "The fastest way to get started is to reserve your company name through the MERSİS portal. Once that's confirmed, we can move to notarization and Trade Registry — usually done within a week. Want the full breakdown?"
+  ],
+  "contract_review": [
+    "Happy to help you review that contract. Could you tell me what type it is — employment, lease, service agreement, or an NDA? That'll let me flag the most relevant risk areas for you.",
+    "Contract issues in Turkey are covered by the Turkish Code of Obligations. The most common problem areas are penalty clauses, termination conditions, and jurisdiction. Which part is giving you trouble?",
+    "Before signing anything, it's always worth having a lawyer check for one-sided terms. Tell me what the contract is about and I'll walk you through the key things to watch out for.",
+    "I can help you flag risky clauses. Under Turkish law, certain types of contracts — real estate, shareholder agreements, power of attorney — also require notarization to be enforceable. What kind of contract are we looking at?",
+    "Spotted something off in your contract? Smart move to check before signing. Share the key clauses you're worried about and I'll explain your rights and options under Turkish law."
+  ],
+  "employment_law": [
+    "That sounds like a serious situation — and you're right to look into your rights. Under Turkish Labour Law No. 4857, employees who've worked for over a year are entitled to both notice pay and severance. Has your employer given you a written termination notice?",
+    "Unfair dismissal claims in Turkey must be filed within 1 month of termination — so timing really matters here. Has the dismissal already happened, or are you still employed and dealing with an ongoing issue?",
+    "Employment disputes in Turkey typically start with mandatory mediation (arabuluculuk) before any court action. Most cases are resolved there in 2–3 sessions, which saves months. Want to understand the full process?",
+    "Turkish labour courts are generally employee-friendly, and the burden of proof sits with the employer. Let's start by calculating what you're entitled to — severance, unused leave, and notice pay. Can you share how long you've been employed?",
+    "Severance pay (kıdem tazminatı) is calculated as 30 days' salary for every year of service. If you were let go without cause, you're likely owed more than just that. Want me to map out everything you can claim?"
+  ],
+  "residence_permit": [
+    "Work permits in Turkey must be applied for by your employer through the Ministry of Labour's portal — you can't apply on your own. Has your employer already started the process, or do they need guidance on how to proceed?",
+    "For a residence permit (ikamet), you apply online at e-ikamet.goc.gov.tr before your current visa or entry stamp expires. The key documents are your passport, health insurance, biometric photos, and a notarized address document. Shall I walk you through each step?",
+    "The work permit process takes 4–8 weeks from submission. The good news is your employer handles most of the paperwork — you mainly provide your passport, ID, and insurance. Want the full step-by-step guide?",
+    "Applying for a residence permit? Book your appointment on e-ikamet.goc.gov.tr as soon as possible — slots in big cities fill up fast. You'll need health insurance and a notarized rental agreement ready before the appointment.",
+    "If your work permit is approved, a residence permit is automatically granted alongside it. But health insurance coverage must be active from day one. Is your insurance policy already in place?"
+  ],
+  "dispute": [
+    "Legal disputes in Turkey usually follow this path: formal written notice (ihtarname) → mandatory mediation → court, if needed. Most commercial disputes are resolved at mediation and never reach court. What type of dispute are you dealing with?",
+    "Before filing any lawsuit in Turkey, your lawyer sends a notarized warning letter (ihtarname) to the other party. This is both a legal requirement for some cases and a smart negotiation move. Would you like help understanding that process?",
+    "Turkish commercial law requires mandatory mediation before court for most business disputes. It's confidential, usually done in 3 sessions, and saves months of litigation. Has a mediator been contacted yet?",
+    "Court proceedings in Turkey are conducted in Turkish, and your lawyer handles all communications. The key is getting your evidence documented thoroughly before filing. What evidence do you have available right now?",
+    "If the court rules in your favour and the other party still doesn't pay, your lawyer can initiate enforcement proceedings (icra takibi) to seize assets. It's a powerful tool — but let's try mediation first. What's the nature of the dispute?"
+  ],
+  "general_legal": [
+    "I specialise in Turkish law — contracts, company formation, employment rights, residency permits, and legal disputes. What's on your mind today?",
+    "Happy to help navigate Turkish law. It can be complex, but most issues are very manageable with the right roadmap. What's your situation?",
+    "Whether it's a contract question, starting a company, or a workplace dispute — I've got you covered. Give me a bit more context and we'll figure out the best path forward.",
+    "Turkish law covers a lot of ground, but the principles are straightforward once you know where to look. What area do you need guidance on — employment, contracts, company formation, or something else?",
+    "I'm here to translate the complexity of Turkish legal procedures into clear, actionable steps. Tell me what you're trying to achieve and we'll work through it together."
+  ],
+  "legal_timelines": [
+    "Timelines in Turkey vary by legal matter: Company formation takes 5–10 days, contract review 1–2 weeks, employment mediation 2–3 weeks, residence permits 3–5 weeks, and court cases 6–18 months depending on complexity. What's your specific situation?",
+    "For work permits: 4–8 weeks from application to approval. For residence permits: 3–5 weeks processing after your appointment. For court cases: mediation usually resolves in 3 weeks, but full litigation can take 6–18 months. Which matters most to you?",
+    "Company formation in Turkey is faster than most people expect — usually 5–10 business days if documents are ready. Employment disputes through mediation resolve in 2–3 weeks. Court cases take significantly longer. What type of matter are we discussing?",
+    "The fastest legal processes in Turkey are company registration (1 week) and mandatory mediation (2–3 weeks). Residence permits take 3–5 weeks for processing. Contract disputes that go to court can take 1–2 years. Which process are you planning for?",
+    "Great question to ask upfront. As a rough guide: company setup = 1 week, contract review = 3–7 days, employment mediation = 2–3 weeks, work permit = 4–8 weeks, court verdict = 6–18 months. What's your timeline concern?"
+  ]
+}

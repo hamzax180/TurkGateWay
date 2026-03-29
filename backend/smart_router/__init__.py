@@ -38,15 +38,27 @@ from .ai_fallback import ai_fallback_response
 # ---------------------------------------------------------------------------
 # Load response library once at module import time
 # ---------------------------------------------------------------------------
-_LIBRARY_PATH = os.path.join(os.path.dirname(__file__), "response_library.json")
+_LIBRARY_DIR = os.path.join(os.path.dirname(__file__), "responses")
 _library: dict = {}
 
 try:
-    with open(_LIBRARY_PATH, "r", encoding="utf-8") as f:
-        _library = json.load(f)
-    print("[SmartRouter] Response library loaded successfully.")
+    # Load each intent domain into the library dictionary
+    with open(os.path.join(_LIBRARY_DIR, "permit.json"), "r", encoding="utf-8") as f:
+        _library["permit"] = json.load(f)
+    with open(os.path.join(_LIBRARY_DIR, "student.json"), "r", encoding="utf-8") as f:
+        _library["student"] = json.load(f)
+    with open(os.path.join(_LIBRARY_DIR, "lawyer.json"), "r", encoding="utf-8") as f:
+        _library["lawyer"] = json.load(f)
+    
+    # Load general conversational and support responses
+    with open(os.path.join(_LIBRARY_DIR, "general.json"), "r", encoding="utf-8") as f:
+        general_data = json.load(f)
+        for k, v in general_data.items():
+            _library[k] = v
+            
+    print("[SmartRouter] Split response libraries loaded successfully.")
 except Exception as e:
-    print(f"[SmartRouter] WARNING: Failed to load response library: {e}")
+    print(f"[SmartRouter] WARNING: Failed to load split response libraries: {e}")
 
 
 # ---------------------------------------------------------------------------
