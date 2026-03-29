@@ -56,35 +56,48 @@ except Exception as e:
 import re
 
 _NEW_CONSULTATION_PATTERNS = [
-    # "I want to open / start / launch X"
+    # "I want to open / start / launch X" — user has stated a clear intent to start something
     r"\b(i want to|i'd like to|i plan to|i'm planning to|i am planning to|how (do i|can i|to))\b.{0,30}\b(open|start|launch|set up|setup|register|create)\b",
-    # "open a restaurant/cafe/shop in X"
+    # "open a restaurant/cafe/shop in X" — specific business + location mentioned
     r"\bopen (a |an |my )?[\w\s]{1,30}(in|at|near)\b",
-    # "want to open"
+    # "want to open" used with a real noun following (filtered by context)
     r"\bwant to (open|start|register|set up)\b",
     # "how do I open / start / register"
     r"\bhow (do i|can i|to) (open|start|register|set up|get a permit|apply for)\b",
-    # "I need a permit for"
-    r"\b(need|get|apply for|obtain) (a |an )?(permit|ruhsat|lisans|licence|license)\b",
+    # "I need a permit for X" — user is asking for a permit for something specific
+    r"\b(need|get|apply for|obtain) (a |an )?(permit|ruhsat|lisans|licence|license) (for|to)\b",
     # Student: enroll at / register for university
     r"\b(enroll|register|apply) (at|for|to|in) (a |the |my )?university\b",
     # Lawyer: I need legal help for / I need to form a company
-    r"\b(form|create|register|incorporate|set up) (a |my |an )?(company|business|firm|ltd|aş)\b",
+    r"\b(form|create|register|incorporate|set up) (a |my |an )?(company|business|firm|ltd|a\u015f)\b",
     r"\b(i need|i have|i got) (a |an )?(legal|contract|lawyer|employment) (problem|issue|dispute|case|question|matter)\b",
-    # Lawyer topic button exact labels (sent verbatim by the frontend chip buttons)
-    r"^(contract review|company formation|employment law|legal disputes|legal timelines|residency/permit|residency permit|work permit)$",
-    # Lawyer general consultation triggers (typed queries)
+    # Chip buttons that carry SPECIFIC INTENT (business type is clear from the label)
+    r"^(i want to obtain a business permit)$",
+    r"^(i want to know the steps)$",
+    r"^(how to get a work permit\??)$",
+    # Lawyer chip buttons — these each imply a specific legal engagement
+    r"^(contract review|company formation|employment law|legal disputes|legal timelines|residency/permit|residency permit)$",
     r"\b(review (my |a |the )?(contract|agreement|nda|clause)|check (my |this )?(contract|agreement))\b",
-    r"\b(form|open|start|register|incorporate) (a |my )?(company|ltd|limited şirket|anonim şirket|business|firm)\b",
-    r"\b(fired|wrongfully dismissed|unfair dismissal|severance pay|kıdem tazminat|employment dispute|labour court|iş mahkemesi)\b",
-    r"\b(work permit|residence permit|ikamet (başvuru|application)|çalışma izni|stay in turkey legally|legal to work)\b",
+    r"\b(form|open|start|register|incorporate) (a |my )?(company|ltd|limited \u015firket|anonim \u015firket|business|firm)\b",
+    r"\b(fired|wrongfully dismissed|unfair dismissal|severance pay|k\u0131dem tazminat|employment dispute|labour court|i\u015f mahkemesi)\b",
+    r"\b(work permit|residence permit|ikamet (ba\u015fvuru|application)|\u00e7al\u0131\u015fma izni|stay in turkey legally|legal to work)\b",
     r"\b(legal dispute|lawsuit|mediation|arabuluculuk|ihtarname|file a claim|take to court|sue (someone|my|the))\b",
     r"\b(how long (does|will|do)).{0,40}(company|permit|contract|court|case|formation|residency|ikamet)\b",
     # Naked location changes mid-session ("cafe in besiktas")
-    r"\b(cafe|kafe|restaurant|restoran|retail|office|ofis|pharmacy|eczane|bakery|f[ıi]r[ıi]n|barber|berber|gym|spor|shop|store|company|ma[ğg]aza|d[üu]kkan) (in|at) \b",
+    r"\b(cafe|kafe|restaurant|restoran|retail|office|ofis|pharmacy|eczane|bakery|f[\u0131i]r[\u0131i]n|barber|berber|gym|spor|shop|store|company|ma[\u011fg]aza|d[\u00fcu]kkan) (in|at) \b",
     # ID Renewal / Replacement
     r"\b(renew|replace).{1,15}(id|kimlik|student id)\b",
 ]
+# NOTE: The following chip buttons are intentionally EXCLUDED from this gate because
+# they are clarifying questions — the user hasn't told us their business type yet.
+# They fall through to the keyword router and get a helpful clarifying response:
+#   "What permit do you want?"
+#   "What business do you want to open?"
+#   "Where is your business located?"
+#   "How long does it take?"
+#   "How much does it cost?"
+#   "What documents do I need?"
+#   "How does it work?"
 _NEW_CONSULTATION_RE = re.compile(
     "|".join(_NEW_CONSULTATION_PATTERNS), flags=re.IGNORECASE
 )
@@ -160,47 +173,166 @@ async def smart_router_handle(
         out_str = None
         
         if assistant_type == "permit":
-            # Determine business sub-intent
-            _, sub, _ = detect_intent(query, "permit")
-            business_type = sub.title() if sub else "Business"
-            
-            # Determine location
-            district = "Istanbul"
-            districts = ["Kadikoy", "Kadıköy", "Besiktas", "Beşiktaş", "Sisli", "Şişli", "Uskudar", "Üsküdar", "Zeytinburnu", "Bakirkoy", "Bakırköy", "Beyoglu", "Beyoğlu", "Fatih", "Sariyer", "Sarıyer", "Kagithene", "Kağıthane", "Eyup", "Eyüp", "Maltepe", "Atasehir", "Ataşehir"]
+            # ------------------------------------------------------------------
+            # Detect ACTUAL business type from query keywords (not the intent sub-category)
+            # ------------------------------------------------------------------
             lower_q = query.lower()
-            for d in districts:
-                if d.lower() in lower_q:
-                    district = d.title()
+            _BUSINESS_KEYWORDS = [
+                (["restaurant", "restoran", "lokanta", "dining", "dinner"], "Restaurant"),
+                (["cafe", "kafe", "coffee shop", "kahve", "pastane", "tea house"], "Café"),
+                (["bakery", "fırın", "firın", "bread", "pastry"], "Bakery"),
+                (["pharmacy", "eczane", "chemist", "drugstore"], "Pharmacy"),
+                (["barber", "berber", "hair salon", "kuaför", "kuafor", "beauty", "güzellik", "spa"], "Hair Salon / Beauty"),
+                (["gym", "fitness", "spor salonu", "crossfit"], "Gym / Fitness Centre"),
+                (["clothing", "giyim", "boutique", "apparel", "fashion"], "Clothing Store"),
+                (["retail", "shop", "store", "mağaza", "dükkan", "grocery", "bakkal", "market"], "Retail Shop"),
+                (["office", "ofis", "consulting", "danışmanlık", "agency", "büro"], "Office / Consultancy"),
+                (["tech", "software", "yazılım", "startup"], "Tech / Software Company"),
+                (["hotel", "hostel", "accommodation", "konaklama"], "Hotel / Accommodation"),
+                (["clinic", "klinik", "medical", "dental", "doctor", "doktor", "diş"], "Medical Clinic"),
+                (["school", "okul", "education", "dershane", "kurs"], "Educational Centre"),
+            ]
+            business_type = "Business"  # fallback
+            for kw_list, display_name in _BUSINESS_KEYWORDS:
+                if any(kw in lower_q for kw in kw_list):
+                    business_type = display_name
                     break
-            
+
+            # ------------------------------------------------------------------
+            # Detect district — with per-district municipality name + local note
+            # ------------------------------------------------------------------
+            _DISTRICT_INFO = {
+                # (normalized_key): (display_name, municipality_EN, specific_note_EN)
+                "adalar":     ("Adalar",      "Adalar Belediyesi",     "Permits in the Princes' Islands involve strict environmental and coastal regulations; expect longer processing times."),
+                "arnavutkoy": ("Arnavutköy",  "Arnavutköy Belediyesi", "Arnavutköy is growing rapidly due to the new airport. Industrial and logistics permits are common here."),
+                "arnavutköy": ("Arnavutköy",  "Arnavutköy Belediyesi", "Arnavutköy is growing rapidly due to the new airport. Industrial and logistics permits are common here."),
+                "atasehir":   ("Ataşehir",    "Ataşehir Belediyesi",   "Ataşehir (Finans Merkezi area) is Istanbul's financial hub — corporate and office permits are fast-tracked here."),
+                "ataşehir":   ("Ataşehir",    "Ataşehir Belediyesi",   "Ataşehir (Finans Merkezi area) is Istanbul's financial hub — corporate and office permits are fast-tracked here."),
+                "avcilar":    ("Avcılar",     "Avcılar Belediyesi",    "Avcılar has many mixed-use residential/commercial zones. Permits are straightforward but check zoning first."),
+                "avcılar":    ("Avcılar",     "Avcılar Belediyesi",    "Avcılar has many mixed-use residential/commercial zones. Permits are straightforward but check zoning first."),
+                "bagcilar":   ("Bağcılar",    "Bağcılar Belediyesi",   "Bağcılar is a major commercial district. Wholesale and textile business permits are handled very efficiently."),
+                "bağcılar":   ("Bağcılar",    "Bağcılar Belediyesi",   "Bağcılar is a major commercial district. Wholesale and textile business permits are handled very efficiently."),
+                "bahcelievler":("Bahçelievler","Bahçelievler Belediyesi","Bahçelievler is densely populated; food and retail permits are common and processed within standard timeframes."),
+                "bahçelievler":("Bahçelievler","Bahçelievler Belediyesi","Bahçelievler is densely populated; food and retail permits are common and processed within standard timeframes."),
+                "bakirkoy":   ("Bakırköy",    "Bakırköy Belediyesi",   "Bakırköy is known for efficient permit processing and has a bilingual (TR/EN) helpdesk at the municipality."),
+                "bakırköy":   ("Bakırköy",    "Bakırköy Belediyesi",   "Bakırköy is known for efficient permit processing and has a bilingual (TR/EN) helpdesk at the municipality."),
+                "basaksehir": ("Başakşehir",  "Başakşehir Belediyesi", "Başakşehir has modern organized industrial zones (OSB) — manufacturing and corporate permits are highly streamlined."),
+                "başakşehir": ("Başakşehir",  "Başakşehir Belediyesi", "Başakşehir has modern organized industrial zones (OSB) — manufacturing and corporate permits are highly streamlined."),
+                "bayrampasa": ("Bayrampaşa",  "Bayrampaşa Belediyesi", "Bayrampaşa is a commercial hub for textile and wholesale — trade permits are a common request and well-understood by staff."),
+                "bayrampaşa": ("Bayrampaşa",  "Bayrampaşa Belediyesi", "Bayrampaşa is a commercial hub for textile and wholesale — trade permits are a common request and well-understood by staff."),
+                "besiktas":   ("Beşiktaş",    "Beşiktaş Belediyesi",   "Beşiktaş is strict on signage rules (reklam levhası izni). Budget extra time if you plan outdoor signage."),
+                "beşiktaş":   ("Beşiktaş",    "Beşiktaş Belediyesi",   "Beşiktaş is strict on signage rules (reklam levhası izni). Budget extra time if you plan outdoor signage."),
+                "beykoz":     ("Beykoz",      "Beykoz Belediyesi",     "Beykoz has significant protected green areas (Boğaziçi öngörünüm). Permits for new construction or exterior changes face strict scrutiny."),
+                "beylikduzu": ("Beylikdüzü",  "Beylikdüzü Belediyesi", "Beylikdüzü is a modern district with organized commercial spaces. Retail and office permits are generally fast here."),
+                "beylikdüzü": ("Beylikdüzü",  "Beylikdüzü Belediyesi", "Beylikdüzü is a modern district with organized commercial spaces. Retail and office permits are generally fast here."),
+                "beyoglu":    ("Beyoğlu",     "Beyoğlu Belediyesi",    "Beyoğlu (İstiklal area) has strict entertainment and alcohol licence rules — TAPDK licences here require additional zoning approval."),
+                "beyoğlu":    ("Beyoğlu",     "Beyoğlu Belediyesi",    "Beyoğlu (İstiklal area) has strict entertainment and alcohol licence rules — TAPDK licences here require additional zoning approval."),
+                "buyukcekmece":("Büyükçekmece","Büyükçekmece Belediyesi","Büyükçekmece has many coastal and villa zones. Summer-season businesses should apply well in advance."),
+                "büyükçekmece":("Büyükçekmece","Büyükçekmece Belediyesi","Büyükçekmece has many coastal and villa zones. Summer-season businesses should apply well in advance."),
+                "catalca":    ("Çatalca",     "Çatalca Belediyesi",    "Çatalca is largely rural; agricultural and large-scale industrial facility permits are the norm here."),
+                "çatalca":    ("Çatalca",     "Çatalca Belediyesi",    "Çatalca is largely rural; agricultural and large-scale industrial facility permits are the norm here."),
+                "cekmekoy":   ("Çekmeköy",    "Çekmeköy Belediyesi",   "Çekmeköy is a rapidly growing residential area. Retail and service business permits are processed efficiently."),
+                "çekmeköy":   ("Çekmeköy",    "Çekmeköy Belediyesi",   "Çekmeköy is a rapidly growing residential area. Retail and service business permits are processed efficiently."),
+                "esenler":    ("Esenler",     "Esenler Belediyesi",    "Esenler is a high-traffic commercial hub, especially for transport and retail. Permit processes are well-established."),
+                "esenyurt":   ("Esenyurt",    "Esenyurt Belediyesi",   "Esenyurt is a high-density mixed district — food business permits take longer due to high inspection demand."),
+                "eyup":       ("Eyüpsultan",  "Eyüpsultan Belediyesi", "Eyüpsultan has heritage zone restrictions near the mosque area — signage and façade changes need additional cultural heritage approval."),
+                "eyüp":       ("Eyüpsultan",  "Eyüpsultan Belediyesi", "Eyüpsultan has heritage zone restrictions near the mosque area — signage and façade changes need additional cultural heritage approval."),
+                "eyüpsultan": ("Eyüpsultan",  "Eyüpsultan Belediyesi", "Eyüpsultan has heritage zone restrictions near the mosque area — signage and façade changes need additional cultural heritage approval."),
+                "fatih":      ("Fatih",       "Fatih Belediyesi",      "Fatih has conservation area restrictions (sit alanı) in parts of the district — check zoning before signing a lease."),
+                "gaziosmanpasa": ("Gaziosmanpaşa", "Gaziosmanpaşa Belediyesi", "Gaziosmanpaşa has a large commercial market district — retail permits are common and the process is well-known to local officers."),
+                "gaziosmanpaşa": ("Gaziosmanpaşa", "Gaziosmanpaşa Belediyesi", "Gaziosmanpaşa has a large commercial market district — retail permits are common and the process is well-known to local officers."),
+                "gungoren":   ("Güngören",    "Güngören Belediyesi",   "Güngören is known for textiles and wholesale. The municipality is highly experienced with manufacturing and trade permits."),
+                "güngören":   ("Güngören",    "Güngören Belediyesi",   "Güngören is known for textiles and wholesale. The municipality is highly experienced with manufacturing and trade permits."),
+                "kadikoy":    ("Kadıköy",     "Kadıköy Belediyesi",    "Kadıköy processes most permits within 10–15 business days and has a dedicated foreign investor desk (Yabancı Yatırımcı Hattı)."),
+                "kadıköy":    ("Kadıköy",     "Kadıköy Belediyesi",    "Kadıköy processes most permits within 10–15 business days and has a dedicated foreign investor desk (Yabancı Yatırımcı Hattı)."),
+                "kagithane":  ("Kağıthane",   "Kağıthane Belediyesi",  "Kağıthane is emerging as a tech and startup hub — the municipality offers some reduced fees for tech companies."),
+                "kağıthane":  ("Kağıthane",   "Kağıthane Belediyesi",  "Kağıthane is emerging as a tech and startup hub — the municipality offers some reduced fees for tech companies."),
+                "kartal":     ("Kartal",      "Kartal Belediyesi",     "Kartal is a major hub on the Asian side. Complex commercial and legal office permits are handled smoothly."),
+                "kucukcekmece": ("Küçükçekmece", "Küçükçekmece Belediyesi", "Küçükçekmece has a mix of industrial and residential zones. Make sure your specific street is zoned for your business type."),
+                "küçükçekmece": ("Küçükçekmece", "Küçükçekmece Belediyesi", "Küçükçekmece has a mix of industrial and residential zones. Make sure your specific street is zoned for your business type."),
+                "maltepe":    ("Maltepe",     "Maltepe Belediyesi",    "Maltepe is a growing residential-commercial district with straightforward permit processing — good for retail and service businesses."),
+                "pendik":     ("Pendik",      "Pendik Belediyesi",     "Pendik includes Sabiha Gökçen Airport zone — logistics and trade businesses have good infrastructure support here."),
+                "sancaktepe": ("Sancaktepe",  "Sancaktepe Belediyesi", "Sancaktepe is an emerging commercial area on the Asian side. Permit fees and processing times are generally very favorable."),
+                "sariyer":    ("Sarıyer",     "Sarıyer Belediyesi",    "Sarıyer includes the Maslak business district — office and corporate permits are well-streamlined there."),
+                "sarıyer":    ("Sarıyer",     "Sarıyer Belediyesi",    "Sarıyer includes the Maslak business district — office and corporate permits are well-streamlined there."),
+                "sile":       ("Şile",        "Şile Belediyesi",       "Şile is a tourism and coastal district. If opening a hospitality business, seasonal permit rules and environmental checks apply."),
+                "şile":       ("Şile",        "Şile Belediyesi",       "Şile is a tourism and coastal district. If opening a hospitality business, seasonal permit rules and environmental checks apply."),
+                "silivri":    ("Silivri",     "Silivri Belediyesi",    "Silivri requires careful zoning checks for agricultural vs. commercial land use before applying for operating permits."),
+                "sisli":      ("Şişli",       "Şişli Belediyesi",      "Şişli has a fast-track window for retail and office permits — ask for the 'hızlı işlem' counter when you visit."),
+                "şişli":      ("Şişli",       "Şişli Belediyesi",      "Şişli has a fast-track window for retail and office permits — ask for the 'hızlı işlem' counter when you visit."),
+                "sultanbeyli": ("Sultanbeyli", "Sultanbeyli Belediyesi", "Sultanbeyli is a growing district on the Asian side with competitive commercial rents and reasonable permit processing times."),
+                "sultangazi": ("Sultangazi",  "Sultangazi Belediyesi", "Sultangazi is an active manufacturing district. Workshop and factory permits are well-supported by the local municipality."),
+                "tuzla":      ("Tuzla",       "Tuzla Belediyesi",      "Tuzla is an industrial and maritime zone — manufacturing and workshop permits are actively supported by the municipality."),
+                "umraniye":   ("Ümraniye",    "Ümraniye Belediyesi",   "Ümraniye is a busy commercial district — permit queues can be longer, so apply early and use the e-Devlet portal where possible."),
+                "ümraniye":   ("Ümraniye",    "Ümraniye Belediyesi",   "Ümraniye is a busy commercial district — permit queues can be longer, so apply early and use the e-Devlet portal where possible."),
+                "uskudar":    ("Üsküdar",     "Üsküdar Belediyesi",    "Üsküdar enforces strict noise regulations — music businesses may face additional restrictions near residential zones."),
+                "üsküdar":    ("Üsküdar",     "Üsküdar Belediyesi",    "Üsküdar enforces strict noise regulations — music businesses may face additional restrictions near residential zones."),
+                "zeytinburnu": ("Zeytinburnu", "Zeytinburnu Belediyesi", "Zeytinburnu is a manufacturing and textile hub — textile & workshop permits are well-supported here."),
+            }
+
+            district_en = "Istanbul"
+            district_display = None
+            mun_name_en = "Your District Municipality"
+            district_note = ""
+
+            for key, (dname, mun_en, note) in _DISTRICT_INFO.items():
+                if key in lower_q:
+                    district_en = dname
+                    district_display = dname
+                    mun_name_en = mun_en
+                    district_note = note
+                    break
+
+            # If no district found, ask which district
+            no_district = district_display is None
+            district = district_display or "Istanbul"
+
             # Localized Municipality Name
-            mun_name = f"{district} Belediyesi" if district != "Istanbul" else "District Municipality"
+            mun_name = mun_name_en
             if language == "tr":
-                mun_name = f"{district} Belediyesi" if district != "Istanbul" else "İlçe Belediyesi"
+                mun_name = f"{district} Belediyesi" if not no_district else "İlçe Belediyesi"
             elif language == "ar":
-                mun_name = f"بلدية {district}" if district != "Istanbul" else "بلدية المنطقة"
+                mun_name = f"بلدية {district}" if not no_district else "بلدية المنطقة"
 
             if language == "tr":
                 permits = [f"{district} İşyeri Açma ve Çalışma Ruhsatı"]
                 agencies = [mun_name, "Vergi Dairesi"]
                 docs = ["Kimlik", "Kira Sözleşmesi", "Vergi Levhası", "NACE Kodu Belgesi"]
-                summ = f"Bu, {district} bölgesinde bir {business_type} açmak için çevrimdışı oluşturulmuş yol haritanızdır. İşlemleri takip etmek için soldaki Gösterge Paneli'ne (Dashboard) gidin."
-                labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Adımlar", "tm":"Süre", "dy":"gün"}
+                if no_district:
+                    summ = f"Mükemmel! {business_type} açmak için harika bir karar. 🎉 Adım adım yol haritanız aşağıda hazır — ancak başvuracağınız belediye ilçenize göre değişir. Hangi ilçedesiniz? (Örn: Kadıköy, Beşiktaş, Şişli, Üsküdar...)"
+                else:
+                    summ = f"Mükemmel seçim! {district}'de {business_type} açmak için bilmeniz gereken her şeyi hazırladım. 🎉 Önemli not: {district_note} Aşağıdaki yol haritasını takip edin ve merak ettiğinizi sorun!"
+                labels = {"ag": "Kurumlar", "dc": "Gerekli Belgeler", "st": "Adımlar", "tm": "Tahmini Süre", "dy": "gün"}
             elif language == "ar":
                 permits = [f"رخصة فتح وتشغيل من {district}"]
                 agencies = [mun_name, "مكتب الضرائب"]
                 docs = ["الهوية", "عقد الإيجار", "اللوحة الضريبية", "وثيقة رمز NACE"]
-                summ = f"هذه هي خريطة الطريق الآلية التي تم إنشاؤها لفتح {business_type} في منطقة {district}. اذهب إلى لوحة التحكم (Dashboard) لبدء العملية."
-                labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"الخطوات", "tm":"الجدول الزمني", "dy":"يوم"}
+                if no_district:
+                    summ = f"رائع! فتح {business_type} قرار ممتاز. 🎉 خريطة الطريق جاهزة أدناه — لكن الجهة المختصة تختلف حسب المنطقة. في أي منطقة ستفتح؟ (مثل: كاديكوي، بشيكتاش، شيشلي...)"
+                else:
+                    summ = f"اختيار رائع! أعددت لك كل ما تحتاجه لفتح {business_type} في {district}. 🎉 ملاحظة مهمة: {district_note} راجع الخطوات أدناه واسألني عن أي شيء!"
+                labels = {"ag": "المؤسسات", "dc": "المستندات المطلوبة", "st": "الخطوات", "tm": "المدة الزمنية المتوقعة", "dy": "يوم"}
             else:
                 permits = [f"{district} Workplace Operating License"]
-                agencies = [mun_name, "Tax Office"]
+                agencies = [mun_name, "Tax Office (Vergi Dairesi)"]
                 docs = ["ID / Passport", "Lease Agreement", "Tax Plate", "NACE Code Certificate"]
-                summ = f"This is your automated roadmap to officially open a {business_type} in {district}. Go to the Dashboard on the left to start your application process."
-                labels = {"ag":"Institutions/Agencies", "dc":"Required Docs", "st":"Action Steps", "tm":"Timeline", "dy":"days"}
+                if no_district:
+                    summ = (
+                        f"Great choice — opening a {business_type} is an exciting step! 🚀 "
+                        f"I've mapped out your full roadmap below. One thing: the exact municipality you'll apply to depends on your district. "
+                        f"**Which district of Istanbul are you opening in?** (e.g. Kadıköy, Beşiktaş, Şişli, Üsküdar, Bakırköy, Ataşehir…) "
+                        f"Each district has its own belediye with slightly different processing times and rules."
+                    )
+                else:
+                    summ = (
+                        f"Great choice — I've put together your complete roadmap for opening a {business_type} in {district}! 🚀 "
+                        f"📍 **{district} note:** {district_note} "
+                        f"Follow the steps below and feel free to ask me anything along the way."
+                    )
+                labels = {"ag": "Institutions / Agencies", "dc": "Documents You'll Need", "st": "Your Action Steps", "tm": "Estimated Timeline", "dy": "days"}
 
             timeline = 30
-            if business_type.lower() in ["restaurant", "cafe", "bakery", "food"]:
+            if any(kw in lower_q for kw in ["restaurant", "restoran", "cafe", "kafe", "bakery", "fırın", "firın", "food", "gıda"]):
                 timeline = 45
                 if language == "tr":
                     permits.extend(["İtfaiye Uygunluk Raporu", "Baca Uygunluğu"])
@@ -213,7 +345,7 @@ async def smart_router_handle(
                 else:
                     permits.extend(["Fire Safety Report", "Chimney Compliance"])
                     docs.extend(["Fire Report"])
-                    agencies.extend(["Fire Department"])
+                    agencies.extend(["Istanbul Fire Department (İBB İtfaiye)"])
 
         elif assistant_type == "student":
             is_renew = "renew" in query.lower() or "replace" in query.lower()
@@ -225,20 +357,20 @@ async def smart_router_handle(
                 permits = ["Öğrenci İkamet İzni Uzatması"] if is_renew else ["Öğrenci Kaydı", "Öğrenci İkamet İzni"]
                 agencies = ["Göç İdaresi", "Noter", "Sigorta Şirketi"] if is_renew else ["Öğrenci İşleri", "Göç İdaresi", "SGK"]
                 docs = ["Sağlık Sigortası", "Noter Onaylı Kira Sözleşmesi", "Öğrenci Belgesi", "Biyometrik Fotoğraf"] if is_renew else ["Pasaport", "Kabul Mektubu", "Sağlık Sigortası"]
-                summ = "İlk olarak, mevcut kimlik kartınızın süresi doldu mu yoksa dilediğiniz zaman mı yenilemek istiyorsunuz? İkamet uzatma işleminiz için sigorta ve kira sözleşmesi adımlarını içeren yol haritası aşağıdadır." if is_renew else "Üniversite kayıt ve öğrenci kimliği işlemleriniz için oluşturulan adım adım yol haritanız."
-                labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Adımlar", "tm":"Süre", "dy":"gün"}
+                summ = "Sorun değil, hemen organize edelim! 🎓 İkamet yenileme süreci birkaç adımdan oluşuyor — sigortanı yenilemekten Göç İdaresi randevuna kadar her şeyi aşağıda hazırladım. Sigorta ve adres belgenden başlamanı tavsiye ederim, çünkü bunlar en uzun süren adımlar. Herhangi bir adım için yardım istersen buradayım!" if is_renew else "Türkiye'de öğrenci olmak heyecan verici — tebrikler! 🎓 Üniversite kaydından öğrenci kimliğine (Kimlik) kadar tüm sürecini adım adım hazırladım. En önemli ipucu: sağlık sigortanı ve adres belgenini erkenden ayarla, çünkü bunlar diğer her şeyin temeli. Aşağıdaki yol haritana bak ve bir adımda takılırsan bana sor!"
+                labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Adımların", "tm":"Tahmini Süre", "dy":"gün"}
             elif language == "ar":
                 permits = ["تمديد إقامة الطالب"] if is_renew else ["تسجيل الجامعة", "إقامة الطالب"]
                 agencies = ["إدارة الهجرة", "العدل (النوتر)", "شركة التأمين"] if is_renew else ["شؤون الطلاب", "إدارة الهجرة", "SGK"]
                 docs = ["التأمين الصحي", "عقد إيجار موثق", "شهادة طالب", "صور شخصية"] if is_renew else ["جواز السفر", "خطاب القبول", "التأمين الصحي"]
-                summ = "أولاً، هل انتهت صلاحية هويتك الحالية أم أنها ستنتهي قريباً؟ إليك خريطة الطريق لتجديد الإقامة التي تشمل خطوات التأمين وعقد السكن." if is_renew else "خريطة الطريق الآلية لاستكمال التسجيل الجامعي وإقامة الطالب."
-                labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"الخطوات", "tm":"الجدول الزمني", "dy":"يوم"}
+                summ = "لا تقلق، سنرتب كل شيء معاً! 🎓 عملية تجديد الإقامة تتكون من عدة خطوات — من تجديد التأمين وصولاً إلى موعد إدارة الهجرة. ابدأ بالتأمين وعقد السكن لأنهما يستغرقان أطول وقت. خريطة طريقك الكاملة في الأسفل — اسألني عن أي خطوة!" if is_renew else "تهانينا على قبولك في الجامعة! 🎓 لقد أعددت لك خريطة طريق شاملة من التسجيل الجامعي وصولاً إلى هوية الطالب (Kimlik). أهم نصيحة: رتّب التأمين الصحي وإثبات السكن مبكراً — هما أساس كل خطوة أخرى. راجع الخطوات أدناه واسألني متى شئت!"
+                labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطواتك", "tm":"المدة المتوقعة", "dy":"يوم"}
             else:
                 permits = ["Student Residence Permit Extension"] if is_renew else ["University Registration", "Student Residence Permit"]
                 agencies = ["Migration Office (Göç İdaresi)", "Notary Public", "Insurance Provider"] if is_renew else ["Student Affairs", "Migration Directorate (Göç İdaresi)", "SGK"]
-                docs = ["Health Insurance Policiy", "Notarized Lease Agreement", "Student Certificate", "Biometric Photos"] if is_renew else ["Passport", "Acceptance Letter", "Health Insurance"]
-                summ = "First, is your current ID card already expired, or are you just planning to renew it early? Below is your residency (Kimlik) extension roadmap including insurance and housing steps." if is_renew else "Your automated roadmap for completing university registration and obtaining your Student Residence Permit."
-                labels = {"ag":"Institutions/Agencies", "dc":"Required Docs", "st":"Action Steps", "tm":"Timeline", "dy":"days"}
+                docs = ["Health Insurance Policy", "Notarized Lease Agreement", "Student Certificate", "Biometric Photos"] if is_renew else ["Passport", "Acceptance Letter", "Health Insurance"]
+                summ = "No stress — let's sort this out together! 🎓 Renewing your student residency (Kimlik) involves a few key steps, and I've mapped them all out for you below. My top tip: start with your health insurance and address document, since those take the most time to arrange. Ask me anything along the way!" if is_renew else "Welcome to Turkey — exciting times ahead! 🎓 I've put together your complete roadmap from university registration all the way to your Student Residence Permit (Kimlik). Pro tip: sort your health insurance and proof of address early — they're the foundation for everything else. Check the steps below and ask me if anything's unclear!"
+                labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Your Action Steps", "tm":"Estimated Timeline", "dy":"days"}
 
         elif assistant_type == "lawyer":
             # Detect specific legal topic from the user's query
@@ -266,20 +398,20 @@ async def smart_router_handle(
                     permits = ["Sözleşme İncelemesi", "Hukuki İzleme"]
                     agencies = ["Avukat/Hukuk Bürosu", "Noter", "Türkiye Barolar Birliği"]
                     docs = ["İmzalı Sözleşme", "Ekler ve Değişiklikler", "İlgili E-posta Yazışmaları", "Kimlik Belgesi"]
-                    summ = "Sözleşmenizi dikkatle inceliyoruz. Hangi maddelerin sizi rahatsız ettiğini belirtirseniz avukat ekibimiz riskleri analiz edip yazılı bir revizyon taslağı hazırlayacak. Belgelerinizi yüklemek için Dashboard'ı kullanın."
-                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Adımlar", "tm":"Süre", "dy":"gün"}
+                    summ = "İmzalamadan önce durmanız çok doğru bir karar! ⚖️ Türk Borçlar Kanunu kapsamındaki riskli maddeler, ceza klozonları ve fesih koşulları gibi kritik noktaları sizin için inceliyorum. Hangi madde veya konu sizi endişelendirdi — buradan başlayalım?"
+                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Sürecin Adımları", "tm":"Tahmini Süre", "dy":"gün"}
                 elif language == "ar":
                     permits = ["مراجعة العقد", "الإجراء القانوني"]
                     agencies = ["محامٍ / مكتب قانوني", "كاتب العدل", "نقابة المحامين التركية"]
                     docs = ["العقد الموقّع", "الملاحق والتعديلات", "المراسلات الإلكترونية ذات الصلة", "وثيقة هوية"]
-                    summ = "نراجع عقدك بعناية. حدد البنود التي تقلقك وسيقوم فريقنا القانوني بتحليل المخاطر وإعداد مسودة تعديل خطية. استخدم لوحة التحكم لرفع مستنداتك."
-                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"الخطوات", "tm":"الجدول الزمني", "dy":"يوم"}
+                    summ = "قرار صائب أن توقف قبل التوقيع! ⚖️ سأراجع العقد بعناية بموجب قانون الالتزامات التركي، مع التركيز على البنود الخطرة وشروط الغرامات وحالات الفسخ. أخبرني أي بند أو موضوع يقلقك — من هناك نبدأ!"
+                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطوات العملية", "tm":"المدة المتوقعة", "dy":"يوم"}
                 else:
                     permits = ["Contract Review", "Legal Advisory"]
                     agencies = ["Lawyer / Law Firm", "Notary Public", "Turkish Bar Association"]
                     docs = ["Signed Contract", "Addendums & Amendments", "Relevant Email Correspondence", "Valid ID Document"]
-                    summ = "We're reviewing your contract carefully. Tell us which clauses concern you, and our legal team will analyze the risks and prepare a written amendment draft. Use the Dashboard to upload your documents."
-                    labels = {"ag":"Institutions/Agencies", "dc":"Required Docs", "st":"Action Steps", "tm":"Timeline", "dy":"days"}
+                    summ = "Smart move to pause before signing! ⚖️ I'll walk you through the key risk areas under Turkish law — penalty clauses, one-sided termination terms, and anything legally unenforceable. Tell me which clause or section is worrying you and we'll dig into that first. The full review process is mapped out below."
+                    labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Steps in the Process", "tm":"Estimated Timeline", "dy":"days"}
                     
             elif lawyer_subtype == "lawyer_company":
                 timeline = 10
@@ -287,20 +419,20 @@ async def smart_router_handle(
                     permits = ["Ltd. Şirket Tescili", "Vergi Kaydı", "Ticaret Sicili Tescili"]
                     agencies = ["Ticaret Sicili Müdürlüğü", "Vergi Dairesi", "MERSİS Portalı", "Noter"]
                     docs = ["Pasaport / Kimlik (Tüm Ortaklar)", "Ana Sözleşme Taslağı", "Kira Sözleşmesi / Ofis Adresi", "Sermaye Deposu Makbuzu (Gerekirse)"]
-                    summ = "Şirket kuruluşunuz için adım adım yol haritanız hazır. MERSİS'te ad rezervasyonundan Ticaret Sicili ve vergi kaydına kadar tüm süreci aşağıda görebilirsiniz. Dashboard üzerinden belge yükleyip işlemlerinizi takip edebilirsiniz."
-                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Adımlar", "tm":"Süre", "dy":"gün"}
+                    summ = "Harika bir karar — Türkiye'de şirket kurmak düşündüğünüzden çok daha kolay! 🏢 MERSİS'te şirket adınızı rezerve etmekten Ticaret Sicili kaydına kadar her adımı sizin için hazırladım. Belgelerinizi hazır tutun ve aklınıza takılan her şeyi bana sorabilirsiniz!"
+                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Sürecin Adımları", "tm":"Tahmini Süre", "dy":"gün"}
                 elif language == "ar":
                     permits = ["تسجيل شركة ذات مسؤولية محدودة", "التسجيل الضريبي", "تسجيل السجل التجاري"]
                     agencies = ["مديرية السجل التجاري", "مكتب الضرائب", "بوابة MERSİS", "كاتب العدل"]
                     docs = ["جواز السفر / الهوية (جميع المساهمين)", "مسودة النظام الأساسي", "عقد الإيجار / عنوان المكتب", "إيصال إيداع رأس المال (إذا لزم)"]
-                    summ = "خريطة طريقك للتأسيس الشركة جاهزة. من حجز الاسم في MERSİS إلى التسجيل في السجل التجاري ومكتب الضرائب. استخدم لوحة التحكم لرفع مستنداتك وتتبع تقدمك."
-                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"الخطوات", "tm":"الجدول الزمني", "dy":"يوم"}
+                    summ = "قرار رائع — تأسيس شركة في تركيا أسهل مما تتوقع! 🏢 لقد أعددت لك كل خطوة من حجز اسم الشركة في MERSİS إلى التسجيل في السجل التجاري. احتفظ بمستنداتك جاهزة واسألني عن أي شيء في أي وقت!"
+                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطوات العملية", "tm":"المدة المتوقعة", "dy":"يوم"}
                 else:
                     permits = ["Ltd. Şirket Registration", "Tax Registration", "Trade Registry Entry"]
                     agencies = ["Trade Registry Directorate", "Tax Office (Vergi Dairesi)", "MERSİS Portal", "Notary Public (Noter)"]
                     docs = ["Passport / ID (All Shareholders)", "Articles of Association Draft", "Office Lease or Address Proof", "Capital Deposit Receipt (if applicable)"]
-                    summ = "Your company formation roadmap is ready. From reserving your name in MERSİS to completing the Trade Registry and tax registrations — every step is mapped out below. Use the Dashboard to upload documents and track your progress."
-                    labels = {"ag":"Institutions/Agencies", "dc":"Required Docs", "st":"Action Steps", "tm":"Timeline", "dy":"days"}
+                    summ = "Great decision — forming a company in Turkey is more straightforward than most people expect! 🏢 I've mapped out each step from reserving your company name in MERSİS all the way to completing the Trade Registry and tax registrations. Keep your documents handy and ask me anything as you go through it!"
+                    labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Steps in the Process", "tm":"Estimated Timeline", "dy":"days"}
                     
             elif lawyer_subtype == "lawyer_employment":
                 timeline = 21
@@ -308,20 +440,20 @@ async def smart_router_handle(
                     permits = ["İş Mahkemesi Başvurusu", "Zorunlu Arabuluculuk"]
                     agencies = ["İş Mahkemesi", "Arabuluculuk Merkezi", "SGK", "Türkiye İş Kurumu (İŞKUR)"]
                     docs = ["İmzalı İş Sözleşmesi", "Tüm Bordro Belgeleri", "Yazılı Fesih Bildirimi", "İşverenden Gelen Her Türlü Yazışma", "Fazla Mesai / Mesai Kanıtı"]
-                    summ = "İş haklarınızı savunmak için gerekli tüm adımlar aşağıda. Zorunlu arabuluculuktan başlayarak İş Mahkemesi sürecine kadar tüm hukuki yolu covering ediyoruz. Belgeleri Dashboard'a yükleyin, avukat ekibimiz değerlendirsin."
-                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Adımlar", "tm":"Süre", "dy":"gün"}
+                    summ = "Bu durum kulağa gerçekten stresli geliyor — ama haklarınızı bilmek çok güçlü bir başlangıç. ⚖️ Türk İş Kanunu genellikle çalışan lehinedir; kıdem tazminatı, ihbar süresi ve arabuluculuk gibi haklarınızı adım adım inceliyoruz. İlk adım olarak elinizde hangi belgeler var — bilelim!"
+                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Sürecin Adımları", "tm":"Tahmini Süre", "dy":"gün"}
                 elif language == "ar":
                     permits = ["دعوى محكمة العمل", "الوساطة الإجبارية"]
                     agencies = ["محكمة العمل", "مركز الوساطة", "SGK", "إدارة التوظيف التركية (İŞKUR)"]
                     docs = ["عقد العمل الموقّع", "جميع كشوف الرواتب", "إشعار الفسخ الخطي", "أي مراسلات من صاحب العمل", "دليل العمل الإضافي"]
-                    summ = "جميع الخطوات اللازمة للدفاع عن حقوقك العمالية موضّحة أدناه. من الوساطة الإجبارية حتى رفع الدعوى في محكمة العمل. ارفع مستنداتك في لوحة التحكم وسيراجعها فريقنا القانوني."
-                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"الخطوات", "tm":"الجدول الزمني", "dy":"يوم"}
+                    summ = "أفهم أن هذا الوضع مرهق — لكن معرفة حقوقك هي خطوة قوية جداً. ⚖️ قانون العمل التركي يميل عموماً لصالح الموظف، وسأرشدك خطوة بخطوة لمطالبتك بالتعويض والوساطة وصولاً للمحكمة إذا لزم. أخبرني: ما المستندات التي لديك الآن؟"
+                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطوات العملية", "tm":"المدة المتوقعة", "dy":"يوم"}
                 else:
                     permits = ["Labour Court Claim", "Mandatory Mediation (Arabuluculuk)"]
                     agencies = ["Labour Court (İş Mahkemesi)", "Mediation Centre", "SGK (Social Security)", "Turkish Employment Agency (İŞKUR)"]
                     docs = ["Signed Employment Contract", "All Payslips / Salary Records", "Written Termination Notice", "Any Employer Correspondence", "Overtime / Hours Worked Proof"]
-                    summ = "All the steps to defend your employment rights are mapped out below. From mandatory mediation through to the Labour Court — we cover the full legal path. Upload your documents to the Dashboard and our legal team will assess your case."
-                    labels = {"ag":"Institutions/Agencies", "dc":"Required Docs", "st":"Action Steps", "tm":"Timeline", "dy":"days"}
+                    summ = "I understand this situation is stressful — but knowing your rights is a really powerful first step. ⚖️ Turkish labour law generally favours employees, and I've mapped out your full path from calculating your entitlements through mandatory mediation and, if needed, the Labour Court. Tell me: what documents do you have on hand right now?"
+                    labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Steps in the Process", "tm":"Estimated Timeline", "dy":"days"}
                     
             elif lawyer_subtype == "lawyer_residency":
                 timeline = 35
@@ -329,20 +461,20 @@ async def smart_router_handle(
                     permits = ["Çalışma İzni", "İkamet İzni (Kimlik)"]
                     agencies = ["Göç İdaresi Genel Müdürlüğü", "Aile ve Çalışma Bakanlığı", "Sigorta Sağlayıcısı", "e-İkamet Portalı"]
                     docs = ["Geçerli Pasaport (6+ ay)", "Biyometrik Fotoğraflar (4 adet)", "Yabancı Sağlık Sigortası", "Noter Onaylı Kira Sözleşmesi", "İş Sözleşmesi (Çalışma İzni için)", "Başvuru Ücreti Makbuzu"]
-                    summ = "Türkiye'de ikamet veya çalışma izni için hazırladığımız adım adım kılavuz. İzin türünüzü belirleyip e-İkamet sistemine başvurmaktan Göç İdaresi randevusuna kadar tüm süreci kapsıyor. Dashboard'dan belgelerinizi yükleyebilirsiniz."
-                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Adımlar", "tm":"Süre", "dy":"gün"}
+                    summ = "Türkiye'de yasal olarak kalmak veya çalışmak istiyorsunuz — doğru yerdesiniz! 🇹🇷 İşe yarar bir ipucu: e-İkamet randevularını büyük şehirlerde erken almak gerekiyor, çabuk doluyor. Her adımı net bir şekilde aşağıya hazırladım. İzin türünüzden emin değilseniz, hemen sorun!"
+                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Sürecin Adımları", "tm":"Tahmini Süre", "dy":"gün"}
                 elif language == "ar":
                     permits = ["تصريح العمل", "إذن الإقامة (Kimlik)"]
                     agencies = ["الإدارة العامة للهجرة", "وزارة العمل والشؤون الاجتماعية", "شركة التأمين الصحي", "بوابة e-İkamet"]
                     docs = ["جواز سفر ساري (6+ أشهر)", "صور بيومترية (4 صور)", "تأمين صحي للأجانب", "عقد إيجار موثّق لدى كاتب العدل", "عقد العمل (لتصريح العمل)", "إيصال رسوم الطلب"]
-                    summ = "دليلنا خطوة بخطوة للحصول على إقامة أو تصريح عمل في تركيا. من تحديد نوع التصريح والتقديم عبر e-İkamet إلى حضور موعد إدارة الهجرة. ارفع مستنداتك من لوحة التحكم."
-                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"الخطوات", "tm":"الجدول الزمني", "dy":"يوم"}
+                    summ = "تريد الإقامة أو العمل بشكل قانوني في تركيا — أنت في المكان الصحيح! 🇹🇷 نصيحة مفيدة: مواعيد e-İkamet في المدن الكبرى تمتلئ بسرعة، فاحجز موعدك فور تجهيز مستنداتك. كل خطوة موضّحة أدناه — اسألني في أي وقت!"
+                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطوات العملية", "tm":"المدة المتوقعة", "dy":"يوم"}
                 else:
                     permits = ["Work Permit (Çalışma İzni)", "Residence Permit / Kimlik (İkamet)"]
                     agencies = ["Directorate General of Migration (Göç İdaresi)", "Ministry of Labour & Social Security", "Health Insurance Provider", "e-İkamet Portal"]
                     docs = ["Valid Passport (6+ months remaining)", "Biometric Photos (4 copies)", "Foreign Health Insurance Policy", "Notarized Rental Contract", "Employment Contract (for Work Permit)", "Application Fee Receipt"]
-                    summ = "Your step-by-step guide to obtaining a residence or work permit in Turkey. From identifying your permit type and applying via e-İkamet to attending your Göç İdaresi appointment — the full process is below. Upload your documents from the Dashboard."
-                    labels = {"ag":"Institutions/Agencies", "dc":"Required Docs", "st":"Action Steps", "tm":"Timeline", "dy":"days"}
+                    summ = "You're in the right place to get this sorted! 🇹🇷 One important heads-up: e-İkamet appointment slots in major cities fill up fast, so book yours as soon as your documents are ready. I've laid out every step clearly below — and if you're not sure which permit type applies to your situation, just ask!"
+                    labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Steps in the Process", "tm":"Estimated Timeline", "dy":"days"}
                     
             else:  # lawyer_dispute (default for general legal disputes)
                 timeline = 25
@@ -351,20 +483,20 @@ async def smart_router_handle(
                     permits = ["Hukuki İhtilaf Çözümü", "Arabuluculuk / Dava"]
                     agencies = ["Arabuluculuk Merkezi", "Ticaret Mahkemesi / Asliye Hukuk", "İcra Müdürlüğü", "Noter"]
                     docs = ["İlgili Tüm Sözleşmeler / Belgeler", "Fatura ve Ödeme Kayıtları", "E-posta / Yazışma Kayıtları", "Tanık Bilgileri (Varsa)", "Kimlik Belgesi"]
-                    summ = "Hukuki ihtilafınızı çözmek için gereken tüm adımlar aşağıda. Resmi ihtarnameden zorunlu arabuluculuğa, oradan da mahkeme sürecine kadar tüm hukuki yolu kapsıyoruz. Belgelerinizi yüklemek için Dashboard'ı kullanın."
-                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Adımlar", "tm":"Süre", "dy":"gün"}
+                    summ = "Bu kesinlikle stresli bir durum olabilir — ama doğru adımı atmak durumu kontrol altına almanızı sağlar. ⚖️ Türk hukukunda anlaşmazlıkların büyük çoğunluğu zorunlu arabuluculukta, mahkemeye gitmeden çözülüyor. Size en verimli yolu çiziyorum — ihtarnameden arabuluculuğa, gerekirse mahkemeye kadar. Şu an elinizde hangi belgeler var?"
+                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Sürecin Adımları", "tm":"Tahmini Süre", "dy":"gün"}
                 elif language == "ar":
                     permits = ["حل النزاع القانوني", "الوساطة / التقاضي"]
                     agencies = ["مركز الوساطة", "المحكمة التجارية / المدنية", "مديرية التنفيذ", "كاتب العدل"]
                     docs = ["جميع العقود / المستندات ذات الصلة", "الفواتير وسجلات الدفع", "سجلات البريد الإلكتروني / المراسلات", "معلومات الشهود (إن وجدوا)", "وثيقة هوية"]
-                    summ = "جميع الخطوات اللازمة لحل نزاعك القانوني موضّحة أدناه. من الإخطار الرسمي إلى الوساطة الإجبارية وصولاً إلى التقاضي — نغطي المسار القانوني الكامل. ارفع مستنداتك من لوحة التحكم."
-                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"الخطوات", "tm":"الجدول الزمني", "dy":"يوم"}
+                    summ = "قد يكون هذا الوضع مرهقاً — لكن اتخاذ الخطوة الصحيحة يعيد لك زمام الأمور. ⚖️ معظم النزاعات في تركيا تُحسم في الوساطة الإجبارية دون اللجوء للمحكمة. سأرسم لك المسار الأكثر كفاءة — من الإخطار الرسمي إلى الوساطة وصولاً للمحكمة عند الحاجة. أخبرني: ما المستندات المتوفرة لديك الآن?"
+                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطوات العملية", "tm":"المدة المتوقعة", "dy":"يوم"}
                 else:
                     permits = ["Legal Dispute Resolution", "Mediation / Litigation"]
                     agencies = ["Mediation Centre (Arabuluculuk)", "Commercial or Civil Court", "Enforcement Directorate (İcra Müdürlüğü)", "Notary Public (for ihtarname)"]
                     docs = ["All Relevant Contracts / Documents", "Invoices & Payment Records", "Email & Communication Logs", "Witness Information (if any)", "Valid ID Document"]
-                    summ = "All the steps to resolve your legal dispute are mapped out below. From a formal warning letter (ihtarname) through mandatory mediation, and into court proceedings if needed — we cover the complete legal path. Upload your documents from the Dashboard."
-                    labels = {"ag":"Institutions/Agencies", "dc":"Required Docs", "st":"Action Steps", "tm":"Timeline", "dy":"days"}
+                    summ = "This can be a stressful situation, but taking the right steps puts you back in control. ⚖️ Good news: most disputes in Turkey get resolved through mandatory mediation — no court needed. I've charted the most effective path for you, from a formal warning letter (ihtarname) through mediation, and into court proceedings if necessary. What documents do you have available right now?"
+                    labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Steps in the Process", "tm":"Estimated Timeline", "dy":"days"}
             
             business_type = lawyer_subtype
         else:
@@ -393,7 +525,7 @@ async def smart_router_handle(
         out_str = (
             f"💬 {summ}\n\n"
             f"📋 **{labels['ag']}:** {', '.join(agencies)}\n"
-            f"📄 **{labels['dc']}:** {', '.join(docs[:6])}...\n"
+            f"📄 **{labels['dc']}:** {', '.join(docs[:6])}\n"
             f"✅ **{labels['st']}:**\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps_list)) +
             f"\n\n⏱️ **{labels['tm']}:** {timeline} {labels['dy']}"
         )

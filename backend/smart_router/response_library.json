@@ -181,6 +181,41 @@
       "For a retail bakery selling pre-made items with no on-site baking, the requirements are similar to a standard food retail store.",
       "The chimney/flue compliance (Baca Uygunlu\u011fu) is a key step for bakeries \u2014 inspected by both the municipality and fire department.",
       "Bakeries producing bread for wholesale also need an \u0130l G\u0131da ve Tar\u0131m M\u00fcd\u00fcrl\u00fc\u011f\u00fc registration. Is this for retail or wholesale production?"
+    ],
+    "cost": [
+      "Permit fees in Istanbul vary by business type \u2014 a simple retail permit usually runs 500\u20132,000 TL in municipal fees, while restaurant permits (fire + hygiene inspections included) can reach 5,000\u201310,000 TL total. What type of business are you opening?",
+      "Great question to ask upfront! The main costs are: Trade Registry fee (~500\u20131,500 TL), notary fees (~500\u20132,000 TL), and the municipal permit fee (500\u20135,000 TL depending on business type). For food businesses, add inspection fees on top. Want a breakdown?",
+      "The total cost depends on your business type. Offices are cheapest (1,500\u20133,000 TL all-in), retail is mid-range (2,000\u20135,000 TL), and food businesses are the most expensive due to fire and hygiene inspections (5,000\u201315,000 TL). What are you opening?",
+      "Beyond the permit fees, don\u2019t forget accountant setup costs (~500\u20131,500 TL/month ongoing) and notary fees for your Articles of Association. The government fees alone are usually 2,000\u20138,000 TL depending on your business. Want the full cost breakdown?",
+      "Honestly, the permit fees aren\u2019t that high \u2014 it\u2019s the professional service fees (accountant, notary, lawyer if needed) that add up. Want me to give you a realistic total budget estimate for your specific business type and district?"
+    ],
+    "location": [
+      "In Istanbul, permits are issued by your district municipality (il\u00e7e belediyesi) \u2014 so Be\u015fikta\u015f, Kad\u0131k\u00f6y, \u015ei\u015fli, etc. each have their own permit office. Which district are you opening in?",
+      "The \u0130\u015fyeri A\u00e7ma ve \u00c7al\u0131\u015fma Ruhsat\u0131 is handled at your local district municipality. Most applications can now be started via turkiye.gov.tr, but inspections usually require an in-person visit. Which district are you in?",
+      "Your district belediye is your main contact for operating permits \u2014 they handle the \u0130\u015fyeri A\u00e7ma Ruhsat\u0131, hygiene inspections, and the municipal side of fire clearance. Where in Istanbul is your business going to be?",
+      "Different districts in Istanbul can have slightly different processing speeds. Kad\u0131k\u00f6y, Be\u015fikta\u015f, Sisli, and Bak\u0131rk\u00f6y tend to be well-organised for international applicants. Which area are you looking at?",
+      "For most permits, you submit to your district municipality either via e-Devlet or in person. The Trade Registry and Tax Office are separate stops. Want me to walk you through where to go for each step?"
+    ],
+    "how_it_works": [
+      "Great place to start! Opening a business in Istanbul involves three pillars: \u2460 Company registration (Tax ID, Trade Registry, MERS\u0130S), \u2461 Operating licence (district municipality), \u2462 Sector-specific licences (fire, hygiene, TAPDK, etc. depending on your business). Want the full step-by-step?",
+      "Here\u2019s the big picture: register your company first (Tax ID \u2192 MERS\u0130S \u2192 Notary \u2192 Trade Registry \u2192 Bank Account \u2192 Tax Office), then apply for your operating licence at the district municipality. The whole process takes 15\u201390 days depending on your business type. What are you planning to open?",
+      "Think of it as 3 phases: \u2460 Company setup (1\u20132 weeks), \u2461 Operating permit application (1\u20133 weeks), \u2462 Sector inspections if required (2\u20136 weeks for food businesses). It\u2019s bureaucratic but very manageable once you know the path. Want your personalised roadmap?",
+      "Every business needs a base set of permits (Tax registration, Trade Registry, municipal operating licence). On top of that, food businesses need hygiene and fire clearance, alcohol sellers need TAPDK, and so on. Tell me your business type and I\u2019ll map out exactly what applies to you!",
+      "The system has two tracks: the company registration track (through MERS\u0130S and the Trade Registry) and the premises permit track (through your district municipality). Both must be completed before you can open. Want me to walk you through both from start to finish?"
+    ],
+    "nace": [
+      "Your NACE code is your official business activity classification in Turkey \u2014 it determines your tax category, permit tier, and which inspections apply to you. What type of business are you opening? I can help you find the right code.",
+      "NACE codes in Turkey follow the European standard. Common ones: 56.10 (Restaurant), 47.11 (Grocery/Supermarket), 62.01 (Software), 96.02 (Hair Salon), 47.71 (Clothing Retail). What\u2019s your business activity?",
+      "You select your NACE code inside the MERS\u0130S portal during registration \u2014 it\u2019s the 'Faaliyet Ekle' (Add Activity) button. The code you choose affects your tax obligations and which municipal inspections you\u2019ll need. Want help picking the right one?",
+      "Getting your NACE code right is important \u2014 an incorrect code can cause problems with permits and tax filings later. Tell me your business type and I\u2019ll point you to the exact code you need.",
+      "The NACE code is added during the MERS\u0130S application (step 4 of company formation). Common mistake: choosing too broad a code \u2014 always pick the most specific one that matches your actual activity. Want me to find yours?"
+    ],
+    "tax_id": [
+      "Your Tax ID (Vergi Kimlik Numaras\u0131) is the very first step for any foreign national opening a business in Turkey. You get it at your local tax office (Vergi Dairesi) with your passport. It\u2019s free and usually takes about 30 minutes!",
+      "To get a Turkish Tax ID, visit your nearest Vergi Dairesi with your passport. Some offices also let you apply online via ivd.gib.gov.tr if you have a Turkish e-Devlet ID. Which city are you in?",
+      "The Tax ID (Vergi Numaras\u0131) is step one \u2014 you can\u2019t open a bank account, register a company, or apply for most permits without it. The good news: it\u2019s quick, free, and just needs your passport. Go to any local tax office.",
+      "Got your Tax ID already? Excellent \u2014 that\u2019s the foundation for everything else. Next you\u2019ll decide on your company structure (Ltd. or Sole Proprietorship) and then reserve your company name in MERS\u0130S.",
+      "Turkish citizens use their national ID number as their Tax ID automatically. Foreign nationals must visit a Vergi Dairesi in person with their passport. The whole thing takes under an hour and costs nothing \u2014 one of the easiest steps in the whole process!"
     ]
   },
 

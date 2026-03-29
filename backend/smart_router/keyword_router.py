@@ -52,10 +52,31 @@ INTENT_MAP = {
 
     # --- Permit Agent intents ---
     "permit.how_to_start": [
-        r"\b(how (do i|to) (start|open|begin|register|set up)|starting a business|open a business|open my business)\b"
+        r"\b(how (do i|to) (start|open|begin|register|set up)|starting a business|open a business|open my business)\b",
+        r"\b(i want to (open|start|register|set up)|what business (do i|you) want|obtain a business permit|i want to obtain)\b",
+        r"\b(what business|which business|type of business|hangi i[şs]|ne i[şs])\b",
+        r"^(what permit do you want\??)$",
+        r"^(what business (you|do you) want to open\??)$",
     ],
     "permit.documents": [
-        r"\b(what documents|required docs|document(s)? needed|paperwork|what do i need to bring|belge)\b"
+        r"\b(what documents|required docs|document(s)? needed|paperwork|what do i need to bring|belge|what do i need)\b",
+        r"\b(documents (do i|needed|required)|need (for|to open)|checklist|what to bring|required (docs|papers))\b",
+        r"^(what documents do i need\??)$",
+    ],
+    "permit.cost": [
+        r"\b(how much|cost|price|fee(s)?|payment|expensive|affordable|budget|maliy(et)?|ne kadar|kaç (lira|tl|para))\b",
+        r"\b(does it cost|permit cost|permit fee|registration (fee|cost)|total cost)\b",
+        r"^(how much does it cost\??)$",
+    ],
+    "permit.location": [
+        r"\b(where (is|are)|location|district|belediye|which (district|area|municipality)|located in|where do i go|nerede|hangi ilçe)\b",
+        r"\b(besiktas|kadikoy|sisli|uskudar|fatih|beyoglu|bakirkoy|zeytinburnu|sariyer|beyo[gğ]lu|be[sş]ikta[sş])\b",
+        r"^(where is your business located\??)$",
+    ],
+    "permit.how_it_works": [
+        r"\b(how does it work|how (does|do) (the )?(process|system|permit|it)|explain|overview|what is|tell me about)\b",
+        r"\b(how it works|what happens|what (is|are) the|process overview|general (info|guide|overview))\b",
+        r"^(how does it work\??)$",
     ],
     "permit.restaurant": [
         r"\b(restaurant|restoran|lokanta|dinner|dining|food permit)\b"
@@ -85,7 +106,9 @@ INTENT_MAP = {
         r"\b(bakery|f[ıi]r[ıi]n|bread|pastanesi)\b"
     ],
     "permit.timeline": [
-        r"\b(how long|timeline|time frame|when will|how many days|duration|takes (how|long))\b"
+        r"\b(how long|timeline|time frame|when will|how many days|duration|takes (how|long)|ne kadar s[üu]r)\b",
+        r"\bHow long does it take\b",
+        r"^(how long does it take\??)$",
     ],
     "permit.alcohol": [
         r"\b(alcohol|tapdk|liquor|wine|beer|bar|spirits|drinks? permit)\b"
@@ -94,7 +117,13 @@ INTENT_MAP = {
         r"\b(music|live music|band|entertainment permit|canl[iı] m[uü]zik)\b"
     ],
     "permit.steps": [
-        r"\b(steps|process|procedure|what are the steps|guide me|walk me through|14 steps)\b"
+        r"\b(steps|process|procedure|what are the steps|guide me|walk me through|14 steps|know the steps|i want to know)\b"
+    ],
+    "permit.nace": [
+        r"\b(nace|nace code|business code|sector code|activity code|faaliyet kodu)\b"
+    ],
+    "permit.tax_id": [
+        r"\b(tax id|vergi (numarası|no)|tax number|tax registration|tax office|vergi dairesi)\b"
     ],
 
     # --- Student Agent intents ---

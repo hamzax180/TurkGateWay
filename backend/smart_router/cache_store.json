@@ -1,26 +1,22 @@
 {
-  "917266d6f86dd347f3a72c9588492c9d": {
-    "response": "To provide tailored",
-    "ts": 1774644670.425097
+  "1e196c43eb8682f8f8839b3c9b7d77e7": {
+    "response": "The process begins with choosing your legal structure (Ltd. Şirket or AŞ). What industry are you going into?",
+    "ts": 1774824572.5104065
   },
-  "13c08e79bebd4e26d94f8dcd1d2e8e35": {
-    "response": "Cafes serving pastries or light food fall under municipal hygiene rules. Expect 30–60 days for full approval.",
-    "ts": 1774644702.0150895
+  "523bfda682e31254f53339a98342bd23": {
+    "response": "Different districts in Istanbul can have slightly different processing speeds. Kadıköy, Beşiktaş, Sisli, and Bakırköy tend to be well-organised for international applicants. Which area are you looking at?",
+    "ts": 1774824662.2742965
   },
-  "997fdad604ac72de34d9523a74be6d4a": {
-    "response": "Subscription changes take effect immediately. What would you like to do — upgrade, downgrade, or cancel?",
-    "ts": 1774646061.7658966
+  "6b46102c28daaad0714997039fa35e71": {
+    "response": "Permit timelines in Istanbul range from 15 days (simple office) to 90 days (restaurant with alcohol). What's your business type?",
+    "ts": 1774824671.2755706
   },
-  "10aec35353f9c4096a71c38654c3d402": {
-    "response": "To cancel, just head to Account > Subscription and hit 'Cancel Plan'. Want to keep it and just downgrade instead?",
-    "ts": 1774646074.896147
+  "dade01a5a3f90d2df52df7a4db0cc1f9": {
+    "response": "Beyond the permit fees, don’t forget accountant setup costs (~500–1,500 TL/month ongoing) and notary fees for your Articles of Association. The government fees alone are usually 2,000–8,000 TL depending on your business. Want the full cost breakdown?",
+    "ts": 1774824682.193398
   },
-  "363c3d6f38234ade2a660d768e710223": {
-    "response": "To cancel, just head to Account > Subscription and hit 'Cancel Plan'. Want to keep it and just downgrade instead?",
-    "ts": 1774646093.1648686
-  },
-  "613ded2393cc109c1b498f5d273fa632": {
-    "response": "To renew your Student ID (Kimlik), visit your university's Student Affairs office with your current ID, a passport photo, and your enrollment certificate.",
-    "ts": 1774646472.6219814
+  "81e040e9ddffe2c8a4ba9411831fe3bd": {
+    "response": "Great place to start! Opening a business in Istanbul involves three pillars: ① Company registration (Tax ID, Trade Registry, MERSİS), ② Operating licence (district municipality), ③ Sector-specific licences (fire, hygiene, TAPDK, etc. depending on your business). Want the full step-by-step?",
+    "ts": 1774824696.9408853
   }
 }
