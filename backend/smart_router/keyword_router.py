@@ -255,10 +255,10 @@ def detect_intent(
                 group = parts[0]
                 sub = parts[1] if len(parts) > 1 else None
 
-                # Skip cross-agent domain intents unless they match the active agent
+                # If a user asks a lawyer question inside the permit agent, catch it and redirect
                 agent_domains = {"permit", "student", "lawyer"}
                 if group in agent_domains and group != assistant_type:
-                    continue
+                    return "redirect", group, 1.0
 
                 return group, sub, 1.0
 

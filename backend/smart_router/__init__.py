@@ -768,7 +768,27 @@ async def smart_router_handle(
     intent_group, sub_intent, confidence = detect_intent(query, assistant_type)
 
     if confidence > 0:
-        raw_response = _pick_response(intent_group, sub_intent)
+        if intent_group == "redirect":
+            if sub_intent == "lawyer":
+                raw_response = (
+                    "Merhaba, hukuki bir konu hakkında soruyorsunuz. Lütfen **Avukat Danışmanı**na (Lawyer Advisor) geçiş yapın!" if language == "tr" else
+                    "يبدو أنك بحاجة إلى مساعدة قانونية يرجى التبديل إلى **Lawyer Advisor**" if language == "ar" else
+                    "It sounds like you need legal assistance. Please switch to the **Lawyer Advisor** using the tabs above to proceed with legal cases."
+                )
+            elif sub_intent == "student":
+                raw_response = (
+                    "Merhaba, üniversite işlemleri için lütfen **Öğrenci Danışmanı**na (Student Advisor) geçiş yapın." if language == "tr" else
+                    "يرجى التبديل إلى **Student Advisor**" if language == "ar" else
+                    "It looks like you have a student-related inquiry. Please switch to the **Student Advisor** above to proceed."
+                )
+            else:
+                raw_response = (
+                    "Ruhsat işlemleri için lütfen **Ruhsat Danışmanı**na (Permit Advisor) geçiş yapın." if language == "tr" else
+                    "يرجى التبديل إلى **Permit Advisor**" if language == "ar" else
+                    "It seems you're asking about permits. Please switch to the **Permit Advisor** above to proceed."
+                )
+        else:
+            raw_response = _pick_response(intent_group, sub_intent)
         
         # Override general greetings to be domain-specific and highly professional
         if intent_group == "greeting":
