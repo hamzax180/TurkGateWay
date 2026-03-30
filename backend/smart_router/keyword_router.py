@@ -199,7 +199,7 @@ INTENT_MAP = {
         r"\b(police|arrest|arrested|criminal|charge|jail|prison|detained|prosecutor|savcı|karakol|suç)\b"
     ],
     "lawyer.criminal_drugs": [
-        r"\b(drugs|narcotics|weed|cocaine|hashish|trafficking|possession|uyuşturucu|madde|esrar)\b"
+        r"\b(drug|drugs|narcotic|narcotics|weed|cocaine|hashish|trafficking|possession|uyuşturucu|madde|esrar|caught with)\b"
     ],
     "lawyer.criminal_theft": [
         r"\b(theft|steal|stole|robbery|fraud|scam|dolandır|hırsız|embezzlement)\b"
