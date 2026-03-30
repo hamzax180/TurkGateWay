@@ -258,7 +258,7 @@ def detect_intent(
                 # If a user asks a lawyer question inside the permit agent, catch it and redirect
                 agent_domains = {"permit", "student", "lawyer"}
                 if group in agent_domains and group != assistant_type:
-                    return "redirect", group, 1.0
+                    return "redirect", f"{group}:{sub}" if sub else group, 1.0
 
                 return group, sub, 1.0
 

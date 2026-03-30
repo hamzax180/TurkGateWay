@@ -769,24 +769,30 @@ async def smart_router_handle(
 
     if confidence > 0:
         if intent_group == "redirect":
-            if sub_intent == "lawyer":
-                raw_response = (
-                    "Merhaba, hukuki bir konu hakkında soruyorsunuz. Lütfen **Avukat Danışmanı**na (Lawyer Advisor) geçiş yapın!" if language == "tr" else
-                    "يبدو أنك بحاجة إلى مساعدة قانونية يرجى التبديل إلى **Lawyer Advisor**" if language == "ar" else
-                    "It sounds like you need legal assistance. Please switch to the **Lawyer Advisor** using the tabs above to proceed with legal cases."
-                )
-            elif sub_intent == "student":
-                raw_response = (
-                    "Merhaba, üniversite işlemleri için lütfen **Öğrenci Danışmanı**na (Student Advisor) geçiş yapın." if language == "tr" else
-                    "يرجى التبديل إلى **Student Advisor**" if language == "ar" else
-                    "It looks like you have a student-related inquiry. Please switch to the **Student Advisor** above to proceed."
-                )
+            target_agent = sub_intent
+            target_sub_intent = None
+            if sub_intent and ":" in sub_intent:
+                target_agent, target_sub_intent = sub_intent.split(":", 1)
+            
+            underlying_response = _pick_response(target_agent, target_sub_intent)
+            
+            if target_agent == "lawyer":
+                suffix = "Please switch your mode to the **Lawyer Advisor** using the tabs above to continue."
+                if language == "tr": suffix = "Lütfen devam etmek için yukarıdan **Avukat Danışmanı** moduna geçiş yapın."
+                if language == "ar": suffix = "يرجى تبديل وضعك إلى **المستشار القانوني** للمتابعة."
+            elif target_agent == "student":
+                suffix = "Please switch your mode to the **Student Advisor** above to continue."
+                if language == "tr": suffix = "Lütfen devam etmek için **Öğrenci Danışmanı** moduna geçiş yapın."
+                if language == "ar": suffix = "يرجى تبديل وضعك إلى **المستشار الطلابي** للمتابعة."
             else:
-                raw_response = (
-                    "Ruhsat işlemleri için lütfen **Ruhsat Danışmanı**na (Permit Advisor) geçiş yapın." if language == "tr" else
-                    "يرجى التبديل إلى **Permit Advisor**" if language == "ar" else
-                    "It seems you're asking about permits. Please switch to the **Permit Advisor** above to proceed."
-                )
+                suffix = "Please switch your mode to the **Permit Advisor** above to continue."
+                if language == "tr": suffix = "Lütfen devam etmek için **Ruhsat Danışmanı** moduna geçiş yapın."
+                if language == "ar": suffix = "يرجى تبديل وضعك إلى **مستشار التراخيص** للمتابعة."
+
+            if underlying_response:
+                raw_response = f"{underlying_response}\n\n*( {suffix} )*"
+            else:
+                raw_response = f"*( {suffix} )*"
         else:
             raw_response = _pick_response(intent_group, sub_intent)
         
