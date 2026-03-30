@@ -73,6 +73,16 @@
     "Debt collection in Turkey relies heavily on the enforcement offices. If the debtor doesn't object within 7 days, their bank accounts can be frozen. Want to know more?",
     "If someone owes you money, sending a formalized notarized warning is often the best first step. What kind of debt is this?"
   ],
+  "criminal_victim": [
+    "If you are reporting a crime, the first step is filing an official complaint (şikayet dilekçesi) at the prosecutor's office or police station. A lawyer can ensure your statement is recorded accurately. What exactly happened?",
+    "Being a victim of a crime is distressing, but taking action promptly is key. Depending on the offense, we have a statutory time limit to file a complaint. Have you been to a police station yet?",
+    "I'm sorry to hear that. As the victim (müşteki), you have the right to follow the investigation and request damages. To start, we need to gather any immediate evidence. Could you provide a bit more context?"
+  ],
+  "criminal_accused": [
+    "Being accused of a crime is terrifying, but remember: you have the right to remain silent and you have the right to a lawyer. Do not give any statements to the police without representation. Are you currently in custody?",
+    "If you're facing allegations, the absolute most important rule is to not speak to authorities without a lawyer (müdafi). Everything you say can be used to build the prosecutor's case. Have you been formally summoned yet?",
+    "It is entirely normal to feel panicked if you're wrongly accused. In the Turkish system, the burden of proof is on the prosecutor. Our job will be dismantling their evidence. Have the police contacted you?"
+  ],
   "criminal_drugs": [
     "Drug-related charges in Turkey are taken extremely seriously. Sentences for trafficking or dealing are severe, while possession for personal use usually involves a separate probation or treatment process. Is someone currently in custody?",
     "For narcotics charges, having legal representation during the initial police and prosecutor statements is critical to how the case will be framed. What stage is the investigation at?",

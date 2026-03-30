@@ -203,6 +203,12 @@ INTENT_MAP = {
         r"\b(buy|sell|rent|purchase|lease) (a |my )?(house|property|apartment|flat|commercial|real estate|tapu)\b",
         r"\b(evict|eviction|rental increase|kiracı|ev sahibi|kira|tenant|landlord)\b"
     ],
+    "lawyer.criminal_accused": [
+        r"\b(accused|wrongly accused|suspect|arrested|detained|i was framed|suçlanıyorum|şüpheli)\b"
+    ],
+    "lawyer.criminal_victim": [
+        r"\b(victim|reporting|i am reporting|to report|report a crime|someone did this|şikayet|mağdur|şikayetçi)\b"
+    ],
     "lawyer.criminal": [
         r"\b(police|arrest|arrested|criminal|charge|jail|prison|detained|prosecutor|savcı|karakol|suç)\b"
     ],
