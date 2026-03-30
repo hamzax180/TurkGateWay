@@ -191,6 +191,14 @@ INTENT_MAP = {
         r"\b(i have|i got|i need help with) (a |an |my )?(case|problem|issue|situation)\b",
         r"\b(my rights|what are my rights|know my rights)\b"
     ],
+    "lawyer.dispute_defendant": [
+        r"\b(against me|im being sued|i am being sued|they are suing me|defend|defendant)\b",
+        r"\b(bana karşı|bana dava|dava açıldı|sanık|davalı)\b"
+    ],
+    "lawyer.dispute_plaintiff": [
+        r"\b(someone else|against someone|i want to sue|i am suing|plaintiff|claim against them|suing someone)\b",
+        r"\b(başkasına|başkalarına|dava açmak istiyorum|birine karşı|davacı)\b"
+    ],
     "lawyer.real_estate": [
         r"\b(buy|sell|rent|purchase|lease) (a |my )?(house|property|apartment|flat|commercial|real estate|tapu)\b",
         r"\b(evict|eviction|rental increase|kiracı|ev sahibi|kira|tenant|landlord)\b"

@@ -34,6 +34,16 @@
     "Dealing with legal cases is never easy, so you're making the right move by seeking guidance. To help me outline the best path forward, could you tell me if this case is filed against you or someone else?",
     "I hear you, and I can definitely help clarify your options under Turkish law. Let's take it step by step. What kind of case are we talking about, and are you the one initiating it?"
   ],
+  "dispute_defendant": [
+    "I see. Being on the receiving end of a case is stressful, but acting quickly and strategically makes a huge difference. Our first step is to formally respond to the claim within the legal deadline. Do you have the official paperwork (like an ihtarname or court summons) in front of you?",
+    "Got it. When a case is filed against you in Turkey, the clock starts ticking to submit your defense and evidence. Try not to worry — we can map out a solid plan. Have you received any official notices yet?",
+    "That's perfectly fine, many people face claims they need to defend against. The most critical thing right now is not to miss any legal deadlines for responding. Can you tell me what kind of claim it is (e.g., debt, employment, commercial)?"
+  ],
+  "dispute_plaintiff": [
+    "Understood. If you're looking to take action against someone, the first step is usually sending a formal notarized warning (ihtarname) to establish your claim officially before heading to mediation or court. Have you gathered all your evidence yet?",
+    "Got it. Initiating a case means we need to build a strong foundation first. In Turkey, many commercial and employment disputes require mandatory mediation before you can even file a lawsuit. What exactly are you trying to recover or resolve?",
+    "Taking legal action is a big step, but if your rights have been violated, it's the right move. We'll need to clearly document the issue and issue a formal notice. Would you like to outline the main points of your claim?"
+  ],
   "general_legal": [
     "I specialise in Turkish law — contracts, company formation, employment rights, residency permits, and legal disputes. What's on your mind today?",
     "Happy to help navigate Turkish law. It can be complex, but most issues are very manageable with the right roadmap. What's your situation?",
