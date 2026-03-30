@@ -79,9 +79,9 @@
     "Drug possession and drug trafficking are two very different charges under the Turkish Penal Code, with completely different defense strategies. Tell me briefly what the specific charge is."
   ],
   "criminal_theft": [
-    "Theft or fraud charges (hırsızlık or dolandırıcılık) often depend heavily on intent and the value of goods. Do you have any evidence or statements already prepared?",
-    "If you are accused of theft, the prosecutor will look for concrete evidence like CCTV, witness statements, or transaction logs. It's crucial not to make any statements without your lawyer present. How can I help?",
-    "In fraud cases, especially online or financial fraud, the investigation phase takes time. Whether you are the victim or the accused, documenting all communications is your first step. What's your situation?"
+    "Theft or fraud charges (hırsızlık or dolandırıcılık) depend heavily on concrete evidence like CCTV, witness statements, or transaction logs. Whether you're the victim reporting a crime or the one accused, what's your current situation?",
+    "I'm sorry you are dealing with this. If you are the victim of theft or fraud, we must report it to the police or prosecutor immediately. If you've been wrongly accused, do not make any statements without a lawyer. Which side of the case are you on?",
+    "In theft and fraud cases, especially financial ones, gathering all proof (like bank logs and messages) is the most critical first step. Are you looking to file a complaint against someone, or do you need to defend yourself?"
   ],
   "criminal_violence": [
     "Assault or physical violence charges (kasten yaralama) vary greatly depending on the severity of the injury and whether a weapon was used. Was anyone seriously hurt?",
