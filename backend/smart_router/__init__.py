@@ -125,6 +125,40 @@ _ISOLATED_ANSWER_RE = re.compile(
     "|".join(_ISOLATED_ANSWER_PATTERNS), flags=re.IGNORECASE
 )
 
+# ---------------------------------------------------------------------------
+# Fuzzy matching for typos (e.g. "bacheveler" → "bahcelievler")
+# Uses Python's built-in difflib — zero dependencies
+# ---------------------------------------------------------------------------
+from difflib import SequenceMatcher
+
+_ALL_DISTRICTS = [
+    "adalar", "arnavutkoy", "atasehir", "avcilar", "bagcilar", "bahcelievler",
+    "bakirkoy", "basaksehir", "bayrampasa", "besiktas", "beykoz", "beylikduzu",
+    "beyoglu", "buyukcekmece", "catalca", "cekmekoy", "esenler", "esenyurt",
+    "eyup", "eyupsultan", "fatih", "gaziosmanpasa", "gungoren", "kadikoy",
+    "kagithane", "kartal", "kucukcekmece", "maltepe", "pendik", "sancaktepe",
+    "sariyer", "sile", "silivri", "sisli", "sultanbeyli", "sultangazi",
+    "tuzla", "umraniye", "uskudar", "zeytinburnu",
+]
+
+_ALL_BUSINESS_TYPES = [
+    "cafe", "kafe", "restaurant", "restoran", "retail", "office", "ofis",
+    "pharmacy", "eczane", "bakery", "barber", "berber", "gym", "shop",
+    "store", "company", "clothing", "hotel", "clinic", "school",
+]
+
+def _fuzzy_match(word: str, candidates: list, threshold: float = 0.70) -> str | None:
+    """Return the best candidate if similarity >= threshold, else None."""
+    word = word.lower().strip()
+    if len(word) < 3:
+        return None
+    best, best_score = None, 0.0
+    for c in candidates:
+        score = SequenceMatcher(None, word, c).ratio()
+        if score > best_score:
+            best, best_score = c, score
+    return best if best_score >= threshold else None
+
 
 # ---------------------------------------------------------------------------
 # Internal: pick a random response from the library
@@ -210,6 +244,19 @@ async def smart_router_handle(
         "adalar", "arnavutkoy", "arnavutköy", "atasehir", "ataşehir", "avcilar", "avcılar", "bagcilar", "bağcılar", "bahcelievler", "bahçelievler", "bakirkoy", "bakırköy", "basaksehir", "başakşehir", "bayrampasa", "bayrampaşa", "besiktas", "beşiktaş", "beykoz", "beylikduzu", "beylikdüzü", "beyoglu", "beyoğlu", "buyukcekmece", "büyükçekmece", "catalca", "çatalca", "cekmekoy", "çekmeköy", "esenler", "esenyurt", "eyup", "eyüp", "eyüpsultan", "fatih", "gaziosmanpasa", "gaziosmanpaşa", "gungoren", "güngören", "kadikoy", "kadıköy", "kagithane", "kağıthane", "kartal", "kucukcekmece", "küçükçekmece", "maltepe", "pendik", "sancaktepe", "sariyer", "sarıyer", "sile", "şile", "silivri", "sisli", "şişli", "sultanbeyli", "sultangazi", "tuzla", "umraniye", "ümraniye", "uskudar", "üsküdar", "zeytinburnu"
     ])
     
+    # Fuzzy fallback: if exact match failed, try fuzzy for each word in query
+    fuzzy_district_match = None
+    fuzzy_business_match = None
+    if not has_relevant_kw:
+        for word in query.lower().split():
+            if not fuzzy_district_match:
+                fuzzy_district_match = _fuzzy_match(word, _ALL_DISTRICTS)
+            if not fuzzy_business_match:
+                fuzzy_business_match = _fuzzy_match(word, _ALL_BUSINESS_TYPES)
+        if fuzzy_district_match or fuzzy_business_match:
+            has_relevant_kw = True
+            print(f"[SmartRouter] Fuzzy match: district={fuzzy_district_match}, business={fuzzy_business_match}")
+    
     if _NEW_CONSULTATION_RE.search(query) or _ISOLATED_ANSWER_RE.match(query) or (is_clarifying and has_relevant_kw):
         print(f"[SmartRouter] NEW CONSULTATION detected — generating dashboard offline (0 tokens) for {assistant_type}")
         
@@ -252,6 +299,19 @@ async def smart_router_handle(
                     if any(kw in user_history_text for kw in kw_list):
                         business_type = display_name
                         break
+            # Fuzzy fallback for business type (catches typos like "resturant")
+            if business_type == "Business":
+                fb = fuzzy_business_match
+                if not fb:
+                    for word in query.lower().split():
+                        fb = _fuzzy_match(word, [kw for kw_list, _ in _BUSINESS_KEYWORDS for kw in kw_list])
+                        if fb: break
+                if fb:
+                    for kw_list, display_name in _BUSINESS_KEYWORDS:
+                        if fb in kw_list:
+                            business_type = display_name
+                            print(f"[SmartRouter] Fuzzy business type: '{fb}' → {display_name}")
+                            break
 
             # ------------------------------------------------------------------
             # Detect district — with per-district municipality name + local note
@@ -347,6 +407,24 @@ async def smart_router_handle(
                         mun_name_en = mun_en
                         district_note = note
                         break
+            # Fuzzy fallback for district (catches typos like "bacheveler" → "bahcelievler")
+            if district_display is None:
+                fd = fuzzy_district_match
+                if not fd:
+                    for word in query.lower().split():
+                        fd = _fuzzy_match(word, list(_DISTRICT_INFO.keys()))
+                        if fd: break
+                if not fd:
+                    for word in user_history_text.split():
+                        fd = _fuzzy_match(word, list(_DISTRICT_INFO.keys()))
+                        if fd: break
+                if fd and fd in _DISTRICT_INFO:
+                    dname, mun_en, note = _DISTRICT_INFO[fd]
+                    district_en = dname
+                    district_display = dname
+                    mun_name_en = mun_en
+                    district_note = note
+                    print(f"[SmartRouter] Fuzzy district: '{fd}' → {dname}")
 
             no_district = district_display is None
             
