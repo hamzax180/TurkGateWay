@@ -95,7 +95,7 @@ _NEW_CONSULTATION_PATTERNS = [
     r"\b(work permit|residence permit|ikamet (ba\u015fvuru|application)|\u00e7al\u0131\u015fma izni|stay in turkey legally|legal to work)\b",
     r"\b(legal dispute|lawsuit|mediation|arabuluculuk|ihtarname|file a claim|take to court|sue (someone|my|the))\b",
     r"\b(buy|sell|rent|purchase|lease) (a |my )?(house|property|apartment|flat|commercial|real estate|tapu)\b",
-    r"\b(police|arrest|arrested|criminal|charge|jail|prison|detained|prosecutor)\b",
+    r"\b(police|arrest|arrested|criminal|charge|jail|prison|detained|prosecutor|drugs|narcotics|weed|cocaine|hashish|theft|robbery|fraud|assault|violence)\b",
     r"\b(debt|unpaid|invoice|money owed|icra|haciz|collection)\b",
     r"\b(how long (does|will|do)).{0,40}(company|permit|contract|court|case|formation|residency|ikamet)\b",
     # Naked location changes mid-session ("cafe in besiktas")
@@ -544,7 +544,7 @@ async def smart_router_handle(
                 lawyer_subtype = "lawyer_dispute"
             elif any(k in lower_q for k in ["buy", "sell", "rent", "house", "property", "apartment", "real estate", "tapu", "evict", "kira", "tenant", "landlord"]):
                 lawyer_subtype = "lawyer_real_estate"
-            elif any(k in lower_q for k in ["police", "arrest", "criminal", "charge", "jail", "prison", "detained", "suç"]):
+            elif any(k in lower_q for k in ["police", "arrest", "criminal", "charge", "jail", "prison", "detained", "suç", "drugs", "narcotics", "weed", "cocaine", "hashish", "theft", "robbery", "fraud", "assault", "violence"]):
                 lawyer_subtype = "lawyer_criminal"
             elif any(k in lower_q for k in ["debt", "unpaid", "invoice", "icra", "haciz", "collection", "alacak"]):
                 lawyer_subtype = "lawyer_debt"

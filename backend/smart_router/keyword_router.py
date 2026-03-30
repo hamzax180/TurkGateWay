@@ -198,6 +198,15 @@ INTENT_MAP = {
     "lawyer.criminal": [
         r"\b(police|arrest|arrested|criminal|charge|jail|prison|detained|prosecutor|savcı|karakol|suç)\b"
     ],
+    "lawyer.criminal_drugs": [
+        r"\b(drugs|narcotics|weed|cocaine|hashish|trafficking|possession|uyuşturucu|madde|esrar)\b"
+    ],
+    "lawyer.criminal_theft": [
+        r"\b(theft|steal|stole|robbery|fraud|scam|dolandır|hırsız|embezzlement)\b"
+    ],
+    "lawyer.criminal_violence": [
+        r"\b(assault|fight|attacked|violence|hit me|injured|yaralama|darp|kavga|meşru müdafaa)\b"
+    ],
     "lawyer.debt": [
         r"\b(debt|unpaid|invoice|money owed|icra|haciz|collection|bank account frozen|alacak)\b"
     ],

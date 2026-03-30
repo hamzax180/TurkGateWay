@@ -62,5 +62,20 @@
     "Unpaid invoices or debts? We can start an 'Icra Takibi' (Enforcement Proceeding) without needing a court case first. Do you have written proof of the debt?",
     "Debt collection in Turkey relies heavily on the enforcement offices. If the debtor doesn't object within 7 days, their bank accounts can be frozen. Want to know more?",
     "If someone owes you money, sending a formalized notarized warning is often the best first step. What kind of debt is this?"
+  ],
+  "criminal_drugs": [
+    "Drug-related charges in Turkey are taken extremely seriously. Sentences for trafficking or dealing are severe, while possession for personal use usually involves a separate probation or treatment process. Is someone currently in custody?",
+    "For narcotics charges, having legal representation during the initial police and prosecutor statements is critical to how the case will be framed. What stage is the investigation at?",
+    "Drug possession and drug trafficking are two very different charges under the Turkish Penal Code, with completely different defense strategies. Tell me briefly what the specific charge is."
+  ],
+  "criminal_theft": [
+    "Theft or fraud charges (hırsızlık or dolandırıcılık) often depend heavily on intent and the value of goods. Do you have any evidence or statements already prepared?",
+    "If you are accused of theft, the prosecutor will look for concrete evidence like CCTV, witness statements, or transaction logs. It's crucial not to make any statements without your lawyer present. How can I help?",
+    "In fraud cases, especially online or financial fraud, the investigation phase takes time. Whether you are the victim or the accused, documenting all communications is your first step. What's your situation?"
+  ],
+  "criminal_violence": [
+    "Assault or physical violence charges (kasten yaralama) vary greatly depending on the severity of the injury and whether a weapon was used. Was anyone seriously hurt?",
+    "If you were involved in a physical altercation, self-defense (meşru müdafaa) is a recognized legal concept in Turkey, but it must be proven. Do you have a medical report (darp raporu)?",
+    "In cases of violence, getting a medical report immediately is the most important piece of evidence, followed by filing a complaint. Have you spoken to the police yet?"
   ]
 }
