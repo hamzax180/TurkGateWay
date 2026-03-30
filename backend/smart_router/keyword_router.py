@@ -253,12 +253,21 @@ def detect_intent(
     """
     text = message.lower().strip()
 
-    # Walk the intent map in priority order: active assistant domains first!
-    # Penalize billing/support if it hijacks domain keywords.
-    sorted_intents = sorted(
-        INTENT_MAP.items(),
-        key=lambda item: 0 if item[0].startswith(f"{assistant_type}.") else 1
-    )
+    # Walk the intent map in priority order: 
+    # 1. Global social/trust intents (greeting, trust, identity, farewell, thanks)
+    # 2. Domain intents matching the assistant_type
+    # 3. Other domain intents (which trigger redirects)
+    # 4. Support/Billing intents
+    
+    def priority(item):
+        key = item[0]
+        # Global social/trust/identity/etc at the very top to prevent domain hijacking
+        globals = {"greeting", "trust", "identity", "capabilities", "farewell", "thanks", "smalltalk"}
+        if key in globals: return 0
+        if key.startswith(f"{assistant_type}."): return 1
+        return 2
+
+    sorted_intents = sorted(INTENT_MAP.items(), key=priority)
     
     # 1. Check for very specific intent matches first (e.g. renew id)
     # 2. Prevent billing from matching if 'id' or 'kimlik' is present in student context
@@ -296,12 +305,12 @@ def detect_intent(
             pattern_words = clean_pattern.split()
             
             for pw in pattern_words:
-                if len(pw) < 4: continue
+                if len(pw) < 5: continue
                 for tw in words:
-                    if len(tw) < 4: continue
+                    if len(tw) < 5: continue
                     # Similarity ratio
                     ratio = SequenceMatcher(None, tw, pw).ratio()
-                    if ratio >= 0.80: # Typo match found!
+                    if ratio >= 0.85: # Stricter typo match
                         parts = intent_key.split(".", 1)
                         group = parts[0]
                         sub = parts[1] if len(parts) > 1 else None
@@ -312,5 +321,9 @@ def detect_intent(
                             return "redirect", f"{group}:{sub}" if sub else group, 0.9
                             
                         return group, sub, 0.9
+
+    # 4. Final last-resort specialized checks
+    if any(w in words for w in ["right", "rightlj", "true", "accurate"]):
+        return "trust", None, 0.8
 
     return None, None, 0.0
