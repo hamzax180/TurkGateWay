@@ -746,6 +746,52 @@ async def smart_router_handle(
                 else:
                     raw_response = "I'm doing fantastic, thanks for asking! 😊 I'm right here to sort out any student or university matters you have. What's on your mind?"
 
+        if intent_group == "identity":
+            if assistant_type == "permit":
+                if language == "tr":
+                    raw_response = "Ben PermitOps AI, İstanbul'da işletme ruhsatı süreçlerinde uzmanlaşmış profesyonel dijital danışmanınızım. 🏢 Vergi kaydından belediye ruhsatına kadar tüm adımları sizin için planlıyorum. Hangi tür işletme açmak istiyorsunuz?"
+                elif language == "ar":
+                    raw_response = "أنا PermitOps AI، مستشارك الرقمي المتخصص في إجراءات تراخيص الأعمال في إسطنبول. 🏢 أخطط لكل خطوة من التسجيل الضريبي إلى رخصة البلدية. ما نوع العمل الذي تريد فتحه؟"
+                else:
+                    raw_response = "I'm PermitOps AI — your professional digital advisor specializing in business permit processes across Istanbul. 🏢 From tax registration to municipal licensing, I plan every step for you. What type of business are you looking to open?"
+            elif assistant_type == "lawyer":
+                if language == "tr":
+                    raw_response = "Ben PermitOps Hukuk Danışmanı AI, Türk hukuku alanında uzmanlaşmış dijital asistanınızım. ⚖️ Sözleşme incelemesi, şirket kuruluşu, iş hukuku ve oturma/çalışma izinleri konularında yardımcı oluyorum. Nasıl yardımcı olabilirim?"
+                elif language == "ar":
+                    raw_response = "أنا مستشار PermitOps القانوني، مساعدك الرقمي المتخصص في القانون التركي. ⚖️ أساعد في مراجعة العقود، تأسيس الشركات، قانون العمل، وتصاريح الإقامة/العمل. كيف يمكنني مساعدتك؟"
+                else:
+                    raw_response = "I'm the PermitOps Legal Advisor AI — your digital assistant specializing in Turkish law. ⚖️ I help with contract reviews, company formation, employment law, and residence/work permits. How can I assist you?"
+            elif assistant_type == "student":
+                if language == "tr":
+                    raw_response = "Ben PermitOps Öğrenci Danışmanı AI, Türkiye'deki üniversite süreçlerinde uzmanlaşmış dijital rehberinizim. 🎓 Üniversite kaydı, öğrenci kimliği yenileme ve en iyi üniversiteleri bulma konusunda yardımcı oluyorum. Ne ile başlayalım?"
+                elif language == "ar":
+                    raw_response = "أنا مستشار PermitOps الطلابي، مرشدك الرقمي المتخصص في الإجراءات الجامعية في تركيا. 🎓 أساعد في التسجيل الجامعي، تجديد هوية الطالب، والعثور على أفضل الجامعات. من أين نبدأ؟"
+                else:
+                    raw_response = "I'm the PermitOps Student Advisor AI — your digital guide for university processes in Turkey. 🎓 I help with university registration, student ID renewal, and finding the best universities. Where shall we start?"
+
+        if intent_group == "capabilities":
+            if assistant_type == "permit":
+                if language == "tr":
+                    raw_response = "İşte size yardımcı olabileceğim konular: 📋 İşletme ruhsatı süreçleri, 📄 Gerekli belgeler listesi, 🏛️ İlçe belediyesi bilgileri, ⏱️ Süre tahminleri, ve 💰 Maliyet bilgileri. Hangi konuda yardım istersiniz?"
+                elif language == "ar":
+                    raw_response = "إليك ما يمكنني مساعدتك فيه: 📋 إجراءات تراخيص الأعمال، 📄 قوائم المستندات المطلوبة، 🏛️ معلومات بلدية المنطقة، ⏱️ تقديرات المدة الزمنية، و 💰 معلومات التكلفة. في أي موضوع تريد المساعدة؟"
+                else:
+                    raw_response = "Here's what I can help you with: 📋 Business permit processes, 📄 Required document checklists, 🏛️ District municipality info, ⏱️ Timeline estimates, and 💰 Cost breakdowns. What would you like to dive into?"
+            elif assistant_type == "lawyer":
+                if language == "tr":
+                    raw_response = "Size şu konularda yardımcı olabilirim: 📝 Sözleşme incelemesi, 🏢 Şirket kuruluşu, 👷 İş hukuku, 🏠 Oturma/çalışma izinleri, ve ⚖️ Hukuki ihtilaflar. Hangi konuda desteğe ihtiyacınız var?"
+                elif language == "ar":
+                    raw_response = "يمكنني مساعدتك في: 📝 مراجعة العقود، 🏢 تأسيس الشركات، 👷 قانون العمل، 🏠 تصاريح الإقامة/العمل، و ⚖️ النزاعات القانونية. في أي مجال تحتاج الدعم؟"
+                else:
+                    raw_response = "I can help you with: 📝 Contract reviews, 🏢 Company formation, 👷 Employment law, 🏠 Residence/work permits, and ⚖️ Legal disputes. Which area do you need support with?"
+            elif assistant_type == "student":
+                if language == "tr":
+                    raw_response = "Size şu konularda yardımcı olabilirim: 🎓 Üniversite kaydı, 🪪 Öğrenci kimliği yenileme, 🏫 En iyi üniversiteler listesi, ve 📋 Öğrenci ikamet izni. Hangi konuyla başlayalım?"
+                elif language == "ar":
+                    raw_response = "يمكنني مساعدتك في: 🎓 التسجيل الجامعي، 🪪 تجديد هوية الطالب، 🏫 قائمة أفضل الجامعات، و 📋 تصريح إقامة الطالب. بأي موضوع نبدأ؟"
+                else:
+                    raw_response = "I can help you with: 🎓 University registration, 🪪 Student ID (Kimlik) renewal, 🏫 Top universities list, and 📋 Student residence permits. Which one shall we start with?"
+
         if raw_response:
             variables = build_variables(user_name=user_name)
             response = render(raw_response, variables)

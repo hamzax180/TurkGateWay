@@ -21,6 +21,12 @@ INTENT_MAP = {
     "smalltalk": [
         r"\b(how are you|how do you do|hows it going|what's up|whats up|how are things|hows life)\b"
     ],
+    "identity": [
+        r"\b(who are you|what are you|what is this|what do you do|your name|tell me about yourself|introduce yourself)\b"
+    ],
+    "capabilities": [
+        r"\b(what can you do|how can you help|what do you offer|what are your features|help me)\b"
+    ],
     "farewell": [
         r"\b(bye|goodbye|see you|later|take care|cya|farewell)\b"
     ],
