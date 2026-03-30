@@ -33,6 +33,11 @@ INTENT_MAP = {
     "thanks": [
         r"\b(thank(s| you)|thx|cheers|much appreciated|appreciate it)\b"
     ],
+    "trust": [
+        r"\b(is your (answer|response) (right|correct|true|accurate)|can i trust|how do i know)\b",
+        r"\b(are you (sure|right|correct|certain))\b",
+        r"\b(is this (true|real|accurate))\b"
+    ],
 
     # Billing intents
     "billing.price": [
@@ -275,5 +280,37 @@ def detect_intent(
                     return "redirect", f"{group}:{sub}" if sub else group, 1.0
 
                 return group, sub, 1.0
+
+    # 3. If no direct match found, try a greedy fuzzy match pass over the intent keys
+    #    to catch typos in keywords like "isnyout" vs "is your"
+    #    (threshold 0.75 for tight matching)
+    from difflib import SequenceMatcher
+
+    words = text.split()
+    for intent_key, patterns in sorted_intents:
+        # Check all patterns' literal words against input words
+        for pattern in patterns:
+            # Simple word-level fuzzy comparison for keywords buried in patterns
+            # (Remove regex special chars from basic keyword checking)
+            clean_pattern = re.sub(r'[\^$*+?{}[\]\\|()]', ' ', pattern)
+            pattern_words = clean_pattern.split()
+            
+            for pw in pattern_words:
+                if len(pw) < 4: continue
+                for tw in words:
+                    if len(tw) < 4: continue
+                    # Similarity ratio
+                    ratio = SequenceMatcher(None, tw, pw).ratio()
+                    if ratio >= 0.80: # Typo match found!
+                        parts = intent_key.split(".", 1)
+                        group = parts[0]
+                        sub = parts[1] if len(parts) > 1 else None
+                        
+                        # Apply same redirection logic as regex
+                        agent_domains = {"permit", "student", "lawyer"}
+                        if group in agent_domains and group != assistant_type:
+                            return "redirect", f"{group}:{sub}" if sub else group, 0.9
+                            
+                        return group, sub, 0.9
 
     return None, None, 0.0

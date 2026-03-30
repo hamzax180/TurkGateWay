@@ -867,6 +867,29 @@ async def smart_router_handle(
                 else:
                     raw_response = "I'm the PermitOps Student Advisor AI — your digital guide for university processes in Turkey. 🎓 I help with university registration, student ID renewal, and finding the best universities. Where shall we start?"
 
+        if intent_group == "trust":
+            if assistant_type == "lawyer":
+                if language == "tr":
+                    raw_response = "Türk hukuku üzerine uzmanlaşmış bir AI asistanıyım. Bilgilerim güncel kanunlara dayanmaktadır ancak kritik davalarda her zaman bir hukuk uzmanına danışmanız önerilir. Başka bir sorunuz var mı?"
+                elif language == "ar":
+                    raw_response = "أنا مساعد ذكاء اصطناعي متخصص في القانون التركي. معلوماتي تستند إلى القوانين الحالية؛ ولكن في القضايا الحرجة، يُنصح دائمًا باستشارة خبير قانوني. هل لديك أي أسئلة أخرى؟"
+                else:
+                    raw_response = "I am an AI assistant specialized in Turkish law. My info is based on current regulations, but for critical legal matters, consulting with a human legal expert is always recommended. Any other questions?"
+            elif assistant_type == "student":
+                if language == "tr":
+                    raw_response = "Üniversite kayıtları ve öğrenci hakları üzerine güncel bilgilerle eğitildim. Bilgilerim resmi kaynaklara dayanır ancak son değişiklikler için danışmanlarımızla teyitleşmek iyi bir fikirdir."
+                elif language == "ar":
+                    raw_response = "أنا مدرب على معلومات حديثة حول تسجيل الجامعات وحقوق الطلاب. معلوماتي تعتمد على مصادر رسمية؛ ولكن للتغييرات الأخيرة، من الأفضل التحقق مع مستشارينا."
+                else:
+                    raw_response = "I am trained on up-to-date information regarding university registrations and student rights. My info is based on official sources, but verifying with our advisors for recent changes is always a good idea."
+            else:
+                if language == "tr":
+                    raw_response = "Ruhsat ve izin süreçleri üzerine uzmanlaşmış bir Yapay Zekayım. Bilgilerim güncel belediye ve vergi mevzuatına dayanır. Karmaşık süreçlerde teyit almak isterseniz buradayız."
+                elif language == "ar":
+                    raw_response = "أنا ذكاء اصطناعي متخصص في إجراءات التراخيص والتصاريح. تستند معلوماتي إلى لوائح البلدية والضرائب الحالية. إذا كنت ترغب في التأكد من الإجراءات المعقدة، فنحن هنا."
+                else:
+                    raw_response = "I am an AI assistant specialized in permit and licensing processes. My data is based on current municipal and tax regulations. If you need confirmation on complex steps, we're right here."
+
         if intent_group == "capabilities":
             if assistant_type == "permit":
                 if language == "tr":
@@ -933,5 +956,11 @@ async def smart_router_handle(
         response_cache.set(query, ai_response, assistant_type, language)
         return ai_response
 
-    # Everything failed — let the orchestrator take over
-    return None
+    # EVERYTHING FAILED (Intent matching + AI Fallback)
+    # Output a friendly "I didn't understand" message in user's language.
+    if language == "tr":
+        return "Üzgünüm, bunu tam olarak anlayamadım. Lütfen sorunuzu farklı bir şekilde sormayı veya yukarıdaki sekmelerden doğru asistanı seçtiğinizden emin olmayı deneyin."
+    elif language == "ar":
+        return "عذراً، لم أفهم ذلك تماماً. يرجى المحاولة بصياغة سؤالك بشكل مختلف أو التأكد من اختيار المساعد الصحيح من التبويبات أعلاه."
+    else:
+        return "I'm sorry, I didn't quite catch that. Could you try rephrasing your question or checking if the correct assistant is selected in the tabs above?"

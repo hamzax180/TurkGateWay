@@ -20,6 +20,11 @@
     "Glad I could help! Anything else?",
     "No problem at all! Feel free to ask away."
   ],
+  "trust": [
+    "I'm an AI assistant designed to provide accurate and helpful information. For complex or high-stakes matters, I always recommend double-checking with an official expert. Do you have more questions about this?",
+    "I do my absolute best to provide the most up-to-date information possible based on our datasets. If anything seems unclear, please let me know!",
+    "Trust is essential. My responses are based on the latest data available to me, but verifying critical details with a professional is always a smart move."
+  ],
   "billing": {
     "price": [
       "Our plans start at a flat monthly fee — reply 'pricing' for the full breakdown.",
