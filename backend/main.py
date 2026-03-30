@@ -613,7 +613,8 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
         if _smart_router_available and _smart_router_handle is not None and not file_obj:
             try:
                 # get history for smart router context to detect isolated answers (e.g. "Kadikoy")
-                history_text = await _get_history_context(session_id, db, limit=4, strip_boilerplate=True)
+                # Use a larger limit (12) to prevent amnesia if the user makes typos or chats in between questions
+                history_text = await _get_history_context(session_id, db, limit=12, strip_boilerplate=True)
                 
                 smart_result = await _smart_router_handle(
                     query=query_text,

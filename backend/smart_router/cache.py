@@ -37,8 +37,9 @@ def _normalize(query: str) -> str:
     return text
 
 
-def _make_key(query: str) -> str:
-    return hashlib.md5(_normalize(query).encode()).hexdigest()
+def _make_key(query: str, assistant_type: str = "", language: str = "") -> str:
+    key_string = f"{_normalize(query)}_{assistant_type}_{language}"
+    return hashlib.md5(key_string.encode()).hexdigest()
 
 
 def _load_from_disk() -> None:
@@ -76,12 +77,12 @@ def _save_to_disk() -> None:
 # Public API
 # ---------------------------------------------------------------------------
 
-def get(query: str) -> Optional[str]:
+def get(query: str, assistant_type: str = "", language: str = "") -> Optional[str]:
     """
     Return cached response for query, or None if not found / expired.
     """
     _load_from_disk()
-    key = _make_key(query)
+    key = _make_key(query, assistant_type, language)
     entry = _store.get(key)
     if entry is None:
         return None
@@ -97,13 +98,13 @@ def get(query: str) -> Optional[str]:
     return entry["response"]
 
 
-def set(query: str, response: str) -> None:
+def set(query: str, response: str, assistant_type: str = "", language: str = "") -> None:
     """
     Store a response in the cache and persist to disk.
     Evicts the oldest entry when max size is reached.
     """
     _load_from_disk()
-    key = _make_key(query)
+    key = _make_key(query, assistant_type, language)
 
     if key in _store:
         _store.move_to_end(key)

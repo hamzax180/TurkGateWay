@@ -18,6 +18,9 @@ INTENT_MAP = {
     "greeting": [
         r"\b(hi|hey|hello|good morning|good afternoon|good evening|howdy|sup|yo)\b"
     ],
+    "smalltalk": [
+        r"\b(how are you|how do you do|hows it going|what's up|whats up|how are things|hows life)\b"
+    ],
     "farewell": [
         r"\b(bye|goodbye|see you|later|take care|cya|farewell)\b"
     ],

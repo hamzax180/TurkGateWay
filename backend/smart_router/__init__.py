@@ -179,7 +179,7 @@ async def smart_router_handle(
     # ------------------------------------------------------------------
     # 1. Cache check (0 tokens)
     # ------------------------------------------------------------------
-    cached = response_cache.get(query)
+    cached = response_cache.get(query, assistant_type, language)
     if cached:
         return cached
 
@@ -188,17 +188,29 @@ async def smart_router_handle(
     # If the query is an initial plan request, we bypass AI completely
     # and generate the 14-step permit dashboard directly in Python.
     # ------------------------------------------------------------------
-    # Include history text so we can catch isolated answers like 'Cafe' or 'Kadikoy'
-    combined_context = f"{history_text} {query}".lower()
+    # Extract only the user text from the history to prevent the router from hallucinating 
+    # keywords (like 'cafe' or 'retail') that the assistant itself might have suggested.
+    user_blocks = re.findall(r"\[user\]:([\s\S]*?)(?=\[assistant\]:|\[user\]:|-{5,}|$)", history_text.lower())
+    user_history_text = " ".join(b.strip() for b in user_blocks)
     
-    # If the AI just asked the user to clarify business type or district, ANY response should route back here.
+    # Include user history text so we can catch isolated answers like 'Cafe' or 'Kadikoy'
+    combined_context = f"{user_history_text} {query}".lower()
+    
+    # If the AI just asked the user to clarify business type or district,
+    # ONLY route back to the dashboard if the user's response actually contains a relevant keyword.
+    # This prevents the bot from trapping the user if they change the topic (like "how are you").
     last_assistant_msg = history_text.lower().split("[assistant]:")[-1] if "[assistant]:" in history_text.lower() else ""
     is_clarifying = any(k in last_assistant_msg for k in [
         "what type of business", "hangi tür işletme", "ما هو نوع العمل",
         "which district", "hangi ilçesinde", "في أي منطقة"
     ])
     
-    if _NEW_CONSULTATION_RE.search(combined_context) or _ISOLATED_ANSWER_RE.match(query) or is_clarifying:
+    has_relevant_kw = any(w in query.lower() for w in [
+        "cafe", "kafe", "restaurant", "restoran", "retail", "office", "ofis", "pharmacy", "eczane", "bakery", "fırın", "barber", "berber", "gym", "spor", "shop", "store", "company", "mağaza", "dükkan",
+        "adalar", "arnavutkoy", "arnavutköy", "atasehir", "ataşehir", "avcilar", "avcılar", "bagcilar", "bağcılar", "bahcelievler", "bahçelievler", "bakirkoy", "bakırköy", "basaksehir", "başakşehir", "bayrampasa", "bayrampaşa", "besiktas", "beşiktaş", "beykoz", "beylikduzu", "beylikdüzü", "beyoglu", "beyoğlu", "buyukcekmece", "büyükçekmece", "catalca", "çatalca", "cekmekoy", "çekmeköy", "esenler", "esenyurt", "eyup", "eyüp", "eyüpsultan", "fatih", "gaziosmanpasa", "gaziosmanpaşa", "gungoren", "güngören", "kadikoy", "kadıköy", "kagithane", "kağıthane", "kartal", "kucukcekmece", "küçükçekmece", "maltepe", "pendik", "sancaktepe", "sariyer", "sarıyer", "sile", "şile", "silivri", "sisli", "şişli", "sultanbeyli", "sultangazi", "tuzla", "umraniye", "ümraniye", "uskudar", "üsküdar", "zeytinburnu"
+    ])
+    
+    if _NEW_CONSULTATION_RE.search(query) or _ISOLATED_ANSWER_RE.match(query) or (is_clarifying and has_relevant_kw):
         print(f"[SmartRouter] NEW CONSULTATION detected — generating dashboard offline (0 tokens) for {assistant_type}")
         
         from models.schemas import PermitState, CombinedPermitResult, ExecutionPlan, StepDetail, PermitPlan
@@ -228,11 +240,18 @@ async def smart_router_handle(
                 (["school", "okul", "education", "dershane", "kurs"], "Educational Centre"),
             ]
             
+            # Check current query first, then fall back to history
+            # This ensures partial answers accumulate across turns
             business_type = "Business"  # fallback
             for kw_list, display_name in _BUSINESS_KEYWORDS:
-                if any(kw in combined_context for kw in kw_list):
+                if any(kw in query.lower() for kw in kw_list):
                     business_type = display_name
                     break
+            if business_type == "Business":
+                for kw_list, display_name in _BUSINESS_KEYWORDS:
+                    if any(kw in user_history_text for kw in kw_list):
+                        business_type = display_name
+                        break
 
             # ------------------------------------------------------------------
             # Detect district — with per-district municipality name + local note
@@ -311,13 +330,23 @@ async def smart_router_handle(
             mun_name_en = "Your District Municipality"
             district_note = ""
 
+            # Check current query first for district
             for key, (dname, mun_en, note) in _DISTRICT_INFO.items():
-                if key in combined_context:
+                if key in query.lower():
                     district_en = dname
                     district_display = dname
                     mun_name_en = mun_en
                     district_note = note
                     break
+            # If not found in query, check user history
+            if district_display is None:
+                for key, (dname, mun_en, note) in _DISTRICT_INFO.items():
+                    if key in user_history_text:
+                        district_en = dname
+                        district_display = dname
+                        mun_name_en = mun_en
+                        district_note = note
+                        break
 
             no_district = district_display is None
             
@@ -328,15 +357,15 @@ async def smart_router_handle(
 
             if missing_items:
                 if language == "tr":
-                    msg = "Harika bir adım! 🚀 Sana spesifik bir yol haritası çizebilmem için lütfen şunları belirt: "
+                    msg = "Sana tam ve doğru bir yol haritası çizebilmem için lütfen şunları belirt: "
                     if "business" in missing_items: msg += "**Hangi tür işletme** (Kafe, Mağaza vb.) açacaksın? "
                     if "district" in missing_items: msg += "**İstanbul'un hangi ilçesinde** açacaksın?"
                 elif language == "ar":
-                    msg = "خطوة رائعة! 🚀 لكي أرسم لك خريطة طريق مخصصة، يرجى تحديد: "
+                    msg = "لكي أرسم لك خريطة طريق دقيقة، يرجى تحديد: "
                     if "business" in missing_items: msg += "**ما هو نوع العمل** (مقهى، متجر)؟ "
                     if "district" in missing_items: msg += "**في أي منطقة في إسطنبول** ستفتح؟"
                 else:
-                    msg = "Great step! 🚀 Before I map out your exact roadmap, could you please tell me: "
+                    msg = "To map out your exact roadmap, could you please tell me: "
                     if "business" in missing_items: msg += "**What type of business** (e.g., Cafe, Retail)? "
                     if "district" in missing_items: msg += "**Which district of Istanbul** are you opening in?"
                     
@@ -376,7 +405,8 @@ async def smart_router_handle(
                 labels = {"ag": "Institutions / Agencies", "dc": "Documents You'll Need", "st": "Your Action Steps", "tm": "Estimated Timeline", "dy": "days"}
 
             timeline = 30
-            if any(kw in combined_context for kw in ["restaurant", "restoran", "cafe", "kafe", "bakery", "fırın", "firın", "food", "gıda"]):
+            _food_context = query.lower() + " " + user_history_text
+            if any(kw in _food_context for kw in ["restaurant", "restoran", "cafe", "kafe", "bakery", "fırın", "firın", "food", "gıda"]):
                 timeline = 45
                 if language == "tr":
                     permits.extend(["İtfaiye Uygunluk Raporu", "Baca Uygunluğu"])
@@ -615,12 +645,35 @@ async def smart_router_handle(
                     raw_response = "Hi there! 🎓 I am your dedicated Student Advisor. From renewing your Kimlik to university registrations, I've got your back. How can I help you today?"
 
 
+        if intent_group == "smalltalk":
+            if assistant_type == "permit":
+                if language == "tr":
+                    raw_response = "Harikayım, sorduğun için teşekkürler! 😊 Ruhsat ve izin süreçleri için buradayım. Tüm gerekli adımları planlamaya başlamak ister misin?"
+                elif language == "ar":
+                    raw_response = "أنا بخير، شكراً لسؤالك! 😊 أنا هنا لمساعدتك في إجراءات الترخيص. هل تود أن نبدأ في تخطيط خطواتك؟"
+                else:
+                    raw_response = "I'm doing beautifully, thank you for asking! 😊 I'm right here and ready to map out your permit steps whenever you're ready to begin."
+            elif assistant_type == "lawyer":
+                if language == "tr":
+                    raw_response = "Çok iyiyim, teşekkür ederim! 😊 Hukuki süreçleriniz için buradayım. Yardımcı olabileceğim bir konunuz var mı?"
+                elif language == "ar":
+                    raw_response = "أنا بخير، شكراً لك! 😊 أنا هنا لدعمك في أي مسألة قانونية. كيف يمكنني مساعدتك؟"
+                else:
+                    raw_response = "I'm doing great, thank you! 😊 Ready to assist you with any legal or contract matters you might have. How can I help today?"
+            elif assistant_type == "student":
+                if language == "tr":
+                    raw_response = "Harika gidiyor, sorduğun için teşekkürler! 😊 Eğitim hayatını kolaylaştırmak için buradayım. Günün nasıl geçiyor?"
+                elif language == "ar":
+                    raw_response = "أنا بأفضل حال، شكراً لك! 😊 أنا هنا لتسهيل حياتك الجامعية. كيف يمكنني دعمك اليوم؟"
+                else:
+                    raw_response = "I'm doing fantastic, thanks for asking! 😊 I'm right here to sort out any student or university matters you have. What's on your mind?"
+
         if raw_response:
             variables = build_variables(user_name=user_name)
             response = render(raw_response, variables)
 
             # Cache this predefined response so repeated queries skip even step 2
-            response_cache.set(query, response)
+            response_cache.set(query, response, assistant_type, language)
 
             print(
                 f"[SmartRouter] KEYWORD HIT — intent={intent_group}.{sub_intent}, "
@@ -655,7 +708,7 @@ async def smart_router_handle(
 
     if ai_response:
         # Cache the AI response to avoid paying for it again
-        response_cache.set(query, ai_response)
+        response_cache.set(query, ai_response, assistant_type, language)
         return ai_response
 
     # Everything failed — let the orchestrator take over
