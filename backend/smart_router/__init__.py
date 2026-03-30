@@ -94,6 +94,9 @@ _NEW_CONSULTATION_PATTERNS = [
     r"\b(fired|wrongfully dismissed|unfair dismissal|severance pay|k\u0131dem tazminat|employment dispute|labour court|i\u015f mahkemesi)\b",
     r"\b(work permit|residence permit|ikamet (ba\u015fvuru|application)|\u00e7al\u0131\u015fma izni|stay in turkey legally|legal to work)\b",
     r"\b(legal dispute|lawsuit|mediation|arabuluculuk|ihtarname|file a claim|take to court|sue (someone|my|the))\b",
+    r"\b(buy|sell|rent|purchase|lease) (a |my )?(house|property|apartment|flat|commercial|real estate|tapu)\b",
+    r"\b(police|arrest|arrested|criminal|charge|jail|prison|detained|prosecutor)\b",
+    r"\b(debt|unpaid|invoice|money owed|icra|haciz|collection)\b",
     r"\b(how long (does|will|do)).{0,40}(company|permit|contract|court|case|formation|residency|ikamet)\b",
     # Naked location changes mid-session ("cafe in besiktas")
     r"\b(cafe|kafe|restaurant|restoran|retail|office|ofis|pharmacy|eczane|bakery|f[\u0131i]r[\u0131i]n|barber|berber|gym|spor|shop|store|company|ma[\u011fg]aza|d[\u00fcu]kkan) (in|at) \b",
@@ -539,6 +542,12 @@ async def smart_router_handle(
                 lawyer_subtype = "lawyer_residency"
             elif any(k in lower_q for k in ["dispute", "lawsuit", "sue", "court", "mediation", "arabuluculuk", "arbitration", "claim against", "ihtarname", "legal action"]):
                 lawyer_subtype = "lawyer_dispute"
+            elif any(k in lower_q for k in ["buy", "sell", "rent", "house", "property", "apartment", "real estate", "tapu", "evict", "kira", "tenant", "landlord"]):
+                lawyer_subtype = "lawyer_real_estate"
+            elif any(k in lower_q for k in ["police", "arrest", "criminal", "charge", "jail", "prison", "detained", "suç"]):
+                lawyer_subtype = "lawyer_criminal"
+            elif any(k in lower_q for k in ["debt", "unpaid", "invoice", "icra", "haciz", "collection", "alacak"]):
+                lawyer_subtype = "lawyer_debt"
             else:
                 lawyer_subtype = "lawyer_contract"  # default
 
@@ -626,6 +635,69 @@ async def smart_router_handle(
                     agencies = ["Directorate General of Migration (Göç İdaresi)", "Ministry of Labour & Social Security", "Health Insurance Provider", "e-İkamet Portal"]
                     docs = ["Valid Passport (6+ months remaining)", "Biometric Photos (4 copies)", "Foreign Health Insurance Policy", "Notarized Rental Contract", "Employment Contract (for Work Permit)", "Application Fee Receipt"]
                     summ = "You're in the right place to get this sorted! 🇹🇷 One important heads-up: e-İkamet appointment slots in major cities fill up fast, so book yours as soon as your documents are ready. I've laid out every step clearly below — and if you're not sure which permit type applies to your situation, just ask!"
+                    labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Steps in the Process", "tm":"Estimated Timeline", "dy":"days"}
+                    
+            elif lawyer_subtype == "lawyer_real_estate":
+                timeline = 45
+                if language == "tr":
+                    permits = ["Tapu Devri / Alım-Satım", "Kira Sözleşmesi"]
+                    agencies = ["Tapu ve Kadastro", "Noter", "Belediye", "Vergi Dairesi"]
+                    docs = ["Pasaport ve Vergi No", "DASK (Deprem Sigortası)", "Gayrimenkul Değerleme Raporu", "Döviz Alım Belgesi"]
+                    summ = "Türkiye'de gayrimenkul alımı veya kiralama işlemleri oldukça sistemlidir. 🏢 Tapu devrinden yabancılar için zorunlu olan değerleme raporuna kadar tüm süreci sizin için hazırladım."
+                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Sürecin Adımları", "tm":"Tahmini Süre", "dy":"gün"}
+                elif language == "ar":
+                    permits = ["نقل ملكية الطابو", "عقد الإيجار"]
+                    agencies = ["مديرية الطابو والمسح العقاري", "كاتب العدل (النوتر)", "البلدية", "مكتب الضرائب"]
+                    docs = ["جواز سفر ورقم ضريبي", "تأمين الزلازل (DASK)", "تقرير التقييم العقاري", "وثيقة شراء العملات الأجنبية"]
+                    summ = "شراء أو استئجار العقارات في تركيا منظم جداً. 🏢 لقد قمت بإعداد العملية بأكملها من نقل ملكية الطابو إلى تقرير التقييم الإلزامي للأجانب."
+                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطوات العملية", "tm":"المدة المتوقعة", "dy":"يوم"}
+                else:
+                    permits = ["Tapu (Title Deed) Transfer", "Lease Agreement"]
+                    agencies = ["Land Registry (Tapu Office)", "Notary Public", "Municipality", "Tax Office"]
+                    docs = ["Passport & Tax Number", "DASK (Earthquake Insurance)", "Real Estate Appraisal Report", "Foreign Exchange Document"]
+                    summ = "Buying or renting property in Turkey is a structured process. 🏢 I've mapped out everything from the Tapu transfer to the mandatory appraisal report for foreigners."
+                    labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Steps in the Process", "tm":"Estimated Timeline", "dy":"days"}
+                    
+            elif lawyer_subtype == "lawyer_criminal":
+                timeline = 180
+                if language == "tr":
+                    permits = ["Ceza Soruşturması / Savunma"]
+                    agencies = ["Emniyet Müdürlüğü / Karakol", "Cumhuriyet Savcılığı", "Ağır/Asliye Ceza Mahkemeleri"]
+                    docs = ["İfade Tutanağı", "Suç Duyurusu/Şikayet Dilekçesi", "Kimlik Belgesi", "Tüm Delil ve WhatsApp Kayıtları"]
+                    summ = "Ceza davaları hızlı hareket etmeyi gerektirir. ⚖️ Susma hakkınız ve bir avukatla temsil edilme hakkınız her zaman vardır. Sürecin nasıl işlediği aşağıda özetlenmiştir."
+                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Sürecin Adımları", "tm":"Tahmini Süre", "dy":"gün"}
+                elif language == "ar":
+                    permits = ["تحقيق جنائي / دفاع"]
+                    agencies = ["مديرية الأمن / مركز الشرطة", "النيابة العامة", "المحاكم الجنائية"]
+                    docs = ["محضر الإفادة", "عريضة شكوى جنائية", "وثيقة الهوية", "جميع الأدلة أو المراسلات"]
+                    summ = "تتطلب القضايا الجنائية إجراءات سريعة. ⚖️ لديك دائماً الحق في التزام الصمت وتوكيل محام. لقد قمت بتلخيص سير العملية أدناه."
+                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطوات العملية", "tm":"المدة المتوقعة", "dy":"يوم"}
+                else:
+                    permits = ["Criminal Investigation / Defense"]
+                    agencies = ["Police Station (Karakol)", "Public Prosecutor's Office", "Criminal Courts"]
+                    docs = ["Statement Records", "Criminal Complaint Petition", "ID Document", "All Evidence / WhatsApp Records"]
+                    summ = "Criminal cases require moving fast. ⚖️ You always have the right to remain silent and to be represented by a lawyer. I've outlined how the process works below."
+                    labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Steps in the Process", "tm":"Estimated Timeline", "dy":"days"}
+                    
+            elif lawyer_subtype == "lawyer_debt":
+                timeline = 30
+                if language == "tr":
+                    permits = ["İcra Takibi (Borç Tahsilatı)"]
+                    agencies = ["İcra Müdürlüğü", "İcra Mahkemeleri", "Noter"]
+                    docs = ["Fatura / Sözleşme / Senet", "Noter İhtarnamesi", "Banka / Ödeme Kayıtları"]
+                    summ = "Tahsil edilemeyen alacaklar için İcra Takibi oldukça etkilidir. 💰 Mahkemeye gitmeden de başlatılabilir; 7 gün içinde itiraz edilmezse hesaplara haciz konulabilir."
+                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Sürecin Adımları", "tm":"Tahmini Süre", "dy":"gün"}
+                elif language == "ar":
+                    permits = ["تحصيل الديون (الإجراءات التنفيذية)"]
+                    agencies = ["دائرة التنفيذ", "محاكم التنفيذ", "كاتب العدل"]
+                    docs = ["فواتير / عقود / كمبيالة", "إخطار من كاتب العدل", "سجلات مصرفية"]
+                    summ = "بالنسبة للديون غير المحصلة، فإن إجراءات التنفيذ (İcra) فعالة جداً. 💰 يمكن البدء بها دون الحاجة لمحكمة؛ وإذا لم يكن هناك اعتراض خلال 7 أيام، يمكن تجميد الحسابات."
+                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطوات العملية", "tm":"المدة المتوقعة", "dy":"يوم"}
+                else:
+                    permits = ["Debt Collection (Enforcement/Icra)"]
+                    agencies = ["Enforcement Office (İcra Dairesi)", "Enforcement Courts", "Notary Public"]
+                    docs = ["Unpaid Invoices / Promissory Notes", "Notarized Warning Letter", "Bank Records"]
+                    summ = "For uncollected debts, Enforcement Proceedings (İcra) are highly effective in Turkey. 💰 This can be started without a court case. If there's no objection within 7 days, accounts can be frozen."
                     labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Steps in the Process", "tm":"Estimated Timeline", "dy":"days"}
                     
             else:  # lawyer_dispute (default for general legal disputes)

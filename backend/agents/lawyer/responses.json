@@ -47,5 +47,20 @@
     "Company formation in Turkey is faster than most people expect — usually 5–10 business days if documents are ready. Employment disputes through mediation resolve in 2–3 weeks. Court cases take significantly longer. What type of matter are we discussing?",
     "The fastest legal processes in Turkey are company registration (1 week) and mandatory mediation (2–3 weeks). Residence permits take 3–5 weeks for processing. Contract disputes that go to court can take 1–2 years. Which process are you planning for?",
     "Great question to ask upfront. As a rough guide: company setup = 1 week, contract review = 3–7 days, employment mediation = 2–3 weeks, work permit = 4–8 weeks, court verdict = 6–18 months. What's your timeline concern?"
+  ],
+  "real_estate": [
+    "Buying or renting property in Turkey? The Tapu (Title Deed) process is straightforward but requires careful checks. Are you looking to buy, sell, or rent?",
+    "Real estate disputes usually involve eviction or rental increases. Under Turkish law, evictions require specific grounds. Tell me more about your situation.",
+    "Foreigners buying property in Turkey need a tax number, an appraisal report, and central bank foreign exchange documents. Shall I map out the full purchase process?"
+  ],
+  "criminal": [
+    "Criminal cases require immediate attention. In Turkey, anyone detained has the right to a lawyer and the right to remain silent. Is someone currently detained?",
+    "If you're dealing with a criminal complaint or police investigation, the first step is usually giving a statement. It's crucial to have a lawyer present. What is the charge?",
+    "Criminal proceedings in Turkey involve an investigation phase by the prosecutor, followed by a trial if an indictment is accepted. How can I help you right now?"
+  ],
+  "debt": [
+    "Unpaid invoices or debts? We can start an 'Icra Takibi' (Enforcement Proceeding) without needing a court case first. Do you have written proof of the debt?",
+    "Debt collection in Turkey relies heavily on the enforcement offices. If the debtor doesn't object within 7 days, their bank accounts can be frozen. Want to know more?",
+    "If someone owes you money, sending a formalized notarized warning is often the best first step. What kind of debt is this?"
   ]
 }

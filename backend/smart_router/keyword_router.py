@@ -187,10 +187,24 @@ INTENT_MAP = {
         r"\b(work permit|work visa|ikamet (ba\u015fvuru|application)|residence permit|stay in turkey legally|legal to work)\b"
     ],
     "lawyer.dispute": [
-        r"\b(dispute|lawsuit|sue|court|legal action|arabuluculuk|mediation|arbitration|claim against|ihtarname)\b"
+        r"\b(dispute|lawsuit|sue|court|legal action|arabuluculuk|mediation|arbitration|claim against|ihtarname)\b",
+        r"\b(i have|i got|i need help with) (a |an |my )?(case|problem|issue|situation)\b",
+        r"\b(my rights|what are my rights|know my rights)\b"
+    ],
+    "lawyer.real_estate": [
+        r"\b(buy|sell|rent|purchase|lease) (a |my )?(house|property|apartment|flat|commercial|real estate|tapu)\b",
+        r"\b(evict|eviction|rental increase|kiracı|ev sahibi|kira|tenant|landlord)\b"
+    ],
+    "lawyer.criminal": [
+        r"\b(police|arrest|arrested|criminal|charge|jail|prison|detained|prosecutor|savcı|karakol|suç)\b"
+    ],
+    "lawyer.debt": [
+        r"\b(debt|unpaid|invoice|money owed|icra|haciz|collection|bank account frozen|alacak)\b"
     ],
     "lawyer.general_legal": [
-        r"\b(legal (question|advice|help|guidance)|turkish law|lawyer|attorney|need a lawyer|legal matter)\b"
+        r"\b(legal (question|advice|help|guidance|issue|problem|situation|case)|turkish law|lawyer|attorney|need a lawyer|legal matter)\b",
+        r"\b(i need|i want|looking for) (a |an )?(lawyer|legal|attorney|advice|help)\b",
+        r"\b(can you help|help me|i have a question|legal question)\b"
     ],
     "lawyer.legal_timelines": [
         r"\b(how long (does|will)|timeline|time frame|how many (days|weeks)|duration|processing time|when will i).{0,40}(permit|company|contract|court|case|dispute|visa|ikamet|formation)\b",
