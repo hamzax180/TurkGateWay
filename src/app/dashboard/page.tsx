@@ -7,7 +7,7 @@ import Link from 'next/link';
 import {
   CheckCircle2, Clock, Circle, AlertCircle,
   ShieldCheck, ArrowRight, MapPin, Calendar, FileText,
-  Activity, Cpu, Upload, ChevronDown, ExternalLink, RefreshCw, X, Fingerprint, Lock, Sparkles, MessageSquare
+  Activity, Cpu, Upload, ChevronDown, ExternalLink, RefreshCw, X, Fingerprint, Lock, Sparkles, MessageSquare, Menu, User
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
@@ -41,12 +41,13 @@ function StepIcon({ status }: { status: Status }) {
 
 export default function Dashboard() {
   const { t, isRTL, language } = useLanguage();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
   const [data, setData] = useState<any>(null);
   const [expanded, setExpanded] = useState<number | null>(0);
   const [showAllSteps, setShowAllSteps] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState(t('dashboard_toast_success') || "Document uploaded successfully!");
@@ -328,7 +329,32 @@ export default function Dashboard() {
 
     return (
       <main className="flex-1 min-w-0 relative overflow-y-auto overflow-x-hidden slim-scroll bg-[var(--bg)]">
-          <Navbar isAppPage />
+          {/* Desktop Navbar */}
+          <div className="hidden md:block">
+            <Navbar isAppPage />
+          </div>
+
+          {/* Mobile Top Bar */}
+          <div className="flex md:hidden items-center justify-between px-4 h-14 shrink-0 border-b border-[var(--border)] bg-[var(--bg)] z-30 sticky top-0">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[var(--surface-2)] text-[var(--text)] transition-colors"
+            >
+              <Menu size={22} />
+            </button>
+            <span className="text-[17px] font-semibold text-[var(--text)] tracking-tight">Dashboard</span>
+            <div className="flex items-center gap-2">
+              {user ? (
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-[13px] font-bold shadow-md">
+                  {(user.fullName || user.email || 'U')[0].toUpperCase()}
+                </div>
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-center">
+                  <User size={16} className="text-[var(--muted)]" />
+                </div>
+              )}
+            </div>
+          </div>
       {/* Video Background */}
       <div className="absolute inset-0 z-0 w-full h-full overflow-hidden">
         {/* Fallback Gradient */}
@@ -356,7 +382,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="relative z-20 pt-24 pb-20 px-6">
+      <div className="relative z-20 pt-6 md:pt-24 pb-20 px-4 md:px-6">
         {/* Toast Notification */}
         <AnimatePresence>
           {showToast && (
@@ -491,11 +517,33 @@ export default function Dashboard() {
             <div className="space-y-1.5">
               <span className="badge badge-purple">
                 <Activity size={10} className="animate-pulse" />
-                {t('dashboard_live_session')} · #{data?.combined_result?.location ? `IST-${data.combined_result.location.substring(0,3).toUpperCase().replace(/İ/g, 'I')}-4221` : 'IST-TR-4221'}
+                {t('dashboard_live_session')} · #{data?.combined_result?.location && !data.combined_result.location.includes('_') ? `IST-${data.combined_result.location.substring(0,3).toUpperCase().replace(/İ/g, 'I')}-4221` : 'IST-TR-4221'}
               </span>
-              <h1 className="text-3xl md:text-5xl font-bold text-[var(--text)] tracking-tight drop-shadow-sm dark:drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">{t('dashboard_title')}</h1>
+              <h1 className="text-3xl md:text-5xl font-bold text-[var(--text)] tracking-tight drop-shadow-sm dark:drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">
+                {(() => {
+                  const loc = data?.combined_result?.location || '';
+                  if (loc.startsWith('student.')) return 'Student Roadmap';
+                  if (loc.startsWith('lawyer.')) return 'Legal Dashboard';
+                  if (loc && (loc.includes('student') || loc.includes('renew') || loc.includes('uni'))) return 'Student Roadmap';
+                  if (loc && (loc.includes('lawyer') || loc.includes('legal'))) return 'Legal Dashboard';
+                  return t('dashboard_title') || 'Permit Dashboard';
+                })()}
+              </h1>
               <p className="text-sm text-[var(--muted)] flex items-center gap-3 flex-wrap font-medium dark:drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
-                <span className="flex items-center gap-1.5"><MapPin size={12} className="text-purple-500" /> {data?.combined_result?.location ? `${data.combined_result.location} ${data.combined_result.business_type || ''}` : (isRTL ? 'مشروع في إسطنبول' : 'Istanbul Business')}, Istanbul</span>
+                <span className="flex items-center gap-1.5">
+                  <MapPin size={12} className="text-purple-500" />
+                  {(() => {
+                    const loc = data?.combined_result?.location || '';
+                    if (loc.includes('_') || loc.includes('.')) {
+                       // Format the intent e.g., student_renew -> Renew Id, student.register_uni -> Register Uni
+                       const parts = loc.split(/[._]/);
+                       const formatted = parts.map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+                       return formatted;
+                    }
+                    if (loc) return `${loc} ${data?.combined_result?.business_type || ''}`;
+                    return isRTL ? 'مشروع في إسطنبول' : 'Istanbul Area';
+                  })()}
+                </span>
                 <span className="h-3 w-px bg-[var(--border)]" />
                 <span className="flex items-center gap-1.5" suppressHydrationWarning><Calendar size={12} className="text-purple-500" /> {data?.last_updated ? `${t('dashboard_updated')} ${new Date(data.last_updated).toLocaleDateString()}` : t('dashboard_no_session')}</span>
               </p>
@@ -591,7 +639,7 @@ export default function Dashboard() {
           <div className="grid lg:grid-cols-12 gap-5">
 
             {/* Workflow Steps */}
-            <div className="lg:col-span-8 space-y-2">
+            <div className="lg:col-span-8 space-y-2 min-w-0">
               <div className="flex items-center justify-between px-0.5 mb-1">
                 <h2 className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">{t('dashboard_workflow_steps')}</h2>
                 <span className="text-[10px] font-bold text-[var(--muted)] opacity-70 uppercase tracking-widest">{done} of {steps.length} done</span>
@@ -621,15 +669,17 @@ export default function Dashboard() {
 
                   <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-bold text-[var(--text)] text-[15px] leading-tight">{s.title}</h3>
-                        <StepBadge status={s.status} />
-                        {/* Responsible chip */}
-                        <span className={
-                          (s.responsible.includes('Agent') || s.responsible.includes('Ajan') || s.responsible.includes('وكيل'))
-                            ? 'agent-chip' : 'human-chip'
-                        }>
-                          {(s.responsible.includes('Agent') || s.responsible.includes('Ajan') || s.responsible.includes('وكيل')) ? '⚡ Agent' : '👤 Human'}
-                        </span>
+                        <h3 className="font-bold text-[var(--text)] text-[15px] leading-tight break-words flex-1 min-w-[200px]">{s.title}</h3>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <StepBadge status={s.status} />
+                          {/* Responsible chip */}
+                          <span className={
+                            (s.responsible.includes('Agent') || s.responsible.includes('Ajan') || s.responsible.includes('وكيل'))
+                              ? 'agent-chip' : 'human-chip'
+                          }>
+                            {(s.responsible.includes('Agent') || s.responsible.includes('Ajan') || s.responsible.includes('وكيل')) ? '⚡ Agent' : '👤 Human'}
+                          </span>
+                        </div>
                       </div>
                       <p className="text-[13px] text-[var(--muted)] mt-0.5 font-medium truncate">{s.summary}</p>
                     </div>
@@ -696,10 +746,10 @@ export default function Dashboard() {
                                   </button>
                                   <button
                                     disabled
-                                    className="btn !py-2 !px-3.5 !text-xs flex items-center gap-1.5 opacity-40 cursor-not-allowed bg-[var(--surface-2)] border-[var(--border)] text-[var(--muted)] !rounded-lg"
+                                    className="btn !py-2 !px-3.5 !text-[11px] flex items-center gap-1.5 opacity-40 cursor-not-allowed bg-[var(--surface-2)] border-[var(--border)] text-[var(--muted)] !rounded-lg !whitespace-normal flex-1 sm:flex-none text-left"
                                     title="Bot automation disabled pending legal approval"
                                   >
-                                    <Lock size={11} />
+                                    <Lock size={11} className="shrink-0" />
                                     {language === 'ar' ? 'معطّل — بانتظار الموافقة' : language === 'tr' ? 'Devre Dışı — Yasal Onay' : 'Disabled — Pending Law Approval'}
                                   </button>
                                   <a
@@ -863,6 +913,7 @@ export default function Dashboard() {
     <div className="flex h-screen overflow-hidden selection:bg-purple-500/30 relative bg-[var(--bg)]">
       <Sidebar 
         currentSessionId={dashboardSessionId}
+        assistantType="permit"
         onSessionSelect={(id, title) => {
           localStorage.setItem('permitops_active_session_id', id);
           router.push('/chat');
@@ -873,6 +924,8 @@ export default function Dashboard() {
         }}
         onDeleteSession={(id) => {}}
         token={token}
+        mobileOpen={mobileMenuOpen}
+        onMobileClose={() => setMobileMenuOpen(false)}
       />
       {renderContent()}
       {/* Iyzico CheckOut Form Modal */}

@@ -733,9 +733,10 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
             answer = await _run_direct_gemini(query_text, user, db, language, session_id, is_followup=True, file_obj=file_obj, assistant_type=assistant_type)
         
         if True: # Always save assistant message now that we have session tracking
-            # Bruteforce strip any leftover permit boilerplate just in case the LLM stubbornly generated it
+            # Run direct gemini
             # Perform a case-insensitive search to catch any bolding/emoji variations
-            if is_followup_prompt:
+            if is_followup_prompt and getattr(answer, '_is_direct_gemini', False) or (answer and not "✅" in answer and not "💬" in answer):
+                # Only strip if it's purely a direct conversational followup that accidentally leaked boilerplate
                 lower_answer = answer.lower()
                 for marker in ["permits (agencies)", "required docs", "action steps", "📋"]:
                     idx = lower_answer.find(marker.lower())
