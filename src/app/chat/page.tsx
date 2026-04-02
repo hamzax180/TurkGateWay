@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Sparkles, User, Mic, Plus, ChevronDown, Building2, FileText, Search, Clock, HelpCircle, Scale } from 'lucide-react';
+import { Send, Sparkles, User, Mic, Plus, ChevronDown, Building2, FileText, Search, Clock, HelpCircle, Scale, Menu } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useLanguage } from '../context/LanguageContext';
@@ -23,6 +23,7 @@ export default function ChatPage() {
 
   const [assistantType, setAssistantType] = useState<'permit' | 'student' | 'lawyer'>('permit');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -306,11 +307,39 @@ export default function ChatPage() {
         onNewChat={() => handleNewChat()}
         onDeleteSession={handleDeleteSession}
         token={token}
+        mobileOpen={mobileMenuOpen}
+        onMobileClose={() => setMobileMenuOpen(false)}
       />
 
       <main className="flex-1 flex flex-col min-w-0 transition-colors duration-300 relative">
-        <Navbar isAppPage />
-        <div className="h-4 shrink-0" /> {/* Slight top padding */}
+        {/* Desktop Navbar */}
+        <div className="hidden md:block">
+          <Navbar isAppPage />
+        </div>
+
+        {/* Mobile Top Bar — Gemini style */}
+        <div className="flex md:hidden items-center justify-between px-4 h-14 shrink-0 border-b border-[var(--border)] bg-[var(--bg)] z-30">
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[var(--surface-2)] text-[var(--text)] transition-colors"
+          >
+            <Menu size={22} />
+          </button>
+          <span className="text-[17px] font-semibold text-[var(--text)] tracking-tight">PermitOps AI</span>
+          <div className="flex items-center gap-2">
+            {user ? (
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-[13px] font-bold shadow-md">
+                {(user.fullName || user.email || 'U')[0].toUpperCase()}
+              </div>
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-center">
+                <User size={16} className="text-[var(--muted)]" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="hidden md:block h-4 shrink-0" />
 
         {/* Gemini-Style Content Header - Centered */}
         <div className="h-20 flex items-center justify-center px-6 shrink-0 z-30 relative" ref={dropdownRef}>
@@ -401,11 +430,26 @@ export default function ChatPage() {
         <div className="flex-1 flex flex-col min-h-0 relative">
 
           {isEmpty ? (
-            <div className="flex-1 flex flex-col items-center justify-center max-w-4xl mx-auto w-full px-6 gap-2 pb-32">
-              {/* Suggestion Chips */}
+            <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-5 md:px-6">
+              {/* Welcome Text — top on mobile, centered on desktop */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+                className="w-full text-left mt-6 md:mt-0 md:flex-1 md:flex md:flex-col md:justify-center"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-3xl md:text-6xl font-medium bg-gradient-to-r from-[#4285f4] via-[#9b72cb] to-[#d96570] bg-clip-text text-transparent">
+                    {t('chat_welcome').replace('{name}', user?.fullName || (user?.email ? user.email.split('@')[0] : 'there'))}
+                  </span>
+                </div>
+                <h1 className="text-3xl md:text-6xl font-medium tracking-tight text-[#c4c7c5] dark:text-[#444746]">
+                  {t('chat_begin')}
+                </h1>
+              </motion.div>
+
+              {/* Suggestion Chips — Gemini style: left-aligned simple pills on mobile, fancy chips on desktop */}
               <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.3 }}
-                className="flex flex-wrap justify-center gap-2.5 max-w-4xl mb-8"
+                className="flex flex-col md:flex-row md:flex-wrap md:justify-center gap-2 md:gap-2.5 mt-6 md:mt-0 md:mb-8"
               >
                 {(assistantType === 'student' ? [
                    { emoji: "🪪", label: "Renew Kimlik/ID", mesh: 'mesh-indigo' },
@@ -432,32 +476,22 @@ export default function ChatPage() {
                    <div
                     key={i}
                     onClick={() => send(chip.label)}
-                    className={`glass-mesh ${chip.mesh} text-[var(--text)] opacity-95 text-[16px] py-4 px-6 rounded-[28px] flex items-center gap-4 font-bold select-none backdrop-blur-xl transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-white/10 group`}
+                    className={`md:glass-mesh md:${chip.mesh} text-[var(--text)] text-[15px] md:text-[16px] py-3 md:py-4 px-5 md:px-6 rounded-full md:rounded-[28px] flex items-center gap-3 md:gap-4 font-medium md:font-bold select-none md:backdrop-blur-xl transition-all hover:scale-[1.02] md:hover:scale-105 active:scale-95 cursor-pointer border border-[var(--border)] md:border-white/10 bg-[var(--surface-1)] md:bg-transparent md:opacity-95 md:shadow-[0_8px_30px_rgba(0,0,0,0.12)] group w-fit`}
                    >
-                     <div className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center shadow-inner group-hover:bg-white/20 transition-colors">
-                       <span className="text-2xl filter drop-shadow-sm">{chip.emoji}</span>
+                     <div className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/5 md:bg-white/10 border border-white/10 md:border-white/20 flex items-center justify-center md:shadow-inner group-hover:bg-white/20 transition-colors shrink-0">
+                       <span className="text-lg md:text-2xl filter drop-shadow-sm">{chip.emoji}</span>
                      </div>
                      {chip.label}
                    </div>
                  ))}
               </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-                className="w-full mb-10 text-left"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-4xl md:text-6xl font-medium bg-gradient-to-r from-[#4285f4] via-[#9b72cb] to-[#d96570] bg-clip-text text-transparent">
-                    {t('chat_welcome').replace('{name}', user?.fullName || (user?.email ? user.email.split('@')[0] : 'there'))}
-                  </span>
-                </div>
-                <h1 className="text-4xl md:text-6xl font-medium tracking-tight text-[#c4c7c5] dark:text-[#444746]">
-                  {t('chat_begin')}
-                </h1>
-              </motion.div>
 
-              {/* Chat Input Pill (empty state, centered) */}
-              <div className="w-full max-w-3xl mb-12">
-                <div className="rounded-[28px] p-2 pr-3 min-h-[140px] flex flex-col glass-mesh mesh-indigo hover:border-[var(--border-2)] transition-all shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none">
+              {/* Spacer on mobile to push input down */}
+              <div className="flex-1 md:hidden" />
+
+              {/* Chat Input Pill (empty state) */}
+              <div className="w-full max-w-3xl mx-auto mb-4 md:mb-12 mt-4 md:mt-0">
+                <div className="rounded-[28px] p-2 pr-3 min-h-[56px] md:min-h-[140px] flex flex-col glass-mesh mesh-indigo hover:border-[var(--border-2)] transition-all shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none">
                   {/* File Preview Chip */}
                   {file && (
                     <div className="px-4 pt-2 flex items-center">
@@ -500,7 +534,7 @@ export default function ChatPage() {
                       </button>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-xs font-medium text-[var(--muted)]/50 flex items-center gap-1 cursor-pointer hover:text-[var(--text)] transition-colors mr-2">
+                      <span className="hidden md:flex text-xs font-medium text-[var(--muted)]/50 items-center gap-1 cursor-pointer hover:text-[var(--text)] transition-colors mr-2">
                         Fast <ChevronDown size={14} />
                       </span>
                       {input.trim() ? (
@@ -517,34 +551,6 @@ export default function ChatPage() {
                   </div>
                 </div>
               </div>
-
-              {/* Interactive Suggestions */}
-              <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.5 }}
-                className="flex flex-wrap justify-center gap-2.5 max-w-4xl"
-              >
-                {(assistantType === 'student' ? [
-                  { label: "Steps to renew my Kimlik/ID" },
-                  { label: "Show me the best universities" },
-                  { label: "Roadmap to register as a student" }
-                ] : assistantType === 'lawyer' ? [
-                  { label: "Can you review my contract?" },
-                  { label: "Steps to form an LLC in Turkey" },
-                  { label: "How to get a work permit?" }
-                ] : [
-                  { label: t('chat_suggestion_obtain') },
-                  { label: t('chat_suggestion_steps') },
-                  { label: t('chat_suggestion_docs') }
-                ]).map((chip, i) => (
-                  <button
-                    key={i}
-                    onClick={() => send(chip.label)}
-                    className="text-[var(--muted)] hover:text-[var(--text)] text-[15px] py-2.5 px-6 rounded-full transition-all font-medium active:scale-95 touch-manipulation border border-[var(--border)] hover:border-[var(--border-2)] hover:bg-[var(--surface-2)] bg-[var(--surface)] backdrop-blur-sm"
-                  >
-                    {chip.label}
-                  </button>
-                ))}
-              </motion.div>
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto w-full max-w-4xl mx-auto px-4 md:px-8 py-10 space-y-12 pb-44 slim-scroll">
