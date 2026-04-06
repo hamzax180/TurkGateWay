@@ -22,6 +22,7 @@ interface SidebarProps {
   mobileOpen?: boolean;
   onMobileClose?: () => void;
   refreshTrigger?: number;
+  showAllTypes?: boolean;
 }
 
 export default function Sidebar({
@@ -34,6 +35,7 @@ export default function Sidebar({
   mobileOpen = false,
   onMobileClose,
   refreshTrigger = 0,
+  showAllTypes = false,
 }: SidebarProps) {
   const { t } = useLanguage();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -62,7 +64,7 @@ export default function Sidebar({
   }, [token, currentSessionId, refreshTrigger]);
 
   const filteredSessions = sessions.filter(s => {
-    const typeMatch = (s.assistant_type || 'permit') === assistantType;
+    const typeMatch = showAllTypes || (s.assistant_type || 'permit') === assistantType;
     const searchMatch = !searchQuery || s.title.toLowerCase().includes(searchQuery.toLowerCase());
     return typeMatch && searchMatch;
   });

@@ -914,6 +914,7 @@ export default function Dashboard() {
       <Sidebar 
         currentSessionId={dashboardSessionId}
         assistantType="permit"
+        showAllTypes
         onSessionSelect={(id, title) => {
           localStorage.setItem('permitops_active_session_id', id);
           router.push('/chat');
