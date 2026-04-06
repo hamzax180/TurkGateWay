@@ -61,6 +61,7 @@ export default function Navbar({ isAppPage = false }: { isAppPage?: boolean }) {
 
 
   return (
+    <>
     <header
       className={`${isAppPage ? 'relative z-[20] w-full shrink-0' : 'fixed inset-x-0 top-0 z-[100]'} transition-all duration-300 ${scrolled ? 'bg-[var(--surface)]/95 backdrop-blur-xl border-b border-[var(--border)] shadow-md' : 'bg-[var(--bg)]/90 backdrop-blur-md border-b border-[var(--border)]/30'
         }`}
@@ -132,27 +133,28 @@ export default function Navbar({ isAppPage = false }: { isAppPage?: boolean }) {
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
-
-      {/* Mobile Drawer (Universal Sidebar) */}
-      <Sidebar
-        currentSessionId={null}
-        assistantType={typeof window !== 'undefined' ? (localStorage.getItem('permitops_active_agent') || 'permit') : 'permit'}
-        onSessionSelect={(id: string) => {
-          localStorage.setItem('permitops_active_session_id', id);
-          window.location.href = '/chat';
-        }}
-        onNewChat={() => { window.location.href = '/chat'; }}
-        onDeleteSession={() => {}}
-        onSwitchAssistant={(t: any) => {
-          localStorage.setItem('permitops_active_agent', t);
-          window.location.href = '/chat';
-        }}
-        token={typeof window !== 'undefined' ? localStorage.getItem('permitops_token') : null}
-        mobileOpen={open}
-        onMobileClose={() => setOpen(false)}
-        refreshTrigger={0}
-        mobileOnly
-      />
     </header>
+
+    {/* Mobile Drawer (Universal Sidebar) — rendered OUTSIDE header */}
+    <Sidebar
+      currentSessionId={null}
+      assistantType={typeof window !== 'undefined' ? (localStorage.getItem('permitops_active_agent') || 'permit') : 'permit'}
+      onSessionSelect={(id: string) => {
+        localStorage.setItem('permitops_active_session_id', id);
+        window.location.href = '/chat';
+      }}
+      onNewChat={() => { window.location.href = '/chat'; }}
+      onDeleteSession={() => {}}
+      onSwitchAssistant={(t: any) => {
+        localStorage.setItem('permitops_active_agent', t);
+        window.location.href = '/chat';
+      }}
+      token={typeof window !== 'undefined' ? localStorage.getItem('permitops_token') : null}
+      mobileOpen={open}
+      onMobileClose={() => setOpen(false)}
+      refreshTrigger={0}
+      mobileOnly
+    />
+    </>
   );
 }
