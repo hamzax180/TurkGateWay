@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Plus, MessageSquare, Trash2, Menu, Settings, HelpCircle, History, Zap, Search, X, Star, MoreVertical, ChevronRight, LayoutDashboard } from 'lucide-react';
+import { Plus, MessageSquare, Trash2, Menu, Settings, HelpCircle, History, Zap, Search, X, Star, MoreVertical, ChevronRight, LayoutDashboard, Home } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext';
 import { apiFetch } from '../utils/api';
@@ -122,6 +122,18 @@ export default function Sidebar({
             )}
           </button>
         </div>
+
+        {/* Home (mobile Gemini style) */}
+        {isMobile && (
+          <div className="px-3 mb-1 shrink-0">
+            <Link href="/" className="block">
+              <button className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)] transition-all">
+                <Home size={20} className="text-[var(--text)] shrink-0" />
+                <span className="text-[15px] font-medium text-[var(--text)] text-left">Home</span>
+              </button>
+            </Link>
+          </div>
+        )}
 
         {/* Dashboard (mobile Gemini style) */}
         {isMobile && (

@@ -1,8 +1,4 @@
 {
-  "fd205fce76b1bb8676ee8c31206f411e": {
-    "response": "The total cost depends on your business type. Offices are cheapest (1,500–3,000 TL all-in), retail is mid-range (2,000–5,000 TL), and food businesses are the most expensive due to fire and hygiene inspections (5,000–15,000 TL). What are you opening?",
-    "ts": 1775497138.6009119
-  },
   "b7ad558e40ab9faa5f24fba21cf5c2a1": {
     "response": "For most permits, you submit to your district municipality either via e-Devlet or in person. The Trade Registry and Tax Office are separate stops. Want me to walk you through where to go for each step?",
     "ts": 1775497158.2911913
@@ -14,5 +10,13 @@
   "01cde66281a4416f8984a7e7568fe0af": {
     "response": "Great question! The first step is getting your Tax ID (Vergi Numarası). What district are you in?",
     "ts": 1775497187.504426
+  },
+  "fd205fce76b1bb8676ee8c31206f411e": {
+    "response": "The total cost depends on your business type. Offices are cheapest (1,500–3,000 TL all-in), retail is mid-range (2,000–5,000 TL), and food businesses are the most expensive due to fire and hygiene inspections (5,000–15,000 TL). What are you opening?",
+    "ts": 1775497138.6009119
+  },
+  "39372b8d3d02ab8c5501780f22ff5c76": {
+    "response": "Think of it as 3 phases: ① Company setup (1–2 weeks), ② Operating permit application (1–3 weeks), ③ Sector inspections if required (2–6 weeks for food businesses). It’s bureaucratic but very manageable once you know the path. Want your personalised roadmap?",
+    "ts": 1775498808.0537262
   }
 }
