@@ -367,79 +367,80 @@ export default function ChatPage() {
             </span>
             <ChevronDown size={18} className={`text-[var(--muted)] opacity-50 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </div>
-
-          <AnimatePresence>
-            {isDropdownOpen && (
-              <>
-                {/* Backdrop Blur */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-black/40 backdrop-blur-md z-[90]"
-                  onClick={() => setIsDropdownOpen(false)}
-                />
-                <motion.div
-                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="absolute top-20 left-1/2 -translate-x-1/2 bg-[var(--surface-1)] border border-[var(--border)] rounded-[48px] shadow-[0_32px_80px_rgba(0,0,0,0.6)] p-6 min-w-[420px] z-[100] flex flex-col gap-5 overflow-hidden"
-                >
-                  <div className="px-5 pb-3 border-b border-[var(--border)]/50 mb-1">
-                    <p className="text-lg font-bold tracking-tight bg-gradient-to-r from-[#4285f4] via-[#9b72cb] to-[#d96570] bg-clip-text text-transparent">
-                      Switch Assistant
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    <button
-                      onClick={() => { setAssistantType('permit'); setIsDropdownOpen(false); handleNewChat('permit'); }}
-                      className={`flex items-center gap-5 px-8 py-5 w-full rounded-full transition-all duration-300 group relative overflow-hidden ${assistantType === 'permit' ? 'glass-mesh mesh-indigo border-indigo-500/50 text-[var(--text)] shadow-[0_0_30px_rgba(99,102,241,0.2)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] border border-transparent hover:border-white/10'}`}
-                    >
-                      <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
-                        <span className="text-3xl filter drop-shadow-md">🏢</span>
-                      </div>
-                      <div className="flex flex-col text-left">
-                        <span className="text-[20px] font-bold tracking-tight leading-none mb-1">Permit Assistant</span>
-                        <span className="text-[13px] opacity-60 font-medium">Business & Municipal Protocol</span>
-                      </div>
-                      {assistantType === 'permit' && <div className="ml-auto w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.8)]" />}
-                    </button>
-
-                    <button
-                      onClick={() => { setAssistantType('student'); setIsDropdownOpen(false); handleNewChat('student'); }}
-                      className={`flex items-center gap-5 px-8 py-5 w-full rounded-full transition-all duration-300 group relative overflow-hidden ${assistantType === 'student' ? 'glass-mesh mesh-purple border-purple-500/50 text-[var(--text)] shadow-[0_0_30px_rgba(168,85,247,0.2)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] border border-transparent hover:border-white/10'}`}
-                    >
-                      <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
-                        <span className="text-3xl filter drop-shadow-md">🎓</span>
-                      </div>
-                      <div className="flex flex-col text-left">
-                        <span className="text-[20px] font-bold tracking-tight leading-none mb-1">Student Assistant</span>
-                        <span className="text-[13px] opacity-60 font-medium">Academic Tasks & ID Renewals</span>
-                      </div>
-                      {assistantType === 'student' && <div className="ml-auto w-2.5 h-2.5 rounded-full bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.8)]" />}
-                    </button>
-
-                    <button
-                      onClick={() => { setAssistantType('lawyer'); setIsDropdownOpen(false); handleNewChat('lawyer'); }}
-                      className={`flex items-center gap-5 px-8 py-5 w-full rounded-full transition-all duration-300 group relative overflow-hidden ${assistantType === 'lawyer' ? 'glass-mesh mesh-indigo border-indigo-500/50 text-[var(--text)] shadow-[0_0_30px_rgba(59,130,246,0.2)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] border border-transparent hover:border-white/10'}`}
-                    >
-                      <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
-                        <span className="text-3xl filter drop-shadow-md">⚖️</span>
-                      </div>
-                      <div className="flex flex-col text-left">
-                        <span className="text-[20px] font-bold tracking-tight leading-none mb-1">Lawyer Assistant</span>
-                        <span className="text-[13px] opacity-60 font-medium">Legal Advice & Compliance</span>
-                      </div>
-                      {assistantType === 'lawyer' && <div className="ml-auto w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)]" />}
-                    </button>
-                  </div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
         </div>
+
+        {/* Agent Selection Dropdown — renders on both mobile & desktop */}
+        <AnimatePresence>
+          {isDropdownOpen && (
+            <>
+              {/* Backdrop Blur */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/40 backdrop-blur-md z-[90]"
+                onClick={() => setIsDropdownOpen(false)}
+              />
+              <motion.div
+                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="fixed top-16 md:top-28 left-1/2 -translate-x-1/2 bg-[var(--surface-1)] border border-[var(--border)] rounded-[32px] md:rounded-[48px] shadow-[0_32px_80px_rgba(0,0,0,0.6)] p-4 md:p-6 w-[90vw] max-w-[420px] z-[100] flex flex-col gap-4 md:gap-5 overflow-hidden"
+              >
+                <div className="px-4 md:px-5 pb-2 md:pb-3 border-b border-[var(--border)]/50 mb-1">
+                  <p className="text-base md:text-lg font-bold tracking-tight bg-gradient-to-r from-[#4285f4] via-[#9b72cb] to-[#d96570] bg-clip-text text-transparent">
+                    Switch Assistant
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-2 md:gap-3">
+                  <button
+                    onClick={() => { setAssistantType('permit'); setIsDropdownOpen(false); handleNewChat('permit'); }}
+                    className={`flex items-center gap-4 md:gap-5 px-5 md:px-8 py-4 md:py-5 w-full rounded-full transition-all duration-300 group relative overflow-hidden ${assistantType === 'permit' ? 'glass-mesh mesh-indigo border-indigo-500/50 text-[var(--text)] shadow-[0_0_30px_rgba(99,102,241,0.2)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] border border-transparent hover:border-white/10'}`}
+                  >
+                    <div className="w-11 h-11 md:w-14 md:h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
+                      <span className="text-2xl md:text-3xl filter drop-shadow-md">🏢</span>
+                    </div>
+                    <div className="flex flex-col text-left">
+                      <span className="text-[17px] md:text-[20px] font-bold tracking-tight leading-none mb-1">Permit Assistant</span>
+                      <span className="text-[12px] md:text-[13px] opacity-60 font-medium">Business & Municipal Protocol</span>
+                    </div>
+                    {assistantType === 'permit' && <div className="ml-auto w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.8)]" />}
+                  </button>
+
+                  <button
+                    onClick={() => { setAssistantType('student'); setIsDropdownOpen(false); handleNewChat('student'); }}
+                    className={`flex items-center gap-4 md:gap-5 px-5 md:px-8 py-4 md:py-5 w-full rounded-full transition-all duration-300 group relative overflow-hidden ${assistantType === 'student' ? 'glass-mesh mesh-purple border-purple-500/50 text-[var(--text)] shadow-[0_0_30px_rgba(168,85,247,0.2)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] border border-transparent hover:border-white/10'}`}
+                  >
+                    <div className="w-11 h-11 md:w-14 md:h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
+                      <span className="text-2xl md:text-3xl filter drop-shadow-md">🎓</span>
+                    </div>
+                    <div className="flex flex-col text-left">
+                      <span className="text-[17px] md:text-[20px] font-bold tracking-tight leading-none mb-1">Student Assistant</span>
+                      <span className="text-[12px] md:text-[13px] opacity-60 font-medium">Academic Tasks & ID Renewals</span>
+                    </div>
+                    {assistantType === 'student' && <div className="ml-auto w-2.5 h-2.5 rounded-full bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.8)]" />}
+                  </button>
+
+                  <button
+                    onClick={() => { setAssistantType('lawyer'); setIsDropdownOpen(false); handleNewChat('lawyer'); }}
+                    className={`flex items-center gap-4 md:gap-5 px-5 md:px-8 py-4 md:py-5 w-full rounded-full transition-all duration-300 group relative overflow-hidden ${assistantType === 'lawyer' ? 'glass-mesh mesh-indigo border-indigo-500/50 text-[var(--text)] shadow-[0_0_30px_rgba(59,130,246,0.2)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] border border-transparent hover:border-white/10'}`}
+                  >
+                    <div className="w-11 h-11 md:w-14 md:h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
+                      <span className="text-2xl md:text-3xl filter drop-shadow-md">⚖️</span>
+                    </div>
+                    <div className="flex flex-col text-left">
+                      <span className="text-[17px] md:text-[20px] font-bold tracking-tight leading-none mb-1">Lawyer Assistant</span>
+                      <span className="text-[12px] md:text-[13px] opacity-60 font-medium">Legal Advice & Compliance</span>
+                    </div>
+                    {assistantType === 'lawyer' && <div className="ml-auto w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)]" />}
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Content Area */}
         <div className="flex-1 flex flex-col min-h-0 relative">
