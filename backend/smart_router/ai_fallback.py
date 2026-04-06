@@ -30,6 +30,7 @@ async def ai_fallback_response(
     student_model=None,
     lawyer_model=None,
     rag_context: list = None,
+    language: str = "en",
 ) -> Optional[str]:
     """
     Call the appropriate Gemini model for a fallback response.
@@ -47,6 +48,13 @@ async def ai_fallback_response(
         print(f"[AI Fallback] No model available for assistant_type={assistant_type}")
         return None
 
+    
+    lang_instruction = {
+        "ar": "\n\n[CRITICAL: You MUST write your response entirely in Arabic. Do not use English.]",
+        "tr": "\n\n[CRITICAL: You MUST write your response entirely in Turkish. Do not use English.]",
+        "en": ""
+    }.get(language, "")
+
     # Build prompt with optional RAG context
     if rag_context:
         context_block = "\n\n".join(
@@ -58,10 +66,11 @@ async def ai_fallback_response(
             f"{context_block}\n\n"
             f"User question: {query}"
             f"{_CONCISE_SUFFIX}"
+            f"{lang_instruction}"
         )
         max_tokens = 200
     else:
-        prompt = query + _CONCISE_SUFFIX
+        prompt = query + _CONCISE_SUFFIX + lang_instruction
         max_tokens = 100
 
     try:

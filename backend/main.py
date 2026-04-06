@@ -807,25 +807,50 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
                     btype = combined.get("business_type", "") or ""
                     loc = combined.get("location", "") or ""
                     new_title = None
+                    
                     if assistant_type == "permit" and btype and btype.lower() not in ("business", ""):
-                        new_title = f"{btype} in {loc}" if loc and loc.lower() not in ("istanbul", "") else btype
+                        if language == "tr":
+                            new_title = f"{loc}'de {btype}" if loc and loc.lower() not in ("istanbul", "") else btype
+                        elif language == "ar":
+                            new_title = f"{btype} في {loc}" if loc and loc.lower() not in ("istanbul", "") else btype
+                        else:
+                            new_title = f"{btype} in {loc}" if loc and loc.lower() not in ("istanbul", "") else btype
+                            
                     elif assistant_type == "student":
-                        if "renew" in btype.lower() if btype else False:
-                            new_title = "Student ID Renewal"
-                        elif btype:
-                            new_title = "University Registration"
+                        is_renew = "renew" in btype.lower() if btype else False
+                        if language == "tr":
+                            new_title = "Öğrenci Kimlik Yenileme" if is_renew else "Üniversite Kaydı"
+                        elif language == "ar":
+                            new_title = "تجديد هوية الطالب" if is_renew else "التسجيل الجامعي"
+                        else:
+                            new_title = "Student ID Renewal" if is_renew else "University Registration"
+                            
                     elif assistant_type == "lawyer" and btype:
                         _LAWYER_TITLES = {
-                            "lawyer_contract": "Contract Review",
-                            "lawyer_company": "Company Formation",
-                            "lawyer_employment": "Employment Dispute",
-                            "lawyer_residency": "Residency / Work Permit",
-                            "lawyer_dispute": "Legal Dispute",
-                            "lawyer_real_estate": "Real Estate",
-                            "lawyer_criminal": "Criminal Case",
-                            "lawyer_debt": "Debt Collection",
+                            "en": {
+                                "lawyer_contract": "Contract Review", "lawyer_company": "Company Formation", 
+                                "lawyer_employment": "Employment Dispute", "lawyer_residency": "Residency / Work Permit",
+                                "lawyer_dispute": "Legal Dispute", "lawyer_real_estate": "Real Estate",
+                                "lawyer_criminal": "Criminal Case", "lawyer_debt": "Debt Collection"
+                            },
+                            "tr": {
+                                "lawyer_contract": "Sözleşme İncelemesi", "lawyer_company": "Şirket Kuruluşu", 
+                                "lawyer_employment": "İş Hukuku İhtilafı", "lawyer_residency": "İkamet / Çalışma İzni",
+                                "lawyer_dispute": "Hukuki Uyuşmazlık", "lawyer_real_estate": "Gayrimenkul",
+                                "lawyer_criminal": "Ceza Davası", "lawyer_debt": "İcra Takibi"
+                            },
+                            "ar": {
+                                "lawyer_contract": "مراجعة العقود", "lawyer_company": "تأسيس الشركات", 
+                                "lawyer_employment": "نزاع عمالي", "lawyer_residency": "الإقامة / تصريح العمل",
+                                "lawyer_dispute": "نزاع قانوني", "lawyer_real_estate": "العقارات",
+                                "lawyer_criminal": "قضية جنائية", "lawyer_debt": "تحصيل الديون"
+                            }
                         }
-                        new_title = _LAWYER_TITLES.get(btype, "Legal Consultation")
+                        lang_map = _LAWYER_TITLES.get(language, _LAWYER_TITLES["en"])
+                        new_title = lang_map.get(btype)
+                        if not new_title:
+                            new_title = "Legal Consultation" if language == "en" else ("استشارة قانونية" if language == "ar" else "Hukuki Danışmanlık")
+                        
                     if new_title:
                         if len(new_title) > 35:
                             new_title = new_title[:32] + "..."

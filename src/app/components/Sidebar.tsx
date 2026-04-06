@@ -27,7 +27,7 @@ interface SidebarProps {
   onMobileClose?: () => void;
   refreshTrigger?: number;
   showAllTypes?: boolean;
-  onSwitchAssistant: (type: 'permit' | 'student' | 'lawyer') => void;
+  onSwitchAssistant?: (type: 'permit' | 'student' | 'lawyer') => void;
   mobileOnly?: boolean;
 }
 
@@ -42,7 +42,7 @@ export default function Sidebar({
   onMobileClose,
   refreshTrigger = 0,
   showAllTypes = false,
-  onSwitchAssistant,
+  onSwitchAssistant = () => {},
   mobileOnly = false,
 }: SidebarProps) {
   const { t, isRTL } = useLanguage();
@@ -92,7 +92,7 @@ export default function Sidebar({
               <Search size={16} className="text-[var(--muted)] shrink-0" />
               <input
                 type="text"
-                placeholder="Search for chats"
+                placeholder={t('chat_placeholder_alt')}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="flex-1 bg-transparent text-[15px] text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none"
@@ -129,7 +129,7 @@ export default function Sidebar({
             <Plus size={isMobile ? 20 : 22} className={isMobile ? "text-[var(--text)] shrink-0" : "text-indigo-500 shrink-0"} />
             {showLabels && (
               <span className="text-[15px] font-semibold text-[var(--text)] whitespace-nowrap">
-                {isMobile ? 'New chat' : t('sidebar_new_chat')}
+                {t('sidebar_new_chat')}
               </span>
             )}
           </button>
@@ -141,7 +141,7 @@ export default function Sidebar({
             <Link href="/" className="block">
               <button className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)] transition-all">
                 <Home size={20} className="text-[var(--text)] shrink-0" />
-                <span className="text-[15px] font-medium text-[var(--text)] text-left">Home</span>
+                <span className="text-[15px] font-medium text-[var(--text)] text-left">{t('sidebar_home')}</span>
               </button>
             </Link>
           </div>
@@ -153,7 +153,7 @@ export default function Sidebar({
             <Link href="/dashboard" className="block">
               <button className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)] transition-all">
                 <LayoutDashboard size={20} className="text-[var(--text)] shrink-0" />
-                <span className="text-[15px] font-medium text-[var(--text)] text-left">My Dashboard</span>
+                <span className="text-[15px] font-medium text-[var(--text)] text-left">{t('sidebar_dashboard')}</span>
               </button>
             </Link>
           </div>
@@ -164,7 +164,7 @@ export default function Sidebar({
           <div className="px-3 mb-1 shrink-0">
             <button className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)] transition-all">
               <Star size={20} className="text-[var(--text)] shrink-0" />
-              <span className="text-[15px] font-medium text-[var(--text)]">My stuff</span>
+              <span className="text-[15px] font-medium text-[var(--text)] text-left">{t('sidebar_my_stuff')}</span>
             </button>
           </div>
         )}
@@ -173,8 +173,8 @@ export default function Sidebar({
         {isMobile && (
           <div className="px-3 mb-1 shrink-0">
             <button className="group flex items-center justify-between w-full px-4 py-2.5 rounded-xl hover:bg-[var(--surface-2)] transition-all">
-              <span className="text-[15px] font-bold text-[var(--text)]">Gems</span>
-              <ChevronRight size={16} className="text-[var(--muted)]" />
+              <span className="text-[15px] font-bold text-[var(--text)]">{t('sidebar_gems')}</span>
+              <ChevronRight size={16} className={`${isRTL ? 'rotate-180' : ''} text-[var(--muted)]`} />
             </button>
           </div>
         )}
@@ -183,7 +183,7 @@ export default function Sidebar({
         {showLabels && (
           <div className="flex bg-[var(--surface-2)] p-1 rounded-xl mx-3 mb-2 mt-3 shrink-0">
             {[
-              { id: 'permit', label: 'Permit', icon: '🏢' },
+              { id: 'permit', label: t('navbar_dashboard').replace('My ', ''), icon: '🏢' },
               { id: 'student', label: 'Student', icon: '🎓' },
               { id: 'lawyer', label: 'Lawyer', icon: '⚖️' },
             ].map(tab => (
@@ -206,10 +206,10 @@ export default function Sidebar({
         <div className="flex-1 overflow-y-auto px-3 space-y-0.5 slim-scroll pr-1">
           {!token && showLabels ? (
             <div className="mx-1 p-4 rounded-2xl bg-[var(--surface-2)]/60 border border-[var(--border)] space-y-3 mt-2">
-              <p className="text-[13px] font-semibold text-[var(--text)]">Sign in to start saving your chats</p>
-              <p className="text-[12px] text-[var(--muted)] leading-relaxed">Once you're signed in, you can access your recent chats here.</p>
+              <p className="text-[13px] font-semibold text-[var(--text)]">{t('sidebar_sign_in_prompt')}</p>
+              <p className="text-[12px] text-[var(--muted)] leading-relaxed">{t('sidebar_sign_in_desc')}</p>
               <Link href="/login">
-                <button className="text-[var(--accent)] text-[13px] font-bold hover:underline">Sign in</button>
+                <button className="text-[var(--accent)] text-[13px] font-bold hover:underline">{t('navbar_login')}</button>
               </Link>
             </div>
           ) : loading && sessions.length === 0 ? (

@@ -62,8 +62,8 @@ export default function SignupPage() {
             >
                 <div className="glass-card p-10 space-y-8 shadow-2xl">
                     <div className="text-center space-y-2">
-                        <h1 className="text-3xl font-bold tracking-tight text-[var(--text)]">Create your account</h1>
-                        <p className="text-[var(--muted)] text-sm">Join PermitOps AI for faster business permits</p>
+                        <h1 className="text-3xl font-bold tracking-tight text-[var(--text)]">{t('auth_signup_title')}</h1>
+                        <p className="text-[var(--muted)] text-sm">{t('auth_signup_subtitle')}</p>
                     </div>
 
                     {error && (
@@ -74,7 +74,7 @@ export default function SignupPage() {
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Full Name</label>
+                            <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">{t('auth_full_name')}</label>
                             <div className="relative">
                                 <User className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted)]" size={18} />
                                 <input
@@ -89,7 +89,7 @@ export default function SignupPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Email Address</label>
+                            <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">{t('auth_email')}</label>
                             <div className="relative">
                                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted)]" size={18} />
                                 <input
@@ -104,7 +104,7 @@ export default function SignupPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Password</label>
+                            <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">{t('auth_password')}</label>
                             <div className="relative">
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted)]" size={18} />
                                 <input
@@ -124,15 +124,15 @@ export default function SignupPage() {
                             className="w-full btn btn-purple !py-4 justify-center text-sm font-bold shadow-xl shadow-purple-500/20"
                         >
                             {loading ? <Loader2 className="animate-spin" size={20} /> : (
-                                <>Sign Up <ArrowRight size={18} className="ml-2" /></>
+                                <>{t('navbar_signup')} <ArrowRight size={18} className="ml-2" /></>
                             )}
                         </button>
                     </form>
 
                     <p className="text-center text-sm text-[var(--muted)]">
-                        Already have an account?{' '}
+                        {t('auth_has_account')}{' '}
                         <Link href="/login" className="text-purple-400 hover:text-purple-300 font-bold">
-                            Login here
+                            {t('navbar_login')}
                         </Link>
                     </p>
                 </div>

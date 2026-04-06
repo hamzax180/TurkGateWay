@@ -964,6 +964,28 @@ async def smart_router_handle(
             variables = build_variables(user_name=user_name)
             response = render(raw_response, variables)
 
+            # Translate predefined library response if needed (it is originally in English)
+            if language in ["ar", "tr"] and response:
+                model_used = gemini_model
+                if assistant_type == "student": model_used = student_model
+                elif assistant_type == "lawyer": model_used = lawyer_model
+
+                if model_used:
+                    try:
+                        lang_name = "Arabic" if language == "ar" else "Turkish"
+                        prompt = f"Translate the following text into natural, conversational {lang_name}. Do NOT add extra info. Keep the formatting.\n\nText: {response}"
+                        print(f"[SmartRouter] Translating JSON response to {lang_name}...")
+                        import asyncio
+                        trans_result = await asyncio.to_thread(
+                            model_used.generate_content,
+                            prompt,
+                            generation_config={"temperature": 0.3}
+                        )
+                        if trans_result and trans_result.text:
+                            response = trans_result.text.strip()
+                    except Exception as trans_e:
+                        print(f"[SmartRouter] Translation error: {trans_e}")
+
             # Cache this predefined response so repeated queries skip even step 2
             response_cache.set(query, response, assistant_type, language)
 
@@ -1022,6 +1044,7 @@ async def smart_router_handle(
         student_model=student_model,
         lawyer_model=lawyer_model,
         rag_context=rag_context,
+        language=language,
     )
 
     if ai_response:

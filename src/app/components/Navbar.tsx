@@ -55,8 +55,8 @@ export default function Navbar({ isAppPage = false }: { isAppPage?: boolean }) {
     { href: '/', label: t('navbar_home') },
     { href: '/chat', label: t('navbar_chat') },
     { href: '/dashboard', label: t('navbar_dashboard') },
-    { href: '/pricing', label: t('navbar_pricing') || 'Pricing' },
-    ...(isAdmin ? [{ href: '/admin/subscribers', label: 'Subscribers' }] : []),
+    { href: '/pricing', label: t('navbar_pricing') },
+    ...(isAdmin ? [{ href: '/admin/subscribers', label: t('navbar_subscribers') }] : []),
   ];
 
 
@@ -105,19 +105,19 @@ export default function Navbar({ isAppPage = false }: { isAppPage?: boolean }) {
                 onClick={logout}
                 className="px-4 py-2 text-sm font-medium text-red-400 hover:text-red-300 transition-colors"
               >
-                Logout
+                {t('navbar_logout')}
               </button>
             </>
           ) : (
             <>
               <Link href="/login">
                 <button className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors">
-                  Login
+                  {t('navbar_login')}
                 </button>
               </Link>
               <Link href="/signup">
                 <button className="bg-white text-black hover:bg-gray-200 px-5 py-2 rounded-full text-sm font-bold shadow-lg transition-all active:scale-95">
-                  Sign Up
+                  {t('navbar_signup')}
                 </button>
               </Link>
             </>

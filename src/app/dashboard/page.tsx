@@ -104,12 +104,12 @@ export default function Dashboard() {
     const params = new URLSearchParams(window.location.search);
     const paymentStatus = params.get('payment');
     if (paymentStatus === 'success') {
-      setToastMessage("Subscription activated! Welcome to Premium.");
+      setToastMessage(t('dashboard_toast_success_payment') || "Subscription activated! Welcome to Premium.");
       setToastType("success");
       setShowToast(true);
       window.history.replaceState({}, '', window.location.pathname);
     } else if (paymentStatus === 'error') {
-      setToastMessage(params.get('message') || "Payment failed. Please try again.");
+      setToastMessage(params.get('message') || t('dashboard_toast_error_payment') || "Payment failed. Please try again.");
       setToastType("error");
       setShowToast(true);
       window.history.replaceState({}, '', window.location.pathname);
@@ -147,7 +147,7 @@ export default function Dashboard() {
         throw new Error("Payment server unreachable");
       }
     } catch (e: any) {
-      setToastMessage(e.message || "Failed to start subscription");
+      setToastMessage(e.message || t('dashboard_toast_error_sub') || "Failed to start subscription");
       setToastType("error");
       setShowToast(true);
     } finally {
@@ -435,8 +435,8 @@ export default function Dashboard() {
                         <ShieldCheck size={20} className="text-red-500" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-bold text-[var(--text)]">{portalName} Integration</h3>
-                        <p className="text-[var(--muted)] text-sm italic">Simulating Local Municipality API...</p>
+                        <h3 className="text-lg font-bold text-[var(--text)]">{portalName} {t('dashboard_integration')}</h3>
+                        <p className="text-[var(--muted)] text-sm italic">{t('dashboard_simulating')}</p>
                       </div>
                     </div>
                     <button onClick={() => setShowModal(false)} className="text-[var(--muted)] hover:text-[var(--text)] transition-colors">
@@ -445,12 +445,12 @@ export default function Dashboard() {
                   </div>
 
                   <p className="text-sm text-[var(--muted)] mb-6 leading-relaxed">
-                    Our RPA bot requires your credentials to log into {portalUrl} and automatically submit the verified documents to Beşiktaş Municipality on your behalf.
+                    {t('dashboard_rpa_desc').replace('{url}', portalUrl)}
                   </p>
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-xs font-bold text-[var(--muted)] uppercase tracking-widest mb-1.5 ml-0.5">T.C. Kimlik No</label>
+                      <label className="block text-xs font-bold text-[var(--muted)] uppercase tracking-widest mb-1.5 ml-0.5">{t('dashboard_id_label')}</label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                           <Fingerprint size={16} className="text-[var(--muted)]" />
@@ -469,7 +469,7 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-[var(--muted)] uppercase tracking-widest mb-1.5 ml-0.5">
-                        {portalName} Password
+                        {portalName} {t('dashboard_password_label')}
                       </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -495,9 +495,9 @@ export default function Dashboard() {
                       className="w-full py-3 px-4 bg-red-600 cursor-not-allowed opacity-70 text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-inner border border-red-400/20"
                     >
                       <ShieldCheck size={18} />
-                      <span className="uppercase tracking-tight">DISABLED UNTIL LAW APPROVAL</span>
+                      <span className="uppercase tracking-tight">{t('dashboard_disabled_law')}</span>
                     </button>
-                    <p className="text-[10px] text-center text-gray-400 mt-3 font-medium">Your credentials are used solely for this session and are NEVER logged into our database.</p>
+                    <p className="text-[10px] text-center text-gray-400 mt-3 font-medium">{t('dashboard_privacy_notice')}</p>
                   </div>
                 </div>
               </motion.div>
@@ -522,10 +522,10 @@ export default function Dashboard() {
               <h1 className="text-3xl md:text-5xl font-bold text-[var(--text)] tracking-tight drop-shadow-sm dark:drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">
                 {(() => {
                   const loc = data?.combined_result?.location || '';
-                  if (loc.startsWith('student.')) return 'Student Roadmap';
-                  if (loc.startsWith('lawyer.')) return 'Legal Dashboard';
-                  if (loc && (loc.includes('student') || loc.includes('renew') || loc.includes('uni'))) return 'Student Roadmap';
-                  if (loc && (loc.includes('lawyer') || loc.includes('legal'))) return 'Legal Dashboard';
+                  if (loc.startsWith('student.')) return t('dashboard_student_title');
+                  if (loc.startsWith('lawyer.')) return t('dashboard_legal_title');
+                  if (loc && (loc.includes('student') || loc.includes('renew') || loc.includes('uni'))) return t('dashboard_student_title');
+                  if (loc && (loc.includes('lawyer') || loc.includes('legal'))) return t('dashboard_legal_title');
                   return t('dashboard_title') || 'Permit Dashboard';
                 })()}
               </h1>
@@ -558,7 +558,7 @@ export default function Dashboard() {
               }`}>
                 <Sparkles size={14} className={data?.subscription_status === 'active' ? '' : 'opacity-40'} />
                 <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">
-                  {data?.subscription_status === 'active' ? 'Premium' : 'Free Plan'}
+                  {data?.subscription_status === 'active' ? t('dashboard_premium') : t('dashboard_free_plan')}
                 </span>
               </div>
 
@@ -569,7 +569,7 @@ export default function Dashboard() {
                   className="btn btn-indigo !py-2 !px-4 !text-[12px] !rounded-full shadow-lg hover:scale-105 transition-all flex items-center gap-2"
                 >
                   {isSubscribing ? <RefreshCw size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
-                  {isSubscribing ? 'Starting...' : 'Upgrade'}
+                  {isSubscribing ? t('dashboard_starting') : t('dashboard_upgrade')}
                 </button>
               )}
 
@@ -920,6 +920,11 @@ export default function Dashboard() {
           router.push('/chat');
         }}
         onNewChat={() => {
+          localStorage.removeItem('permitops_active_session_id');
+          router.push('/chat');
+        }}
+        onSwitchAssistant={(type) => {
+          localStorage.setItem('permitops_assistant_type', type);
           localStorage.removeItem('permitops_active_session_id');
           router.push('/chat');
         }}

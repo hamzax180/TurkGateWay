@@ -17,24 +17,24 @@ const fade: Variants = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0
 const stagger: Variants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.09, delayChildren: 0.1 } } };
 
 /* ── Data ── */
-const howItWorks = [
-  { num: '01', icon: FileText, title: 'Tell us about your business', desc: 'Answer a few questions about your business type, location, and scope.' },
-  { num: '02', icon: Bot, title: 'AI maps your permit path', desc: 'Our agent system identifies every permit and document required for your case.' },
-  { num: '03', icon: Building2, title: 'Upload documents', desc: 'We guide you through each required document with checklists and templates.' },
-  { num: '04', icon: ShieldCheck, title: 'Receive your approval', desc: 'Track every approval in real time. Estimated timelines per municipality.' },
+const howItWorksData = (t: any) => [
+  { num: '01', icon: FileText, title: t('home_step1_title'), desc: t('home_step1_desc') },
+  { num: '02', icon: Bot, title: t('home_step2_title'), desc: t('home_step2_desc') },
+  { num: '03', icon: Building2, title: t('home_step3_title'), desc: t('home_step3_desc') },
+  { num: '04', icon: ShieldCheck, title: t('home_step4_title'), desc: t('home_step4_desc') },
 ];
 
-const features = [
-  { icon: Bot, title: 'Multi-Agent AI', desc: 'LangGraph orchestrated agents run planning, classification, document validation, and compliance checking in parallel.', badge: 'PydanticAI' },
-  { icon: Globe, title: 'All 39 Districts', desc: 'Full Istanbul coverage — supporting all 39 municipalities, each with distinct local protocols and requirements.', badge: 'Istanbul' },
-  { icon: Database, title: 'Real-Time Tracking', desc: 'Every step of your permit application is tracked in a persistent state machine. Nothing falls through the cracks.', badge: 'LangGraph' },
+const featuresData = (t: any) => [
+  { icon: Bot, title: t('home_feature_agents'), desc: t('home_feature_agents_desc'), badge: 'PydanticAI' },
+  { icon: Globe, title: t('home_feature_districts'), desc: t('home_feature_districts_desc'), badge: 'Istanbul' },
+  { icon: Database, title: t('home_feature_tracking'), desc: t('home_feature_tracking_desc'), badge: 'LangGraph' },
 ];
 
-const stats = [
-  { value: '39', label: 'Districts covered' },
-  { value: '14+', label: 'Permit types' },
-  { value: '85%', label: 'Time saved' },
-  { value: '98%', label: 'Success rate' },
+const statsData = (t: any) => [
+  { value: '39', label: t('home_stat_districts') },
+  { value: '14+', label: t('home_stat_types') },
+  { value: '85%', label: t('home_stat_time') },
+  { value: '98%', label: t('home_stat_success') },
 ];
 
 const logos = ['Beşiktaş', 'Kadıköy', 'Şişli', 'Üsküdar', 'Ataşehir', 'Bakırköy'];
@@ -57,7 +57,17 @@ const howItWorksSteps = (t: any) => [
 export default function Home() {
   const { t, isRTL } = useLanguage();
   const { user } = useAuth();
-  const stepsData = howItWorksSteps(t);
+  const stepsData = howItWorksData(t);
+  const featureData = featuresData(t);
+  const statsDisplay = statsData(t);
+  
+  // Adjusted categories for dynamic labels
+  const categories = [
+    { label: t('hero_cat_upload'), icon: FileText, color: 'text-blue-500' },
+    { label: t('hero_cat_status'), icon: Clock, color: 'text-purple-500' },
+    { label: t('hero_cat_protocols'), icon: Building2, color: 'text-rose-500' },
+    { label: t('hero_cat_safety'), icon: ShieldCheck, color: 'text-emerald-500' },
+  ];
   return (
     <>
       <Navbar />
@@ -141,12 +151,7 @@ export default function Home() {
           transition={{ delay: 2.2, duration: 1 }}
           className="flex flex-wrap items-center justify-center gap-3 pt-2 pb-2"
         >
-          {[
-            { label: t('hero_cat_upload'), icon: FileText, color: 'text-blue-500' },
-            { label: t('hero_cat_status'), icon: Clock, color: 'text-purple-500' },
-            { label: t('hero_cat_protocols'), icon: Building2, color: 'text-rose-500' },
-            { label: t('hero_cat_safety'), icon: ShieldCheck, color: 'text-emerald-500' },
-          ].map((item, i) => (
+          {categories.map((item, i) => (
             <button
               key={i}
               className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--border-2)] hover:bg-[var(--surface-2)] transition-all text-sm font-medium text-[var(--text)] shadow-sm"

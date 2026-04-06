@@ -8,50 +8,48 @@ import { useLanguage } from '../context/LanguageContext';
 import Navbar from '../components/Navbar';
 import { apiFetch } from '../utils/api';
 
-/* ─── Data ────────────────────────────────────────────────────────── */
-
-const FEATURES = [
-  { label: 'AI Permit Consultations', free: 'Limited', premium: 'Unlimited' },
-  { label: 'Active Sessions', free: '1', premium: 'Unlimited' },
-  { label: 'Project History', free: '7 days', premium: 'Unlimited' },
-  { label: 'Document Management', free: false, premium: true },
-  { label: 'Priority Agent Workflows', free: false, premium: true },
-  { label: '1-on-1 Regulatory Support', free: false, premium: true },
-  { label: 'Early Access to New Regulations', free: false, premium: true },
-  { label: 'Multi-language Support (TR/EN/AR)', free: true, premium: true },
-  { label: 'Community Access', free: true, premium: true },
-];
-
-const FAQ = [
-  {
-    q: 'Can I cancel my subscription at any time?',
-    a: 'Yes. You can cancel your Premium subscription at any time from your account settings. You will retain access until the end of your current billing period.'
-  },
-  {
-    q: 'Is my payment information secure?',
-    a: 'All payments are processed by iyzico, a PCI-DSS Level 1 certified payment provider. We never store your card details on our servers.'
-  },
-  {
-    q: 'What happens when I upgrade from Free to Premium?',
-    a: 'Your account is upgraded instantly. All limits are lifted and priority features become available immediately after payment confirmation.'
-  },
-  {
-    q: 'Do you offer invoices for business accounting?',
-    a: 'Yes. A VAT-compliant invoice is automatically issued via iyzico after every successful payment and can be downloaded from your account.'
-  },
-];
-
-const TRUST_ITEMS = [
-  { icon: Lock, label: 'Bank-level encryption', sub: 'TLS 1.3 + AES-256' },
-  { icon: ShieldCheck, label: 'PCI-DSS Compliant', sub: 'via iyzico' },
-  { icon: Headphones, label: 'Priority support', sub: 'avg. 2h response' },
-  { icon: Clock, label: 'Cancel anytime', sub: 'No lock-in contracts' },
-];
-
 /* ─── Component ────────────────────────────────────────────────────── */
 
 export default function PricingPage() {
   const { t } = useLanguage();
+  
+  const FEATURES = [
+    { label: t('pricing_feat_ai'), free: t('pricing_feat_limited'), premium: t('pricing_feat_unlimited') },
+    { label: t('pricing_feat_sessions'), free: '1', premium: t('pricing_feat_unlimited') },
+    { label: t('pricing_feat_history'), free: t('pricing_feat_7days'), premium: t('pricing_feat_unlimited') },
+    { label: t('pricing_feat_docs'), free: false, premium: true },
+    { label: t('pricing_feat_priority'), free: false, premium: true },
+    { label: t('pricing_feat_support'), free: false, premium: true },
+    { label: t('pricing_feat_access'), free: false, premium: true },
+    { label: t('pricing_feat_multi'), free: true, premium: true },
+    { label: t('pricing_feat_comm'), free: true, premium: true },
+  ];
+
+  const FAQ_DATA = [
+    {
+      q: t('pricing_faq_q1'),
+      a: t('pricing_faq_a1')
+    },
+    {
+      q: t('pricing_faq_q2'),
+      a: t('pricing_faq_a2')
+    },
+    {
+      q: t('pricing_faq_q3'),
+      a: t('pricing_faq_a3')
+    },
+    {
+      q: t('pricing_faq_q4'),
+      a: t('pricing_faq_a4')
+    },
+  ];
+
+  const TRUST_ITEMS = [
+    { icon: Lock, label: t('pricing_trust_enc'), sub: 'TLS 1.3 + AES-256' },
+    { icon: ShieldCheck, label: t('pricing_trust_pci'), sub: 'via iyzico' },
+    { icon: Headphones, label: t('pricing_trust_supp'), sub: t('pricing_trust_resp') },
+    { icon: Clock, label: t('pricing_trust_cancel'), sub: t('pricing_trust_lockin') },
+  ];
   const router = useRouter();
   const [isYearly, setIsYearly] = useState(true);
   const [iyzicoFormHtml, setIyzicoFormHtml] = useState<string | null>(null);
@@ -106,7 +104,7 @@ export default function PricingPage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-xs font-semibold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-4"
           >
-            Pricing &amp; Plans
+            {t('navbar_pricing')}
           </motion.p>
           <motion.h1
             initial={{ opacity: 0, y: 8 }}
@@ -114,7 +112,7 @@ export default function PricingPage() {
             transition={{ delay: 0.05 }}
             className="text-3xl md:text-[2.75rem] font-bold text-[var(--text)] leading-tight tracking-tight mb-4"
           >
-            Simple, transparent pricing
+            {t('pricing_title')}
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
@@ -122,7 +120,7 @@ export default function PricingPage() {
             transition={{ delay: 0.1 }}
             className="text-[var(--muted)] text-base max-w-lg mx-auto leading-relaxed"
           >
-            Start free. Upgrade when you need compliance automation that scales.
+            {t('pricing_subtitle')}
           </motion.p>
 
           {/* Billing toggle */}
@@ -131,13 +129,13 @@ export default function PricingPage() {
               onClick={() => setIsYearly(false)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${!isYearly ? 'bg-[var(--surface-2)] text-[var(--text)] shadow-sm' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
             >
-              Monthly
+              {t('pricing_monthly')}
             </button>
             <button
               onClick={() => setIsYearly(true)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${isYearly ? 'bg-[var(--surface-2)] text-[var(--text)] shadow-sm' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
             >
-              Annual
+              {t('pricing_annual')}
               <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded-md">
                 −12%
               </span>
@@ -157,13 +155,13 @@ export default function PricingPage() {
               className="flex flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-7 shadow-sm"
             >
               <div className="mb-6">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--muted)] mb-3">Free</p>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--muted)] mb-3">{t('sidebar_free')}</p>
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-4xl font-bold text-[var(--text)]">₺0</span>
-                  <span className="text-sm text-[var(--muted)]">/ month</span>
+                  <span className="text-sm text-[var(--muted)]">/ {t('pricing_monthly_unit') || 'month'}</span>
                 </div>
                 <p className="mt-3 text-sm text-[var(--muted)] leading-relaxed">
-                  For individuals exploring permit requirements. No credit card required.
+                  {t('pricing_free_desc')}
                 </p>
               </div>
 
@@ -180,7 +178,7 @@ export default function PricingPage() {
                 disabled
                 className="w-full py-2.5 rounded-lg text-sm font-medium border border-[var(--border)] bg-[var(--surface-2)] text-[var(--muted)] cursor-not-allowed"
               >
-                Current Plan
+                {t('pricing_current')}
               </button>
             </motion.div>
 
@@ -194,7 +192,7 @@ export default function PricingPage() {
               {/* Popular badge */}
               <div className="absolute -top-3.5 left-6">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-600 text-white text-[11px] font-semibold shadow">
-                  Most Popular
+                  {t('pricing_most_popular')}
                 </span>
               </div>
 
@@ -243,7 +241,7 @@ export default function PricingPage() {
                 {isSubscribing ? (
                   <RefreshCw size={15} className="animate-spin" />
                 ) : (
-                  <>Upgrade to Premium <ArrowRight size={15} /></>
+                  <>{t('pricing_upgrade')} <ArrowRight size={15} /></>
                 )}
               </button>
             </motion.div>
@@ -271,15 +269,15 @@ export default function PricingPage() {
 
         {/* ── Feature Comparison Table ── */}
         <section className="max-w-3xl mx-auto px-6 py-16">
-          <h2 className="text-xl font-bold text-[var(--text)] mb-2">Compare plans</h2>
-          <p className="text-sm text-[var(--muted)] mb-8">Everything you need to make the right decision.</p>
+          <h2 className="text-xl font-bold text-[var(--text)] mb-2">{t('pricing_compare')}</h2>
+          <p className="text-sm text-[var(--muted)] mb-8">{t('pricing_compare_subtitle')}</p>
 
           <div className="rounded-xl border border-[var(--border)] overflow-hidden shadow-sm">
             {/* Table header */}
             <div className="grid grid-cols-3 bg-[var(--surface-2)] border-b border-[var(--border)] px-5 py-3">
-              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">Feature</span>
-              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wider text-center">Free</span>
-              <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider text-center">Premium</span>
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">{t('pricing_feat_label') || 'Feature'}</span>
+              <span className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wider text-center">{t('sidebar_free')}</span>
+              <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider text-center">{t('sidebar_upgrade')}</span>
             </div>
 
             {FEATURES.map((row, i) => (
@@ -317,11 +315,11 @@ export default function PricingPage() {
 
         {/* ── FAQ ── */}
         <section className="max-w-2xl mx-auto px-6 pb-20">
-          <h2 className="text-xl font-bold text-[var(--text)] mb-2">Frequently asked questions</h2>
-          <p className="text-sm text-[var(--muted)] mb-8">Have a question not listed here? <a href="mailto:support@permitops.ai" className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">Contact us</a></p>
+          <h2 className="text-xl font-bold text-[var(--text)] mb-2">{t('pricing_faq_title')}</h2>
+          <p className="text-sm text-[var(--muted)] mb-8">{t('pricing_faq_subtitle')} <a href="mailto:support@permitops.ai" className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">{t('pricing_contact_us')}</a></p>
 
           <div className="divide-y divide-[var(--border)] border border-[var(--border)] rounded-xl overflow-hidden shadow-sm">
-            {FAQ.map((item, i) => (
+            {FAQ_DATA.map((item: any, i: number) => (
               <div key={i} className="bg-[var(--surface)]">
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
@@ -354,18 +352,18 @@ export default function PricingPage() {
         {/* ── Bottom CTA ── */}
         <section className="border-t border-[var(--border)] bg-[var(--surface)]">
           <div className="max-w-2xl mx-auto px-6 py-16 text-center">
-            <h2 className="text-xl font-bold text-[var(--text)] mb-2">Ready to streamline your compliance?</h2>
-            <p className="text-sm text-[var(--muted)] mb-6 max-w-sm mx-auto">Join businesses across Istanbul using PermitOps to automate their regulatory workflows.</p>
+            <h2 className="text-xl font-bold text-[var(--text)] mb-2">{t('pricing_ready')}</h2>
+            <p className="text-sm text-[var(--muted)] mb-6 max-w-sm mx-auto">{t('pricing_cta_subtitle')}</p>
             <button
               onClick={() => handleSubscribe(isYearly ? 'yearly' : 'monthly')}
               disabled={isSubscribing}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors shadow active:scale-[0.98]"
             >
-              {isSubscribing ? <RefreshCw size={15} className="animate-spin" /> : <>Get started with Premium <ArrowRight size={15} /></>}
+              {isSubscribing ? <RefreshCw size={15} className="animate-spin" /> : <>{t('pricing_get_started')} <ArrowRight size={15} /></>}
             </button>
             <p className="mt-4 text-xs text-[var(--muted)]">
               <ShieldCheck size={12} className="inline mr-1 text-emerald-500" />
-              Secure checkout via iyzico · Cancel anytime · VAT invoice included
+              {t('pricing_secure_checkout')} · {t('pricing_cancel_anytime')} · {t('pricing_vat_included')}
             </p>
           </div>
         </section>

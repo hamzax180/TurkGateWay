@@ -352,9 +352,9 @@ export default function ChatPage() {
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
             <span className="text-[17px] font-semibold text-[var(--text)] tracking-tight">
-              {sessionTitle && msgs.length > 0 && sessionTitle !== 'New Chat'
+              {sessionTitle && msgs.length > 0 && sessionTitle !== t('chat_new')
                 ? sessionTitle
-                : assistantType === 'permit' ? 'Permit Assistant' : assistantType === 'student' ? 'Student Assistant' : 'Lawyer Assistant'}
+                : assistantType === 'permit' ? `${t('assistant_permit')} ${t('navbar_chat').replace('AI ', '')}` : assistantType === 'student' ? `${t('assistant_student')} ${t('navbar_chat').replace('AI ', '')}` : `${t('assistant_lawyer')} ${t('navbar_chat').replace('AI ', '')}`}
             </span>
             <ChevronDown size={16} className={`text-[var(--muted)] opacity-50 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </div>
@@ -380,9 +380,9 @@ export default function ChatPage() {
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
             <span className="text-xl font-semibold text-[var(--text)] opacity-90 tracking-tight">
-              {sessionTitle && msgs.length > 0 && sessionTitle !== 'New Chat'
+              {sessionTitle && msgs.length > 0 && sessionTitle !== t('chat_new')
                 ? sessionTitle
-                : assistantType === 'permit' ? 'Permit Assistant' : assistantType === 'student' ? 'Student Assistant' : 'Lawyer Assistant'}
+                : assistantType === 'permit' ? `${t('assistant_permit')} ${t('navbar_chat').replace('AI ', '')}` : assistantType === 'student' ? `${t('assistant_student')} ${t('navbar_chat').replace('AI ', '')}` : `${t('assistant_lawyer')} ${t('navbar_chat').replace('AI ', '')}`}
             </span>
             <ChevronDown size={18} className={`text-[var(--muted)] opacity-50 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </div>
@@ -409,7 +409,7 @@ export default function ChatPage() {
               >
                 <div className="px-4 md:px-5 pb-2 md:pb-3 border-b border-[var(--border)]/50 mb-1">
                   <p className="text-base md:text-lg font-bold tracking-tight bg-gradient-to-r from-[#4285f4] via-[#9b72cb] to-[#d96570] bg-clip-text text-transparent">
-                    Switch Assistant
+                    {t('chat_switch_assistant')}
                   </p>
                 </div>
 
@@ -422,8 +422,8 @@ export default function ChatPage() {
                       <span className="text-2xl md:text-3xl filter drop-shadow-md">🏢</span>
                     </div>
                     <div className="flex flex-col text-left">
-                      <span className="text-[17px] md:text-[20px] font-bold tracking-tight leading-none mb-1">Permit Assistant</span>
-                      <span className="text-[12px] md:text-[13px] opacity-60 font-medium">Business & Municipal Protocol</span>
+                      <span className="text-[17px] md:text-[20px] font-bold tracking-tight leading-none mb-1">{t('assistant_permit')} {t('navbar_chat').replace('AI ', '')}</span>
+                      <span className="text-[12px] md:text-[13px] opacity-60 font-medium">{t('chat_permit_desc')}</span>
                     </div>
                     {assistantType === 'permit' && <div className="ml-auto w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.8)]" />}
                   </button>
@@ -436,8 +436,8 @@ export default function ChatPage() {
                       <span className="text-2xl md:text-3xl filter drop-shadow-md">🎓</span>
                     </div>
                     <div className="flex flex-col text-left">
-                      <span className="text-[17px] md:text-[20px] font-bold tracking-tight leading-none mb-1">Student Assistant</span>
-                      <span className="text-[12px] md:text-[13px] opacity-60 font-medium">Academic Tasks & ID Renewals</span>
+                      <span className="text-[17px] md:text-[20px] font-bold tracking-tight leading-none mb-1">{t('assistant_student')} {t('navbar_chat').replace('AI ', '')}</span>
+                      <span className="text-[12px] md:text-[13px] opacity-60 font-medium">{t('chat_student_desc')}</span>
                     </div>
                     {assistantType === 'student' && <div className="ml-auto w-2.5 h-2.5 rounded-full bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.8)]" />}
                   </button>
@@ -450,8 +450,8 @@ export default function ChatPage() {
                       <span className="text-2xl md:text-3xl filter drop-shadow-md">⚖️</span>
                     </div>
                     <div className="flex flex-col text-left">
-                      <span className="text-[17px] md:text-[20px] font-bold tracking-tight leading-none mb-1">Lawyer Assistant</span>
-                      <span className="text-[12px] md:text-[13px] opacity-60 font-medium">Legal Advice & Compliance</span>
+                      <span className="text-[17px] md:text-[20px] font-bold tracking-tight leading-none mb-1">{t('assistant_lawyer')} {t('navbar_chat').replace('AI ', '')}</span>
+                      <span className="text-[12px] md:text-[13px] opacity-60 font-medium">{t('chat_lawyer_desc')}</span>
                     </div>
                     {assistantType === 'lawyer' && <div className="ml-auto w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)]" />}
                   </button>
@@ -487,19 +487,19 @@ export default function ChatPage() {
                 className="flex flex-col md:flex-row md:flex-wrap md:justify-center gap-2 md:gap-2.5 mt-6 md:mt-0 md:mb-8"
               >
                 {(assistantType === 'student' ? [
-                   { emoji: "🪪", label: "Renew Kimlik/ID", mesh: 'mesh-indigo' },
-                   { emoji: "🏛️", label: "Best Universities", mesh: 'mesh-purple' },
-                   { emoji: "🗺️", label: "Register Roadmap", mesh: 'mesh-emerald' },
-                   { emoji: "📅", label: "Deadlines", mesh: 'mesh-amber' },
-                   { emoji: "🛂", label: "Student Visas", mesh: 'mesh-amber' },
-                   { emoji: "🆘", label: "Student Help", mesh: 'mesh-indigo' }
+                   { emoji: "🪪", label: t('chat_sug_renew'), mesh: 'mesh-indigo' },
+                   { emoji: "🏛️", label: t('chat_sug_uni'), mesh: 'mesh-purple' },
+                   { emoji: "🗺️", label: t('chat_sug_roadmap'), mesh: 'mesh-emerald' },
+                   { emoji: "📅", label: t('chat_sug_deadlines'), mesh: 'mesh-amber' },
+                   { emoji: "🛂", label: t('chat_sug_visas'), mesh: 'mesh-amber' },
+                   { emoji: "🆘", label: t('chat_sug_shelp'), mesh: 'mesh-indigo' }
                  ] : assistantType === 'lawyer' ? [
-                   { emoji: "📑", label: "Contract Review", mesh: 'mesh-indigo' },
-                   { emoji: "🏗️", label: "Company Formation", mesh: 'mesh-purple' },
-                   { emoji: "🤝", label: "Employment Law", mesh: 'mesh-emerald' },
-                   { emoji: "📊", label: "Legal Timelines", mesh: 'mesh-amber' },
-                   { emoji: "🏠", label: "Residency/Permit", mesh: 'mesh-amber' },
-                   { emoji: "⚖️", label: "Legal Disputes", mesh: 'mesh-indigo' }
+                   { emoji: "📑", label: t('chat_sug_contract'), mesh: 'mesh-indigo' },
+                   { emoji: "🏗️", label: t('chat_sug_formation'), mesh: 'mesh-purple' },
+                   { emoji: "🤝", label: t('chat_sug_employ'), mesh: 'mesh-emerald' },
+                   { emoji: "📊", label: t('chat_sug_times'), mesh: 'mesh-amber' },
+                   { emoji: "🏠", label: t('chat_sug_resid'), mesh: 'mesh-amber' },
+                   { emoji: "⚖️", label: t('chat_sug_dispute'), mesh: 'mesh-indigo' }
                  ] : [
                    { emoji: "🏢", label: t('chat_suggestion_business'), mesh: 'mesh-indigo' },
                    { emoji: "📜", label: t('chat_suggestion_permit'), mesh: 'mesh-purple' },

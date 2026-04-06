@@ -61,8 +61,8 @@ export default function LoginPage() {
             >
                 <div className="glass-card p-10 space-y-8 shadow-2xl">
                     <div className="text-center space-y-2">
-                        <h1 className="text-3xl font-bold tracking-tight text-[var(--text)]">Welcome back</h1>
-                        <p className="text-[var(--muted)] text-sm">Login to access your permit dashboard</p>
+                        <h1 className="text-3xl font-bold tracking-tight text-[var(--text)]">{t('auth_login_title')}</h1>
+                        <p className="text-[var(--muted)] text-sm">{t('auth_login_subtitle')}</p>
                     </div>
 
                     {error && (
@@ -73,7 +73,7 @@ export default function LoginPage() {
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Email Address</label>
+                            <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">{t('auth_email')}</label>
                             <div className="relative">
                                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted)]" size={18} />
                                 <input
@@ -88,7 +88,7 @@ export default function LoginPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">Password</label>
+                            <label className="text-xs font-bold uppercase tracking-widest text-[var(--muted)]">{t('auth_password')}</label>
                             <div className="relative">
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted)]" size={18} />
                                 <input
@@ -108,15 +108,15 @@ export default function LoginPage() {
                             className="w-full btn btn-purple !py-4 justify-center text-sm font-bold shadow-xl shadow-purple-500/20"
                         >
                             {loading ? <Loader2 className="animate-spin" size={20} /> : (
-                                <>Login <ArrowRight size={18} className="ml-2" /></>
+                                <>{t('navbar_login')} <ArrowRight size={18} className="ml-2" /></>
                             )}
                         </button>
                     </form>
 
                     <p className="text-center text-sm text-[var(--muted)]">
-                        Don't have an account?{' '}
+                        {t('auth_no_account')}{' '}
                         <Link href="/signup" className="text-purple-400 hover:text-purple-300 font-bold">
-                            Sign up now
+                            {t('navbar_signup')}
                         </Link>
                     </p>
                 </div>
