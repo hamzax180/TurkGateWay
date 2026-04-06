@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { Shield, Menu, X, FileCheck, Sun, Moon, ShieldCheck } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import LanguageSwitcher from './LanguageSwitcher';
+import Sidebar from './Sidebar';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -132,48 +133,26 @@ export default function Navbar({ isAppPage = false }: { isAppPage?: boolean }) {
         </button>
       </div>
 
-      {/* Mobile Drawer */}
-      {open && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="md:hidden bg-[var(--surface)]/95 backdrop-blur-xl border-b border-[var(--border)] px-6 py-6 space-y-4"
-        >
-          <div className="flex items-center justify-between pb-4 border-b border-[var(--border)]">
-            <LanguageSwitcher />
-            <ThemeToggle />
-          </div>
-
-          <div className="space-y-1">
-            {links.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setOpen(false)}
-                className={`block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${pathname === href ? 'bg-[var(--surface-2)] text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]'
-                  }`}
-              >
-                {label}
-              </Link>
-            ))}
-          </div>
-
-          {isAuthenticated ? (
-            <button onClick={logout} className="w-full py-2.5 rounded-full font-bold text-sm text-red-500 border border-red-500/20">
-              Logout
-            </button>
-          ) : (
-            <div className="pt-4 border-t border-[var(--border)] flex flex-col gap-2">
-              <Link href="/login" onClick={() => setOpen(false)}>
-                <button className="text-[var(--text)] w-full py-2.5 rounded-full font-bold text-sm border border-[var(--border)]">Login</button>
-              </Link>
-              <Link href="/signup" onClick={() => setOpen(false)}>
-                <button className="bg-[var(--text)] text-[var(--bg)] w-full py-2.5 rounded-full font-bold text-sm">Sign Up</button>
-              </Link>
-            </div>
-          )}
-        </motion.div>
-      )}
+      {/* Mobile Drawer (Universal Sidebar) */}
+      <Sidebar
+        currentSessionId={null}
+        assistantType={typeof window !== 'undefined' ? (localStorage.getItem('permitops_active_agent') || 'permit') : 'permit'}
+        onSessionSelect={(id: string) => {
+          localStorage.setItem('permitops_active_session_id', id);
+          window.location.href = '/chat';
+        }}
+        onNewChat={() => { window.location.href = '/chat'; }}
+        onDeleteSession={() => {}}
+        onSwitchAssistant={(t: any) => {
+          localStorage.setItem('permitops_active_agent', t);
+          window.location.href = '/chat';
+        }}
+        token={typeof window !== 'undefined' ? localStorage.getItem('permitops_token') : null}
+        mobileOpen={open}
+        onMobileClose={() => setOpen(false)}
+        refreshTrigger={0}
+        mobileOnly
+      />
     </header>
   );
 }

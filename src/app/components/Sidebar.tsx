@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Plus, MessageSquare, Trash2, Menu, Settings, HelpCircle, History, Zap, Search, X, Star, MoreVertical, ChevronRight, LayoutDashboard, Home } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Plus, MessageSquare, Trash2, Menu, Settings, HelpCircle, History, Zap, Search, X, Star, MoreVertical, ChevronRight, LayoutDashboard, Home, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
+import ThemeToggle from './ThemeToggle';
+import LanguageSwitcher from './LanguageSwitcher';
 import { apiFetch } from '../utils/api';
 
 interface ChatSession {
@@ -24,6 +28,7 @@ interface SidebarProps {
   refreshTrigger?: number;
   showAllTypes?: boolean;
   onSwitchAssistant: (type: 'permit' | 'student' | 'lawyer') => void;
+  mobileOnly?: boolean;
 }
 
 export default function Sidebar({
@@ -38,8 +43,11 @@ export default function Sidebar({
   refreshTrigger = 0,
   showAllTypes = false,
   onSwitchAssistant,
+  mobileOnly = false,
 }: SidebarProps) {
   const { t } = useLanguage();
+  const { logout, isAuthenticated } = useAuth();
+  const router = useRouter();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [isExpanded, setIsExpanded] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -248,6 +256,32 @@ export default function Sidebar({
 
         {/* Bottom */}
         <div className="p-3 space-y-1 mt-auto border-t border-[var(--border)] bg-[var(--surface)]/50 shrink-0">
+          
+          {isMobile && (
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border)] px-2">
+              <LanguageSwitcher />
+              <ThemeToggle />
+            </div>
+          )}
+
+          {isMobile && isAuthenticated && (
+            <div
+              onClick={() => { logout(); if (onMobileClose) onMobileClose(); }}
+              className="group flex items-center gap-3 p-3 rounded-full hover:bg-red-500/10 cursor-pointer transition-all mb-1"
+            >
+              <LogOut size={18} className="text-red-500 shrink-0" />
+              <span className="text-sm font-bold text-red-500">Logout</span>
+            </div>
+          )}
+
+          {isMobile && !isAuthenticated && (
+            <Link href="/login" className="block" onClick={onMobileClose}>
+              <div className="group flex items-center gap-3 p-3 rounded-full hover:bg-[var(--surface-2)] cursor-pointer transition-all mb-1">
+                <span className="text-sm font-bold text-[var(--text)]">Login</span>
+              </div>
+            </Link>
+          )}
+
           {/* Settings & help */}
           <div className="group flex items-center gap-3 p-3 rounded-full hover:bg-[var(--surface-2)] cursor-pointer transition-all" title="Settings & help">
             <Settings size={18} className="text-[var(--muted)] group-hover:text-[var(--text)] transition-colors shrink-0" />
@@ -291,13 +325,15 @@ export default function Sidebar({
   return (
     <>
       {/* ─── Desktop Sidebar (hidden on mobile) ─── */}
-      <motion.aside
-        initial={false}
-        animate={{ width: isExpanded ? 280 : 68 }}
-        className="hidden md:flex h-full flex-col shrink-0 transition-all duration-300 ease-in-out relative z-50 border-r border-[var(--border)] overflow-hidden"
-      >
-        <SidebarInner isMobile={false} />
-      </motion.aside>
+      {!mobileOnly && (
+        <motion.aside
+          initial={false}
+          animate={{ width: isExpanded ? 280 : 68 }}
+          className="hidden md:flex h-full flex-col shrink-0 transition-all duration-300 ease-in-out relative z-50 border-r border-[var(--border)] overflow-hidden"
+        >
+          <SidebarInner isMobile={false} />
+        </motion.aside>
+      )}
 
       {/* ─── Mobile Drawer Overlay ─── */}
       <AnimatePresence>
