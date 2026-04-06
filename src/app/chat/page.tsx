@@ -16,7 +16,7 @@ type Role = 'assistant' | 'user';
 interface Msg { id: number; role: Role; content: string; }
 
 export default function ChatPage() {
-  const { t, isRTL, language } = useLanguage();
+  const { t, isRTL, language, translateHistory } = useLanguage();
   const { token, isAuthenticated, user } = useAuth();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionTitle, setSessionTitle] = useState<string>('');
@@ -352,9 +352,20 @@ export default function ChatPage() {
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
             <span className="text-[17px] font-semibold text-[var(--text)] tracking-tight">
-              {sessionTitle && msgs.length > 0 && sessionTitle !== t('chat_new')
-                ? sessionTitle
-                : assistantType === 'permit' ? `${t('assistant_permit')} ${t('navbar_chat').replace('AI ', '')}` : assistantType === 'student' ? `${t('assistant_student')} ${t('navbar_chat').replace('AI ', '')}` : `${t('assistant_lawyer')} ${t('navbar_chat').replace('AI ', '')}`}
+              {(() => {
+                if (!sessionTitle || msgs.length === 0 || sessionTitle === t('chat_new')) {
+                  return assistantType === 'permit' ? `${t('assistant_permit')} ${t('navbar_chat').replace('AI ', '')}` : assistantType === 'student' ? `${t('assistant_student')} ${t('navbar_chat').replace('AI ', '')}` : `${t('assistant_lawyer')} ${t('navbar_chat').replace('AI ', '')}`;
+                }
+                
+                const match = sessionTitle.toLowerCase().match(/^(.+?)\s+in\s+(.+)$/);
+                if (match) {
+                  const bizKey = `biz_${match[1].trim()}`;
+                  const distKey = `dist_${match[2].trim().replace(/\s/g, '').toLowerCase()}`;
+                  const lb = t(bizKey), ld = t(distKey);
+                  if (lb !== bizKey && ld !== distKey) return `${lb} ${t('connect_in')} ${ld}`;
+                }
+                return sessionTitle;
+              })()}
             </span>
             <ChevronDown size={16} className={`text-[var(--muted)] opacity-50 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </div>
@@ -380,9 +391,19 @@ export default function ChatPage() {
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
             <span className="text-xl font-semibold text-[var(--text)] opacity-90 tracking-tight">
-              {sessionTitle && msgs.length > 0 && sessionTitle !== t('chat_new')
-                ? sessionTitle
-                : assistantType === 'permit' ? `${t('assistant_permit')} ${t('navbar_chat').replace('AI ', '')}` : assistantType === 'student' ? `${t('assistant_student')} ${t('navbar_chat').replace('AI ', '')}` : `${t('assistant_lawyer')} ${t('navbar_chat').replace('AI ', '')}`}
+              {(() => {
+                if (!sessionTitle || msgs.length === 0 || sessionTitle === t('chat_new')) {
+                  return assistantType === 'permit' ? `${t('assistant_permit')} ${t('navbar_chat').replace('AI ', '')}` : assistantType === 'student' ? `${t('assistant_student')} ${t('navbar_chat').replace('AI ', '')}` : `${t('assistant_lawyer')} ${t('navbar_chat').replace('AI ', '')}`;
+                }
+                const match = sessionTitle.toLowerCase().match(/^(.+?)\s+in\s+(.+)$/);
+                if (match) {
+                  const bizKey = `biz_${match[1].trim()}`;
+                  const distKey = `dist_${match[2].trim().replace(/\s/g, '').toLowerCase()}`;
+                  const lb = t(bizKey), ld = t(distKey);
+                  if (lb !== bizKey && ld !== distKey) return `${lb} ${t('connect_in')} ${ld}`;
+                }
+                return sessionTitle;
+              })()}
             </span>
             <ChevronDown size={18} className={`text-[var(--muted)] opacity-50 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </div>
@@ -609,31 +630,36 @@ export default function ChatPage() {
                         : 'text-[var(--text)] opacity-95 py-2 w-full font-normal'
                         }`}
                       >
-                        {m.role === 'assistant' ? (
-                          <div className="prose prose-invert max-w-none">
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
-                              components={{
-                                p: ({ node, ...props }) => <p className="mb-6 last:mb-0" {...props} />,
-                                ul: ({ node, ...props }) => <ul className="list-disc pl-6 mb-6 space-y-2 marker:text-indigo-500" {...props} />,
-                                ol: ({ node, ...props }) => <ol className="list-decimal pl-6 mb-6 space-y-2 marker:text-indigo-500" {...props} />,
-                                strong: ({ node, ...props }) => <strong className="font-bold text-[var(--text)]" {...props} />,
-                                a: ({ node, ...props }) => <a className="text-indigo-400 hover:underline transition-colors" {...props} />,
-                                code: ({ node, className, children, ...props }) => {
-                                  const match = /language-(\w+)/.exec(className || '');
-                                  const isInline = !match && !className?.includes('language-');
-                                  return isInline
-                                    ? <code className="bg-[var(--surface-2)] text-indigo-300 px-1.5 py-0.5 rounded text-[14px] font-mono" {...props}>{children}</code>
-                                    : <div className="bg-[#0e0e0e] rounded-xl border border-white/10 overflow-hidden my-6"><div className="px-4 py-2 bg-white/5 text-[11px] text-white/40 font-mono uppercase tracking-widest border-b border-white/10">{match?.[1] || 'code'}</div><pre className="p-4 overflow-x-auto text-[14px] text-gray-300 font-mono leading-relaxed"><code {...props}>{children}</code></pre></div>
-                                }
-                              }}
-                            >
-                              {m.content}
-                            </ReactMarkdown>
-                          </div>
-                        ) : (
-                          m.content
-                        )}
+                        {(() => {
+                          const contentToRender = translateHistory(m.content);
+
+                          if (m.role === 'assistant') {
+                            return (
+                              <div className="prose prose-invert max-w-none">
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
+                                  components={{
+                                    p: ({ node, ...props }) => <p className="mb-6 last:mb-0" {...props} />,
+                                    ul: ({ node, ...props }) => <ul className="list-disc pl-6 mb-6 space-y-2 marker:text-indigo-500" {...props} />,
+                                    ol: ({ node, ...props }) => <ol className="list-decimal pl-6 mb-6 space-y-2 marker:text-indigo-500" {...props} />,
+                                    strong: ({ node, ...props }) => <strong className="font-bold text-[var(--text)]" {...props} />,
+                                    a: ({ node, ...props }) => <a className="text-indigo-400 hover:underline transition-colors" {...props} />,
+                                    code: ({ node, className, children, ...props }) => {
+                                      const match = /language-(\w+)/.exec(className || '');
+                                      const isInline = !match && !className?.includes('language-');
+                                      return isInline
+                                        ? <code className="bg-[var(--surface-2)] text-indigo-300 px-1.5 py-0.5 rounded text-[14px] font-mono" {...props}>{children}</code>
+                                        : <div className="bg-[#0e0e0e] rounded-xl border border-white/10 overflow-hidden my-6"><div className="px-4 py-2 bg-white/5 text-[11px] text-white/40 font-mono uppercase tracking-widest border-b border-white/10">{match?.[1] || 'code'}</div><pre className="p-4 overflow-x-auto text-[14px] text-gray-300 font-mono leading-relaxed"><code {...props}>{children}</code></pre></div>
+                                    }
+                                  }}
+                                >
+                                  {contentToRender}
+                                </ReactMarkdown>
+                              </div>
+                            );
+                          }
+                          return contentToRender;
+                        })()}
                       </div>
                     </div>
                   </motion.div>
@@ -656,7 +682,7 @@ export default function ChatPage() {
                   <div className="py-2.5 px-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] relative overflow-hidden shadow-sm">
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[var(--accent)]/5 to-transparent animate-[shimmer-sweep_1.5s_infinite]" style={{ backgroundSize: '200% 100%' }} />
                     <span className="text-[14px] font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent flex items-center gap-2">
-                      Agent is thinking
+                       {t('agent_thinking')}
                       <span className="flex gap-0.5 ml-1">
                         <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.3s]" />
                         <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.15s]" />
@@ -752,7 +778,7 @@ export default function ChatPage() {
                   </div>
                 </div>
                 <p className="text-center text-[11px] text-[var(--muted)] mt-5 font-normal tracking-wide opacity-50">
-                  PermitOps AI Advisor • Municipal Protocol Engine • v2.5
+                  {t('agent_name')} • {t('footer_version')}
                 </p>
               </div>
             </div>

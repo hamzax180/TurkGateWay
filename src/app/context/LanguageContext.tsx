@@ -9,6 +9,7 @@ interface LanguageContextType {
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
   isRTL: boolean;
+  translateHistory: (content: string) => string;
 }
 
 const translations: Record<Language, Record<string, string>> = {
@@ -225,6 +226,21 @@ const translations: Record<Language, Record<string, string>> = {
     pricing_trust_lockin: 'No lock-in contracts',
     pricing_get_started: 'Get started with Premium',
     pricing_ready: 'Ready to streamline your compliance?',
+    connect_in: 'in',
+    agent_name: 'PermitOps AI Advisor',
+    agent_thinking: 'Agent is thinking...',
+    footer_version: 'Municipal Protocol Engine • v2.5',
+    dist_adalar: 'Adalar', dist_arnavutkoy: 'Arnavutköy', dist_atasehir: 'Ataşehir', dist_avcilar: 'Avcılar', dist_bagcilar: 'Bağcılar',
+    dist_bahcelievler: 'Bahçelievler', dist_bakirkoy: 'Bakırköy', dist_basaksehir: 'Başakşehir', dist_bayrampasa: 'Bayrampaşa', dist_besiktas: 'Beşiktaş',
+    dist_beykoz: 'Beykoz', dist_beylikduzu: 'Beylikdüzü', dist_beyoglu: 'Beyoğlu', dist_buyukcekmece: 'Büyükçekmece', dist_catalca: 'Çatalca',
+    dist_cekmekoy: 'Çekmeköy', dist_esenler: 'Esenler', dist_esenyurt: 'Esenyurt', dist_eyupsultan: 'Eyüpsultan', dist_fatih: 'الفاتح',
+    dist_gaziosmanpasa: 'Gaziosmanpaşa', dist_gungoren: 'Güngören', dist_kadikoy: 'Kadıköy', dist_kagithane: 'Kağıthane', dist_kartal: 'Kartal',
+    dist_kucukcekmece: 'Küçükçekmece', dist_maltepe: 'Maltepe', dist_pendik: 'Pendik', dist_sancaktepe: 'Sancaktepe', dist_sariyer: 'Sarıyer',
+    dist_sile: 'Şile', dist_silivri: 'Silivri', dist_sisli: 'Şişli', dist_sultanbeyli: 'Sultanbeyli', dist_sultangazi: 'Sultangazi',
+    dist_tuzla: 'Tuzla', dist_umraniye: 'Ümraniye', dist_uskudar: 'Üsküdar', dist_zeytinburnu: 'Zeytinburnu',
+    biz_restaurant: 'Restaurant', biz_cafe: 'Café', biz_retail: 'Retail Store', biz_office: 'Office', biz_pharmacy: 'Pharmacy',
+    biz_bakery: 'Bakery', biz_barber: 'Barber Shop', biz_gym: 'Gym', biz_shop: 'Shop', biz_store: 'Store', biz_company: 'Company',
+    biz_clothing: 'Clothing Store', biz_hotel: 'Hotel', biz_clinic: 'Clinic', biz_school: 'School',
   },
   tr: {
     navbar_home: 'Ana Sayfa',
@@ -439,6 +455,21 @@ const translations: Record<Language, Record<string, string>> = {
     pricing_trust_lockin: 'Taahhüt yok',
     pricing_get_started: 'Premium ile başlayın',
     pricing_ready: 'Uyumluluğunuzu kolaylaştırmaya hazır mısınız?',
+    connect_in: 'İçinde',
+    agent_name: 'PermitOps Yapay Zeka Danışmanı',
+    agent_thinking: 'Ajan düşünüyor...',
+    footer_version: 'Belediye Protokol Motoru • v2.5',
+    dist_adalar: 'Adalar', dist_arnavutkoy: 'Arnavutköy', dist_atasehir: 'Ataşehir', dist_avcilar: 'Avcılar', dist_bagcilar: 'Bağcılar',
+    dist_bahcelievler: 'Bahçelievler', dist_bakirkoy: 'Bakırköy', dist_basaksehir: 'Başakşehir', dist_bayrampasa: 'Bayrampaşa', dist_besiktas: 'Beşiktaş',
+    dist_beykoz: 'Beykoz', dist_beylikduzu: 'Beylikdüzü', dist_beyoglu: 'Beyoğlu', dist_buyukcekmece: 'Büyükçekmece', dist_catalca: 'Çatalca',
+    dist_cekmekoy: 'Çekmeköy', dist_esenler: 'Esenler', dist_esenyurt: 'Esenyurt', dist_eyupsultan: 'Eyüpsultan', dist_fatih: 'Fatih',
+    dist_gaziosmanpasa: 'Gaziosmanpaşa', dist_gungoren: 'Güngören', dist_kadikoy: 'Kadıköy', dist_kagithane: 'Kağıthane', dist_kartal: 'Kartal',
+    dist_kucukcekmece: 'Küçükçekmece', dist_maltepe: 'Maltepe', dist_pendik: 'Pendik', dist_sancaktepe: 'Sancaktepe', dist_sariyer: 'Sarıyer',
+    dist_sile: 'Şile', dist_silivri: 'Silivri', dist_sisli: 'Şişli', dist_sultanbeyli: 'Sultanbeyli', dist_sultangazi: 'Sultangazi',
+    dist_tuzla: 'Tuzla', dist_umraniye: 'Ümraniye', dist_uskudar: 'Üsküdar', dist_zeytinburnu: 'Zeytinburnu',
+    biz_restaurant: 'Restoran', biz_cafe: 'Kafe', biz_retail: 'Perakende Mağaza', biz_office: 'Ofis', biz_pharmacy: 'Eczane',
+    biz_bakery: 'Fırın', biz_barber: 'Berber', biz_gym: 'Spor Salonu', biz_shop: 'Dükkan', biz_store: 'Mağaza', biz_company: 'Şirket',
+    biz_clothing: 'Giyim Mağazası', biz_hotel: 'Otel', biz_clinic: 'Klinik', biz_school: 'Okul',
   },
   ar: {
     navbar_home: 'الرئيسية',
@@ -613,6 +644,21 @@ const translations: Record<Language, Record<string, string>> = {
     pricing_billed_monthly: 'يتم احتساب الفاتورة شهرياً',
     pricing_monthly_unit: 'شهر',
     pricing_feat_label: 'الميزة',
+    connect_in: 'في',
+    agent_name: 'PermitOps مستشار الذكاء الاصطناعي',
+    agent_thinking: 'الوكيل يفكر الآن...',
+    footer_version: 'محرك بروتوكول البلدية • v2.5',
+    dist_adalar: 'الأميرات', dist_arnavutkoy: 'أرناووط كوي', dist_atasehir: 'أتاشهير', dist_avcilar: 'أفجيلار', dist_bagcilar: 'باغجيلار',
+    dist_bahcelievler: 'باهتشيلي ايفلر', dist_bakirkoy: 'بكر كوي', dist_basaksehir: 'باشاك شهير', dist_bayrampasa: 'بايرام باشا', dist_besiktas: 'بشكتاش',
+    dist_beykoz: 'بيكوز', dist_beylikduzu: 'بيليك دوزو', dist_beyoglu: 'بيوغلو', dist_buyukcekmece: 'بيوك تشكمجه', dist_catalca: 'شاتالجا',
+    dist_cekmekoy: 'تشكمه كوي', dist_esenler: 'إيسنلار', dist_esenyurt: 'إيسنيورت', dist_eyupsultan: 'أيوب سلطان', dist_fatih: 'الفاتح',
+    dist_gaziosmanpasa: 'غازي عثمان باشا', dist_gungoren: 'غونغوران', dist_kadikoy: 'كاديكوي', dist_kagithane: 'كاغيت هانة', dist_kartal: 'كارتال',
+    dist_kucukcekmece: 'كوتشوك تشكمجه', dist_maltepe: 'مالتيبي', dist_pendik: 'بنديك', dist_sancaktepe: 'سانجاك تبي', dist_sariyer: 'ساريير',
+    dist_sile: 'شيلا', dist_silivri: 'سيليفري', dist_sisli: 'شيشلي', dist_sultanbeyli: 'سلطان بيلي', dist_sultangazi: 'سلطان غازي',
+    dist_tuzla: 'توزلا', dist_umraniye: 'عمرانية', dist_uskudar: 'أوسكودار', dist_zeytinburnu: 'زيتين بورنو',
+    biz_restaurant: 'مطعم', biz_cafe: 'مقهى', biz_retail: 'متجر تجزئة', biz_office: 'مكتب', biz_pharmacy: 'صيدلية',
+    biz_bakery: 'مخبز', biz_barber: 'صالون حلاقة', biz_gym: 'صالة رياضية', biz_shop: 'متجر', biz_store: 'محل', biz_company: 'شركة',
+    biz_clothing: 'متجر ملابس', biz_hotel: 'فندق', biz_clinic: 'عيادة', biz_school: 'مدرسة',
   }
 };
 
@@ -640,8 +686,16 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const isRTL = language === 'ar';
 
+  const translateHistory = (content: string) => {
+    const original = content;
+    const entries = Object.entries(translations.en);
+    const matchingKey = entries.find(([k, v]) => v === original)?.[0];
+    if (matchingKey) return t(matchingKey);
+    return original;
+  };
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, isRTL }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, isRTL, translateHistory }}>
       {children}
     </LanguageContext.Provider>
   );

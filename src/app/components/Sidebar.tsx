@@ -77,6 +77,29 @@ export default function Sidebar({
     if (!title) return t('chat_new');
     if (title === 'New Chat') return t('chat_new');
     if (title === 'Document Analysis') return t('chat_suggestion_permit').replace('?', '');
+    
+    const lowerTitle = title.toLowerCase();
+    
+    // Pattern: "[Business] in [District]"
+    const match = lowerTitle.match(/^(.+?)\s+in\s+(.+)$/);
+    if (match) {
+      const businessRaw = match[1].trim();
+      const districtRaw = match[2].trim().replace(/\s/g, ''); // normalize for keys
+      
+      const bizKey = `biz_${businessRaw}`;
+      const distKey = `dist_${districtRaw}`;
+      
+      const localizedBiz = t(bizKey);
+      const localizedDist = t(distKey);
+      
+      // If we found both in our dictionary
+      if (localizedBiz !== bizKey && localizedDist !== distKey) {
+        return isRTL 
+          ? `${localizedBiz} ${t('connect_in')} ${localizedDist}`
+          : `${localizedBiz} ${t('connect_in')} ${localizedDist}`;
+      }
+    }
+
     return title;
   };
 

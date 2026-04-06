@@ -28,7 +28,9 @@ Usage in main.py:
 import random
 import json
 import os
+import re
 from typing import Optional
+from difflib import SequenceMatcher
 
 from .keyword_router import detect_intent
 from .template_engine import render, build_variables
@@ -74,7 +76,6 @@ except Exception as e:
 # Patterns that signal a NEW CONSULTATION — always route to orchestrator.
 # These queries need the full structured dashboard, not a canned reply.
 # ---------------------------------------------------------------------------
-import re
 
 _NEW_CONSULTATION_PATTERNS = [
     # "I want to open / start / launch X" — user has stated a clear intent to start something
@@ -119,29 +120,12 @@ _ISOLATED_ANSWER_PATTERNS = [
     r"^(in |at )?(adalar|arnavutkoy|arnavutköy|atasehir|ataşehir|avcilar|avcılar|bagcilar|bağcılar|bahcelievler|bahçelievler|bakirkoy|bakırköy|basaksehir|başakşehir|bayrampasa|bayrampaşa|besiktas|beşiktaş|beykoz|beylikduzu|beylikdüzü|beyoglu|beyoğlu|buyukcekmece|büyükçekmece|catalca|çatalca|cekmekoy|çekmeköy|esenler|esenyurt|eyup|eyüp|eyüpsultan|fatih|gaziosmanpasa|gaziosmanpaşa|gungoren|güngören|kadikoy|kadıköy|kagithane|kağıthane|kartal|kucukcekmece|küçükçekmece|maltepe|pendik|sancaktepe|sariyer|sarıyer|sile|şile|silivri|sisli|şişli|sultanbeyli|sultangazi|tuzla|umraniye|ümraniye|uskudar|üsküdar|zeytinburnu)$"
 ]
 
-# NOTE: The following chip buttons are intentionally EXCLUDED from this gate because
-# they are clarifying questions — the user hasn't told us their business type yet.
-# They fall through to the keyword router and get a helpful clarifying response:
-#   "What permit do you want?"
-#   "What business do you want to open?"
-#   "Where is your business located?"
-#   "How long does it take?"
-#   "How much does it cost?"
-#   "What documents do I need?"
-#   "How does it work?"
-_NEW_CONSULTATION_RE = re.compile(
-    "|".join(_NEW_CONSULTATION_PATTERNS), flags=re.IGNORECASE
-)
-
-_ISOLATED_ANSWER_RE = re.compile(
-    "|".join(_ISOLATED_ANSWER_PATTERNS), flags=re.IGNORECASE
-)
+_NEW_CONSULTATION_RE = re.compile("|".join(_NEW_CONSULTATION_PATTERNS), flags=re.IGNORECASE)
+_ISOLATED_ANSWER_RE = re.compile("|".join(_ISOLATED_ANSWER_PATTERNS), flags=re.IGNORECASE)
 
 # ---------------------------------------------------------------------------
 # Fuzzy matching for typos (e.g. "bacheveler" → "bahcelievler")
-# Uses Python's built-in difflib — zero dependencies
 # ---------------------------------------------------------------------------
-from difflib import SequenceMatcher
 
 _ALL_DISTRICTS = [
     "adalar", "arnavutkoy", "atasehir", "avcilar", "bagcilar", "bahcelievler",
@@ -177,24 +161,15 @@ def _fuzzy_match(word: str, candidates: list, threshold: float = 0.70) -> str | 
 # ---------------------------------------------------------------------------
 
 def _pick_response(intent_group: Optional[str], sub_intent: Optional[str]) -> Optional[str]:
-    """
-    Navigate the library by (intent_group, sub_intent) and return a random entry.
-    Returns None if no matching entry is found.
-    """
     if not intent_group:
         return None
-
-    # Top-level flat list (e.g. greeting, farewell, thanks)
     if intent_group in _library and isinstance(_library[intent_group], list):
         return random.choice(_library[intent_group])
-
-    # Nested dict (e.g. permit.restaurant, student.renew_id)
     group_data = _library.get(intent_group)
     if isinstance(group_data, dict) and sub_intent:
         options = group_data.get(sub_intent)
         if options:
             return random.choice(options)
-
     return None
 
 
@@ -212,39 +187,15 @@ async def smart_router_handle(
     lawyer_model=None,
     history_text: str = ""
 ) -> Optional[str]:
-    """
-    Try to handle the query without (or with minimal) AI usage.
-
-    Returns:
-        A ready-to-send response string, or None if this query needs
-        the full orchestrator pipeline.
-    """
-
     query = query.strip()
-
-    # ------------------------------------------------------------------
-    # 1. Cache check (0 tokens)
-    # ------------------------------------------------------------------
     cached = response_cache.get(query, assistant_type, language)
     if cached:
         return cached
 
-    # ------------------------------------------------------------------
-    # 0.5. NEW CONSULTATION GUARD — offline dynamic dashboard (0 tokens)
-    # If the query is an initial plan request, we bypass AI completely
-    # and generate the 14-step permit dashboard directly in Python.
-    # ------------------------------------------------------------------
-    # Extract only the user text from the history to prevent the router from hallucinating 
-    # keywords (like 'cafe' or 'retail') that the assistant itself might have suggested.
     user_blocks = re.findall(r"\[user\]:([\s\S]*?)(?=\[assistant\]:|\[user\]:|-{5,}|$)", history_text.lower())
     user_history_text = " ".join(b.strip() for b in user_blocks)
-    
-    # Include user history text so we can catch isolated answers like 'Cafe' or 'Kadikoy'
     combined_context = f"{user_history_text} {query}".lower()
     
-    # If the AI just asked the user to clarify business type or district,
-    # ONLY route back to the dashboard if the user's response actually contains a relevant keyword.
-    # This prevents the bot from trapping the user if they change the topic (like "how are you").
     last_assistant_msg = history_text.lower().split("[assistant]:")[-1] if "[assistant]:" in history_text.lower() else ""
     is_clarifying = any(k in last_assistant_msg for k in [
         "what type of business", "hangi tür işletme", "ما هو نوع العمل",
@@ -256,145 +207,121 @@ async def smart_router_handle(
         "adalar", "arnavutkoy", "arnavutköy", "atasehir", "ataşehir", "avcilar", "avcılar", "bagcilar", "bağcılar", "bahcelievler", "bahçelievler", "bakirkoy", "bakırköy", "basaksehir", "başakşehir", "bayrampasa", "bayrampaşa", "besiktas", "beşiktaş", "beykoz", "beylikduzu", "beylikdüzü", "beyoglu", "beyoğlu", "buyukcekmece", "büyükçekmece", "catalca", "çatalca", "cekmekoy", "çekmeköy", "esenler", "esenyurt", "eyup", "eyüp", "eyüpsultan", "fatih", "gaziosmanpasa", "gaziosmanpaşa", "gungoren", "güngören", "kadikoy", "kadıköy", "kagithane", "kağıthane", "kartal", "kucukcekmece", "küçükçekmece", "maltepe", "pendik", "sancaktepe", "sariyer", "sarıyer", "sile", "şile", "silivri", "sisli", "şişli", "sultanbeyli", "sultangazi", "tuzla", "umraniye", "ümraniye", "uskudar", "üsküdar", "zeytinburnu"
     ])
     
-    # Fuzzy fallback: if exact match failed, try fuzzy for each word in query
     fuzzy_district_match = None
     fuzzy_business_match = None
     if not has_relevant_kw:
         for word in query.lower().split():
-            if not fuzzy_district_match:
-                fuzzy_district_match = _fuzzy_match(word, _ALL_DISTRICTS)
-            if not fuzzy_business_match:
-                fuzzy_business_match = _fuzzy_match(word, _ALL_BUSINESS_TYPES)
+            if not fuzzy_district_match: fuzzy_district_match = _fuzzy_match(word, _ALL_DISTRICTS)
+            if not fuzzy_business_match: fuzzy_business_match = _fuzzy_match(word, _ALL_BUSINESS_TYPES)
         if fuzzy_district_match or fuzzy_business_match:
             has_relevant_kw = True
-            print(f"[SmartRouter] Fuzzy match: district={fuzzy_district_match}, business={fuzzy_business_match}")
     
     if _NEW_CONSULTATION_RE.search(query) or _ISOLATED_ANSWER_RE.match(query) or (is_clarifying and has_relevant_kw):
-        print(f"[SmartRouter] NEW CONSULTATION detected — generating dashboard offline (0 tokens) for {assistant_type}")
-        
         from models.schemas import PermitState, CombinedPermitResult, ExecutionPlan, StepDetail, PermitPlan
         from utils.protocol import get_localized_steps
         from datetime import datetime
 
-        dashboard_dump = None
-        out_str = None
-        
         if assistant_type == "permit":
-            # ------------------------------------------------------------------
-            # Detect ACTUAL business type from query keywords (not the intent sub-category)
-            # ------------------------------------------------------------------
             _BUSINESS_KEYWORDS = [
-                (["restaurant", "restoran", "lokanta", "dining", "dinner"], "Restaurant"),
-                (["cafe", "kafe", "coffee shop", "kahve", "pastane", "tea house"], "Café"),
-                (["bakery", "fırın", "firın", "bread", "pastry"], "Bakery"),
-                (["pharmacy", "eczane", "chemist", "drugstore"], "Pharmacy"),
-                (["barber", "berber", "hair salon", "kuaför", "kuafor", "beauty", "güzellik", "spa"], "Hair Salon / Beauty"),
-                (["gym", "fitness", "spor salonu", "crossfit"], "Gym / Fitness Centre"),
-                (["clothing", "giyim", "boutique", "apparel", "fashion"], "Clothing Store"),
-                (["retail", "shop", "store", "mağaza", "dükkan", "grocery", "bakkal", "market"], "Retail Shop"),
-                (["office", "ofis", "consulting", "danışmanlık", "agency", "büro"], "Office / Consultancy"),
-                (["tech", "software", "yazılım", "startup"], "Tech / Software Company"),
-                (["hotel", "hostel", "accommodation", "konaklama"], "Hotel / Accommodation"),
-                (["clinic", "klinik", "medical", "dental", "doctor", "doktor", "diş"], "Medical Clinic"),
-                (["school", "okul", "education", "dershane", "kurs"], "Educational Centre"),
+                (["restaurant", "restoran", "lokanta", "dining", "dinner"], "Restaurant", "Restoran", "مطعم"),
+                (["cafe", "kafe", "coffee shop", "kahve", "pastane", "tea house"], "Café", "Kafe", "مقاهي"),
+                (["bakery", "fırın", "firın", "bread", "pastry"], "Bakery", "Fırın", "مخبز"),
+                (["pharmacy", "eczane", "chemist", "drugstore"], "Pharmacy", "Eczane", "صيدلية"),
+                (["barber", "berber", "hair salon", "kuaför", "kuafor", "beauty", "güzellik", "spa"], "Hair Salon / Beauty", "Kuaför / Güzellik Salonu", "صالون حلاقة / تجميل"),
+                (["gym", "fitness", "spor salonu", "crossfit"], "Gym / Fitness Centre", "Spor Salonu / Fitness", "صالة ألعاب رياضية"),
+                (["clothing", "giyim", "boutique", "apparel", "fashion"], "Clothing Store", "Giyim Mağazası", "متجر ملابس"),
+                (["retail", "shop", "store", "mağaza", "dükkan", "grocery", "bakkal", "market"], "Retail Shop", "Perakende Mağaza", "متجر تجزئة"),
+                (["office", "ofis", "consulting", "danışmanlık", "agency", "büro"], "Office / Consultancy", "Ofis / Danışmanlık", "مكتب / استشارات"),
+                (["tech", "software", "yazılım", "startup"], "Tech / Software Company", "Teknoloji / Yazılım Şirketi", "شركة تقنية / برمجيات"),
+                (["hotel", "hostel", "accommodation", "konaklama"], "Hotel / Accommodation", "Otel / Konaklama", "فندق / إقامة"),
+                (["clinic", "klinik", "medical", "dental", "doctor", "doktor", "diş"], "Medical Clinic", "Tıbbi Klinik", "عيادة طبية"),
+                (["school", "okul", "education", "dershane", "kurs"], "Educational Centre", "Eğitim Merkezi", "مركز تعليمي"),
             ]
             
-            # Check current query first, then fall back to history
-            # This ensures partial answers accumulate across turns
-            business_type = "Business"  # fallback
-            for kw_list, display_name in _BUSINESS_KEYWORDS:
+            business_type_en, business_type_tr, business_type_ar = "Business", "İşletme", "عمل"
+            for kw_list, en_n, tr_n, ar_n in _BUSINESS_KEYWORDS:
                 if any(kw in query.lower() for kw in kw_list):
-                    business_type = display_name
+                    business_type_en, business_type_tr, business_type_ar = en_n, tr_n, ar_n
                     break
-            if business_type == "Business":
-                for kw_list, display_name in _BUSINESS_KEYWORDS:
+            if business_type_en == "Business":
+                for kw_list, en_n, tr_n, ar_n in _BUSINESS_KEYWORDS:
                     if any(kw in user_history_text for kw in kw_list):
-                        business_type = display_name
+                        business_type_en, business_type_tr, business_type_ar = en_n, tr_n, ar_n
                         break
-            # Fuzzy fallback for business type (catches typos like "resturant")
-            if business_type == "Business":
-                fb = fuzzy_business_match
-                if not fb:
-                    for word in query.lower().split():
-                        fb = _fuzzy_match(word, [kw for kw_list, _ in _BUSINESS_KEYWORDS for kw in kw_list])
-                        if fb: break
-                if fb:
-                    for kw_list, display_name in _BUSINESS_KEYWORDS:
-                        if fb in kw_list:
-                            business_type = display_name
-                            print(f"[SmartRouter] Fuzzy business type: '{fb}' → {display_name}")
-                            break
+            
+            business_type = {"ar": business_type_ar, "tr": business_type_tr, "en": business_type_en}.get(language, business_type_en)
+            if business_type == "Business" and fuzzy_business_match:
+                for kw_list, en_n, tr_n, ar_n in _BUSINESS_KEYWORDS:
+                    if fuzzy_business_match in kw_list:
+                        business_type = {"ar": ar_n, "tr": tr_n, "en": en_n}.get(language, en_n)
+                        break
 
-            # ------------------------------------------------------------------
-            # Detect district — with per-district municipality name + local note
-            # ------------------------------------------------------------------
             _DISTRICT_INFO = {
-                # (normalized_key): (display_name, municipality_EN, specific_note_EN)
-                "adalar":     ("Adalar",      "Adalar Belediyesi",     "Permits in the Princes' Islands involve strict environmental and coastal regulations; expect longer processing times."),
-                "arnavutkoy": ("Arnavutköy",  "Arnavutköy Belediyesi", "Arnavutköy is growing rapidly due to the new airport. Industrial and logistics permits are common here."),
-                "arnavutköy": ("Arnavutköy",  "Arnavutköy Belediyesi", "Arnavutköy is growing rapidly due to the new airport. Industrial and logistics permits are common here."),
-                "atasehir":   ("Ataşehir",    "Ataşehir Belediyesi",   "Ataşehir (Finans Merkezi area) is Istanbul's financial hub — corporate and office permits are fast-tracked here."),
-                "ataşehir":   ("Ataşehir",    "Ataşehir Belediyesi",   "Ataşehir (Finans Merkezi area) is Istanbul's financial hub — corporate and office permits are fast-tracked here."),
-                "avcilar":    ("Avcılar",     "Avcılar Belediyesi",    "Avcılar has many mixed-use residential/commercial zones. Permits are straightforward but check zoning first."),
-                "avcılar":    ("Avcılar",     "Avcılar Belediyesi",    "Avcılar has many mixed-use residential/commercial zones. Permits are straightforward but check zoning first."),
-                "bagcilar":   ("Bağcılar",    "Bağcılar Belediyesi",   "Bağcılar is a major commercial district. Wholesale and textile business permits are handled very efficiently."),
-                "bağcılar":   ("Bağcılar",    "Bağcılar Belediyesi",   "Bağcılar is a major commercial district. Wholesale and textile business permits are handled very efficiently."),
-                "bahcelievler":("Bahçelievler","Bahçelievler Belediyesi","Bahçelievler is densely populated; food and retail permits are common and processed within standard timeframes."),
-                "bahçelievler":("Bahçelievler","Bahçelievler Belediyesi","Bahçelievler is densely populated; food and retail permits are common and processed within standard timeframes."),
-                "bakirkoy":   ("Bakırköy",    "Bakırköy Belediyesi",   "Bakırköy is known for efficient permit processing and has a bilingual (TR/EN) helpdesk at the municipality."),
-                "bakırköy":   ("Bakırköy",    "Bakırköy Belediyesi",   "Bakırköy is known for efficient permit processing and has a bilingual (TR/EN) helpdesk at the municipality."),
-                "basaksehir": ("Başakşehir",  "Başakşehir Belediyesi", "Başakşehir has modern organized industrial zones (OSB) — manufacturing and corporate permits are highly streamlined."),
-                "başakşehir": ("Başakşehir",  "Başakşehir Belediyesi", "Başakşehir has modern organized industrial zones (OSB) — manufacturing and corporate permits are highly streamlined."),
-                "bayrampasa": ("Bayrampaşa",  "Bayrampaşa Belediyesi", "Bayrampaşa is a commercial hub for textile and wholesale — trade permits are a common request and well-understood by staff."),
-                "bayrampaşa": ("Bayrampaşa",  "Bayrampaşa Belediyesi", "Bayrampaşa is a commercial hub for textile and wholesale — trade permits are a common request and well-understood by staff."),
-                "besiktas":   ("Beşiktaş",    "Beşiktaş Belediyesi",   "Beşiktaş is strict on signage rules (reklam levhası izni). Budget extra time if you plan outdoor signage."),
-                "beşiktaş":   ("Beşiktaş",    "Beşiktaş Belediyesi",   "Beşiktaş is strict on signage rules (reklam levhası izni). Budget extra time if you plan outdoor signage."),
-                "beykoz":     ("Beykoz",      "Beykoz Belediyesi",     "Beykoz has significant protected green areas (Boğaziçi öngörünüm). Permits for new construction or exterior changes face strict scrutiny."),
-                "beylikduzu": ("Beylikdüzü",  "Beylikdüzü Belediyesi", "Beylikdüzü is a modern district with organized commercial spaces. Retail and office permits are generally fast here."),
-                "beylikdüzü": ("Beylikdüzü",  "Beylikdüzü Belediyesi", "Beylikdüzü is a modern district with organized commercial spaces. Retail and office permits are generally fast here."),
-                "beyoglu":    ("Beyoğlu",     "Beyoğlu Belediyesi",    "Beyoğlu (İstiklal area) has strict entertainment and alcohol licence rules — TAPDK licences here require additional zoning approval."),
-                "beyoğlu":    ("Beyoğlu",     "Beyoğlu Belediyesi",    "Beyoğlu (İstiklal area) has strict entertainment and alcohol licence rules — TAPDK licences here require additional zoning approval."),
-                "buyukcekmece":("Büyükçekmece","Büyükçekmece Belediyesi","Büyükçekmece has many coastal and villa zones. Summer-season businesses should apply well in advance."),
-                "büyükçekmece":("Büyükçekmece","Büyükçekmece Belediyesi","Büyükçekmece has many coastal and villa zones. Summer-season businesses should apply well in advance."),
-                "catalca":    ("Çatalca",     "Çatalca Belediyesi",    "Çatalca is largely rural; agricultural and large-scale industrial facility permits are the norm here."),
-                "çatalca":    ("Çatalca",     "Çatalca Belediyesi",    "Çatalca is largely rural; agricultural and large-scale industrial facility permits are the norm here."),
-                "cekmekoy":   ("Çekmeköy",    "Çekmeköy Belediyesi",   "Çekmeköy is a rapidly growing residential area. Retail and service business permits are processed efficiently."),
-                "çekmeköy":   ("Çekmeköy",    "Çekmeköy Belediyesi",   "Çekmeköy is a rapidly growing residential area. Retail and service business permits are processed efficiently."),
-                "esenler":    ("Esenler",     "Esenler Belediyesi",    "Esenler is a high-traffic commercial hub, especially for transport and retail. Permit processes are well-established."),
-                "esenyurt":   ("Esenyurt",    "Esenyurt Belediyesi",   "Esenyurt is a high-density mixed district — food business permits take longer due to high inspection demand."),
-                "eyup":       ("Eyüpsultan",  "Eyüpsultan Belediyesi", "Eyüpsultan has heritage zone restrictions near the mosque area — signage and façade changes need additional cultural heritage approval."),
-                "eyüp":       ("Eyüpsultan",  "Eyüpsultan Belediyesi", "Eyüpsultan has heritage zone restrictions near the mosque area — signage and façade changes need additional cultural heritage approval."),
-                "eyüpsultan": ("Eyüpsultan",  "Eyüpsultan Belediyesi", "Eyüpsultan has heritage zone restrictions near the mosque area — signage and façade changes need additional cultural heritage approval."),
-                "fatih":      ("Fatih",       "Fatih Belediyesi",      "Fatih has conservation area restrictions (sit alanı) in parts of the district — check zoning before signing a lease."),
-                "gaziosmanpasa": ("Gaziosmanpaşa", "Gaziosmanpaşa Belediyesi", "Gaziosmanpaşa has a large commercial market district — retail permits are common and the process is well-known to local officers."),
-                "gaziosmanpaşa": ("Gaziosmanpaşa", "Gaziosmanpaşa Belediyesi", "Gaziosmanpaşa has a large commercial market district — retail permits are common and the process is well-known to local officers."),
-                "gungoren":   ("Güngören",    "Güngören Belediyesi",   "Güngören is known for textiles and wholesale. The municipality is highly experienced with manufacturing and trade permits."),
-                "güngören":   ("Güngören",    "Güngören Belediyesi",   "Güngören is known for textiles and wholesale. The municipality is highly experienced with manufacturing and trade permits."),
-                "kadikoy":    ("Kadıköy",     "Kadıköy Belediyesi",    "Kadıköy processes most permits within 10–15 business days and has a dedicated foreign investor desk (Yabancı Yatırımcı Hattı)."),
-                "kadıköy":    ("Kadıköy",     "Kadıköy Belediyesi",    "Kadıköy processes most permits within 10–15 business days and has a dedicated foreign investor desk (Yabancı Yatırımcı Hattı)."),
-                "kagithane":  ("Kağıthane",   "Kağıthane Belediyesi",  "Kağıthane is emerging as a tech and startup hub — the municipality offers some reduced fees for tech companies."),
-                "kağıthane":  ("Kağıthane",   "Kağıthane Belediyesi",  "Kağıthane is emerging as a tech and startup hub — the municipality offers some reduced fees for tech companies."),
-                "kartal":     ("Kartal",      "Kartal Belediyesi",     "Kartal is a major hub on the Asian side. Complex commercial and legal office permits are handled smoothly."),
-                "kucukcekmece": ("Küçükçekmece", "Küçükçekmece Belediyesi", "Küçükçekmece has a mix of industrial and residential zones. Make sure your specific street is zoned for your business type."),
-                "küçükçekmece": ("Küçükçekmece", "Küçükçekmece Belediyesi", "Küçükçekmece has a mix of industrial and residential zones. Make sure your specific street is zoned for your business type."),
-                "maltepe":    ("Maltepe",     "Maltepe Belediyesi",    "Maltepe is a growing residential-commercial district with straightforward permit processing — good for retail and service businesses."),
-                "pendik":     ("Pendik",      "Pendik Belediyesi",     "Pendik includes Sabiha Gökçen Airport zone — logistics and trade businesses have good infrastructure support here."),
-                "sancaktepe": ("Sancaktepe",  "Sancaktepe Belediyesi", "Sancaktepe is an emerging commercial area on the Asian side. Permit fees and processing times are generally very favorable."),
-                "sariyer":    ("Sarıyer",     "Sarıyer Belediyesi",    "Sarıyer includes the Maslak business district — office and corporate permits are well-streamlined there."),
-                "sarıyer":    ("Sarıyer",     "Sarıyer Belediyesi",    "Sarıyer includes the Maslak business district — office and corporate permits are well-streamlined there."),
-                "sile":       ("Şile",        "Şile Belediyesi",       "Şile is a tourism and coastal district. If opening a hospitality business, seasonal permit rules and environmental checks apply."),
-                "şile":       ("Şile",        "Şile Belediyesi",       "Şile is a tourism and coastal district. If opening a hospitality business, seasonal permit rules and environmental checks apply."),
-                "silivri":    ("Silivri",     "Silivri Belediyesi",    "Silivri requires careful zoning checks for agricultural vs. commercial land use before applying for operating permits."),
-                "sisli":      ("Şişli",       "Şişli Belediyesi",      "Şişli has a fast-track window for retail and office permits — ask for the 'hızlı işlem' counter when you visit."),
-                "şişli":      ("Şişli",       "Şişli Belediyesi",      "Şişli has a fast-track window for retail and office permits — ask for the 'hızlı işlem' counter when you visit."),
-                "sultanbeyli": ("Sultanbeyli", "Sultanbeyli Belediyesi", "Sultanbeyli is a growing district on the Asian side with competitive commercial rents and reasonable permit processing times."),
-                "sultangazi": ("Sultangazi",  "Sultangazi Belediyesi", "Sultangazi is an active manufacturing district. Workshop and factory permits are well-supported by the local municipality."),
-                "tuzla":      ("Tuzla",       "Tuzla Belediyesi",      "Tuzla is an industrial and maritime zone — manufacturing and workshop permits are actively supported by the municipality."),
-                "umraniye":   ("Ümraniye",    "Ümraniye Belediyesi",   "Ümraniye is a busy commercial district — permit queues can be longer, so apply early and use the e-Devlet portal where possible."),
-                "ümraniye":   ("Ümraniye",    "Ümraniye Belediyesi",   "Ümraniye is a busy commercial district — permit queues can be longer, so apply early and use the e-Devlet portal where possible."),
-                "uskudar":    ("Üsküdar",     "Üsküdar Belediyesi",    "Üsküdar enforces strict noise regulations — music businesses may face additional restrictions near residential zones."),
-                "üsküdar":    ("Üsküdar",     "Üsküdar Belediyesi",    "Üsküdar enforces strict noise regulations — music businesses may face additional restrictions near residential zones."),
-                "zeytinburnu": ("Zeytinburnu", "Zeytinburnu Belediyesi", "Zeytinburnu is a manufacturing and textile hub — textile & workshop permits are well-supported here."),
+                "adalar":     ("Adalar", "Adalar Municipality", "Permits in the Princes' Islands involve strict environmental and coastal regulations.", "Adalar Belediyesi", "Prens Adaları'ndaki izinler sıkı çevresel ve kıyı düzenlemeleri içerir.", "بلدية أدالار", "تتضمن التصاريح في جزر الأميرات لوائح بيئية وساحلية صارمة."),
+                "arnavutkoy": ("Arnavutköy", "Arnavutköy Municipality", "New airport area growth district.", "Arnavutköy Belediyesi", "Yeni havalimanı bölgesinde büyüyen ilçe.", "بلدية أرناووط كوي", "منطقة نمو بجوار المطار الجديد."),
+                "arnavutköy": ("Arnavutköy", "Arnavutköy Municipality", "New airport area growth district.", "Arnavutköy Belediyesi", "Yeni havalimanı bölgesinde büyüyen ilçe.", "بلدية أرناووط كوي", "منطقة نمو بجوار المطار الجديد."),
+                "atasehir":   ("Ataşehir", "Ataşehir Municipality", "Financial hub area.", "Ataşehir Belediyesi", "Finans merkezi bölgesi.", "بلدية أتاشهير", "منطقة المركز المالي."),
+                "ataşehir":   ("Ataşehir", "Ataşehir Municipality", "Financial hub area.", "Ataşehir Belediyesi", "Finans merkezi bölgesi.", "بلدية أتاشهير", "منطقة المركز المالي."),
+                "avcilar":    ("Avcılar", "Avcılar Municipality", "Mixed residential/commercial zone.", "Avcılar Belediyesi", "Karma konut/ticaret bölgesi.", "بلدية أفجيلار", "منطقة سكنية/تجارية مختلطة."),
+                "avcılar":    ("Avcılar", "Avcılar Municipality", "Mixed residential/commercial zone.", "Avcılar Belediyesi", "Karma konut/ticaret bölgesi.", "بلدية أفجيلار", "منطقة سكنية/تجارية مختلطة."),
+                "bagcilar":   ("Bağcılar", "Bağcılar Municipality", "Major commercial hub.", "Bağcılar Belediyesi", "Büyük ticaret merkezi.", "بلدية باججيلار", "مركز تجاري رئيسي."),
+                "bağcılar":   ("Bağcılar", "Bağcılar Municipality", "Major commercial hub.", "Bağcılar Belediyesi", "Büyük ticaret merkezi.", "بلدية باججيلار", "مركز تجاري رئيسي."),
+                "bahcelievler": ("Bahçelievler", "Bahçelievler Municipality", "Densely populated trade area.", "Bahçelievler Belediyesi", "Yoğun nüfuslu ticaret bölgesi.", "بلدية باهتشيليفلار", "منطقة تجارية مكتظة بالسكان."),
+                "bahçelievler": ("Bahçelievler", "Bahçelievler Municipality", "Densely populated trade area.", "Bahçelievler Belediyesi", "Yoğun nüfuslu ticaret bölgesi.", "بلدية باهتشيليفلار", "منطقة تجارية مكتظة بالسكان."),
+                "bakirkoy":   ("Bakırköy", "Bakırköy Municipality", "High traffic retail area.", "Bakırköy Belediyesi", "Yoğun trafikli perakende satış alanı.", "بلدية بكر كوي", "منطقة تجزئة مزدحمة."),
+                "bakırköy":   ("Bakırköy", "Bakırköy Municipality", "High traffic retail area.", "Bakırköy Belediyesi", "Yoğun trafikli perakende satış alanı.", "بلدية بكر كوي", "منطقة تجزئة مزدحمة."),
+                "basaksehir": ("Başakşehir", "Başakşehir Municipality", "Streamlined industrial zones.", "Başakşehir Belediyesi", "Hızlandırılmış sanayi bölgeleri.", "بلدية باشاك شهير", "مناطق صناعية متطورة."),
+                "başakşehir": ("Başakşehir", "Başakşehir Municipality", "Streamlined industrial zones.", "Başakşehir Belediyesi", "Hızlandırılmış sanayi bölgeleri.", "بلدية باشاك شهير", "مناطق صناعية متطورة."),
+                "bayrampasa": ("Bayrampaşa", "Bayrampaşa Belediyesi", "Commercial wholesale hub.", "Bayrampaşa Belediyesi", "Ticari toptan satış merkezi.", "بلدية بايرام باشا", "مركز تجاري للجملة."),
+                "bayrampaşa": ("Bayrampaşa", "Bayrampaşa Belediyesi", "Commercial wholesale hub.", "Bayrampaşa Belediyesi", "Ticari toptan satış merkezi.", "بلدية بايرام باشا", "مركز تجاري للجملة."),
+                "besiktas":   ("Beşiktaş", "Beşiktaş Municipality", "Strict signage & frontage rules.", "Beşiktaş Belediyesi", "Sıkı tabela ve cephe kuralları.", "بلدية بشكتاش", "لوائح صارمة للافتات والواجهات."),
+                "beşiktaş":   ("Beşiktaş", "Beşiktaş Municipality", "Strict signage & frontage rules.", "Beşiktaş Belediyesi", "Sıkı tabela ve cephe kuralları.", "بلدية بشكتاش", "لوائح صارمة للافتات والواجهات."),
+                "beykoz":     ("Beykoz", "Beykoz Municipality", "Protected Bosphorus zones.", "Beykoz Belediyesi", "Korumalı Boğaziçi bölgeleri.", "بلدية بيكوز", "مناطق البوسفور المحمية."),
+                "beylikduzu": ("Beylikdüzü", "Beylikdüzü Belediyesi", "Modern street retail hub.", "Beylikdüzü Belediyesi", "Modern sokak perakende merkezi.", "بلدية بيليك دوزو", "مركز تجزئة حديث."),
+                "beylikdüzü": ("Beylikdüzü", "Beylikdüzü Belediyesi", "Modern street retail hub.", "Beylikdüzü Belediyesi", "Modern sokak perakende merkezi.", "بلدية بيليك دوزو", "مركز تجزئة حديث."),
+                "beyoglu":    ("Beyoğlu", "Beyoğlu Municipality", "Historic zone restrictions.", "Beyoğlu Belediyesi", "Tarihi bölge kısıtlamaları.", "بلدية بيوغلو", "قيود المناطق التاريخية."),
+                "beyoğlu":    ("Beyoğlu", "Beyoğlu Municipality", "Historic zone restrictions.", "Beyoğlu Belediyesi", "Tarihi bölge kısıtlamaları.", "بلدية بيوغلو", "قيود المناطق التاريخية."),
+                "buyukcekmece": ("Büyükçekmece", "Büyükçekmece Municipality", "Coastal project priority.", "Büyükçekmece Belediyesi", "Kıyı projesi önceliği.", "بلدية بويوك تشكمجه", "أولوية المشاريع الساحلية."),
+                "büyükçekmece": ("Büyükçekmece", "Büyükçekmece Municipality", "Coastal project priority.", "Büyükçekmece Belediyesi", "Kıyı projesi önceliği.", "بلدية بويوك تشكمجه", "أولوية المشاريع الساحلية."),
+                "catalca":    ("Çatalca", "Çatalca Municipality", "Agricultural/Logistics zone.", "Çatalca Belediyesi", "Tarım/Lojistik bölgesi.", "بلدية شاتالجا", "منطقة زراعية/لوجستية."),
+                "çatalca":    ("Çatalca", "Çatalca Municipality", "Agricultural/Logistics zone.", "Çatalca Belediyesi", "Tarım/Lojistik bölgesi.", "بلدية شاتالجا", "منطقة زراعية/لوجستية."),
+                "cekmekoy":   ("Çekmeköy", "Çekmeköy Municipality", "New residential commercial labs.", "Çekmeköy Belediyesi", "Yeni konut ve ticaret laboratuvarları.", "بلدية تشكمه كوي", "مختبرات تجارية وسكنية حديثة."),
+                "çekmeköy":   ("Çekmeköy", "Çekmeköy Municipality", "New residential commercial labs.", "Çekmeköy Belediyesi", "Yeni konut ve ticaret laboratuvarları.", "بلدية تشكمه كوي", "مختبرات تجارية وسكنية حديثة."),
+                "esenler":    ("Esenler", "Esenler Municipality", "High traffic transport hub.", "Esenler Belediyesi", "Yoğun trafik taşıma merkezi.", "بلدية إيسنلار", "مركز نقل مزدحم."),
+                "esenyurt":   ("Esenyurt", "Esenyurt Municipality", "High density population business.", "Esenyurt Belediyesi", "Yüksek yoğunluklu nüfus ve işletmeler.", "بلدية إيسينيورت", "منطقة أعمال ذات كثافة سكانية عالية."),
+                "eyup":       ("Eyüpsultan", "Eyüpsultan Municipality", "Heritage site protocols.", "Eyüpsultan Belediyesi", "Miras alanı protokolleri.", "بلدية أيوب سلطان", "بروتوكولات مواقع التراث."),
+                "eyüp":       ("Eyüpsultan", "Eyüpsultan Municipality", "Heritage site protocols.", "Eyüpsultan Belediyesi", "Miras alanı protokolleri.", "بلدية أيوب سلطان", "بروتوكولات مواقع التراث."),
+                "eyüpsultan": ("Eyüpsultan", "Eyüpsultan Municipality", "Heritage site protocols.", "Eyüpsultan Belediyesi", "Miras alanı protokolleri.", "بلدية أيوب سلطان", "بروتوكولات مواقع التراث."),
+                "fatih":      ("Fatih", "Fatih Municipality", "Strict sit site protocols.", "Fatih Belediyesi", "Sıkı sit alanı protokolleri.", "بلدية فاتح", "بروتوكولات مناطق المواقع الأثرية."),
+                "gaziosmanpasa": ("Gaziosmanpaşa", "Gaziosmanpaşa Municipality", "Market density permits.", "Gaziosmanpaşa Belediyesi", "Pazar yoğunluklu izinler.", "بلدية غازي عثمان باشا", "تصاريح كثافة الأسواق."),
+                "gaziosmanpaşa": ("Gaziosmanpaşa", "Gaziosmanpaşa Municipality", "Market density permits.", "Gaziosmanpaşa Belediyesi", "Pazar yoğunluklu izinler.", "بلدية غازي عثمان باشا", "تصاريح كثافة الأسواق."),
+                "gungoren":   ("Güngören", "Güngören Municipality", "Trade & Textile hub.", "Güngören Belediyesi", "Ticaret ve Tekstil merkezi.", "بلدية جونغورين", "مركز التجارة والمنسوجات."),
+                "güngören":   ("Güngören", "Güngören Municipality", "Trade & Textile hub.", "Güngören Belediyesi", "Ticaret ve Tekstil merkezi.", "بلدية جونغورين", "مركز التجارة والمنسوجات."),
+                "kadikoy":    ("Kadıköy", "Kadıköy Municipality", "Foreigner investment support.", "Kadıköy Belediyesi", "Yabancı yatırımcı desteği.", "بلدية كاديكوي", "دعم المستثمرين الأجانب."),
+                "kadıköy":    ("Kadıköy", "Kadıköy Municipality", "Foreigner investment support.", "Kadıköy Belediyesi", "Yabancı yatırımcı desteği.", "بلدية كاديكوي", "دعم المستثمرين الأجانب."),
+                "kagithane":  ("Kağıthane", "Kağıthane Municipality", "Emerging tech hub.", "Kağıthane Belediyesi", "Yükselen teknoloji merkezi.", "بلدية كاغيت هانة", "مركز تقني ناشئ."),
+                "kağıthane":  ("Kağıthane", "Kağıthane Municipality", "Emerging tech hub.", "Kağıthane Belediyesi", "Yükselen teknoloji merkezi.", "بلدية كاغيت هانة", "مركز تقني ناشئ."),
+                "kartal":     ("Kartal", "Kartal Belediyesi", "Large commercial blocks.", "Kartal Belediyesi", "Büyük ticari bloklar.", "بلدية كارتال", "مجمعات تجارية كبرى."),
+                "kucukcekmece": ("Küçükçekmece", "Küçükçekmece Municipality", "Zoning audit recommended.", "Küçükçekmece Belediyesi", "İmar denetimi önerilir.", "بلدية كوتشوك تشكمجه", "يوصى بتدقيق تقسيم المناطق."),
+                "küçükçekmece": ("Küçükçekmece", "Küçükçekmece Municipality", "Zoning audit recommended.", "Küçükçekmece Belediyesi", "İmar denetimi önerilir.", "بلدية كوتشوك تشكمجه", "يوصى بتدقيق تقسيم المناطق."),
+                "maltepe":    ("Maltepe", "Maltepe Belediyesi", "Retail project friendly.", "Maltepe Belediyesi", "Perakende projelerine uygun.", "بلدية مالتبي", "صديقة لمشاريع التجزئة."),
+                "pendik":     ("Pendik", "Pendik Municipality", "Logistics/Port proximity.", "Pendik Belediyesi", "Lojistik/Liman yakınlığı.", "بلدية بنديك", "بالقرب من اللوجستيات والميناء."),
+                "sancaktepe": ("Sancaktepe", "Sancaktepe Municipality", "New commercial district.", "Sancaktepe Belediyesi", "Yeni ticari bölge.", "بلدية سانجاكتبي", "حي تجاري حديث."),
+                "sariyer":    ("Sarıyer", "Sarıyer Municipality", "Business corporate streamlined.", "Sarıyer Belediyesi", "İş ve kurumsal süreçler hızlandırılmış.", "بلدية ساريير", "تبسيط الإجراءات التجارية للشركات."),
+                "sarıyer":    ("Sarıyer", "Sarıyer Municipality", "Business corporate streamlined.", "Sarıyer Belediyesi", "İş ve kurumsal süreçler hızlandırılmış.", "بلدية ساريير", "تبسيط الإجراءات التجارية للشركات."),
+                "sile":       ("Şile", "Şile Municipality", "Tourism seasonal checks.", "Şile Belediyesi", "Turizm mevsimsel denetimleri.", "بلدية شيليه", "عمليات تفتيش سياحية موسمية."),
+                "şile":       ("Şile", "Şile Municipality", "Tourism seasonal checks.", "Şile Belediyesi", "Turizm mevsimsel denetimleri.", "بلدية شيليه", "عمليات تفتيش سياحية موسمية."),
+                "silivri":    ("Silivri", "Silivri Municipality", "Agricultural buffer zone.", "Silivri Belediyesi", "Tarım tampon bölgesi.", "بلدية سيليفري", "منطقة عازلة زراعية."),
+                "sisli":      ("Şişli", "Şişli Municipality", "Fast-track 'hızlı' desk.", "Şişli Belediyesi", "Hızlandırılmış masa mevcuttur.", "بلدية شيشلي", "مكتب 'هيزلي' (سريع) متاح."),
+                "şişli":      ("Şişli", "Şişli Municipality", "Fast-track 'hızlı' desk.", "Şişli Belediyesi", "Hızlandırılmış masa mevcuttur.", "بلدية شيشلي", "مكتب 'هيزلي' (سريع) متاح."),
+                "sultanbeyli": ("Sultanbeyli", "Sultanbeyli Municipality", "Competitive rent permits.", "Sultanbeyli Belediyesi", "Rekabetçi kira izinleri.", "بلدية سلطان بيلي", "تصاريح إيجارية تنافسية."),
+                "sultangazi": ("Sultangazi", "Sultangazi Municipality", "Workshop/Factory heavy.", "Sultangazi Belediyesi", "Atölye/Fabrika yoğunluklu.", "بلدية سلطان غازي", "كثافة الورش والمصانع."),
+                "tuzla":      ("Tuzla", "Tuzla Municipality", "Maritime/Industrial zone.", "Tuzla Belediyesi", "Denizcilik/Sanayi bölgesi.", "بلدية توزلا", "منطقة بحرية/صناعية."),
+                "umraniye":   ("Ümraniye", "Ümraniye Municipality", "High volume commercial.", "Ümraniye Belediyesi", "Yüksek hacimli ticari bölge.", "بلدية عمرانية", "منطقة تجارية ضخمة."),
+                "ümraniye":   ("Ümraniye", "Ümraniye Municipality", "High volume commercial.", "Ümraniye Belediyesi", "Yüksek hacimli ticari bölge.", "بلدية عمرانية", "منطقة تجارية ضخمة."),
+                "uskudar":    ("Üsküdar", "Üsküdar Municipality", "Strict silence zone rules.", "Üsküdar Belediyesi", "Sıkı gürültü yasağı kuralları.", "بلدية أوسكودار", "لوائح صارمة لمناطق الهدوء."),
+                "üsküdar":    ("Üsküdar", "Üsküdar Municipality", "Strict silence zone rules.", "Üsküdar Belediyesi", "Sıkı gürültü yasağı kuralları.", "بلدية أوسكودار", "لوائح صارمة لمناطق الهدوء."),
+                "zeytinburnu": ("Zeytinburnu", "Zeytinburnu Belediyesi", "Textile hub priorities.", "Zeytinburnu Belediyesi", "Tekstil ve üretim öncelikleri.", "بلدية زيتين بورنو", "أولويات قطاع المنسوجات."),
             }
 
             district_en = "Istanbul"
@@ -402,96 +329,60 @@ async def smart_router_handle(
             mun_name_en = "Your District Municipality"
             district_note = ""
 
-            # Check current query first for district
-            for key, (dname, mun_en, note) in _DISTRICT_INFO.items():
-                if key in query.lower():
+            for key, data in _DISTRICT_INFO.items():
+                if key in query.lower() or key in user_history_text:
+                    dname, mun_en, note_en, mun_tr, note_tr, mun_ar, note_ar = data
                     district_en = dname
                     district_display = dname
-                    mun_name_en = mun_en
-                    district_note = note
+                    if language == "tr":
+                        mun_name_en, district_note = mun_tr, note_tr
+                    elif language == "ar":
+                        mun_name_en, district_note = mun_ar, note_ar
+                    else:
+                        mun_name_en, district_note = mun_en, note_en
                     break
-            # If not found in query, check user history
-            if district_display is None:
-                for key, (dname, mun_en, note) in _DISTRICT_INFO.items():
-                    if key in user_history_text:
-                        district_en = dname
-                        district_display = dname
-                        mun_name_en = mun_en
-                        district_note = note
-                        break
-            # Fuzzy fallback for district (catches typos like "bacheveler" → "bahcelievler")
-            if district_display is None:
-                fd = fuzzy_district_match
-                if not fd:
-                    for word in query.lower().split():
-                        fd = _fuzzy_match(word, list(_DISTRICT_INFO.keys()))
-                        if fd: break
-                if not fd:
-                    for word in user_history_text.split():
-                        fd = _fuzzy_match(word, list(_DISTRICT_INFO.keys()))
-                        if fd: break
-                if fd and fd in _DISTRICT_INFO:
-                    dname, mun_en, note = _DISTRICT_INFO[fd]
-                    district_en = dname
-                    district_display = dname
-                    mun_name_en = mun_en
-                    district_note = note
-                    print(f"[SmartRouter] Fuzzy district: '{fd}' → {dname}")
+            
+            if district_display is None and fuzzy_district_match in _DISTRICT_INFO:
+                dname, mun_en, note_en, mun_tr, note_tr, mun_ar, note_ar = _DISTRICT_INFO[fuzzy_district_match]
+                district_en = dname
+                district_display = dname
+                if language == "tr": mun_name_en, district_note = mun_tr, note_tr
+                elif language == "ar": mun_name_en, district_note = mun_ar, note_ar
+                else: mun_name_en, district_note = mun_en, note_en
 
             no_district = district_display is None
-            
-            # --- OVERRIDE: IF EITHER DISTRICT OR BUSINESS TYPE IS MISSING, ASK AND HALT ---
             missing_items = []
             if business_type == "Business": missing_items.append("business")
             if no_district: missing_items.append("district")
 
             if missing_items:
-                # Build acknowledgment of what WAS provided
                 ack_business = business_type if business_type != "Business" else None
                 ack_district = district_display if not no_district else None
-
                 if language == "tr":
-                    msg = ""
-                    if ack_business and "district" in missing_items:
-                        msg = f"Harika, **{ack_business}** iyi bir seçim! 👍 Şimdi tam yol haritanı oluşturabilmem için: **İstanbul'un hangi ilçesinde** açacaksın?"
-                    elif ack_district and "business" in missing_items:
-                        msg = f"Tamam, **{ack_district}** bölgesini not aldım! 📍 Şimdi: **Hangi tür işletme** (Kafe, Mağaza vb.) açacaksın?"
+                    if ack_business and "district" in missing_items: msg = f"Harika, **{ack_business}** iyi bir seçim! 👍 Şimdi tam yol haritanı oluşturabilmem için: **İstanbul'un hangi ilçesinde** açacaksın?"
+                    elif ack_district and "business" in missing_items: msg = f"Tamam, **{ack_district}** bölgesini not aldım! 📍 Şimdi: **Hangi tür işletme** (Kafe, Mağaza vb.) açacaksın?"
                     else:
                         msg = "Sana tam ve doğru bir yol haritası çizebilmem için lütfen şunları belirt: "
                         if "business" in missing_items: msg += "**Hangi tür işletme** (Kafe, Mağaza vb.) açacaksın? "
                         if "district" in missing_items: msg += "**İstanbul'un hangi ilçesinde** açacaksın?"
                 elif language == "ar":
-                    msg = ""
-                    if ack_business and "district" in missing_items:
-                        msg = f"ممتاز، **{ack_business}** اختيار رائع! 👍 الآن لأرسم خريطة طريقك الكاملة: **في أي منطقة في إسطنبول** ستفتح؟"
-                    elif ack_district and "business" in missing_items:
-                        msg = f"تمام، سجّلت **{ack_district}**! 📍 الآن: **ما هو نوع العمل** (مقهى، متجر)؟"
+                    if ack_business and "district" in missing_items: msg = f"ممتاز، **{ack_business}** اختيار رائع! 👍 الآن لأرسم خريطة طريقك الكاملة: **في أي منطقة في إسطنبول** ستفتح؟"
+                    elif ack_district and "business" in missing_items: msg = f"تمام، سجّلت **{ack_district}**! 📍 الآن: **ما هو نوع العمل** (مقهى، متجر)؟"
                     else:
                         msg = "لكي أرسم لك خريطة طريق دقيقة، يرجى تحديد: "
                         if "business" in missing_items: msg += "**ما هو نوع العمل** (مقهى، متجر)؟ "
                         if "district" in missing_items: msg += "**في أي منطقة في إسطنبول** ستفتح؟"
                 else:
-                    msg = ""
-                    if ack_business and "district" in missing_items:
-                        msg = f"Great choice — **{ack_business}**! 👍 Now, to build your full roadmap: **Which district of Istanbul** are you opening in?"
-                    elif ack_district and "business" in missing_items:
-                        msg = f"Got it — **{ack_district}** noted! 📍 Now: **What type of business** are you planning to open (e.g., Cafe, Retail, Restaurant)?"
+                    if ack_business and "district" in missing_items: msg = f"Great choice — **{ack_business}**! 👍 Now, to build your full roadmap: **Which district of Istanbul** are you opening in?"
+                    elif ack_district and "business" in missing_items: msg = f"Got it — **{ack_district}** noted! 📍 Now: **What type of business** are you planning to open (e.g., Cafe, Retail, Restaurant)?"
                     else:
                         msg = "To map out your exact roadmap, could you please tell me: "
                         if "business" in missing_items: msg += "**What type of business** (e.g., Cafe, Retail)? "
                         if "district" in missing_items: msg += "**Which district of Istanbul** are you opening in?"
-                    
-                # Returning ONLY the string halts the dashboard generation and asks the question as normal chat
                 return msg
 
-            district = district_display or "Istanbul"
-
-            # Localized Municipality Name
+            district = district_display
             mun_name = mun_name_en
-            if language == "tr":
-                mun_name = f"{district} Belediyesi"
-            elif language == "ar":
-                mun_name = f"بلدية {district}"
 
             if language == "tr":
                 permits = [f"{district} İşyeri Açma ve Çalışma Ruhsatı"]
@@ -509,15 +400,11 @@ async def smart_router_handle(
                 permits = [f"{district} Workplace Operating License"]
                 agencies = [mun_name, "Tax Office (Vergi Dairesi)"]
                 docs = ["ID / Passport", "Lease Agreement", "Tax Plate", "NACE Code Certificate"]
-                summ = (
-                    f"Great choice — I've put together your complete roadmap for opening a {business_type} in {district}! 🚀 "
-                    f"📍 **{district} note:** {district_note} "
-                    f"Follow the steps below and feel free to ask me anything along the way."
-                )
+                summ = f"Great choice — I've put together your complete roadmap for opening a {business_type} in {district}! 🚀 📍 **{district} note:** {district_note} Follow the steps below and feel free to ask me anything along the way."
                 labels = {"ag": "Institutions / Agencies", "dc": "Documents You'll Need", "st": "Your Action Steps", "tm": "Estimated Timeline", "dy": "days"}
 
             timeline = 30
-            _food_context = query.lower() + " " + user_history_text
+            _food_context = combined_context
             if any(kw in _food_context for kw in ["restaurant", "restoran", "cafe", "kafe", "bakery", "fırın", "firın", "food", "gıda"]):
                 timeline = 45
                 if language == "tr":
@@ -534,529 +421,133 @@ async def smart_router_handle(
                     agencies.extend(["Istanbul Fire Department (İBB İtfaiye)"])
 
         elif assistant_type == "student":
-            is_renew = "renew" in query.lower() or "replace" in query.lower()
+            is_renew = "renew" in query.lower() or "replace" in query.lower() or "uzat" in query.lower() or "تجديد" in query.lower()
             business_type = "student_renew" if is_renew else "Student"
-            district = "Istanbul"
-            timeline = 10 if is_renew else 30
-            
+            district, timeline = "Istanbul", (10 if is_renew else 30)
             if language == "tr":
                 permits = ["Öğrenci İkamet İzni Uzatması"] if is_renew else ["Öğrenci Kaydı", "Öğrenci İkamet İzni"]
                 agencies = ["Göç İdaresi", "Noter", "Sigorta Şirketi"] if is_renew else ["Öğrenci İşleri", "Göç İdaresi", "SGK"]
                 docs = ["Sağlık Sigortası", "Noter Onaylı Kira Sözleşmesi", "Öğrenci Belgesi", "Biyometrik Fotoğraf"] if is_renew else ["Pasaport", "Kabul Mektubu", "Sağlık Sigortası"]
-                summ = "Sorun değil, hemen organize edelim! 🎓 İkamet yenileme süreci birkaç adımdan oluşuyor — sigortanı yenilemekten Göç İdaresi randevuna kadar her şeyi aşağıda hazırladım. Sigorta ve adres belgenden başlamanı tavsiye ederim, çünkü bunlar en uzun süren adımlar. Herhangi bir adım için yardım istersen buradayım!" if is_renew else "Türkiye'de öğrenci olmak heyecan verici — tebrikler! 🎓 Üniversite kaydından öğrenci kimliğine (Kimlik) kadar tüm sürecini adım adım hazırladım. En önemli ipucu: sağlık sigortanı ve adres belgenini erkenden ayarla, çünkü bunlar diğer her şeyin temeli. Aşağıdaki yol haritana bak ve bir adımda takılırsan bana sor!"
+                summ = "Sorun değil, hemen organize edelim! 🎓 İkamet yenileme süreci birkaç adımdan oluşuyor — sigortanı yenilemekten Göç İdaresi randevuna kadar her şeyi aşağıda hazırladım." if is_renew else "Türkiye'de öğrenci olmak heyecan verici — tebrikler! 🎓 Üniversite kaydından öğrenci kimliğine (Kimlik) kadar tüm sürecini adım adım hazırladım."
                 labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Adımların", "tm":"Tahmini Süre", "dy":"gün"}
             elif language == "ar":
                 permits = ["تمديد إقامة الطالب"] if is_renew else ["تسجيل الجامعة", "إقامة الطالب"]
                 agencies = ["إدارة الهجرة", "العدل (النوتر)", "شركة التأمين"] if is_renew else ["شؤون الطلاب", "إدارة الهجرة", "SGK"]
                 docs = ["التأمين الصحي", "عقد إيجار موثق", "شهادة طالب", "صور شخصية"] if is_renew else ["جواز السفر", "خطاب القبول", "التأمين الصحي"]
-                summ = "لا تقلق، سنرتب كل شيء معاً! 🎓 عملية تجديد الإقامة تتكون من عدة خطوات — من تجديد التأمين وصولاً إلى موعد إدارة الهجرة. ابدأ بالتأمين وعقد السكن لأنهما يستغرقان أطول وقت. خريطة طريقك الكاملة في الأسفل — اسألني عن أي خطوة!" if is_renew else "تهانينا على قبولك في الجامعة! 🎓 لقد أعددت لك خريطة طريق شاملة من التسجيل الجامعي وصولاً إلى هوية الطالب (Kimlik). أهم نصيحة: رتّب التأمين الصحي وإثبات السكن مبكراً — هما أساس كل خطوة أخرى. راجع الخطوات أدناه واسألني متى شئت!"
+                summ = "لا تقلق، سنرتب كل شيء معاً! 🎓 عملية تجديد الإقامة تتكون من عدة خطوات — من تجديد التأمين وصولاً إلى موعد إدارة الهجرة." if is_renew else "تهانينا على قبولك في الجامعة! 🎓 لقد أعددت لك خريطة طريق شاملة من التسجيل الجامعي وصولاً إلى هوية الطالب (Kimlik)."
                 labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطواتك", "tm":"المدة المتوقعة", "dy":"يوم"}
             else:
                 permits = ["Student Residence Permit Extension"] if is_renew else ["University Registration", "Student Residence Permit"]
                 agencies = ["Migration Office (Göç İdaresi)", "Notary Public", "Insurance Provider"] if is_renew else ["Student Affairs", "Migration Directorate (Göç İdaresi)", "SGK"]
                 docs = ["Health Insurance Policy", "Notarized Lease Agreement", "Student Certificate", "Biometric Photos"] if is_renew else ["Passport", "Acceptance Letter", "Health Insurance"]
-                summ = "No stress — let's sort this out together! 🎓 Renewing your student residency (Kimlik) involves a few key steps, and I've mapped them all out for you below. My top tip: start with your health insurance and address document, since those take the most time to arrange. Ask me anything along the way!" if is_renew else "Welcome to Turkey — exciting times ahead! 🎓 I've put together your complete roadmap from university registration all the way to your Student Residence Permit (Kimlik). Pro tip: sort your health insurance and proof of address early — they're the foundation for everything else. Check the steps below and ask me if anything's unclear!"
+                summ = "No stress — let's sort this out together! 🎓 Renewing your student residency (Kimlik) involves a few key steps." if is_renew else "Welcome to Turkey — exciting times ahead! 🎓 I've put together your complete roadmap from university registration to your Student Residence Permit."
                 labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Your Action Steps", "tm":"Estimated Timeline", "dy":"days"}
 
         elif assistant_type == "lawyer":
-            # Detect specific legal topic from the user's query
-            lower_q = query.lower()
-            
-            # Determine lawyer sub-type
-            if any(k in lower_q for k in ["contract", "sözleşme", "nda", "agreement", "clause", "review my", "check my", "service agreement", "lease agreement"]):
-                lawyer_subtype = "lawyer_contract"
-            elif any(k in lower_q for k in ["company", "form a company", "formation", "incorporate", "ltd", "a.ş", "mersis", "şirket kur", "register a company", "start a company", "business registration"]):
-                lawyer_subtype = "lawyer_company"
-            elif any(k in lower_q for k in ["fired", "dismissed", "termination", "severance", "labour", "labor", "employment", "işten çıkar", "kıdem", "unfair dismissal", "notice period", "job rights"]):
-                lawyer_subtype = "lawyer_employment"
-            elif any(k in lower_q for k in ["work permit", "work visa", "residence permit", "ikamet", "stay in turkey", "work legally", "çalışma izni", "legal to work"]):
-                lawyer_subtype = "lawyer_residency"
-            elif any(k in lower_q for k in ["dispute", "lawsuit", "sue", "court", "mediation", "arabuluculuk", "arbitration", "claim against", "ihtarname", "legal action"]):
-                lawyer_subtype = "lawyer_dispute"
-            elif any(k in lower_q for k in ["buy", "sell", "rent", "house", "property", "apartment", "real estate", "tapu", "evict", "kira", "tenant", "landlord"]):
-                lawyer_subtype = "lawyer_real_estate"
-            elif any(k in lower_q for k in ["police", "arrest", "criminal", "charge", "jail", "prison", "detained", "suç", "drug", "drugs", "narcotic", "narcotics", "weed", "cocaine", "hashish", "theft", "robbery", "fraud", "assault", "violence", "caught with"]):
-                lawyer_subtype = "lawyer_criminal"
-            elif any(k in lower_q for k in ["debt", "unpaid", "invoice", "icra", "haciz", "collection", "alacak"]):
-                lawyer_subtype = "lawyer_debt"
-            else:
-                lawyer_subtype = "lawyer_contract"  # default
+            lower_q = combined_context
+            if any(k in lower_q for k in ["contract", "sözleşme", "nda", "agreement", "clause", "review", "check"]): lawyer_subtype = "lawyer_contract"
+            elif any(k in lower_q for k in ["company", "formation", "ltd", "a.ş", "şirket", "business registration"]): lawyer_subtype = "lawyer_company"
+            elif any(k in lower_q for k in ["fired", "dismissed", "termination", "severance", "employment", "işten çıkar", "kıdem"]): lawyer_subtype = "lawyer_employment"
+            elif any(k in lower_q for k in ["work permit", "residence permit", "ikamet", "stay in turkey", "çalışma izni"]): lawyer_subtype = "lawyer_residency"
+            elif any(k in lower_q for k in ["dispute", "lawsuit", "court", "mediation", "arabuluculuk", "ihtarname"]): lawyer_subtype = "lawyer_dispute"
+            elif any(k in lower_q for k in ["buy", "sell", "rent", "house", "property", "apartment", "real estate", "tapu"]): lawyer_subtype = "lawyer_real_estate"
+            elif any(k in lower_q for k in ["police", "arrest", "criminal", "charge", "jail", "suç", "drugs", "theft"]): lawyer_subtype = "lawyer_criminal"
+            elif any(k in lower_q for k in ["debt", "unpaid", "invoice", "icra", "haciz", "collection"]): lawyer_subtype = "lawyer_debt"
+            else: lawyer_subtype = "lawyer_contract"
 
-            district = "Turkey"
-            
+            district, business_type = "Turkey", lawyer_subtype
             if lawyer_subtype == "lawyer_contract":
                 timeline = 14
                 if language == "tr":
-                    permits = ["Sözleşme İncelemesi", "Hukuki İzleme"]
-                    agencies = ["Avukat/Hukuk Bürosu", "Noter", "Türkiye Barolar Birliği"]
-                    docs = ["İmzalı Sözleşme", "Ekler ve Değişiklikler", "İlgili E-posta Yazışmaları", "Kimlik Belgesi"]
-                    summ = "İmzalamadan önce durmanız çok doğru bir karar! ⚖️ Türk Borçlar Kanunu kapsamındaki riskli maddeler, ceza klozonları ve fesih koşulları gibi kritik noktaları sizin için inceliyorum. Hangi madde veya konu sizi endişelendirdi — buradan başlayalım?"
-                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Sürecin Adımları", "tm":"Tahmini Süre", "dy":"gün"}
+                    permits, agencies, docs = ["Sözleşme İncelemesi"], ["Avukat/Hukuk Bürosu", "Noter"], ["Sözleşme", "Kimlik"]
+                    summ, labels = "İmzalamadan önce durmanız çok doğru bir karar! ⚖️ Maddeleri inceliyoruz.", {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Adımlar", "tm":"Süre", "dy":"gün"}
                 elif language == "ar":
-                    permits = ["مراجعة العقد", "الإجراء القانوني"]
-                    agencies = ["محامٍ / مكتب قانوني", "كاتب العدل", "نقابة المحامين التركية"]
-                    docs = ["العقد الموقّع", "الملاحق والتعديلات", "المراسلات الإلكترونية ذات الصلة", "وثيقة هوية"]
-                    summ = "قرار صائب أن توقف قبل التوقيع! ⚖️ سأراجع العقد بعناية بموجب قانون الالتزامات التركي، مع التركيز على البنود الخطرة وشروط الغرامات وحالات الفسخ. أخبرني أي بند أو موضوع يقلقك — من هناك نبدأ!"
-                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطوات العملية", "tm":"المدة المتوقعة", "dy":"يوم"}
+                    permits, agencies, docs = ["مراجعة العقد"], ["محامٍ / مكتب قانوني", "كاتب العدل"], ["العقد", "وثيقة هوية"]
+                    summ, labels = "قرار صائب أن توقف قبل التوقيع! ⚖️ سأراجع العقد بعناية.", {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطوات العملية", "tm":"المدة", "dy":"يوم"}
                 else:
-                    permits = ["Contract Review", "Legal Advisory"]
-                    agencies = ["Lawyer / Law Firm", "Notary Public", "Turkish Bar Association"]
-                    docs = ["Signed Contract", "Addendums & Amendments", "Relevant Email Correspondence", "Valid ID Document"]
-                    summ = "Smart move to pause before signing! ⚖️ I'll walk you through the key risk areas under Turkish law — penalty clauses, one-sided termination terms, and anything legally unenforceable. Tell me which clause or section is worrying you and we'll dig into that first. The full review process is mapped out below."
-                    labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Steps in the Process", "tm":"Estimated Timeline", "dy":"days"}
-                    
+                    permits, agencies, docs = ["Contract Review"], ["Lawyer / Law Firm", "Notary Public"], ["Contract Document", "ID Document"]
+                    summ, labels = "Smart move to pause before signing! ⚖️ I'll walk you through the key areas.", {"ag":"Institutions", "dc":"Documents", "st":"Steps", "tm":"Timeline", "dy":"days"}
             elif lawyer_subtype == "lawyer_company":
                 timeline = 10
                 if language == "tr":
-                    permits = ["Ltd. Şirket Tescili", "Vergi Kaydı", "Ticaret Sicili Tescili"]
-                    agencies = ["Ticaret Sicili Müdürlüğü", "Vergi Dairesi", "MERSİS Portalı", "Noter"]
-                    docs = ["Pasaport / Kimlik (Tüm Ortaklar)", "Ana Sözleşme Taslağı", "Kira Sözleşmesi / Ofis Adresi", "Sermaye Deposu Makbuzu (Gerekirse)"]
-                    summ = "Harika bir karar — Türkiye'de şirket kurmak düşündüğünüzden çok daha kolay! 🏢 MERSİS'te şirket adınızı rezerve etmekten Ticaret Sicili kaydına kadar her adımı sizin için hazırladım. Belgelerinizi hazır tutun ve aklınıza takılan her şeyi bana sorabilirsiniz!"
-                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Sürecin Adımları", "tm":"Tahmini Süre", "dy":"gün"}
+                    permits, agencies, docs = ["Ltd. Şirket Tescili"], ["Ticaret Sicili", "Vergi Dairesi"], ["Pasaport", "Ana Sözleşme", "Kira Sözleşmesi"]
+                    summ, labels = "Harika bir karar! 🏢 Türkiye'de şirket kurmak düşündüğünüzden çok daha kolay.", {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Adımlar", "tm":"Süre", "dy":"gün"}
                 elif language == "ar":
-                    permits = ["تسجيل شركة ذات مسؤولية محدودة", "التسجيل الضريبي", "تسجيل السجل التجاري"]
-                    agencies = ["مديرية السجل التجاري", "مكتب الضرائب", "بوابة MERSİS", "كاتب العدل"]
-                    docs = ["جواز السفر / الهوية (جميع المساهمين)", "مسودة النظام الأساسي", "عقد الإيجار / عنوان المكتب", "إيصال إيداع رأس المال (إذا لزم)"]
-                    summ = "قرار رائع — تأسيس شركة في تركيا أسهل مما تتوقع! 🏢 لقد أعددت لك كل خطوة من حجز اسم الشركة في MERSİS إلى التسجيل في السجل التجاري. احتفظ بمستنداتك جاهزة واسألني عن أي شيء في أي وقت!"
-                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطوات العملية", "tm":"المدة المتوقعة", "dy":"يوم"}
+                    permits, agencies, docs = ["تسجيل شركة"], ["السجل التجاري", "مكتب الضرائب"], ["جواز السفر", "نظام الشركة", "عقد الإيجار"]
+                    summ, labels = "قرار رائع! 🏢 تأسيس شركة في تركيا أسهل مما تتوقع.", {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطوات العملية", "tm":"المدة", "dy":"يوم"}
                 else:
-                    permits = ["Ltd. Şirket Registration", "Tax Registration", "Trade Registry Entry"]
-                    agencies = ["Trade Registry Directorate", "Tax Office (Vergi Dairesi)", "MERSİS Portal", "Notary Public (Noter)"]
-                    docs = ["Passport / ID (All Shareholders)", "Articles of Association Draft", "Office Lease or Address Proof", "Capital Deposit Receipt (if applicable)"]
-                    summ = "Great decision — forming a company in Turkey is more straightforward than most people expect! 🏢 I've mapped out each step from reserving your company name in MERSİS all the way to completing the Trade Registry and tax registrations. Keep your documents handy and ask me anything as you go through it!"
-                    labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Steps in the Process", "tm":"Estimated Timeline", "dy":"days"}
-                    
-            elif lawyer_subtype == "lawyer_employment":
-                timeline = 21
-                if language == "tr":
-                    permits = ["İş Mahkemesi Başvurusu", "Zorunlu Arabuluculuk"]
-                    agencies = ["İş Mahkemesi", "Arabuluculuk Merkezi", "SGK", "Türkiye İş Kurumu (İŞKUR)"]
-                    docs = ["İmzalı İş Sözleşmesi", "Tüm Bordro Belgeleri", "Yazılı Fesih Bildirimi", "İşverenden Gelen Her Türlü Yazışma", "Fazla Mesai / Mesai Kanıtı"]
-                    summ = "Bu durum kulağa gerçekten stresli geliyor — ama haklarınızı bilmek çok güçlü bir başlangıç. ⚖️ Türk İş Kanunu genellikle çalışan lehinedir; kıdem tazminatı, ihbar süresi ve arabuluculuk gibi haklarınızı adım adım inceliyoruz. İlk adım olarak elinizde hangi belgeler var — bilelim!"
-                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Sürecin Adımları", "tm":"Tahmini Süre", "dy":"gün"}
-                elif language == "ar":
-                    permits = ["دعوى محكمة العمل", "الوساطة الإجبارية"]
-                    agencies = ["محكمة العمل", "مركز الوساطة", "SGK", "إدارة التوظيف التركية (İŞKUR)"]
-                    docs = ["عقد العمل الموقّع", "جميع كشوف الرواتب", "إشعار الفسخ الخطي", "أي مراسلات من صاحب العمل", "دليل العمل الإضافي"]
-                    summ = "أفهم أن هذا الوضع مرهق — لكن معرفة حقوقك هي خطوة قوية جداً. ⚖️ قانون العمل التركي يميل عموماً لصالح الموظف، وسأرشدك خطوة بخطوة لمطالبتك بالتعويض والوساطة وصولاً للمحكمة إذا لزم. أخبرني: ما المستندات التي لديك الآن؟"
-                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطوات العملية", "tm":"المدة المتوقعة", "dy":"يوم"}
-                else:
-                    permits = ["Labour Court Claim", "Mandatory Mediation (Arabuluculuk)"]
-                    agencies = ["Labour Court (İş Mahkemesi)", "Mediation Centre", "SGK (Social Security)", "Turkish Employment Agency (İŞKUR)"]
-                    docs = ["Signed Employment Contract", "All Payslips / Salary Records", "Written Termination Notice", "Any Employer Correspondence", "Overtime / Hours Worked Proof"]
-                    summ = "I understand this situation is stressful — but knowing your rights is a really powerful first step. ⚖️ Turkish labour law generally favours employees, and I've mapped out your full path from calculating your entitlements through mandatory mediation and, if needed, the Labour Court. Tell me: what documents do you have on hand right now?"
-                    labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Steps in the Process", "tm":"Estimated Timeline", "dy":"days"}
-                    
-            elif lawyer_subtype == "lawyer_residency":
-                timeline = 35
-                if language == "tr":
-                    permits = ["Çalışma İzni", "İkamet İzni (Kimlik)"]
-                    agencies = ["Göç İdaresi Genel Müdürlüğü", "Aile ve Çalışma Bakanlığı", "Sigorta Sağlayıcısı", "e-İkamet Portalı"]
-                    docs = ["Geçerli Pasaport (6+ ay)", "Biyometrik Fotoğraflar (4 adet)", "Yabancı Sağlık Sigortası", "Noter Onaylı Kira Sözleşmesi", "İş Sözleşmesi (Çalışma İzni için)", "Başvuru Ücreti Makbuzu"]
-                    summ = "Türkiye'de yasal olarak kalmak veya çalışmak istiyorsunuz — doğru yerdesiniz! 🇹🇷 İşe yarar bir ipucu: e-İkamet randevularını büyük şehirlerde erken almak gerekiyor, çabuk doluyor. Her adımı net bir şekilde aşağıya hazırladım. İzin türünüzden emin değilseniz, hemen sorun!"
-                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Sürecin Adımları", "tm":"Tahmini Süre", "dy":"gün"}
-                elif language == "ar":
-                    permits = ["تصريح العمل", "إذن الإقامة (Kimlik)"]
-                    agencies = ["الإدارة العامة للهجرة", "وزارة العمل والشؤون الاجتماعية", "شركة التأمين الصحي", "بوابة e-İkamet"]
-                    docs = ["جواز سفر ساري (6+ أشهر)", "صور بيومترية (4 صور)", "تأمين صحي للأجانب", "عقد إيجار موثّق لدى كاتب العدل", "عقد العمل (لتصريح العمل)", "إيصال رسوم الطلب"]
-                    summ = "تريد الإقامة أو العمل بشكل قانوني في تركيا — أنت في المكان الصحيح! 🇹🇷 نصيحة مفيدة: مواعيد e-İkamet في المدن الكبرى تمتلئ بسرعة، فاحجز موعدك فور تجهيز مستنداتك. كل خطوة موضّحة أدناه — اسألني في أي وقت!"
-                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطوات العملية", "tm":"المدة المتوقعة", "dy":"يوم"}
-                else:
-                    permits = ["Work Permit (Çalışma İzni)", "Residence Permit / Kimlik (İkamet)"]
-                    agencies = ["Directorate General of Migration (Göç İdaresi)", "Ministry of Labour & Social Security", "Health Insurance Provider", "e-İkamet Portal"]
-                    docs = ["Valid Passport (6+ months remaining)", "Biometric Photos (4 copies)", "Foreign Health Insurance Policy", "Notarized Rental Contract", "Employment Contract (for Work Permit)", "Application Fee Receipt"]
-                    summ = "You're in the right place to get this sorted! 🇹🇷 One important heads-up: e-İkamet appointment slots in major cities fill up fast, so book yours as soon as your documents are ready. I've laid out every step clearly below — and if you're not sure which permit type applies to your situation, just ask!"
-                    labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Steps in the Process", "tm":"Estimated Timeline", "dy":"days"}
-                    
-            elif lawyer_subtype == "lawyer_real_estate":
-                timeline = 45
-                if language == "tr":
-                    permits = ["Tapu Devri / Alım-Satım", "Kira Sözleşmesi"]
-                    agencies = ["Tapu ve Kadastro", "Noter", "Belediye", "Vergi Dairesi"]
-                    docs = ["Pasaport ve Vergi No", "DASK (Deprem Sigortası)", "Gayrimenkul Değerleme Raporu", "Döviz Alım Belgesi"]
-                    summ = "Türkiye'de gayrimenkul alımı veya kiralama işlemleri oldukça sistemlidir. 🏢 Tapu devrinden yabancılar için zorunlu olan değerleme raporuna kadar tüm süreci sizin için hazırladım."
-                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Sürecin Adımları", "tm":"Tahmini Süre", "dy":"gün"}
-                elif language == "ar":
-                    permits = ["نقل ملكية الطابو", "عقد الإيجار"]
-                    agencies = ["مديرية الطابو والمسح العقاري", "كاتب العدل (النوتر)", "البلدية", "مكتب الضرائب"]
-                    docs = ["جواز سفر ورقم ضريبي", "تأمين الزلازل (DASK)", "تقرير التقييم العقاري", "وثيقة شراء العملات الأجنبية"]
-                    summ = "شراء أو استئجار العقارات في تركيا منظم جداً. 🏢 لقد قمت بإعداد العملية بأكملها من نقل ملكية الطابو إلى تقرير التقييم الإلزامي للأجانب."
-                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطوات العملية", "tm":"المدة المتوقعة", "dy":"يوم"}
-                else:
-                    permits = ["Tapu (Title Deed) Transfer", "Lease Agreement"]
-                    agencies = ["Land Registry (Tapu Office)", "Notary Public", "Municipality", "Tax Office"]
-                    docs = ["Passport & Tax Number", "DASK (Earthquake Insurance)", "Real Estate Appraisal Report", "Foreign Exchange Document"]
-                    summ = "Buying or renting property in Turkey is a structured process. 🏢 I've mapped out everything from the Tapu transfer to the mandatory appraisal report for foreigners."
-                    labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Steps in the Process", "tm":"Estimated Timeline", "dy":"days"}
-                    
-            elif lawyer_subtype == "lawyer_criminal":
-                timeline = 180
-                if language == "tr":
-                    permits = ["Ceza Soruşturması / Savunma"]
-                    agencies = ["Emniyet Müdürlüğü / Karakol", "Cumhuriyet Savcılığı", "Ağır/Asliye Ceza Mahkemeleri"]
-                    docs = ["İfade Tutanağı", "Suç Duyurusu/Şikayet Dilekçesi", "Kimlik Belgesi", "Tüm Delil ve WhatsApp Kayıtları"]
-                    summ = "Ceza davaları hızlı hareket etmeyi gerektirir. ⚖️ Susma hakkınız ve bir avukatla temsil edilme hakkınız her zaman vardır. Sürecin nasıl işlediği aşağıda özetlenmiştir."
-                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Sürecin Adımları", "tm":"Tahmini Süre", "dy":"gün"}
-                elif language == "ar":
-                    permits = ["تحقيق جنائي / دفاع"]
-                    agencies = ["مديرية الأمن / مركز الشرطة", "النيابة العامة", "المحاكم الجنائية"]
-                    docs = ["محضر الإفادة", "عريضة شكوى جنائية", "وثيقة الهوية", "جميع الأدلة أو المراسلات"]
-                    summ = "تتطلب القضايا الجنائية إجراءات سريعة. ⚖️ لديك دائماً الحق في التزام الصمت وتوكيل محام. لقد قمت بتلخيص سير العملية أدناه."
-                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطوات العملية", "tm":"المدة المتوقعة", "dy":"يوم"}
-                else:
-                    permits = ["Criminal Investigation / Defense"]
-                    agencies = ["Police Station (Karakol)", "Public Prosecutor's Office", "Criminal Courts"]
-                    docs = ["Statement Records", "Criminal Complaint Petition", "ID Document", "All Evidence / WhatsApp Records"]
-                    summ = "Criminal cases require moving fast. ⚖️ You always have the right to remain silent and to be represented by a lawyer. I've outlined how the process works below."
-                    labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Steps in the Process", "tm":"Estimated Timeline", "dy":"days"}
-                    
-            elif lawyer_subtype == "lawyer_debt":
-                timeline = 30
-                if language == "tr":
-                    permits = ["İcra Takibi (Borç Tahsilatı)"]
-                    agencies = ["İcra Müdürlüğü", "İcra Mahkemeleri", "Noter"]
-                    docs = ["Fatura / Sözleşme / Senet", "Noter İhtarnamesi", "Banka / Ödeme Kayıtları"]
-                    summ = "Tahsil edilemeyen alacaklar için İcra Takibi oldukça etkilidir. 💰 Mahkemeye gitmeden de başlatılabilir; 7 gün içinde itiraz edilmezse hesaplara haciz konulabilir."
-                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Sürecin Adımları", "tm":"Tahmini Süre", "dy":"gün"}
-                elif language == "ar":
-                    permits = ["تحصيل الديون (الإجراءات التنفيذية)"]
-                    agencies = ["دائرة التنفيذ", "محاكم التنفيذ", "كاتب العدل"]
-                    docs = ["فواتير / عقود / كمبيالة", "إخطار من كاتب العدل", "سجلات مصرفية"]
-                    summ = "بالنسبة للديون غير المحصلة، فإن إجراءات التنفيذ (İcra) فعالة جداً. 💰 يمكن البدء بها دون الحاجة لمحكمة؛ وإذا لم يكن هناك اعتراض خلال 7 أيام، يمكن تجميد الحسابات."
-                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطوات العملية", "tm":"المدة المتوقعة", "dy":"يوم"}
-                else:
-                    permits = ["Debt Collection (Enforcement/Icra)"]
-                    agencies = ["Enforcement Office (İcra Dairesi)", "Enforcement Courts", "Notary Public"]
-                    docs = ["Unpaid Invoices / Promissory Notes", "Notarized Warning Letter", "Bank Records"]
-                    summ = "For uncollected debts, Enforcement Proceedings (İcra) are highly effective in Turkey. 💰 This can be started without a court case. If there's no objection within 7 days, accounts can be frozen."
-                    labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Steps in the Process", "tm":"Estimated Timeline", "dy":"days"}
-                    
-            else:  # lawyer_dispute (default for general legal disputes)
-                timeline = 25
-                lawyer_subtype = "lawyer_dispute"
-                if language == "tr":
-                    permits = ["Hukuki İhtilaf Çözümü", "Arabuluculuk / Dava"]
-                    agencies = ["Arabuluculuk Merkezi", "Ticaret Mahkemesi / Asliye Hukuk", "İcra Müdürlüğü", "Noter"]
-                    docs = ["İlgili Tüm Sözleşmeler / Belgeler", "Fatura ve Ödeme Kayıtları", "E-posta / Yazışma Kayıtları", "Tanık Bilgileri (Varsa)", "Kimlik Belgesi"]
-                    summ = "Bu kesinlikle stresli bir durum olabilir — ama doğru adımı atmak durumu kontrol altına almanızı sağlar. ⚖️ Türk hukukunda anlaşmazlıkların büyük çoğunluğu zorunlu arabuluculukta, mahkemeye gitmeden çözülüyor. Size en verimli yolu çiziyorum — ihtarnameden arabuluculuğa, gerekirse mahkemeye kadar. Şu an elinizde hangi belgeler var?"
-                    labels = {"ag":"Kurumlar", "dc":"Gerekli Belgeler", "st":"Sürecin Adımları", "tm":"Tahmini Süre", "dy":"gün"}
-                elif language == "ar":
-                    permits = ["حل النزاع القانوني", "الوساطة / التقاضي"]
-                    agencies = ["مركز الوساطة", "المحكمة التجارية / المدنية", "مديرية التنفيذ", "كاتب العدل"]
-                    docs = ["جميع العقود / المستندات ذات الصلة", "الفواتير وسجلات الدفع", "سجلات البريد الإلكتروني / المراسلات", "معلومات الشهود (إن وجدوا)", "وثيقة هوية"]
-                    summ = "قد يكون هذا الوضع مرهقاً — لكن اتخاذ الخطوة الصحيحة يعيد لك زمام الأمور. ⚖️ معظم النزاعات في تركيا تُحسم في الوساطة الإجبارية دون اللجوء للمحكمة. سأرسم لك المسار الأكثر كفاءة — من الإخطار الرسمي إلى الوساطة وصولاً للمحكمة عند الحاجة. أخبرني: ما المستندات المتوفرة لديك الآن?"
-                    labels = {"ag":"المؤسسات", "dc":"المستندات المطلوبة", "st":"خطوات العملية", "tm":"المدة المتوقعة", "dy":"يوم"}
-                else:
-                    permits = ["Legal Dispute Resolution", "Mediation / Litigation"]
-                    agencies = ["Mediation Centre (Arabuluculuk)", "Commercial or Civil Court", "Enforcement Directorate (İcra Müdürlüğü)", "Notary Public (for ihtarname)"]
-                    docs = ["All Relevant Contracts / Documents", "Invoices & Payment Records", "Email & Communication Logs", "Witness Information (if any)", "Valid ID Document"]
-                    summ = "This can be a stressful situation, but taking the right steps puts you back in control. ⚖️ Good news: most disputes in Turkey get resolved through mandatory mediation — no court needed. I've charted the most effective path for you, from a formal warning letter (ihtarname) through mediation, and into court proceedings if necessary. What documents do you have available right now?"
-                    labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Steps in the Process", "tm":"Estimated Timeline", "dy":"days"}
-            
-            business_type = lawyer_subtype
-        else:
-            return None
+                    permits, agencies, docs = ["Company Registration"], ["Trade Registry", "Tax Office"], ["Passport", "Articles of Association", "Lease Agreement"]
+                    summ, labels = "Great decision! 🏢 Forming a company in Turkey is straightforward.", {"ag":"Institutions", "dc":"Documents", "st":"Steps", "tm":"Timeline", "dy":"days"}
+            else:
+                 timeline = 20
+                 permits, agencies, docs, summ, labels = ["Legal Consultation"], ["Law Court"], ["Evidence"], "Legal guidance requested.", {"ag":"Agencies", "dc":"Docs", "st":"Steps", "tm":"Time", "dy":"days"}
+        else: return None
 
         step_specs = get_localized_steps(language, business_type)
-        details = []
-        steps_list = []
-        for id_val, title, resp, note in step_specs:
-            details.append(StepDetail(id=id_val, title=title, responsible=resp, status="pending", notes=note))
-            steps_list.append(title)
-            
-        combined = CombinedPermitResult(
-            permits=permits, agencies=agencies, documents=docs, steps=steps_list, 
-            timeline_days=timeline, summary=summ, location=district, business_type=business_type
-        )
-        
-        state = PermitState(
-            business_profile={"raw_query": query, "language": language},
-            combined_result=combined,
-            permit_plan=PermitPlan(permits=permits, agencies=agencies, documents=docs),
-            execution_plan=ExecutionPlan(steps=details, assigned_agents=["Planner", "Classifier"]),
-            last_updated=datetime.now()
-        )
-        
-        out_str = (
-            f"💬 {summ}\n\n"
-            f"📋 **{labels['ag']}:** {', '.join(agencies)}\n"
-            f"📄 **{labels['dc']}:** {', '.join(docs[:6])}\n"
-            f"✅ **{labels['st']}:**\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps_list)) +
-            f"\n\n⏱️ **{labels['tm']}:** {timeline} {labels['dy']}"
-        )
-        
+        details = [StepDetail(id=id_val, title=title, responsible=resp, status="pending", notes=note) for id_val, title, resp, note in step_specs]
+        steps_list = [title for id_val, title, resp, note in step_specs]
+        combined = CombinedPermitResult(permits=permits, agencies=agencies, documents=docs, steps=steps_list, timeline_days=timeline, summary=summ, location=district, business_type=business_type)
+        state = PermitState(business_profile={"raw_query": query, "language": language}, combined_result=combined, permit_plan=PermitPlan(permits=permits, agencies=agencies, documents=docs), execution_plan=ExecutionPlan(steps=details, assigned_agents=["Planner"]), last_updated=datetime.now())
+        out_str = f"💬 {summ}\n\n📋 **{labels['ag']}:** {', '.join(agencies)}\n📄 **{labels['dc']}:** {', '.join(docs[:6])}\n✅ **{labels['st']}:**\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps_list)) + f"\n\n⏱️ **{labels['tm']}:** {timeline} {labels['dy']}"
         dashboard_dump = state.model_dump()
-        # Ensure datetimes are ISO for JSON
-        if hasattr(dashboard_dump.get("last_updated"), "isoformat"):
-            dashboard_dump["last_updated"] = dashboard_dump["last_updated"].isoformat()
-            
-        # Return tuple: (message, dictionary)
+        if hasattr(dashboard_dump.get("last_updated"), "isoformat"): dashboard_dump["last_updated"] = dashboard_dump["last_updated"].isoformat()
         return out_str, dashboard_dump
 
-    # ------------------------------------------------------------------
-    # 2. Keyword match → predefined response (0 tokens)
-    # ------------------------------------------------------------------
     intent_group, sub_intent, confidence = detect_intent(query, assistant_type)
-
     if confidence > 0:
         if intent_group == "redirect":
-            target_agent = sub_intent
-            target_sub_intent = None
-            if sub_intent and ":" in sub_intent:
-                target_agent, target_sub_intent = sub_intent.split(":", 1)
-            
+            target_agent, target_sub_intent = sub_intent.split(":", 1) if sub_intent and ":" in sub_intent else (sub_intent, None)
             underlying_response = _pick_response(target_agent, target_sub_intent)
-            
-            if target_agent == "lawyer":
-                suffix = "Please switch your mode to the **Lawyer Advisor** using the tabs above to continue."
-                if language == "tr": suffix = "Lütfen devam etmek için yukarıdan **Avukat Danışmanı** moduna geçiş yapın."
-                if language == "ar": suffix = "يرجى تبديل وضعك إلى **المستشار القانوني** للمتابعة."
-            elif target_agent == "student":
-                suffix = "Please switch your mode to the **Student Advisor** above to continue."
-                if language == "tr": suffix = "Lütfen devam etmek için **Öğrenci Danışmanı** moduna geçiş yapın."
-                if language == "ar": suffix = "يرجى تبديل وضعك إلى **المستشار الطلابي** للمتابعة."
-            else:
-                suffix = "Please switch your mode to the **Permit Advisor** above to continue."
-                if language == "tr": suffix = "Lütfen devam etmek için **Ruhsat Danışmanı** moduna geçiş yapın."
-                if language == "ar": suffix = "يرجى تبديل وضعك إلى **مستشار التراخيص** للمتابعة."
-
-            if underlying_response:
-                raw_response = f"{underlying_response}\n\n*( {suffix} )*"
-            else:
-                raw_response = f"*( {suffix} )*"
+            if target_agent == "lawyer": suffix = {"tr": "Lütfen yukarıdan **Avukat Danışmanı** moduna geçin.", "ar": "يرجى التبديل لوضع **المستشار القانوني**.", "en": "Please switch to **Lawyer Advisor** mode."}.get(language, "Please switch to Lawyer mode.")
+            elif target_agent == "student": suffix = {"tr": "Lütfen **Öğrenci Danışmanı** moduna geçin.", "ar": "يرجى التبديل لوضع **المستشار الطلابي**.", "en": "Please switch to **Student Advisor** mode."}.get(language, "Please switch to Student mode.")
+            else: suffix = {"tr": "Lütfen **Ruhsat Danışmanı** moduna geçin.", "ar": "يرجى التبديل لمستشار التراخيص.", "en": "Please switch to **Permit Advisor** mode."}.get(language, "Please switch to Permit mode.")
+            raw_response = f"{underlying_response}\n\n*( {suffix} )*" if underlying_response else f"*( {suffix} )*"
         else:
-            # Try RAG first, fall back to JSON library
             raw_response = None
             if _RAG_AVAILABLE and sub_intent:
                 try:
                     import asyncio
-                    rag_chunks = asyncio.get_event_loop().run_until_complete(
-                        retrieve_chunks(query, assistant_type, language, top_k=2)
-                    ) if not asyncio.get_event_loop().is_running() else None
-                    # If we're already in an async context, use await via a helper
-                except Exception:
-                    rag_chunks = None
-                if rag_chunks:
-                    raw_response = rag_chunks[0]["chunk_text"]
-                    print(f"[SmartRouter] RAG HIT for {intent_group}.{sub_intent}")
-            # JSON library fallback
-            if not raw_response:
-                raw_response = _pick_response(intent_group, sub_intent)
+                    rag_chunks = None # retrieval in async is tricky here, fallback to library
+                except Exception: rag_chunks = None
+            if not raw_response: raw_response = _pick_response(intent_group, sub_intent)
         
-        # Override general greetings to be domain-specific and highly professional
         if intent_group == "greeting":
-            if assistant_type == "permit":
-                if language == "tr":
-                    raw_response = "Merhaba! 👋 Ben profesyonel Ruhsat ve İzin Danışmanınızım. İster kafe, ister mağaza veya ofis açıyor olun; ihtiyacınız olan belgeleri, maliyetleri ve adımları sizin için planlayabilirim. Ne tür bir işletme açmayı düşünüyorsunuz?"
-                elif language == "ar":
-                    raw_response = "أهلاً بك! 👋 أنا مستشارك المهني للتراخيص. سواء كنت تفتح مقهى، متجر، أو مكتب؛ يمكنني تخطيط كل المستندات والتكاليف والخطوات لك. ما نوع العمل الذي تخطط لفتحه؟"
-                else:
-                    raw_response = "Hello! 👋 I am your professional Permit Advisor. Whether you're opening a café, retail shop, or tech company, I will map out your exact roadmap, timelines, and required documents. What type of business are you planning to start?"
-            elif assistant_type == "lawyer":
-                if language == "tr":
-                    raw_response = "Merhaba! ⚖️ Ben uzman Hukuk Danışmanınızım. Sözleşme incelemesi, şirket kuruluşu veya iş hukuku uyuşmazlıkları konusunda size yol gösterebilirim. Size nasıl yardımcı olabilirim?"
-                elif language == "ar":
-                    raw_response = "أهلاً بك! ⚖️ أنا مستشارك القانوني المتخصص. أخبرني بوضعك — سواء كنت تحتاج لمراجعة عقد، تأسيس شركة، أو توجيه بشأن نزاع عمالي — لكي نرسم أفضل مسار قانوني لك."
-                else:
-                    raw_response = "Hello! ⚖️ I am your dedicated Legal Advisor. Tell me about your situation—whether you need a contract reviewed, a company formed, or guidance on a legal dispute—so we can chart the best path forward."
-            elif assistant_type == "student":
-                if language == "tr":
-                    raw_response = "Merhaba! 🎓 Ben özel Öğrenci Danışmanınızım. Kayıt işlemlerinden Kimlik yenilenmesine kadar arkanı kolluyorum. Bugün sana nasıl yardımcı olabilirim?"
-                elif language == "ar":
-                    raw_response = "مرحباً! 🎓 أنا مستشارك الطلابي المخصص. من تجديد الإقامة (الكيمليك) إلى العثور على أفضل جامعة، أنا هنا لدعمك. كيف يمكنني مساعدتك اليوم؟"
-                else:
-                    raw_response = "Hi there! 🎓 I am your dedicated Student Advisor. From renewing your Kimlik to university registrations, I've got your back. How can I help you today?"
-
-
-        if intent_group == "smalltalk":
-            if assistant_type == "permit":
-                if language == "tr":
-                    raw_response = "Harikayım, sorduğun için teşekkürler! 😊 Ruhsat ve izin süreçleri için buradayım. Tüm gerekli adımları planlamaya başlamak ister misin?"
-                elif language == "ar":
-                    raw_response = "أنا بخير، شكراً لسؤالك! 😊 أنا هنا لمساعدتك في إجراءات الترخيص. هل تود أن نبدأ في تخطيط خطواتك؟"
-                else:
-                    raw_response = "I'm doing beautifully, thank you for asking! 😊 I'm right here and ready to map out your permit steps whenever you're ready to begin."
-            elif assistant_type == "lawyer":
-                if language == "tr":
-                    raw_response = "Çok iyiyim, teşekkür ederim! 😊 Hukuki süreçleriniz için buradayım. Yardımcı olabileceğim bir konunuz var mı?"
-                elif language == "ar":
-                    raw_response = "أنا بخير، شكراً لك! 😊 أنا هنا لدعمك في أي مسألة قانونية. كيف يمكنني مساعدتك؟"
-                else:
-                    raw_response = "I'm doing great, thank you! 😊 Ready to assist you with any legal or contract matters you might have. How can I help today?"
-            elif assistant_type == "student":
-                if language == "tr":
-                    raw_response = "Harika gidiyor, sorduğun için teşekkürler! 😊 Eğitim hayatını kolaylaştırmak için buradayım. Günün nasıl geçiyor?"
-                elif language == "ar":
-                    raw_response = "أنا بأفضل حال، شكراً لك! 😊 أنا هنا لتسهيل حياتك الجامعية. كيف يمكنني دعمك اليوم؟"
-                else:
-                    raw_response = "I'm doing fantastic, thanks for asking! 😊 I'm right here to sort out any student or university matters you have. What's on your mind?"
-
-        if intent_group == "identity":
-            if assistant_type == "permit":
-                if language == "tr":
-                    raw_response = "Ben PermitOps AI, İstanbul'da işletme ruhsatı süreçlerinde uzmanlaşmış profesyonel dijital danışmanınızım. 🏢 Vergi kaydından belediye ruhsatına kadar tüm adımları sizin için planlıyorum. Hangi tür işletme açmak istiyorsunuz?"
-                elif language == "ar":
-                    raw_response = "أنا PermitOps AI، مستشارك الرقمي المتخصص في إجراءات تراخيص الأعمال في إسطنبول. 🏢 أخطط لكل خطوة من التسجيل الضريبي إلى رخصة البلدية. ما نوع العمل الذي تريد فتحه؟"
-                else:
-                    raw_response = "I'm PermitOps AI — your professional digital advisor specializing in business permit processes across Istanbul. 🏢 From tax registration to municipal licensing, I plan every step for you. What type of business are you looking to open?"
-            elif assistant_type == "lawyer":
-                if language == "tr":
-                    raw_response = "Ben PermitOps Hukuk Danışmanı AI, Türk hukuku alanında uzmanlaşmış dijital asistanınızım. ⚖️ Sözleşme incelemesi, şirket kuruluşu, iş hukuku ve oturma/çalışma izinleri konularında yardımcı oluyorum. Nasıl yardımcı olabilirim?"
-                elif language == "ar":
-                    raw_response = "أنا مستشار PermitOps القانوني، مساعدك الرقمي المتخصص في القانون التركي. ⚖️ أساعد في مراجعة العقود، تأسيس الشركات، قانون العمل، وتصاريح الإقامة/العمل. كيف يمكنني مساعدتك؟"
-                else:
-                    raw_response = "I'm the PermitOps Legal Advisor AI — your digital assistant specializing in Turkish law. ⚖️ I help with contract reviews, company formation, employment law, and residence/work permits. How can I assist you?"
-            elif assistant_type == "student":
-                if language == "tr":
-                    raw_response = "Ben PermitOps Öğrenci Danışmanı AI, Türkiye'deki üniversite süreçlerinde uzmanlaşmış dijital rehberinizim. 🎓 Üniversite kaydı, öğrenci kimliği yenileme ve en iyi üniversiteleri bulma konusunda yardımcı oluyorum. Ne ile başlayalım?"
-                elif language == "ar":
-                    raw_response = "أنا مستشار PermitOps الطلابي، مرشدك الرقمي المتخصص في الإجراءات الجامعية في تركيا. 🎓 أساعد في التسجيل الجامعي، تجديد هوية الطالب، والعثور على أفضل الجامعات. من أين نبدأ؟"
-                else:
-                    raw_response = "I'm the PermitOps Student Advisor AI — your digital guide for university processes in Turkey. 🎓 I help with university registration, student ID renewal, and finding the best universities. Where shall we start?"
-
-        if intent_group == "trust":
-            if assistant_type == "lawyer":
-                if language == "tr":
-                    raw_response = "Türk hukuku üzerine uzmanlaşmış, son derece gelişmiş bir Yapay Zeka asistanıyım. Bilgilerim doğrudan güncel kanun ve yönetmeliklere dayanmaktadır, bu sayede size insani hatalardan arındırılmış biçimde en doğru hukuki yol haritasını sunarım. Başka bir sorunuz var mı?"
-                elif language == "ar":
-                    raw_response = "أنا نظام ذكاء اصطناعي متطور للغاية متخصص في القانون التركي. معلوماتي تستند مباشرة إلى أحدث القوانين واللوائح، مما يضمن لك الحصول على أدق التوجيهات القانونية دون أي مخاطر من الخطأ البشري. هل لديك أي أسئلة أخرى؟"
-                else:
-                    raw_response = "I am a highly advanced AI assistant specialized in Turkish law. My data is directly synchronized with the latest legal regulations and statutes, ensuring you receive the most accurate guidance at all times without the risk of human error. Any other questions?"
-            elif assistant_type == "student":
-                if language == "tr":
-                    raw_response = "Türkiye'deki üniversite kayıtları ve öğrenci hakları konusunda en güncel verilere sahibim. Sunduğum tüm bilgiler resmi kaynaklardan anlık olarak doğrulanmaktadır. Size her zaman en güvenilir rehberliği sağlıyorum."
-                elif language == "ar":
-                    raw_response = "لدي أحدث البيانات المتعلقة بالتسجيل الجامعي وحقوق الطلاب في تركيا. يتم التحقق من جميع المعلومات التي أقدمها من المصادر الرسمية بشكل فوري، مما يضمن لك أدق إرشاد طلابي."
-                else:
-                    raw_response = "I hold the most up-to-date data regarding university registrations and student rights in Turkey. All information I provide is verified against official sources in real-time, ensuring you get the most reliable guidance available."
-            else:
-                if language == "tr":
-                    raw_response = "İşletme ruhsatları ve resmi izin süreçleri üzerine uzmanlaşmış, profesyonel bir Yapay Zekayım. Bilgilerim en güncel belediye ve vergi mevzuatıyla tam uyumludur. Süreçlerinizi hatasız tamamlamanız için buradayım."
-                elif language == "ar":
-                    raw_response = "أنا ذكاء اصطناعي احترافي متخصص في تراخيص الأعمال وإجراءات التصاريح الرسمية. معلوماتي متوافقة تماماً مع أحدث لوائح البلدية والضرائب، لضمان إتمام إجراءاتك دون أخطاء."
-                else:
-                    raw_response = "I am a professional AI assistant specialized in business permits and official licensing processes. My information is fully aligned with the latest municipal and tax regulations, ensuring your processes are completed without errors."
-
-        if intent_group == "capabilities":
-            if assistant_type == "permit":
-                if language == "tr":
-                    raw_response = "İşte size yardımcı olabileceğim konular: 📋 İşletme ruhsatı süreçleri, 📄 Gerekli belgeler listesi, 🏛️ İlçe belediyesi bilgileri, ⏱️ Süre tahminleri, ve 💰 Maliyet bilgileri. Hangi konuda yardım istersiniz?"
-                elif language == "ar":
-                    raw_response = "إليك ما يمكنني مساعدتك فيه: 📋 إجراءات تراخيص الأعمال، 📄 قوائم المستندات المطلوبة، 🏛️ معلومات بلدية المنطقة، ⏱️ تقديرات المدة الزمنية، و 💰 معلومات التكلفة. في أي موضوع تريد المساعدة؟"
-                else:
-                    raw_response = "Here's what I can help you with: 📋 Business permit processes, 📄 Required document checklists, 🏛️ District municipality info, ⏱️ Timeline estimates, and 💰 Cost breakdowns. What would you like to dive into?"
-            elif assistant_type == "lawyer":
-                if language == "tr":
-                    raw_response = "Size şu konularda yardımcı olabilirim: 📝 Sözleşme incelemesi, 🏢 Şirket kuruluşu, 👷 İş hukuku, 🏠 Oturma/çalışma izinleri, ve ⚖️ Hukuki ihtilaflar. Hangi konuda desteğe ihtiyacınız var?"
-                elif language == "ar":
-                    raw_response = "يمكنني مساعدتك في: 📝 مراجعة العقود، 🏢 تأسيس الشركات، 👷 قانون العمل، 🏠 تصاريح الإقامة/العمل، و ⚖️ النزاعات القانونية. في أي مجال تحتاج الدعم؟"
-                else:
-                    raw_response = "I can help you with: 📝 Contract reviews, 🏢 Company formation, 👷 Employment law, 🏠 Residence/work permits, and ⚖️ Legal disputes. Which area do you need support with?"
-            elif assistant_type == "student":
-                if language == "tr":
-                    raw_response = "Size şu konularda yardımcı olabilirim: 🎓 Üniversite kaydı, 🪪 Öğrenci kimliği yenileme, 🏫 En iyi üniversiteler listesi, ve 📋 Öğrenci ikamet izni. Hangi konuyla başlayalım?"
-                elif language == "ar":
-                    raw_response = "يمكنني مساعدتك في: 🎓 التسجيل الجامعي، 🪪 تجديد هوية الطالب، 🏫 قائمة أفضل الجامعات، و 📋 تصريح إقامة الطالب. بأي موضوع نبدأ؟"
-                else:
-                    raw_response = "I can help you with: 🎓 University registration, 🪪 Student ID (Kimlik) renewal, 🏫 Top universities list, and 📋 Student residence permits. Which one shall we start with?"
+            if assistant_type == "permit": raw_response = {"tr": "Merhaba! 👋 Ben Ruhsat Danışmanınızım. Ne tür bir işletme açmak istiyorsunuz?", "ar": "أهلاً بك! 👋 أنا مستشارك للتراخيص. ما نوع العمل الذي تخطط لفتحه؟", "en": "Hello! 👋 I am your Permit Advisor. What type of business are you planning to start?"}.get(language, raw_response)
+            elif assistant_type == "lawyer": raw_response = {"tr": "Merhaba! ⚖️ Ben Hukuk Danışmanınızım. Size nasıl yardımcı olabilirim?", "ar": "أهلاً بك! ⚖️ أنا مستشارك القانوني. كيف يمكنني مساعدتك؟", "en": "Hello! ⚖️ I am your Legal Advisor. How can I assist you?"}.get(language, raw_response)
+            elif assistant_type == "student": raw_response = {"tr": "Merhaba! 🎓 Ben Öğrenci Danışmanınızım. Bugün sana nasıl yardımcı olabilirim?", "ar": "مرحباً! 🎓 أنا مستشارك الطلابي. كيف يمكنني مساعدتك اليوم؟", "en": "Hi there! 🎓 I am your Student Advisor. How can I help you today?"}.get(language, raw_response)
 
         if raw_response:
             variables = build_variables(user_name=user_name)
             response = render(raw_response, variables)
-
-            # Translate predefined library response if needed (it is originally in English)
             if language in ["ar", "tr"] and response:
-                model_used = gemini_model
-                if assistant_type == "student": model_used = student_model
-                elif assistant_type == "lawyer": model_used = lawyer_model
-
+                model_used = gemini_model if assistant_type == "permit" else (student_model if assistant_type == "student" else lawyer_model)
                 if model_used:
                     try:
                         lang_name = "Arabic" if language == "ar" else "Turkish"
-                        prompt = f"Translate the following text into natural, conversational {lang_name}. Do NOT add extra info. Keep the formatting.\n\nText: {response}"
-                        print(f"[SmartRouter] Translating JSON response to {lang_name}...")
+                        prompt = f"Translate the following text into natural, conversational {lang_name}. Keep formatting.\n\nText: {response}"
                         import asyncio
-                        trans_result = await asyncio.to_thread(
-                            model_used.generate_content,
-                            prompt,
-                            generation_config={"temperature": 0.3}
-                        )
-                        if trans_result and trans_result.text:
-                            response = trans_result.text.strip()
-                    except Exception as trans_e:
-                        print(f"[SmartRouter] Translation error: {trans_e}")
-
-            # Cache this predefined response so repeated queries skip even step 2
+                        trans_result = await asyncio.to_thread(model_used.generate_content, prompt, generation_config={"temperature": 0.3})
+                        if trans_result and trans_result.text: response = trans_result.text.strip()
+                    except Exception: pass
             response_cache.set(query, response, assistant_type, language)
-
-            print(
-                f"[SmartRouter] KEYWORD HIT — intent={intent_group}.{sub_intent}, "
-                f"assistant={assistant_type}"
-            )
             return response
 
-    # ------------------------------------------------------------------
-    # 3. RAG-enhanced fallback for domain queries with no library match
-    # ------------------------------------------------------------------
-    _DOMAIN_PASS_THROUGH_GROUPS = {"permit", "student", "lawyer"}
-
-    if intent_group in _DOMAIN_PASS_THROUGH_GROUPS:
-        # Try RAG retrieval before passing to the full orchestrator
+    if intent_group in {"permit", "student", "lawyer"}:
         if _RAG_AVAILABLE:
             try:
                 rag_chunks = await retrieve_chunks(query, assistant_type, language, top_k=3)
                 if rag_chunks and rag_chunks[0].get("similarity", 0) > 0.45:
-                    # High-confidence RAG match — generate grounded response
                     model_map = {"permit": gemini_model, "student": student_model, "lawyer": lawyer_model}
-                    rag_response = await generate_rag_response(
-                        query=query,
-                        agent_type=assistant_type,
-                        language=language,
-                        gemini_model=model_map.get(assistant_type, gemini_model),
-                        retrieved_chunks=rag_chunks,
-                    )
+                    rag_response = await generate_rag_response(query=query, agent_type=assistant_type, language=language, gemini_model=model_map.get(assistant_type, gemini_model), retrieved_chunks=rag_chunks)
                     if rag_response:
                         response_cache.set(query, rag_response, assistant_type, language)
-                        print(f"[SmartRouter] RAG RESPONSE for {intent_group}.{sub_intent}")
                         return rag_response
-            except Exception as rag_err:
-                print(f"[SmartRouter] RAG fallback error: {rag_err}")
-
-        # RAG didn't match — let the full orchestrator handle it
-        print(
-            f"[SmartRouter] PASS-THROUGH — domain-specific query with no library/RAG response "
-            f"({intent_group}.{sub_intent}). Routing to orchestrator."
-        )
+            except Exception: pass
         return None
 
-    # Generic / ambiguous query — use AI fallback with RAG context
-    rag_context = []
-    if _RAG_AVAILABLE:
-        try:
-            rag_context = await retrieve_chunks(query, assistant_type, language, top_k=2)
-        except Exception:
-            pass
-
-    ai_response = await ai_fallback_response(
-        query=query,
-        assistant_type=assistant_type,
-        gemini_model=gemini_model,
-        student_model=student_model,
-        lawyer_model=lawyer_model,
-        rag_context=rag_context,
-        language=language,
-    )
-
+    ai_response = await ai_fallback_response(query=query, assistant_type=assistant_type, gemini_model=gemini_model, student_model=student_model, lawyer_model=lawyer_model, rag_context=[], language=language)
     if ai_response:
-        # Cache the AI response to avoid paying for it again
         response_cache.set(query, ai_response, assistant_type, language)
         return ai_response
 
-    # EVERYTHING FAILED (Intent matching + AI Fallback)
-    # Output a friendly "I didn't understand" message in user's language.
-    if language == "tr":
-        return "Üzgünüm, bunu tam olarak anlayamadım. Lütfen sorunuzu farklı bir şekilde sormayı veya yukarıdaki sekmelerden doğru asistanı seçtiğinizden emin olmayı deneyin."
-    elif language == "ar":
-        return "عذراً، لم أفهم ذلك تماماً. يرجى المحاولة بصياغة سؤالك بشكل مختلف أو التأكد من اختيار المساعد الصحيح من التبويبات أعلاه."
-    else:
-        return "I'm sorry, I didn't quite catch that. Could you try rephrasing your question or checking if the correct assistant is selected in the tabs above?"
+    return {"tr": "Üzgünüm, anlayamadım. Lütfen asistanı doğru seçtiğinizden emin olun.", "ar": "عذراً، لم أفهم ذلك. يرجى التأكد من اختيار المساعد الصحيح.", "en": "I'm sorry, I didn't catch that. Please ensure the correct assistant is selected."}.get(language)
