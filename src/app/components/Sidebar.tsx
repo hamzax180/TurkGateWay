@@ -113,11 +113,36 @@ export default function Sidebar({
   const SidebarInner = ({ isMobile = false }: { isMobile?: boolean }) => {
     const showLabels = isMobile || isExpanded;
 
+    const containerVariants = {
+      hidden: { opacity: 0 },
+      visible: {
+        opacity: 1,
+        transition: {
+          staggerChildren: 0.05,
+          delayChildren: 0.1,
+        }
+      }
+    };
+
+    const itemVariants = {
+      hidden: { x: isRTL ? 20 : -20, opacity: 0 },
+      visible: {
+        x: 0,
+        opacity: 1,
+        transition: { type: 'spring', damping: 25, stiffness: 200 }
+      }
+    };
+
     return (
-      <div className="h-full flex flex-col bg-[var(--surface)]">
+      <motion.nav
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+        className="h-full flex flex-col bg-[var(--surface)]"
+      >
         {/* Search bar */}
         {isMobile ? (
-          <div className="p-3 shrink-0">
+          <motion.div variants={itemVariants} className="p-3 shrink-0">
             <div className="flex items-center gap-2.5 bg-[var(--surface-2)] rounded-full px-4 py-2.5 border border-[var(--border)]">
               <Search size={16} className="text-[var(--muted)] shrink-0" />
               <input
@@ -133,7 +158,7 @@ export default function Sidebar({
                 </button>
               )}
             </div>
-          </div>
+          </motion.div>
         ) : (
           <div className="p-4 mb-1 shrink-0">
             <button
@@ -147,7 +172,7 @@ export default function Sidebar({
         )}
 
         {/* New Chat */}
-        <div className={`${isMobile ? 'px-3 mb-1' : 'px-4 mb-6'} shrink-0`}>
+        <motion.div variants={itemVariants} className={`${isMobile ? 'px-3 mb-1' : 'px-4 mb-6'} shrink-0`}>
           <button
             onClick={() => { onNewChat(); if (isMobile) onMobileClose?.(); }}
             className={`group flex items-center justify-start gap-3 transition-all duration-300 ${
@@ -163,55 +188,55 @@ export default function Sidebar({
               </span>
             )}
           </button>
-        </div>
+        </motion.div>
 
         {/* Home (mobile Gemini style) */}
         {isMobile && (
-          <div className="px-3 mb-1 shrink-0">
+          <motion.div variants={itemVariants} className="px-3 mb-1 shrink-0">
             <Link href="/" className="block">
               <button className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)] transition-all">
                 <Home size={20} className="text-[var(--text)] shrink-0" />
                 <span className="text-[15px] font-medium text-[var(--text)] text-left">{t('sidebar_home')}</span>
               </button>
             </Link>
-          </div>
+          </motion.div>
         )}
 
         {/* Dashboard (mobile Gemini style) */}
         {isMobile && (
-          <div className="px-3 mb-1 shrink-0">
+          <motion.div variants={itemVariants} className="px-3 mb-1 shrink-0">
             <Link href="/dashboard" className="block">
               <button className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)] transition-all">
                 <LayoutDashboard size={20} className="text-[var(--text)] shrink-0" />
                 <span className="text-[15px] font-medium text-[var(--text)] text-left">{t('sidebar_dashboard')}</span>
               </button>
             </Link>
-          </div>
+          </motion.div>
         )}
 
         {/* My stuff (mobile Gemini style) */}
         {isMobile && (
-          <div className="px-3 mb-1 shrink-0">
+          <motion.div variants={itemVariants} className="px-3 mb-1 shrink-0">
             <button className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)] transition-all">
               <Star size={20} className="text-[var(--text)] shrink-0" />
               <span className="text-[15px] font-medium text-[var(--text)] text-left">{t('sidebar_my_stuff')}</span>
             </button>
-          </div>
+          </motion.div>
         )}
 
         {/* Gems (mobile Gemini style) */}
         {isMobile && (
-          <div className="px-3 mb-1 shrink-0">
+          <motion.div variants={itemVariants} className="px-3 mb-1 shrink-0">
             <button className="group flex items-center justify-between w-full px-4 py-2.5 rounded-xl hover:bg-[var(--surface-2)] transition-all">
               <span className="text-[15px] font-bold text-[var(--text)]">{t('sidebar_gems')}</span>
               <ChevronRight size={16} className={`${isRTL ? 'rotate-180' : ''} text-[var(--muted)]`} />
             </button>
-          </div>
+          </motion.div>
         )}
 
         {/* Agent Tabs */}
         {showLabels && (
-          <div className="flex bg-[var(--surface-2)] p-1 rounded-xl mx-3 mb-2 mt-3 shrink-0">
+          <motion.div variants={itemVariants} className="flex bg-[var(--surface-2)] p-1 rounded-xl mx-3 mb-2 mt-3 shrink-0">
             {[
               { id: 'permit', label: t('assistant_permit'), icon: '🏢' },
               { id: 'student', label: t('assistant_student'), icon: '🎓' },
@@ -230,10 +255,10 @@ export default function Sidebar({
                 {tab.label}
               </button>
             ))}
-          </div>
+          </motion.div>
         )}
 
-        <div className="flex-1 overflow-y-auto px-3 space-y-0.5 slim-scroll pr-1">
+        <motion.div variants={itemVariants} className="flex-1 overflow-y-auto px-3 space-y-0.5 slim-scroll pr-1">
           {!token && showLabels ? (
             <div className="mx-1 p-4 rounded-2xl bg-[var(--surface-2)]/60 border border-[var(--border)] space-y-3 mt-2">
               <p className="text-[13px] font-semibold text-[var(--text)]">{t('sidebar_sign_in_prompt')}</p>
@@ -282,10 +307,10 @@ export default function Sidebar({
               </div>
             ))
           )}
-        </div>
+        </motion.div>
 
         {/* Bottom */}
-        <div className="p-3 space-y-1 mt-auto border-t border-[var(--border)] bg-[var(--surface)]/50 shrink-0">
+        <motion.div variants={itemVariants} className="p-3 space-y-1 mt-auto border-t border-[var(--border)] bg-[var(--surface)]/50 shrink-0">
           
           {isMobile && (
             <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border)] px-2">
@@ -347,8 +372,8 @@ export default function Sidebar({
               ))}
             </>
           )}
-        </div>
-      </div>
+        </motion.div>
+      </motion.nav>
     );
   };
 
@@ -383,8 +408,8 @@ export default function Sidebar({
               initial={{ x: isRTL ? '100%' : '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: isRTL ? '100%' : '-100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className={`fixed top-0 ${isRTL ? 'right-0' : 'left-0'} h-full w-[85vw] max-w-[340px] z-[210] md:hidden shadow-2xl overflow-hidden`}
+              transition={{ type: 'spring', damping: 28, stiffness: 350, mass: 0.8 }}
+              className={`fixed top-0 ${isRTL ? 'right-0' : 'left-0'} h-full w-[85vw] max-w-[340px] z-[210] md:hidden shadow-2xl overflow-hidden backdrop-blur-sm`}
             >
               <SidebarInner isMobile={true} />
             </motion.div>
