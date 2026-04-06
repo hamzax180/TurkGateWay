@@ -609,7 +609,7 @@ export default function ChatPage() {
               </div>
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto w-full max-w-4xl mx-auto px-4 md:px-8 py-10 space-y-12 pb-44 slim-scroll">
+            <div className="flex-1 overflow-y-auto w-full max-w-4xl mx-auto px-4 md:px-8 py-10 space-y-12 pb-44 slim-scroll" dir={isRTL ? 'rtl' : 'ltr'}>
               <AnimatePresence initial={false}>
                 {msgs.map(m => (
                   <motion.div
@@ -619,15 +619,15 @@ export default function ChatPage() {
                     className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     {m.role === 'assistant' && (
-                      <div className="h-8 w-8 rounded-full bg-gradient-to-r from-[#4285f4] to-[#9b72cb] flex items-center justify-center text-white shrink-0 mr-4 mt-1 shadow-lg">
+                      <div className={`h-8 w-8 rounded-full bg-gradient-to-r from-[#4285f4] to-[#9b72cb] flex items-center justify-center text-white shrink-0 mt-1 shadow-lg ${isRTL ? 'ml-4' : 'mr-4'}`}>
                         <Sparkles size={16} />
                       </div>
                     )}
 
-                    <div className={`flex flex-col max-w-[90%] md:max-w-[85%] ${m.role === 'user' ? 'items-end ml-auto' : 'items-start'}`}>
+                    <div className={`flex flex-col max-w-[90%] md:max-w-[85%] ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
                       <div className={`text-[17px] leading-[1.8] whitespace-pre-wrap ${m.role === 'user'
                         ? 'px-6 py-4 rounded-3xl border border-[var(--border)] text-[var(--text)] bg-[var(--surface-1)] shadow-sm'
-                        : 'text-[var(--text)] opacity-95 py-2 w-full font-normal'
+                        : `text-[var(--text)] opacity-95 py-2 w-full font-normal`
                         }`}
                       >
                         {(() => {
@@ -635,7 +635,7 @@ export default function ChatPage() {
 
                           if (m.role === 'assistant') {
                             return (
-                              <div className="prose prose-invert max-w-none">
+                              <div className={`prose prose-invert max-w-none ${isRTL ? 'text-right' : 'text-left'}`} dir={isRTL ? 'rtl' : 'ltr'}>
                                 <ReactMarkdown
                                   remarkPlugins={[remarkGfm]}
                                   components={{
@@ -670,24 +670,18 @@ export default function ChatPage() {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="flex w-full justify-start items-center"
+                  className="flex w-full items-center justify-start"
                 >
-                  <div className="relative h-8 w-8 shrink-0 mr-4">
+                  <div className={`relative h-8 w-8 shrink-0 ${isRTL ? 'ml-4' : 'mr-4'}`}>
                     {/* Glowing rotating ring */}
                     <div className="absolute inset-[-4px] rounded-full border-2 border-transparent border-t-indigo-500 border-r-purple-500 animate-spin opacity-70" />
                     <div className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-500/20 to-purple-500/20 backdrop-blur-md flex items-center justify-center border border-[var(--border)] shadow-[0_0_15px_rgba(168,85,247,0.2)]">
                       <Sparkles size={14} className="text-purple-500 dark:text-purple-300 animate-pulse" />
                     </div>
                   </div>
-                  <div className="py-2.5 px-5 rounded-2xl bg-[var(--surface)] border border-[var(--border)] relative overflow-hidden shadow-sm">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[var(--accent)]/5 to-transparent animate-[shimmer-sweep_1.5s_infinite]" style={{ backgroundSize: '200% 100%' }} />
-                    <span className="text-[14px] font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent flex items-center gap-2">
-                       {t('agent_thinking')}
-                      <span className="flex gap-0.5 ml-1">
-                        <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.3s]" />
-                        <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:-0.15s]" />
-                        <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce" />
-                      </span>
+                  <div className="flex flex-col">
+                    <span className="text-[14px] font-medium bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent animate-pulse italic">
+                      {t('agent_thinking')}
                     </span>
                   </div>
                 </motion.div>
