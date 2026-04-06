@@ -23,6 +23,7 @@ interface SidebarProps {
   onMobileClose?: () => void;
   refreshTrigger?: number;
   showAllTypes?: boolean;
+  onSwitchAssistant: (type: 'permit' | 'student' | 'lawyer') => void;
 }
 
 export default function Sidebar({
@@ -36,6 +37,7 @@ export default function Sidebar({
   onMobileClose,
   refreshTrigger = 0,
   showAllTypes = false,
+  onSwitchAssistant,
 }: SidebarProps) {
   const { t } = useLanguage();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -169,14 +171,30 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* Chats heading */}
+        {/* Agent Tabs */}
         {showLabels && (
-          <h3 className="text-[13px] font-bold text-[var(--text)] opacity-70 px-7 mb-2 mt-3 shrink-0">
-            {isMobile ? 'Chats' : (t('sidebar_recent') || 'Recent')}
-          </h3>
+          <div className="flex bg-[var(--surface-2)] p-1 rounded-xl mx-3 mb-2 mt-3 shrink-0">
+            {[
+              { id: 'permit', label: 'Permit', icon: '🏢' },
+              { id: 'student', label: 'Student', icon: '🎓' },
+              { id: 'lawyer', label: 'Lawyer', icon: '⚖️' },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  if (typeof onSwitchAssistant === 'function') {
+                    onSwitchAssistant(tab.id as any);
+                  }
+                }}
+                className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all outline-none ${assistantType === tab.id ? 'bg-[var(--surface-1)] shadow-sm text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
+              >
+                <span>{tab.icon}</span>
+                {tab.label}
+              </button>
+            ))}
+          </div>
         )}
 
-        {/* Chat list */}
         <div className="flex-1 overflow-y-auto px-3 space-y-0.5 slim-scroll pr-1">
           {!token && showLabels ? (
             <div className="mx-1 p-4 rounded-2xl bg-[var(--surface-2)]/60 border border-[var(--border)] space-y-3 mt-2">

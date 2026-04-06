@@ -327,6 +327,7 @@ export default function ChatPage() {
         onNewChat={() => handleNewChat()}
         onDeleteSession={handleDeleteSession}
         token={token}
+        onSwitchAssistant={switchAssistant}
         mobileOpen={mobileMenuOpen}
         onMobileClose={() => setMobileMenuOpen(false)}
         refreshTrigger={sidebarRefresh}
