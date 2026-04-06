@@ -45,7 +45,7 @@ export default function Sidebar({
   onSwitchAssistant,
   mobileOnly = false,
 }: SidebarProps) {
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const { logout, isAuthenticated } = useAuth();
   const router = useRouter();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -350,11 +350,11 @@ export default function Sidebar({
             />
             <motion.div
               key="mobile-drawer"
-              initial={{ x: '-100%' }}
+              initial={{ x: isRTL ? '100%' : '-100%' }}
               animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
+              exit={{ x: isRTL ? '100%' : '-100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="fixed top-0 left-0 h-full w-[85vw] max-w-[340px] z-[210] md:hidden shadow-2xl overflow-hidden"
+              className={`fixed top-0 ${isRTL ? 'right-0' : 'left-0'} h-full w-[85vw] max-w-[340px] z-[210] md:hidden shadow-2xl overflow-hidden`}
             >
               <SidebarInner isMobile={true} />
             </motion.div>
