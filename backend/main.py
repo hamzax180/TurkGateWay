@@ -608,6 +608,24 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
         db.commit()
 
         # ------------------------------------------------------------------
+        # Auto-Redirect to correct agent if user is lost
+        # ------------------------------------------------------------------
+        q_lower = query_text.lower()
+        if assistant_type == "permit":
+            if any(k in q_lower for k in ["student", "university", "student id", "dorm", "kimlik", "renew id"]) and not any(k in q_lower for k in ["employee", "staff"]):
+                msg_content = "🎓 It looks like you're asking about a Student task! Please click the **Switch Assistant** dropdown at the top of the page and select **Student Assistant** so I can correctly map out your academic roadmap."
+                assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=msg_content)
+                db.add(assistant_msg)
+                db.commit()
+                return {"role": "assistant", "content": msg_content, "session_title": db_session.title if db_session else None}
+            elif any(k in q_lower for k in ["sue ", "court", "lawsuit", "divorce", "criminal", "real estate dispute"]):
+                msg_content = "⚖️ It looks like you need Legal Assistance! Please click the **Switch Assistant** dropdown at the top of the page and select **Lawyer Assistant** so our legal engine can help you."
+                assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=msg_content)
+                db.add(assistant_msg)
+                db.commit()
+                return {"role": "assistant", "content": msg_content, "session_title": db_session.title if db_session else None}
+
+        # ------------------------------------------------------------------
         # Smart Router — attempt zero/low-token response before any AI call
         # ------------------------------------------------------------------
         if _smart_router_available and _smart_router_handle is not None and not file_obj:

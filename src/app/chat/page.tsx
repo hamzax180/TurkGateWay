@@ -21,6 +21,7 @@ export default function ChatPage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionTitle, setSessionTitle] = useState<string>('');
   const [sidebarRefresh, setSidebarRefresh] = useState(0);
+  const [allSessions, setAllSessions] = useState<any[]>([]);
 
   const [assistantType, setAssistantType] = useState<'permit' | 'student' | 'lawyer'>('permit');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -63,6 +64,7 @@ export default function ChatPage() {
           if (res?.ok) {
             const data = await res.json();
             if (!mounted) return;
+            setAllSessions(data);
 
             // Read what Dashboard requested (if any)
             const forcedSessionId = localStorage.getItem('permitops_ask_step_session');
@@ -78,29 +80,29 @@ export default function ChatPage() {
                 return forcedSessionId;
               });
               setSessionTitle(fSession ? (fSession.title || '') : '');
+              if (fSession && fSession.assistant_type) {
+                setAssistantType(fSession.assistant_type);
+              }
               return;
             }
 
-            // Normal load: if no session is set, pick the first one
-            setSessionId(prev => {
-              if (!prev && data.length > 0) {
-                setSessionTitle(data[0].title || '');
-                return data[0].id;
-              }
-              return prev;
-            });
-            // Update assistant type using first item's type to match visually
-            if (data.length > 0 && data[0].assistant_type) {
-              setAssistantType((prevType) => {
-                // Only set if we haven't manually changed it yet
-                if (!prevType || prevType === 'permit') {
-                  return data[0].assistant_type;
-                }
-                return prevType;
-              });
-            }
+            // Normal load: check if there's a stored active session
+            const activeSessionId = localStorage.getItem('permitops_active_session_id');
+            const activeSession = data.find((s: any) => s.id === activeSessionId);
 
-            if (data.length === 0) {
+            if (activeSession) {
+              // Restore active session fully
+              setSessionId(activeSession.id);
+              setSessionTitle(activeSession.title || '');
+              if (activeSession.assistant_type) {
+                setAssistantType(activeSession.assistant_type);
+              }
+            } else if (data.length > 0) {
+              // Fallback to most recent session overall
+              setSessionId(data[0].id);
+              setSessionTitle(data[0].title || '');
+              if (data[0].assistant_type) setAssistantType(data[0].assistant_type);
+            } else {
               handleNewChat();
             }
           }
@@ -188,6 +190,7 @@ export default function ChatPage() {
         const res = await apiFetch(`/chat/sessions?token=${token}&assistant_type=${typeToUse}`, { method: 'POST' });
         if (res?.ok) {
           const data = await res.json();
+          setAllSessions(prev => [data, ...prev]);
           setSessionId(data.id);
           setMsgs([]);
         }
@@ -199,11 +202,26 @@ export default function ChatPage() {
     }
   };
 
+  const switchAssistant = (newType: 'permit' | 'student' | 'lawyer') => {
+    setAssistantType(newType);
+    setIsDropdownOpen(false);
+    
+    // Resume logic: find the most recent session belonging to the requested type
+    const recentSession = allSessions.find(s => (s.assistant_type || 'permit') === newType);
+    if (recentSession) {
+      setSessionId(recentSession.id);
+      setSessionTitle(recentSession.title || '');
+    } else {
+      handleNewChat(newType);
+    }
+  };
+
   const handleDeleteSession = async (id: string) => {
     if (!token) return;
     try {
       const res = await apiFetch(`/chat/history/${id}?token=${token}`, { method: 'DELETE' });
       if (res?.ok) {
+        setAllSessions(prev => prev.filter((s: any) => s.id !== id));
         if (sessionId === id) setSessionId(null);
         else setSessionId(prev => prev);
       }
@@ -396,7 +414,7 @@ export default function ChatPage() {
 
                 <div className="flex flex-col gap-2 md:gap-3">
                   <button
-                    onClick={() => { setAssistantType('permit'); setIsDropdownOpen(false); handleNewChat('permit'); }}
+                    onClick={() => switchAssistant('permit')}
                     className={`flex items-center gap-4 md:gap-5 px-5 md:px-8 py-4 md:py-5 w-full rounded-full transition-all duration-300 group relative overflow-hidden ${assistantType === 'permit' ? 'glass-mesh mesh-indigo border-indigo-500/50 text-[var(--text)] shadow-[0_0_30px_rgba(99,102,241,0.2)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] border border-transparent hover:border-white/10'}`}
                   >
                     <div className="w-11 h-11 md:w-14 md:h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
@@ -410,7 +428,7 @@ export default function ChatPage() {
                   </button>
 
                   <button
-                    onClick={() => { setAssistantType('student'); setIsDropdownOpen(false); handleNewChat('student'); }}
+                    onClick={() => switchAssistant('student')}
                     className={`flex items-center gap-4 md:gap-5 px-5 md:px-8 py-4 md:py-5 w-full rounded-full transition-all duration-300 group relative overflow-hidden ${assistantType === 'student' ? 'glass-mesh mesh-purple border-purple-500/50 text-[var(--text)] shadow-[0_0_30px_rgba(168,85,247,0.2)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] border border-transparent hover:border-white/10'}`}
                   >
                     <div className="w-11 h-11 md:w-14 md:h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
@@ -424,7 +442,7 @@ export default function ChatPage() {
                   </button>
 
                   <button
-                    onClick={() => { setAssistantType('lawyer'); setIsDropdownOpen(false); handleNewChat('lawyer'); }}
+                    onClick={() => switchAssistant('lawyer')}
                     className={`flex items-center gap-4 md:gap-5 px-5 md:px-8 py-4 md:py-5 w-full rounded-full transition-all duration-300 group relative overflow-hidden ${assistantType === 'lawyer' ? 'glass-mesh mesh-indigo border-indigo-500/50 text-[var(--text)] shadow-[0_0_30px_rgba(59,130,246,0.2)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] border border-transparent hover:border-white/10'}`}
                   >
                     <div className="w-11 h-11 md:w-14 md:h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
