@@ -20,6 +20,7 @@ export default function ChatPage() {
   const { token, isAuthenticated, user } = useAuth();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionTitle, setSessionTitle] = useState<string>('');
+  const [sidebarRefresh, setSidebarRefresh] = useState(0);
 
   const [assistantType, setAssistantType] = useState<'permit' | 'student' | 'lawyer'>('permit');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -254,8 +255,9 @@ export default function ChatPage() {
       if (!res || !res.ok) throw new Error();
       const data = await res.json();
 
-      if (data.session_title) {
+      if (data.session_title && data.session_title !== sessionTitle) {
         setSessionTitle(data.session_title);
+        setSidebarRefresh(prev => prev + 1);
       }
 
       const rawContent: string = data.content ?? data.answer ?? data.response ?? 'Done.';
@@ -309,6 +311,7 @@ export default function ChatPage() {
         token={token}
         mobileOpen={mobileMenuOpen}
         onMobileClose={() => setMobileMenuOpen(false)}
+        refreshTrigger={sidebarRefresh}
       />
 
       <main className="flex-1 flex flex-col min-w-0 transition-colors duration-300 relative">
@@ -317,7 +320,7 @@ export default function ChatPage() {
           <Navbar isAppPage />
         </div>
 
-        {/* Mobile Top Bar — Gemini style */}
+        {/* Mobile Top Bar — Agent selection replaces static title */}
         <div className="flex md:hidden items-center justify-between px-4 h-14 shrink-0 border-b border-[var(--border)] bg-[var(--bg)] z-30">
           <button
             onClick={() => setMobileMenuOpen(true)}
@@ -325,7 +328,17 @@ export default function ChatPage() {
           >
             <Menu size={22} />
           </button>
-          <span className="text-[17px] font-semibold text-[var(--text)] tracking-tight">PermitOps AI</span>
+          <div
+            className="flex items-center gap-1.5 cursor-pointer hover:bg-[var(--surface-2)] px-3 py-1.5 rounded-full transition-all"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          >
+            <span className="text-[17px] font-semibold text-[var(--text)] tracking-tight">
+              {sessionTitle && msgs.length > 0 && sessionTitle !== 'New Chat'
+                ? sessionTitle
+                : assistantType === 'permit' ? 'Permit Assistant' : assistantType === 'student' ? 'Student Assistant' : 'Lawyer Assistant'}
+            </span>
+            <ChevronDown size={16} className={`text-[var(--muted)] opacity-50 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+          </div>
           <div className="flex items-center gap-2">
             {user ? (
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-[13px] font-bold shadow-md">
@@ -341,14 +354,16 @@ export default function ChatPage() {
 
         <div className="hidden md:block h-4 shrink-0" />
 
-        {/* Gemini-Style Content Header - Centered */}
-        <div className="h-20 flex items-center justify-center px-6 shrink-0 z-30 relative" ref={dropdownRef}>
+        {/* Gemini-Style Content Header - Desktop only */}
+        <div className="hidden md:flex h-20 items-center justify-center px-6 shrink-0 z-30 relative" ref={dropdownRef}>
           <div
             className="flex items-center gap-2 cursor-pointer hover:bg-[var(--surface-2)] px-4 py-2 rounded-full transition-all border border-transparent hover:border-[var(--border)]"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
             <span className="text-xl font-semibold text-[var(--text)] opacity-90 tracking-tight">
-              {assistantType === 'permit' ? 'Permit Assistant' : assistantType === 'student' ? 'Student Assistant' : 'Lawyer Assistant'}
+              {sessionTitle && msgs.length > 0 && sessionTitle !== 'New Chat'
+                ? sessionTitle
+                : assistantType === 'permit' ? 'Permit Assistant' : assistantType === 'student' ? 'Student Assistant' : 'Lawyer Assistant'}
             </span>
             <ChevronDown size={18} className={`text-[var(--muted)] opacity-50 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </div>

@@ -437,18 +437,40 @@ async def smart_router_handle(
             if no_district: missing_items.append("district")
 
             if missing_items:
+                # Build acknowledgment of what WAS provided
+                ack_business = business_type if business_type != "Business" else None
+                ack_district = district_display if not no_district else None
+
                 if language == "tr":
-                    msg = "Sana tam ve doğru bir yol haritası çizebilmem için lütfen şunları belirt: "
-                    if "business" in missing_items: msg += "**Hangi tür işletme** (Kafe, Mağaza vb.) açacaksın? "
-                    if "district" in missing_items: msg += "**İstanbul'un hangi ilçesinde** açacaksın?"
+                    msg = ""
+                    if ack_business and "district" in missing_items:
+                        msg = f"Harika, **{ack_business}** iyi bir seçim! 👍 Şimdi tam yol haritanı oluşturabilmem için: **İstanbul'un hangi ilçesinde** açacaksın?"
+                    elif ack_district and "business" in missing_items:
+                        msg = f"Tamam, **{ack_district}** bölgesini not aldım! 📍 Şimdi: **Hangi tür işletme** (Kafe, Mağaza vb.) açacaksın?"
+                    else:
+                        msg = "Sana tam ve doğru bir yol haritası çizebilmem için lütfen şunları belirt: "
+                        if "business" in missing_items: msg += "**Hangi tür işletme** (Kafe, Mağaza vb.) açacaksın? "
+                        if "district" in missing_items: msg += "**İstanbul'un hangi ilçesinde** açacaksın?"
                 elif language == "ar":
-                    msg = "لكي أرسم لك خريطة طريق دقيقة، يرجى تحديد: "
-                    if "business" in missing_items: msg += "**ما هو نوع العمل** (مقهى، متجر)؟ "
-                    if "district" in missing_items: msg += "**في أي منطقة في إسطنبول** ستفتح؟"
+                    msg = ""
+                    if ack_business and "district" in missing_items:
+                        msg = f"ممتاز، **{ack_business}** اختيار رائع! 👍 الآن لأرسم خريطة طريقك الكاملة: **في أي منطقة في إسطنبول** ستفتح؟"
+                    elif ack_district and "business" in missing_items:
+                        msg = f"تمام، سجّلت **{ack_district}**! 📍 الآن: **ما هو نوع العمل** (مقهى، متجر)؟"
+                    else:
+                        msg = "لكي أرسم لك خريطة طريق دقيقة، يرجى تحديد: "
+                        if "business" in missing_items: msg += "**ما هو نوع العمل** (مقهى، متجر)؟ "
+                        if "district" in missing_items: msg += "**في أي منطقة في إسطنبول** ستفتح؟"
                 else:
-                    msg = "To map out your exact roadmap, could you please tell me: "
-                    if "business" in missing_items: msg += "**What type of business** (e.g., Cafe, Retail)? "
-                    if "district" in missing_items: msg += "**Which district of Istanbul** are you opening in?"
+                    msg = ""
+                    if ack_business and "district" in missing_items:
+                        msg = f"Great choice — **{ack_business}**! 👍 Now, to build your full roadmap: **Which district of Istanbul** are you opening in?"
+                    elif ack_district and "business" in missing_items:
+                        msg = f"Got it — **{ack_district}** noted! 📍 Now: **What type of business** are you planning to open (e.g., Cafe, Retail, Restaurant)?"
+                    else:
+                        msg = "To map out your exact roadmap, could you please tell me: "
+                        if "business" in missing_items: msg += "**What type of business** (e.g., Cafe, Retail)? "
+                        if "district" in missing_items: msg += "**Which district of Istanbul** are you opening in?"
                     
                 # Returning ONLY the string halts the dashboard generation and asks the question as normal chat
                 return msg

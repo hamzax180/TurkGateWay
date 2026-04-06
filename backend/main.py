@@ -652,6 +652,38 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
                             user.latest_dashboard_state = offline_state_json
                         else:
                             guest_dashboard_states[session_id] = offline_state_json
+                        
+                        # --- Update session title to reflect what was chosen ---
+                        if db_session:
+                            combined = offline_state.get("combined_result") or {}
+                            btype = combined.get("business_type", "") or ""
+                            loc = combined.get("location", "") or ""
+                            # Build a descriptive title from business type + location
+                            if assistant_type == "permit" and btype and btype != "Business":
+                                new_title = f"{btype} in {loc}" if loc and loc != "Istanbul" else btype
+                            elif assistant_type == "student":
+                                if "renew" in btype.lower() if btype else False:
+                                    new_title = "Student ID Renewal"
+                                else:
+                                    new_title = "University Registration"
+                            elif assistant_type == "lawyer":
+                                _LAWYER_TITLES = {
+                                    "lawyer_contract": "Contract Review",
+                                    "lawyer_company": "Company Formation",
+                                    "lawyer_employment": "Employment Dispute",
+                                    "lawyer_residency": "Residency / Work Permit",
+                                    "lawyer_dispute": "Legal Dispute",
+                                    "lawyer_real_estate": "Real Estate",
+                                    "lawyer_criminal": "Criminal Case",
+                                    "lawyer_debt": "Debt Collection",
+                                }
+                                new_title = _LAWYER_TITLES.get(btype, "Legal Consultation")
+                            else:
+                                new_title = None
+                            if new_title:
+                                if len(new_title) > 35:
+                                    new_title = new_title[:32] + "..."
+                                db_session.title = new_title
                     else:
                         print("\n" + "="*70)
                         print(f"📖 [ZERO-TOKEN LIBRARY MATCH] Predefined text response served")
@@ -748,6 +780,41 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
             assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=answer)
             db.add(assistant_msg)
             db.commit()
+
+            # --- Update session title from dashboard state when orchestrator generated one ---
+            if db_session and db_session.dashboard_state and not is_direct:
+                try:
+                    ds = json.loads(db_session.dashboard_state)
+                    combined = ds.get("combined_result") or {}
+                    btype = combined.get("business_type", "") or ""
+                    loc = combined.get("location", "") or ""
+                    new_title = None
+                    if assistant_type == "permit" and btype and btype.lower() not in ("business", ""):
+                        new_title = f"{btype} in {loc}" if loc and loc.lower() not in ("istanbul", "") else btype
+                    elif assistant_type == "student":
+                        if "renew" in btype.lower() if btype else False:
+                            new_title = "Student ID Renewal"
+                        elif btype:
+                            new_title = "University Registration"
+                    elif assistant_type == "lawyer" and btype:
+                        _LAWYER_TITLES = {
+                            "lawyer_contract": "Contract Review",
+                            "lawyer_company": "Company Formation",
+                            "lawyer_employment": "Employment Dispute",
+                            "lawyer_residency": "Residency / Work Permit",
+                            "lawyer_dispute": "Legal Dispute",
+                            "lawyer_real_estate": "Real Estate",
+                            "lawyer_criminal": "Criminal Case",
+                            "lawyer_debt": "Debt Collection",
+                        }
+                        new_title = _LAWYER_TITLES.get(btype, "Legal Consultation")
+                    if new_title:
+                        if len(new_title) > 35:
+                            new_title = new_title[:32] + "..."
+                        db_session.title = new_title
+                        db.commit()
+                except Exception as title_err:
+                    print(f"[Title Update Error] {title_err}")
 
         print(f"[agent_query] Success. Content length: {len(answer)}")
         return {"role": "assistant", "content": answer, "session_title": db_session.title if db_session else None}

@@ -21,6 +21,7 @@ interface SidebarProps {
   assistantType: string;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  refreshTrigger?: number;
 }
 
 export default function Sidebar({
@@ -32,6 +33,7 @@ export default function Sidebar({
   assistantType,
   mobileOpen = false,
   onMobileClose,
+  refreshTrigger = 0,
 }: SidebarProps) {
   const { t } = useLanguage();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -57,7 +59,7 @@ export default function Sidebar({
 
   useEffect(() => {
     fetchSessions();
-  }, [token, currentSessionId]);
+  }, [token, currentSessionId, refreshTrigger]);
 
   const filteredSessions = sessions.filter(s => {
     const typeMatch = (s.assistant_type || 'permit') === assistantType;

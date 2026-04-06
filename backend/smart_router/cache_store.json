@@ -1,30 +1,18 @@
 {
-  "5f2b11448fae88acc0d2dab227c0ccc5": {
-    "response": "In Istanbul, permits are issued by your district municipality (ilçe belediyesi) — so Beşiktaş, Kadıköy, Şişli, etc. each have their own permit office. Which district are you opening in?",
-    "ts": 1775171815.309892
-  },
-  "8a6eb795daf0449c4722ab608fcc9dab": {
-    "response": "🎓 **Start Your Journey!**\n\nTo enroll, you need to finalize your file with the university.\n\n📄 **Required Original Documents:**\n• Passport & Student Visa\n• Acceptance Letter\n• Original Diploma + Apostille\n• Receipt of Tuition Payment\n\n💬 Want me to generate a tailored checklist for your specific university?",
-    "ts": 1775171816.6316147
-  },
   "fd205fce76b1bb8676ee8c31206f411e": {
-    "response": "Honestly, the permit fees aren’t that high — it’s the professional service fees (accountant, notary, lawyer if needed) that add up. Want me to give you a realistic total budget estimate for your specific business type and district?",
-    "ts": 1775171816.6496522
+    "response": "The total cost depends on your business type. Offices are cheapest (1,500–3,000 TL all-in), retail is mid-range (2,000–5,000 TL), and food businesses are the most expensive due to fire and hygiene inspections (5,000–15,000 TL). What are you opening?",
+    "ts": 1775497138.6009119
   },
-  "051be8a3578ab2483fc164a22fed50e2": {
-    "response": "Hello! 👋 I am your professional Permit Advisor. Whether you're opening a café, retail shop, or tech company, I will map out your exact roadmap, timelines, and required documents. What type of business are you planning to start?",
-    "ts": 1775171816.6383832
+  "b7ad558e40ab9faa5f24fba21cf5c2a1": {
+    "response": "For most permits, you submit to your district municipality either via e-Devlet or in person. The Trade Registry and Tax Office are separate stops. Want me to walk you through where to go for each step?",
+    "ts": 1775497158.2911913
   },
-  "828ca87c51f045ded74123a3ecf4c62d": {
-    "response": "I'm doing beautifully, thank you for asking! 😊 I'm right here and ready to map out your permit steps whenever you're ready to begin.",
-    "ts": 1775171987.301561
+  "030c0b2675d1ea6e60a33236af69ed24": {
+    "response": "Harika!",
+    "ts": 1775497176.5924249
   },
-  "0909c9b27cdab5ca0e1987172932a419": {
-    "response": "I am a professional AI assistant specialized in business permits and official licensing processes. My information is fully aligned with the latest municipal and tax regulations, ensuring your processes are completed without errors.",
-    "ts": 1775172004.9721947
-  },
-  "d7db3a2ca3b1e29b7f49ad2f75997a24": {
-    "response": "Here’s the big picture: register your company first (Tax ID → MERSİS → Notary → Trade Registry → Bank Account → Tax Office), then apply for your operating licence at the district municipality. The whole process takes 15–90 days depending on your business type. What are you planning to open?",
-    "ts": 1775172273.6397264
+  "01cde66281a4416f8984a7e7568fe0af": {
+    "response": "Great question! The first step is getting your Tax ID (Vergi Numarası). What district are you in?",
+    "ts": 1775497187.504426
   }
 }
