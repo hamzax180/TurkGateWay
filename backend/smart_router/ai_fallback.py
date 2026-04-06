@@ -29,19 +29,11 @@ async def ai_fallback_response(
     gemini_model=None,
     student_model=None,
     lawyer_model=None,
+    rag_context: list = None,
 ) -> Optional[str]:
     """
     Call the appropriate Gemini model for a fallback response.
-
-    Args:
-        query:          The latest user message (only this is sent — no history).
-        assistant_type: "permit" | "student" | "lawyer"
-        gemini_model:   The permit Gemini model instance from main.py
-        student_model:  The student Gemini model instance from main.py
-        lawyer_model:   The lawyer Gemini model instance from main.py
-
-    Returns:
-        AI-generated response string, or None on failure.
+    If RAG context is available, it's injected into the prompt for grounded answers.
     """
     # Select the model matching the active agent
     model_map = {
@@ -55,14 +47,29 @@ async def ai_fallback_response(
         print(f"[AI Fallback] No model available for assistant_type={assistant_type}")
         return None
 
-    prompt = query + _CONCISE_SUFFIX
+    # Build prompt with optional RAG context
+    if rag_context:
+        context_block = "\n\n".join(
+            f"[{c.get('title', 'Source')}]: {c.get('chunk_text', '')}" 
+            for c in rag_context[:3]
+        )
+        prompt = (
+            f"Use the following knowledge to answer naturally and conversationally:\n\n"
+            f"{context_block}\n\n"
+            f"User question: {query}"
+            f"{_CONCISE_SUFFIX}"
+        )
+        max_tokens = 200
+    else:
+        prompt = query + _CONCISE_SUFFIX
+        max_tokens = 100
 
     try:
         print(f"[SmartRouter] AI FALLBACK triggered for assistant_type={assistant_type}, query='{query[:60]}'")
         response = await asyncio.to_thread(
             model.generate_content,
             prompt,
-            generation_config={"max_output_tokens": 100},
+            generation_config={"max_output_tokens": max_tokens},
         )
         text = response.text.strip()
         print(f"[SmartRouter] AI FALLBACK response ({len(text)} chars)")
@@ -70,3 +77,4 @@ async def ai_fallback_response(
     except Exception as e:
         print(f"[AI Fallback] Error: {e}")
         return None
+

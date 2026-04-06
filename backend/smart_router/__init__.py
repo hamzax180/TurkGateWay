@@ -35,6 +35,15 @@ from .template_engine import render, build_variables
 from . import cache as response_cache
 from .ai_fallback import ai_fallback_response
 
+# RAG retrieval (DB-backed, falls back gracefully to JSON library if unavailable)
+try:
+    from .rag import retrieve_chunks, generate_rag_response
+    _RAG_AVAILABLE = True
+    print("[SmartRouter] RAG retrieval module loaded.")
+except Exception as _rag_err:
+    _RAG_AVAILABLE = False
+    print(f"[SmartRouter] RAG not available (falling back to JSON library): {_rag_err}")
+
 # ---------------------------------------------------------------------------
 # Load response library once at module import time
 # ---------------------------------------------------------------------------
@@ -816,7 +825,23 @@ async def smart_router_handle(
             else:
                 raw_response = f"*( {suffix} )*"
         else:
-            raw_response = _pick_response(intent_group, sub_intent)
+            # Try RAG first, fall back to JSON library
+            raw_response = None
+            if _RAG_AVAILABLE and sub_intent:
+                try:
+                    import asyncio
+                    rag_chunks = asyncio.get_event_loop().run_until_complete(
+                        retrieve_chunks(query, assistant_type, language, top_k=2)
+                    ) if not asyncio.get_event_loop().is_running() else None
+                    # If we're already in an async context, use await via a helper
+                except Exception:
+                    rag_chunks = None
+                if rag_chunks:
+                    raw_response = rag_chunks[0]["chunk_text"]
+                    print(f"[SmartRouter] RAG HIT for {intent_group}.{sub_intent}")
+            # JSON library fallback
+            if not raw_response:
+                raw_response = _pick_response(intent_group, sub_intent)
         
         # Override general greetings to be domain-specific and highly professional
         if intent_group == "greeting":
@@ -949,28 +974,54 @@ async def smart_router_handle(
             return response
 
     # ------------------------------------------------------------------
-    # 3. AI fallback — only for ambiguous queries that don't match
-    #    any domain-specific keyword (permits, registration, legal steps).
-    #    Complex domain queries fall through to orchestrators.
+    # 3. RAG-enhanced fallback for domain queries with no library match
     # ------------------------------------------------------------------
     _DOMAIN_PASS_THROUGH_GROUPS = {"permit", "student", "lawyer"}
 
     if intent_group in _DOMAIN_PASS_THROUGH_GROUPS:
-        # The query IS domain-specific but we had no predefined response for that sub-intent.
-        # Let the full orchestrator handle it for rich structured output.
+        # Try RAG retrieval before passing to the full orchestrator
+        if _RAG_AVAILABLE:
+            try:
+                rag_chunks = await retrieve_chunks(query, assistant_type, language, top_k=3)
+                if rag_chunks and rag_chunks[0].get("similarity", 0) > 0.45:
+                    # High-confidence RAG match — generate grounded response
+                    model_map = {"permit": gemini_model, "student": student_model, "lawyer": lawyer_model}
+                    rag_response = await generate_rag_response(
+                        query=query,
+                        agent_type=assistant_type,
+                        language=language,
+                        gemini_model=model_map.get(assistant_type, gemini_model),
+                        retrieved_chunks=rag_chunks,
+                    )
+                    if rag_response:
+                        response_cache.set(query, rag_response, assistant_type, language)
+                        print(f"[SmartRouter] RAG RESPONSE for {intent_group}.{sub_intent}")
+                        return rag_response
+            except Exception as rag_err:
+                print(f"[SmartRouter] RAG fallback error: {rag_err}")
+
+        # RAG didn't match — let the full orchestrator handle it
         print(
-            f"[SmartRouter] PASS-THROUGH — domain-specific query with no library response "
+            f"[SmartRouter] PASS-THROUGH — domain-specific query with no library/RAG response "
             f"({intent_group}.{sub_intent}). Routing to orchestrator."
         )
         return None
 
-    # Generic / ambiguous query — use AI fallback with 100-token cap
+    # Generic / ambiguous query — use AI fallback with RAG context
+    rag_context = []
+    if _RAG_AVAILABLE:
+        try:
+            rag_context = await retrieve_chunks(query, assistant_type, language, top_k=2)
+        except Exception:
+            pass
+
     ai_response = await ai_fallback_response(
         query=query,
         assistant_type=assistant_type,
         gemini_model=gemini_model,
         student_model=student_model,
         lawyer_model=lawyer_model,
+        rag_context=rag_context,
     )
 
     if ai_response:
