@@ -73,6 +73,13 @@ export default function Sidebar({
     fetchSessions();
   }, [token, currentSessionId, refreshTrigger]);
 
+  const getDisplayTitle = (title: string) => {
+    if (!title) return t('chat_new');
+    if (title === 'New Chat') return t('chat_new');
+    if (title === 'Document Analysis') return t('chat_suggestion_permit').replace('?', '');
+    return title;
+  };
+
   const filteredSessions = sessions.filter(s => {
     const typeMatch = showAllTypes || (s.assistant_type || 'permit') === assistantType;
     const searchMatch = !searchQuery || s.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -183,9 +190,9 @@ export default function Sidebar({
         {showLabels && (
           <div className="flex bg-[var(--surface-2)] p-1 rounded-xl mx-3 mb-2 mt-3 shrink-0">
             {[
-              { id: 'permit', label: t('navbar_dashboard').replace('My ', ''), icon: '🏢' },
-              { id: 'student', label: 'Student', icon: '🎓' },
-              { id: 'lawyer', label: 'Lawyer', icon: '⚖️' },
+              { id: 'permit', label: t('assistant_permit'), icon: '🏢' },
+              { id: 'student', label: t('assistant_student'), icon: '🎓' },
+              { id: 'lawyer', label: t('assistant_lawyer'), icon: '⚖️' },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -236,7 +243,7 @@ export default function Sidebar({
                   <MessageSquare size={18} className={currentSessionId === s.id ? "text-indigo-500" : "text-[var(--muted)]"} />
                 )}
                 {showLabels && (
-                  <span className={`text-sm tracking-tight truncate flex-1 pr-6 ${currentSessionId === s.id ? 'font-bold' : 'font-medium opacity-90'}`}>{s.title}</span>
+                  <span className={`text-sm tracking-tight truncate flex-1 pr-6 ${currentSessionId === s.id ? 'font-bold' : 'font-medium opacity-90'}`}>{getDisplayTitle(s.title)}</span>
                 )}
                 {showLabels && (
                   <button

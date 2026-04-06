@@ -598,6 +598,21 @@ const translations: Record<Language, Record<string, string>> = {
     pricing_secure_checkout: 'دفع آمن عبر iyzico',
     pricing_cancel_anytime: 'إلغاء في أي وقت',
     pricing_vat_included: 'فاتورة ضريبة القيمة المضافة متضمنة',
+    auth_login_title: 'تسجيل الدخول',
+    auth_login_subtitle: 'مرحبًا بعودتك! يرجى إدخال بياناتك.',
+    auth_email: 'البريد الإلكتروني',
+    auth_password: 'كلمة المرور',
+    auth_no_account: 'ليس لديك حساب؟',
+    auth_has_account: 'لديك حساب بالفعل؟',
+    auth_signup_title: 'إنشاء حساب',
+    auth_signup_subtitle: 'ابدأ رحلتك مع PermitOps اليوم.',
+    auth_full_name: 'الاسم الكامل',
+    auth_signing_in: 'جاري تسجيل الدخول...',
+    auth_signing_up: 'جاري إنشاء الحساب...',
+    pricing_billed_as: 'يتم احتساب الفاتورة بقيمة {amount}/سنوياً',
+    pricing_billed_monthly: 'يتم احتساب الفاتورة شهرياً',
+    pricing_monthly_unit: 'شهر',
+    pricing_feat_label: 'الميزة',
   }
 };
 
