@@ -23,7 +23,9 @@
   "trust": [
     "Ben doğru ve yardımcı bilgi sağlamak için tasarlanmış bir yapay zeka asistanıyım. Karmaşık veya kritik konular için her zaman resmi bir uzmana danışmanızı öneririm. Bu konuda başka sorunuz var mı?",
     "Veri setlerime dayanarak en güncel bilgileri sağlamak için elimden gelenin en iyisini yapıyorum. Net olmayan bir şey olursa lütfen bildirin!",
-    "Güven çok önemlidir. Yanıtlarım mevcut verilere dayanmaktadır, ancak kritik detayları bir profesyonelle doğrulamak her zaman akıllıca bir adımdır."
+    "Güven çok önemlidir. Yanıtlarım mevcut verilere dayanmaktadır, ancak kritik detayları bir profesyonelle doğrulamak her zaman akıllıca bir adımdır.",
+    "Sağladığımız bilgilerin doğruluğu konusunda son derece titiz davranıyoruz. Resmi işlemlere başlamadan önce yetkili makamlardan nihai onay almanız önerilir.",
+    "Görevim, güncel yasalar ve yönetmelikler ışığında işleri sizin için basitleştirmektir. Daha fazla netlik istediğiniz bir konu var mı?"
   ],
   "billing": {
     "price": [
@@ -81,11 +83,15 @@
   "help_options": [
     "Size şu konularda yardımcı olabilirim: ① Şirket kuruluşu ve ruhsatlar, ② Öğrenci işleri ve ikamet, ③ Hukuki danışmanlık ve uyuşmazlıklar. Hangisini seçersiniz?",
     "Türkiye'de iş, eğitim veya hukuk ile ilgili her şeyi sorabilirsiniz. Hizmetinizdeyim!",
-    "Belirli bir bilgi mi arıyorsunuz? Ruhsat alma, üniversite belgeleri veya sözleşme inceleme adımlarında size rehberlik edebilirim."
+    "Belirli bir bilgi mi arıyorsunuz? Ruhsat alma, üniversite belgeleri veya sözleşme inceleme adımlarında size rehberlik edebilirim.",
+    "İlgi alanınızı seçin: 🏠 Gayrimenkul ve Yasalar, 🎓 Üniversite ve Burslar, 💼 İş Kurulumu ve Vergiler. Nasıl başlayalım?",
+    "Türkiye'deki yerel uzmanınızım. e-Devlet sistemini anlama, göç randevuları veya üniversite arama konularında yardımcı olabilirim. Bugün neye ihtiyacımız var?"
   ],
   "feedback": [
     "Geri bildiriminizi duymaktan her zaman mutluluk duyarız! Bugün asistanla deneyiminiz nasıldı?",
     "PermitOps'u kullandığınız için teşekkürler. Hizmetimizi geliştirmek için önerileriniz var mı?",
-    "Görüşleriniz bizim için çok değerli. Aradığınızı bulabildiniz mi?"
+    "Görüşleriniz bizim için çok değerli. Aradığınızı bulabildiniz mi?",
+    "Değerlendirmeniz gelişmemize yardımcı olur. Yanıtlar sizin için açık ve yararlı mıydı?",
+    "Her zaman daha iyisi için çalışıyoruz. Gelecekte PermitOps'ta görmek istediğiniz bir özellik var mı?"
   ]
 }

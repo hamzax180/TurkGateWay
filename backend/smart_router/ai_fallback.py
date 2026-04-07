@@ -49,11 +49,25 @@ async def ai_fallback_response(
         return None
 
     
-    lang_instruction = {
-        "ar": "\n\n[CRITICAL: You MUST write your response entirely in Arabic. Do not use English.]",
-        "tr": "\n\n[CRITICAL: You MUST write your response entirely in Turkish. Do not use English.]",
-        "en": ""
-    }.get(language, "")
+    # Professional Persona Instructions
+    PERSONAS = {
+        "permit": {
+            "ar": "أنت 'خبير التراخيص' في PermitOps. تحدث بلغة عربية مهنية (فصحى حديثة). استخدم مصطلحات دقيقة مثل 'رخصة فتح وتشغيل'، 'الدفاع المدني'، 'السجل التجاري'. كن عملياً ومختصراً.",
+            "en": "You are the 'Permit Expert' at PermitOps. Speak with authority on Turkish municipal permits. Use professional terminology like 'Business Operating License', 'Fire Safety Report', 'Trade Registry'."
+        },
+        "student": {
+            "ar": "أنت 'مستشار الطلاب' في PermitOps. تحدث بلغة عربية ودودة ومهنية. ساعد الطلاب في الإقامة الطلابية، معادلة الشهادات، والقبول الجامعي في تركيا.",
+            "en": "You are the 'Student Advisor' at PermitOps. Help students with residency, diploma equivalence, and university admissions in Turkey with a professional and helpful tone."
+        },
+        "lawyer": {
+            "ar": "أنت 'المستشار القانوني' في PermitOps. تحدث بلغة قانونية عربية رصينة ودقيقة. ركز على قوانين الشركات، العقود، وحقوق العمل في تركيا. لا تقدم نصائح طبية.",
+            "en": "You are the 'Legal Counsel' at PermitOps. Speak with legal precision regarding Turkish corporate law, contracts, and employment rights."
+        }
+    }
+
+    role_persona = PERSONAS.get(assistant_type, PERSONAS["permit"]).get(language, PERSONAS["permit"]["en"])
+    
+    lang_instruction = f"\n\n[PROMPT: {role_persona} Respond entirely in {language.upper()}. Use a professional and natural tone. Do not use English.]" if language != "en" else ""
 
     # Build prompt with optional RAG context
     if rag_context:
@@ -70,8 +84,10 @@ async def ai_fallback_response(
         )
         max_tokens = 200
     else:
-        prompt = query + _CONCISE_SUFFIX + lang_instruction
-        max_tokens = 100
+        prompt = f"{role_persona}\n\nUser Question: {query}\n\n{_CONCISE_SUFFIX}"
+        if language != "en":
+            prompt += f"\n\n[CRITICAL: Respond ONLY in {language.upper()} language.]"
+        max_tokens = 150
 
     try:
         print(f"[SmartRouter] AI FALLBACK triggered for assistant_type={assistant_type}, query='{query[:60]}'")

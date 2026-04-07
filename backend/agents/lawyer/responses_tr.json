@@ -3,49 +3,99 @@
     "Türkiye'de şirket kurmak mı istiyorsunuz? Güzel bir karar. Yabancı girişimciler için en yaygın seçenek Ltd. Şirkettir. MERSİS kaydıyla başlamanızı sağlayalım mı?",
     "Ltd. Şirket kuruluşu, belgeleriniz hazırsa 5-10 iş günü sürer. Her şeyden önce — ortakların kimlikleri ve bir ofis adresiniz hazır mı?",
     "Türkiye aslında şirket kuruluşu için oldukça iş dostu bir yerdir. MERSİS portalı isim rezervasyonu ve ana sözleşme işlemlerini çevrimiçi halleder. Tam kılavuz hazır mı?",
-    "Yabancı girişimciler için Ltd. Şirket en iyi yoldur — esnek yapı ve düşük sermaye gerekliliği. Kuruluş yol haritanızı oluşturalım mı?"
+    "Yabancı girişimciler için Ltd. Şirket en iyi yoldur — esnek yapı ve düşük sermaye gerekliliği. Kuruluş yol haritanızı oluşturalım mı?",
+    "Hızlı başlamanın en iyi yolu, şirket adınızı MERSİS üzerinden rezerve etmektir. Onaylandıktan sonra noter ve Ticaret Sicili adımlarına geçebiliriz. Tam döküm ister misiniz?"
   ],
   "contract_review": [
     "⚖️ **Sözleşme İncelemesi**\n\nİş, kira ve ortaklık sözleşmeleri için kapsamlı hukuk incelemesi sunuyoruz.\n\n📄 **Gerekli Belgeler:**\n• Sözleşme kopyası\n• Kimlik belgesi\n\n💬 İmzalamadan önce hukuki inceleme yaptırmak doğru bir karardır!",
-    "⚖️ **Hukuki Sözleşme Analizi**\n\nSözleşme analiz edilip haklarınızı korumak için incelenir.\n\n✅ Cezai şartlar, süre ve fesih prosedürlerine odaklanacağız.\n\n💬 Sözleşme dilini belirtir misiniz?"
+    "⚖️ **Hukuki Sözleşme Analizi**\n\nSözleşme analiz edilip haklarınızı korumak için incelenir.\n\n✅ Cezai şartlar, süre ve fesih prosedürlerine odaklanacağız.\n\n💬 Sözleşme dilini belirtir misiniz?",
+    "⚖️ **Sözleşme Risk Analizi**\n\nBir şeyi imzalamadan önce, tek taraflı şartlara karşı bir avukatın kontrol etmesi her zaman faydalıdır. Sözleşmenin ne hakkında olduğunu söyleyin, nelere dikkat etmeniz gerektiğini anlatayım.",
+    "⚖️ **Sözleşme Maddeleri**\n\nTürk hukukuna göre, belirli sözleşme türleri — gayrimenkul, hissedar sözleşmeleri, vekaletnameler — icra edilebilir olması için noter onayı gerektirir. Ne tür bir sözleşmeye bakıyoruz?",
+    "⚖️ **Sözleşmede Riskli Maddeler**\n\nSözleşmenizde ters giden bir şey mi fark ettiniz? İmzalamadan önce kontrol etmek akıllıca bir hareket. Endişelendiğiniz maddeleri paylaşın, haklarınızı açıklayayım."
   ],
   "employment_law": [
     "⚖️ **Türk İş Hukuku**\n\nİşçilerin hakları 4857 sayılı kanunla korunmaktadır. Bir yıldan fazla çalıştıysanız, Kıdem Tazminatı ve İhbar Tazminatı haklarınız doğabilir.\n\n💬 İşten çıkarma bildirimi yazılı olarak yapıldı mı?",
-    "⚖️ **İşçi Hakları**\n\nTürkiye'deki iş mahkemeleri genellikle işçi lehinedir ve ispat yükümlülüğü işverendedir. Yasal haklarınızı hesaplamak ister misiniz?"
+    "⚖️ **İşçi Hakları**\n\nTürkiye'deki iş mahkemeleri genellikle işçi lehinedir ve ispat yükümlülüğü işverendedir. Yasal haklarınızı hesaplamak ister misiniz?",
+    "⚖️ **İşe İade ve Tazminat**\n\nGeçersiz fesih iddiaları işten çıkarılmadan itibaren 1 ay içinde açılmalıdır — bu yüzden zamanlama çok önemlidir. İşten çıkarıldınız mı yoksa süreç devam mı ediyor?",
+    "⚖️ **Zorunlu Arabuluculuk**\n\nİş uyuşmazlıkları genellikle mahkemeden önce zorunlu arabuluculukla başlar. Çoğu vaka 2-3 oturumda çözülür. Süreci tam olarak anlamak ister misiniz?",
+    "⚖️ **Kıdem Tazminatı Hesabı**\n\nKıdem tazminatı, her tam yıl için 30 günlük brüt maaş üzerinden hesaplanır. Haksız yere işten çıkarıldıysanız, bundan fazlasını talep edebilirsiniz. Neleri talep edebileceğinizi haritalandıralım mı?"
   ],
   "residence_permit": [
     "⚖️ **Çalışma ve İkamet İzinleri**\n\nÇalışma izni başvuruları, işvereniniz tarafından Çalışma Bakanlığı portalı üzerinden yapılır. Kendi başınıza başvuramazsınız.\n\n💬 İşvereniniz işlemleri başlattı mı?",
-    "⚖️ **Yabancı İkamet İşlemleri (İkamet)**\n\nVize veya giriş damgası süresi dolmadan ikamete başvurmalısınız. Ana belgeler: pasaport, sağlık sigortası ve noter onaylı sözleşme.\n\n💬 Başvuru adımlarında size rehberlik etmemi ister misiniz?"
+    "⚖️ **Yabancı İkamet İşlemleri (İkamet)**\n\nVize veya giriş damgası süresi dolmadan ikamete başvurmalısınız. Ana belgeler: pasaport, sağlık sigortası ve noter onaylı sözleşme.\n\n💬 Başvuru adımlarında size rehberlik etmemi ister misiniz?",
+    "⚖️ **Çalışma İzni Süreci**\n\nÇalışma izni süreci başvurudan itibaren 4-8 hafta sürer. İyi haber şu ki, işvereniniz evrak işlerinin çoğunu halleder. Siz pasaport ve sigorta sağlarsınız. Tam rehber ister misiniz?",
+    "⚖️ **e-İkamet Randevusu**\n\nİkamet başvurusu mu yapıyorsunuz? e-ikamet.goc.gov.tr üzerinden randevunuzu en kısa sürede alın — büyük şehirlerde kontenjanlar hızlı dolar. Randevudan önce noter onaylı kira sözleşmeniz hazır olmalı.",
+    "⚖️ **İkamet ve Sigorta Kuralları**\n\nÇalışma izniniz onaylanırsa, ikamet izni de otomatik olarak onunla birlikte verilir. Ancak sağlık sigortası kapsamı ilk günden aktif olmalıdır. Sigorta poliçeniz hazır mı?"
   ],
   "dispute": [
-    "⚖️ **Hukuki İhtilaflar**\n\nHukuki süreçlerle uğraşmak stresli olabilir ama iyi bir planlama işi kolaylaştırır. Ne tür bir uyuşmazlıkla karşı karşıyasınız?\n\n💬 Dava size mi açıldı yoksa siz mi açmak istiyorsunuz?"
+    "⚖️ **Hukuki İhtilaflar**\n\nHukuki süreçlerle uğraşmak stresli olabilir ama iyi bir planlama işi kolaylaştırır. Ne tür bir uyuşmazlıkla karşı karşıyasınız?\n\n💬 Dava size mi açıldı yoksa siz mi açmak istiyorsunuz?",
+    "⚖️ **Hukuki Uyuşmazlık Çözümü**\n\nYaşadığınız durum için üzgünüm. Hukuki anlaşmazlıklar genellikle bunaltıcı hissettirir, ancak bir plan yapmak süreci yönetilebilir kılar.\n\n💬 Neler olduğu hakkında biraz daha bilgi verin — bu size mi karşı, yoksa başka birine mi?",
+    "⚖️ **Dava Yönetimi**\n\nBu, tek başınıza ilerlemek için zor bir durum gibi görünüyor. Bunu birlikte çözelim.\n\n💬 Şu anda belirli bir yasal davayla mı karşı karşıyasınız, yoksa bir dava açmayı mı düşünüyorsunuz?",
+    "⚖️ **Uyuşmazlık Yol Haritası**\n\nHukuki davalarla uğraşmak asla kolay değildir, bu yüzden rehberlik arayarak doğru adımı atıyorsunuz.\n\n💬 En iyi yolu belirlememe yardımcı olmak için, davanın size mi karşı açıldığını yoksa sizin mi açtığınızı söyler misiniz?",
+    "⚖️ **Hukuki Seçenekler**\n\nSizi anlıyorum ve Türk hukuku kapsamındaki seçeneklerinizi kesinlikle netleştirebilirim. Adım adım ilerleyelim. Ne tür bir davadan bahsediyoruz?"
   ],
   "dispute_defendant": [
-    "⚖️ **Dava Savunması**\n\nSize karşı bir dava açıldığında, savunmanızı ve delillerinizi sunmak için süre başlar. Yasal süreyi kaçırmamak çok önemlidir.\n\n💬 Resmi bir tebligat (İhtarname) veya mahkeme çağrısı aldınız mı?"
+    "⚖️ **Dava Savunması**\n\nSize karşı bir dava açıldığında, savunmanızı ve delillerinizi sunmak için süre başlar. Yasal süreyi kaçırmamak çok önemlidir.\n\n💬 Resmi bir tebligat (İhtarname) veya mahkeme çağrısı aldınız mı?",
+    "⚖️ **Davalı Konumu**\n\nTürkiye'de aleyhinize bir dava açıldığında, savunma ve delil sunmak için zaman işlemeye başlar.\n\n✅ Endişelenmeyin — sağlam bir plan yapabiliriz. Henüz herhangi bir resmi bildirim aldınız mı?",
+    "⚖️ **Dava Yanıt Süreci**\n\nŞu anki en kritik şey, yasal yanıt sürelerini kaçırmamaktır.\n\n💬 Talebin ne tür olduğunu (borç, iş, ticari vb.) söyleyebilir misiniz?"
   ],
   "dispute_plaintiff": [
-    "⚖️ **Dava Açma Süreci**\n\nİlk adım genellikle arabuluculuğa veya mahkemeye gitmeden önce talebinizi resmileştirmek için noter onaylı ihtarname göndermektir.\n\n💬 Tüm delilleri topladınız mı?"
+    "⚖️ **Dava Açma Süreci**\n\nİlk adım genellikle arabuluculuğa veya mahkemeye gitmeden önce talebinizi resmileştirmek için noter onaylı ihtarname göndermektir.\n\n💬 Tüm delilleri topladınız mı?",
+    "⚖️ **Davacı Yol Haritası**\n\nBir dava başlatmak, önce güçlü bir temel oluşturmamız gerektiği anlamına gelir.\n\n⚠️ Türkiye'de birçok ticari ve iş uyuşmazlığı, dava açmadan önce zorunlu arabuluculuk gerektirir.\n\n💬 Tam olarak neyi çözmeye veya geri almaya çalışıyorsunuz?",
+    "⚖️ **Yasal Aksiyon**\n\nHukuki işlem yapmak büyük bir adımdır, ancak haklarınız ihlal edildiyse bu doğru hamledir.\n\n✅ Sorunu net bir şekilde belgelememiz ve resmi bir bildirimde bulunmamız gerekecek."
   ],
   "general_legal": [
-    "⚖️ **Genel Hukuki Danışmanlık**\n\nTürk Hukuku — sözleşmeler, şirket kuruluşu, işçi hakları, ikamet ve hukuki ihtilaflar konularında uzmanım.\n\n💬 Bugün aklınızda ne var?"
+    "⚖️ **Genel Hukuki Danışmanlık**\n\nTürk Hukuku — sözleşmeler, şirket kuruluşu, işçi hakları, ikamet ve hukuki ihtilaflar konularında uzmanım.\n\n💬 Bugün aklınızda ne var?",
+    "⚖️ **Türk Hukuk Rehberi**\n\nTürk hukukunda yol almaya yardımcı olmaktan mutluluk duyarım. Karmaşık görünebilir ama doğru yol haritasıyla çoğu sorun yönetilebilirdir.\n\n💬 Durumunuz nedir?",
+    "⚖️ **Hukuki Çözümler**\n\nİster bir sözleşme sorusu, ister şirket kurmak veya iş yeri anlaşmazlığı olsun — yanınızdayım.\n\n💬 Bana biraz daha bağlam verin, en iyi yolu bulalım.",
+    "⚖️ **Hukuk Uzmanı**\n\nTürk hukuku çok geniş bir alanı kapsar, ancak nereye bakacağınızı bildiğinizde prensipler basittir.\n\n💬 Hangi alanda rehberliğe ihtiyacınız var — iş, sözleşmeler, şirket kuruluşu veya başka bir şey?",
+    "⚖️ **Hukuki Süreçler**\n\nKarmaşık Türk hukuki prosedürlerini net ve eyleme dönüştürülebilir adımlara çevirmek için buradayım.\n\n💬 Neyi başarmaya çalıştığınızı söyleyin, birlikte çalışalım."
   ],
   "legal_timelines": [
-    "⚖️ **Yasal Süreler**\n\nŞirket kuruluşu: 5-10 gün. Sözleşme incelemesi: 1 hafta. İş arabuluculuğu: 2-3 hafta. Mahkeme süreci: 6-18 ay.\n\n💬 Hangi prosedürle ilgileniyorsunuz?"
+    "⚖️ **Yasal Süreler**\n\nŞirket kuruluşu: 5-10 gün. Sözleşme incelemesi: 1 hafta. İş arabuluculuğu: 2-3 hafta. Mahkeme süreci: 6-18 ay.\n\n💬 Hangi prosedürle ilgileniyorsunuz?",
+    "⚖️ **Hukuki İşlem Süreleri**\n\nÇalışma izinleri: 4-8 hafta. İkamet izinleri: 3-5 hafta. Arabuluculuk: Genellikle 3 haftada çözülür. Tam dava süreci: 6-18 ay.\n\n💬 Sizin için en kritik olan hangisi?",
+    "⚖️ **Süreç Beklentileri**\n\nTürkiye'de şirket kuruluşu çoğu insanın beklediğinden daha hızlıdır — belgeler hazırsa genellikle 5-10 iş günü sürer.\n\n💬 İş uyuşmazlıkları arabuluculuk yoluyla 2-3 haftada çözülür. Ne tür bir konuyu tartışıyoruz?",
+    "⚖️ **Yasal Zaman Haritası**\n\nTürkiye'deki en hızlı yasal süreçler şirket tescili (1 hafta) ve zorunlu arabuluculuktur (2-3 hafta).\n\n📄 Mahkemeye giden sözleşme uyuşmazlıkları 1-2 yıl sürebilir.\n\n💬 Hangi süreç için plan yapıyorsunuz?",
+    "⚖️ **Ne Kadar Sürer?**\n\nKabaca bir rehber olarak: Şirket kurulumu = 1 hafta, sözleşme incelemesi = 3-7 gün, iş arabuluculuğu = 2-3 hafta, çalışma izni = 4-8 hafta."
   ],
   "real_estate": [
     "⚖️ **Türkiye'de Gayrimenkul**\n\nGayrimenkul alım veya satımında Tapu sürecini dikkatle incelemek gerekir. Alıyor musunuz, satıyor musunuz yoksa kiralıyor mu?",
-    "Kira artışları ve tahliye davaları Türkiye'de sıkı kurallara tabidir. Durumunuzu anlatır mısınız?"
+    "⚖️ **Emlak Uyuşmazlıkları**\n\nKira artışları ve tahliye davaları Türkiye'de sıkı kurallara tabidir. Durumunuzu anlatır mısınız?",
+    "⚖️ **Yabancılar İçin Mülk Edinimi**\n\nTürkiye'de mülk satın alan yabancıların vergi numarası, değerleme raporu ve Merkez Bankası döviz belgelerine ihtiyacı vardır.\n\n💬 Satın alma sürecinin tamamını haritalandırmamı ister misiniz?"
   ],
   "criminal": [
-    "⚖️ **Ceza Davaları**\n\nCeza davaları acil müdahale gerektirir. Türkiye'de gözaltına alınan herkesin avukat ve susma hakkı vardır.\n\n💬 Gözaltında olan biri mi var?"
+    "⚖️ **Ceza Davaları**\n\nCeza davaları acil müdahale gerektirir. Türkiye'de gözaltına alınan herkesin avukat ve susma hakkı vardır.\n\n💬 Gözaltında olan biri mi var?",
+    "⚖️ **Ceza Soruşturması**\n\nBir ceza şikayeti veya polis soruşturmasıyla uğraşıyorsanız, ilk adım genellikle ifade vermektir.\n\n⚠️ Avukat bulundurmak çok kritiktir. Suçlama nedir?",
+    "⚖️ **Ceza Yargılaması Süreci**\n\nTürkiye'deki ceza yargılaması, savcı tarafından yürütülen bir soruşturma evresini ve ardından bir iddianamenin kabul edilmesi durumunda yargılamayı içerir."
   ],
   "debt": [
-    "⚖️ **Alacak Tahsili**\n\nMahkeme davasına gerek kalmadan İcra Takibi başlatabiliriz. Alacağın yazılı kanıtı var mı?\n\n💬 Alacak tahsili icra müdürlükleri üzerinden yürütülür."
+    "⚖️ **Alacak Tahsili**\n\nMahkeme davasına gerek kalmadan İcra Takibi başlatabiliriz. Alacağın yazılı kanıtı var mı?\n\n💬 Alacak tahsili icra müdürlükleri üzerinden yürütülür.",
+    "⚖️ **İcra Müdürlüğü ve Süreç**\n\nTürkiye'de borç tahsili büyük ölçüde icra dairelerine dayanır. Borçlu 7 gün içinde itiraz etmezse, banka hesapları dondurulabilir.\n\n💬 Daha fazlasını bilmek ister misiniz?",
+    "⚖️ **Finansal Alacaklar**\n\nBirisi size borçluysa, noter onaylı bir ihtarname göndermek genellikle en iyi ilk adımdır.\n\n💬 Bu ne tür bir borç?"
   ],
   "criminal_victim": [
-    "⚖️ **Suç Duyurusu**\n\nİlk adım, adliye veya karakolda resmi şikayet dilekçesi vermektir. İfadenizin doğru kaydedilmesi önemlidir.\n\n💬 Karakola gittiniz mi?"
+    "⚖️ **Suç Duyurusu**\n\nİlk adım, adliye veya karakolda resmi şikayet dilekçesi vermektir. İfadenizin doğru kaydedilmesi önemlidir.\n\n💬 Karakola gittiniz mi?",
+    "⚖️ **Mağdur Hakları**\n\nBir suçun mağduru olmak üzücüdür, ancak derhal harekete geçmek anahtardır. Suça bağlı olarak, şikayette bulunmak için yasal bir süremiz vardır.",
+    "⚖️ **Müşteki Hakları**\n\nMağdur (müşteki) olarak soruşturmayı takip etme ve zararınızın tazminini talep etme hakkınız vardır. Başlamak için acil delilleri toplamamız gerekiyor."
   ],
   "criminal_accused": [
-    "⚖️ **Ceza Savunması**\n\nUnutmayın: Susma hakkınız ve avukat isteme hakkınız var. Avukat olmadan ifade vermeyiniz.\n\n💬 Şu an gözaltında mısınız?"
+    "⚖️ **Ceza Savunması**\n\nUnutmayın: Susma hakkınız ve avukat isteme hakkınız var. Avukat olmadan ifade vermeyiniz.\n\n💬 Şu an gözaltında mısınız?",
+    "⚖️ **Şüpheli Konumu**\n\nSuçlamalarla karşı karşıyaysanız, en önemli kural avukat (müdafi) olmadan yetkililerle konuşmamaktır.\n\n✅ Söylediğiniz her şey savcının davasını oluşturmak için kullanılabilir. Resmen çağrıldınız mı?",
+    "⚖️ **Suçsuzluk Karinesi**\n\nHaksız yere suçlanıyorsanız panik hissetmeniz tamamen normaldir. Türk sisteminde ispat yükü savcıdadır.\n\n💬 İşimiz onların delillerini çürütmek olacak. Polis sizinle iletişime geçti mi?"
+  ],
+  "criminal_drugs": [
+    "⚖️ **Uyuşturucu Suçları**\n\nTürkiye'de uyuşturucu ile ilgili suçlamalar son derece ciddiye alınır. Ticaret veya aracılık cezaları çok ağırdır.\n\n💬 Şu an gözaltında olan biri mi var?",
+    "⚖️ **Narkotik Suçlamaları**\n\nNarkotik suçlamaları için ilk polis ve savcılık ifadeleri sırasında yasal temsilci bulundurmak dava seyri için çok kritiktir.\n\n💬 Soruşturma şu an hangi aşamada?",
+    "⚖️ **Bulundurma ve Ticaret**\n\nUyuşturucu bulundurma ve ticareti Türk Ceza Kanunu kapsamında tamamen farklı savunma stratejileri gerektiren iki farklı suçtur."
+  ],
+  "criminal_theft": [
+    "⚖️ **Hırsızlık ve Dolandırıcılık**\n\nHırsızlık veya dolandırıcılık suçlamaları büyük ölçüde kamera kayıtları veya işlem kayıtları gibi somut delillere dayanır.\n\n💬 Suçu bildiren mağdur musunuz yoksa suçlanan mı?",
+    "⚖️ **Dolandırıcılık Mağduru**\n\nBunu yaşadığınız için üzgünüm. Hırsızlık veya dolandırıcılık mağduruysanız, derhal polise veya savcıya bildirmeliyiz.\n\n💬 Davanın hangi tarafındasınız?",
+    "⚖️ **Maddi Suçlarda Delil**\n\nHırsızlık ve dolandırıcılık davalarında delillerin (banka kayıtları, mesajlar vb.) toplanması en kritik ilk adımdır."
+  ],
+  "criminal_violence": [
+    "⚖️ **Şiddet ve Yaralama**\n\nKasten yaralama suçlamaları, yaralanmanın ciddiyetine ve silah kullanılıp kullanılmadığına göre büyük ölçüde değişir.\n\n💬 Ciddi şekilde yaralanan biri var mı?",
+    "⚖️ **Meşru Müdafaa**\n\nFiziksel bir kavgaya karıştıysanız, meşru müdafaa Türkiye'de tanınan bir hukuki kavramdır ancak kanıtlanması gerekir. Tıbbi raporunuz (darp raporu) var mı?",
+    "⚖️ **Darp Olayı Bildirimi**\n\nŞiddet vakalarında hemen tıbbi rapor almak en önemli delildir, ardından şikayette bulunulmalıdır."
   ]
 }

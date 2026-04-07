@@ -47,29 +47,40 @@ except Exception as _rag_err:
     print(f"[SmartRouter] RAG not available (falling back to JSON library): {_rag_err}")
 
 # ---------------------------------------------------------------------------
-# Load response library once at module import time
+# Load response libraries for multiple languages
 # ---------------------------------------------------------------------------
 _AGENTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agents")
-_library: dict = {}
+_library: dict = {"en": {}, "ar": {}, "tr": {}}
 
-try:
-    # Load each intent domain into the library dictionary
-    with open(os.path.join(_AGENTS_DIR, "permit", "responses.json"), "r", encoding="utf-8") as f:
-        _library["permit"] = json.load(f)
-    with open(os.path.join(_AGENTS_DIR, "student", "responses.json"), "r", encoding="utf-8") as f:
-        _library["student"] = json.load(f)
-    with open(os.path.join(_AGENTS_DIR, "lawyer", "responses.json"), "r", encoding="utf-8") as f:
-        _library["lawyer"] = json.load(f)
-    
-    # Load general conversational and support responses
-    with open(os.path.join(_AGENTS_DIR, "general", "responses.json"), "r", encoding="utf-8") as f:
-        general_data = json.load(f)
-        for k, v in general_data.items():
-            _library[k] = v
-            
-    print("[SmartRouter] Split response libraries loaded successfully.")
-except Exception as e:
-    print(f"[SmartRouter] WARNING: Failed to load split response libraries: {e}")
+for lang in ["en", "ar", "tr"]:
+    suffix = f"_{lang}" if lang != "en" else ""
+    try:
+        # Load core agents
+        for agent in ["permit", "student", "lawyer"]:
+            file_path = os.path.join(_AGENTS_DIR, agent, f"responses{suffix}.json")
+            if os.path.exists(file_path):
+                with open(file_path, "r", encoding="utf-8") as f:
+                    _library[lang][agent] = json.load(f)
+            elif lang != "en":
+                # Fallback to English if localized file is missing
+                _library[lang][agent] = _library["en"].get(agent, {})
+
+        # Load general responses
+        gen_file = os.path.join(_AGENTS_DIR, "general", f"responses{suffix}.json")
+        if os.path.exists(gen_file):
+            with open(gen_file, "r", encoding="utf-8") as f:
+                gen_data = json.load(f)
+                for k, v in gen_data.items():
+                    _library[lang][k] = v
+        elif lang != "en":
+             # Fallback general keys from English
+             for k, v in _library["en"].items():
+                 if k not in ["permit", "student", "lawyer"]:
+                     _library[lang][k] = v
+
+        print(f"[SmartRouter] Handlers for '{lang}' loaded successfully.")
+    except Exception as e:
+        print(f"[SmartRouter] WARNING: Failed to load '{lang}' response libraries: {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -157,19 +168,29 @@ def _fuzzy_match(word: str, candidates: list, threshold: float = 0.70) -> str | 
 
 
 # ---------------------------------------------------------------------------
-# Internal: pick a random response from the library
+# Internal: pick a random response from the library (language aware)
 # ---------------------------------------------------------------------------
 
-def _pick_response(intent_group: Optional[str], sub_intent: Optional[str]) -> Optional[str]:
+def _pick_response(intent_group: Optional[str], sub_intent: Optional[str], language: str = "en") -> Optional[str]:
     if not intent_group:
         return None
-    if intent_group in _library and isinstance(_library[intent_group], list):
-        return random.choice(_library[intent_group])
-    group_data = _library.get(intent_group)
+    
+    # Ensure language exists in library
+    lang_lib = _library.get(language, _library["en"])
+    
+    if intent_group in lang_lib and isinstance(lang_lib[intent_group], list):
+        return random.choice(lang_lib[intent_group])
+    
+    group_data = lang_lib.get(intent_group)
     if isinstance(group_data, dict) and sub_intent:
         options = group_data.get(sub_intent)
         if options:
             return random.choice(options)
+            
+    # Final fallback to English if no match found in localized lib
+    if language != "en":
+        return _pick_response(intent_group, sub_intent, "en")
+        
     return None
 
 
@@ -366,11 +387,11 @@ async def smart_router_handle(
                         if "business" in missing_items: msg += "**Hangi tür işletme** (Kafe, Mağaza vb.) açacaksın? "
                         if "district" in missing_items: msg += "**İstanbul'un hangi ilçesinde** açacaksın?"
                 elif language == "ar":
-                    if ack_business and "district" in missing_items: msg = f"ممتاز، **{ack_business}** اختيار رائع! 👍 الآن لأرسم خريطة طريقك الكاملة: **في أي منطقة في إسطنبول** ستفتح؟"
-                    elif ack_district and "business" in missing_items: msg = f"تمام، سجّلت **{ack_district}**! 📍 الآن: **ما هو نوع العمل** (مقهى، متجر)؟"
+                    if ack_business and "district" in missing_items: msg = f"**{ack_business}**، خيار موفق للبدء في عالم الأعمال! 👍 الآن لكي أرسم لك خريطة طريق مهنية: **في أي منطقة (بلدية) في إسطنبول** تخطط للافتتاح؟"
+                    elif ack_district and "business" in missing_items: msg = f"رائع، لقد سجلت منطقة **{ack_district}**! 📍 الآن سؤالي: **ما هو النشاط التجاري** (مقهى، متجر، إلخ) الذي تود ممارسته؟"
                     else:
-                        msg = "لكي أرسم لك خريطة طريق دقيقة، يرجى تحديد: "
-                        if "business" in missing_items: msg += "**ما هو نوع العمل** (مقهى، متجر)؟ "
+                        msg = "لكي أتمكن من رسم خريطة طريق دقيقة لعملك، يرجى تزويدي بالآتي: "
+                        if "business" in missing_items: msg += "**ما هو نوع النشاط التجاري**؟ "
                         if "district" in missing_items: msg += "**في أي منطقة في إسطنبول** ستفتح؟"
                 else:
                     if ack_business and "district" in missing_items: msg = f"Great choice — **{ack_business}**! 👍 Now, to build your full roadmap: **Which district of Istanbul** are you opening in?"
@@ -391,11 +412,11 @@ async def smart_router_handle(
                 summ = f"Mükemmel seçim! {district}'de {business_type} açmak için bilmeniz gereken her şeyi hazırladım. 🎉 Önemli not: {district_note} Aşağıdaki yol haritasını takip edin ve merak ettiğinizi sorun!"
                 labels = {"ag": "Kurumlar", "dc": "Gerekli Belgeler", "st": "Adımlar", "tm": "Tahmini Süre", "dy": "gün"}
             elif language == "ar":
-                permits = [f"رخصة فتح وتشغيل من {district}"]
-                agencies = [mun_name, "مكتب الضرائب"]
-                docs = ["الهوية", "عقد الإيجار", "اللوحة الضريبية", "وثيقة رمز NACE"]
-                summ = f"اختيار رائع! أعددت لك كل ما تحتاجه لفتح {business_type} في {district}. 🎉 ملاحظة مهمة: {district_note} راجع الخطوات أدناه واسألني عن أي شيء!"
-                labels = {"ag": "المؤسسات", "dc": "المستندات المطلوبة", "st": "الخطوات", "tm": "المدة الزمنية المتوقعة", "dy": "يوم"}
+                permits = [f"رخصة فتح وتشغيل من بلدية {district}"]
+                agencies = [mun_name, "مكتب الضرائب (Vergi Dairesi)"]
+                docs = ["بطاقة الهوية/جواز السفر", "عقد الإيجار (موثق)", "اللوحة الضريبية (Vergi Levhası)", "وثيقة رمز NACE"]
+                summ = f"اختيار مهني موفق! لقد قمت بإعداد خريطة طريق متكاملة لافتتاح **{business_type}** في منطقة **{district}**. 🎉 ملاحظة هامة: {district_note} يرجى اتباع الخطوات أدناه، وأنا هنا للإجابة على أي استفسار قانوني أو إجرائي."
+                labels = {"ag": "المؤسسات والهيئات", "dc": "المستندات المطلوبة", "st": "خطوات العمل", "tm": "الجدول الزمني المتوقع", "dy": "يوم"}
             else:
                 permits = [f"{district} Workplace Operating License"]
                 agencies = [mun_name, "Tax Office (Vergi Dairesi)"]
@@ -497,7 +518,7 @@ async def smart_router_handle(
     if confidence > 0:
         if intent_group == "redirect":
             target_agent, target_sub_intent = sub_intent.split(":", 1) if sub_intent and ":" in sub_intent else (sub_intent, None)
-            underlying_response = _pick_response(target_agent, target_sub_intent)
+            underlying_response = _pick_response(target_agent, target_sub_intent, language=language)
             if target_agent == "lawyer": suffix = {"tr": "Lütfen yukarıdan **Avukat Danışmanı** moduna geçin.", "ar": "يرجى التبديل لوضع **المستشار القانوني**.", "en": "Please switch to **Lawyer Advisor** mode."}.get(language, "Please switch to Lawyer mode.")
             elif target_agent == "student": suffix = {"tr": "Lütfen **Öğrenci Danışmanı** moduna geçin.", "ar": "يرجى التبديل لوضع **المستشار الطلابي**.", "en": "Please switch to **Student Advisor** mode."}.get(language, "Please switch to Student mode.")
             else: suffix = {"tr": "Lütfen **Ruhsat Danışmanı** moduna geçin.", "ar": "يرجى التبديل لمستشار التراخيص.", "en": "Please switch to **Permit Advisor** mode."}.get(language, "Please switch to Permit mode.")
@@ -509,12 +530,12 @@ async def smart_router_handle(
                     import asyncio
                     rag_chunks = None # retrieval in async is tricky here, fallback to library
                 except Exception: rag_chunks = None
-            if not raw_response: raw_response = _pick_response(intent_group, sub_intent)
+            if not raw_response: raw_response = _pick_response(intent_group, sub_intent, language=language)
         
         if intent_group == "greeting":
-            if assistant_type == "permit": raw_response = {"tr": "Merhaba! 👋 Ben Ruhsat Danışmanınızım. Ne tür bir işletme açmak istiyorsunuz?", "ar": "أهلاً بك! 👋 أنا مستشارك للتراخيص. ما نوع العمل الذي تخطط لفتحه؟", "en": "Hello! 👋 I am your Permit Advisor. What type of business are you planning to start?"}.get(language, raw_response)
-            elif assistant_type == "lawyer": raw_response = {"tr": "Merhaba! ⚖️ Ben Hukuk Danışmanınızım. Size nasıl yardımcı olabilirim?", "ar": "أهلاً بك! ⚖️ أنا مستشارك القانوني. كيف يمكنني مساعدتك؟", "en": "Hello! ⚖️ I am your Legal Advisor. How can I assist you?"}.get(language, raw_response)
-            elif assistant_type == "student": raw_response = {"tr": "Merhaba! 🎓 Ben Öğrenci Danışmanınızım. Bugün sana nasıl yardımcı olabilirim?", "ar": "مرحباً! 🎓 أنا مستشارك الطلابي. كيف يمكنني مساعدتك اليوم؟", "en": "Hi there! 🎓 I am your Student Advisor. How can I help you today?"}.get(language, raw_response)
+            if assistant_type == "permit": raw_response = {"tr": "Merhaba! 👋 Ben Ruhsat Danışmanınızım. Ne tür bir işletme açmak istiyorsunuz?", "ar": "أهلاً بك! 👋 أنا مستشارك الخاص لتراخيص الأعمال في تركيا. ما هو نوع النشاط التجاري الذي تخطط لافتتاحه؟", "en": "Hello! 👋 I am your Permit Advisor. What type of business are you planning to start?"}.get(language, raw_response)
+            elif assistant_type == "lawyer": raw_response = {"tr": "Merhaba! ⚖️ Ben Hukuk Danışmanınızım. Size nasıl yardımcı olabilirim?", "ar": "أهلاً بك! ⚖️ أنا مستشارك القانوني المختص. كيف يمكنني مساعدتك اليوم في شؤونك القانونية أو التجارية؟", "en": "Hello! ⚖️ I am your Legal Advisor. How can I assist you?"}.get(language, raw_response)
+            elif assistant_type == "student": raw_response = {"tr": "Merhaba! 🎓 Ben Öğrenci Danışmanınızım. Bugün sana nasıl yardımcı olabilirim?", "ar": "مرحباً بك! 🎓 أنا مستشارك لخدمات الطلاب في تركيا. كيف يمكنني مساعدتك اليوم في رحلتك التعليمية أو إجراءات إقامتك؟", "en": "Hi there! 🎓 I am your Student Advisor. How can I help you today?"}.get(language, raw_response)
 
         if raw_response:
             variables = build_variables(user_name=user_name)
