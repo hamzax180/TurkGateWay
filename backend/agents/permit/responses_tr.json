@@ -1,0 +1,95 @@
+{
+  "how_to_start": [
+    "İstanbul'da bir işletme açmak için öncelikle ilçe belediyenize kayıt olmanız gerekmektedir. Ne tür bir işletme planlıyorsunuz?",
+    "Harika bir soru! İlk adım Vergi Numarası almaktır. Hangi ilçedesiniz?",
+    "İstanbul'da bir iş kurmak yaklaşık 14 yasal adımı içerir. İş türünüze göre size rehberlik etmemi ister misiniz?",
+    "Süreç yasal yapınızı seçmekle başlar (Ltd. Şirket veya AŞ). Hangi sektöre giriyorsunuz?",
+    "Her şeyden önce — İstanbul'da aklınızda belirli bir ilçe var mı? Bu, ruhsat işlemlerinizi hangi belediyenin yürüteceğini etkiler."
+  ],
+  "documents": [
+    "Standart belgeler şunları içerir: Kimlik/Pasaport, Kira Sözleşmesi, Vergi Levhası ve NACE kodu. İşletmeniz restoran, perakende mi yoksa ofis mi?",
+    "Kimliğinize, imzalı kira sözleşmesine ve NACE kaydınıza ihtiyacınız olacak. İş türünüze özel tam listeyi hazırlamamı ister misiniz?",
+    "Gerekli belgeler iş türünüze bağlıdır. Bir restoran için standart sete ek olarak İtfaiye Uygunluk Raporu ve Baca Sertifikası da eklemeniz gerekir.",
+    "Temel belgeler: pasaport/kimlik, noter onaylı kira sözleşmesi, NACE kodu ve Vergi Kimlik Numarası. Tam listeye mi ihtiyacınız var?",
+    "Belge gereksinimleri iş türüne ve ilçeye göre değişir. İş türünüzü söylerseniz size tam kontrol listesini verebilirim."
+  ],
+  "restaurant": [
+    "Bir restoran için İtfaiye Uygunluk Raporu ve Baca Uygunluğu sertifikasına ihtiyacınız olacak. Tüm 14 adımı birlikte gözden geçirelim mi?",
+    "İstanbul'daki restoranlar, alkol servisi yapıyorsanız bir de TAPDK lisansı gerektirir. Tam ruhsat yol haritasını ister misiniz?",
+    "Restoranlar için en zor kısım itfaiye ve hijyen denetimleridir — toplamda 45-90 gün sürebilir. Süreci başlatmak ister misiniz?",
+    "İstanbul'da restoran ruhsatı; yangın uyumu, belediye hijyen denetimi ve ticaret sicil kaydı gerektirir. Adım adım kılavuza hazır mısınız?",
+    "Canlı müzik yapan restoranların ayrıca Canlı Müzik İzni'ne ihtiyacı vardır. Müzik yapmayı planlıyor musunuz?"
+  ],
+  "timeline": [
+    "İstanbul'da ruhsat süreleri 15 gün (basit ofis) ile 90 gün (restoran) arasında değişmektedir. İş türünüz nedir?",
+    "Çoğu perakende ruhsatı 2-4 hafta içinde tamamlanır. Restoranlar itfaiye ve hijyen denetimleri nedeniyle daha uzun sürer — genellikle 45-90 gün.",
+    "Zaman çizelgesi iş türünüze ve ilçenize bağlıdır. Standart bir ofis 15 gün gibi kısa bir sürede onaylanabilir."
+  ],
+  "alcohol": [
+    "Alkol ruhsatı (TAPDK Belgesi) Tarım Bakanlığı tarafından verilir ve tek başına 4-8 hafta sürer.",
+    "Alkolün yanı sıra müzik de istiyorsanız hem TAPDK hem de Canlı Müzik İzni'ne ihtiyacınız olacak. Bunları yol haritanıza ekleyeyim mi?",
+    "TAPDK onayı ana işletme ruhsatınızdan ayrıdır ve süreci önemli ölçüde uzatır. Toplamda 6-12 hafta planlamalısınız."
+  ],
+  "music": [
+    "Canlı müzik için ilçe belediyenizden Canlı Müzik İzni almanız gerekir. Bu, genel işletme ruhsatınızdan ayrı olarak başvurulan bir izindir.",
+    "Arka plan müzik yayını için özel bir izin gerekmeyebilir, ancak canlı performanslar her zaman Canlı Müzik İzni gerektirir.",
+    "Canlı müzik izni tesisin adresine bağlıdır. Yer değişikliği, izne yeniden başvurmak anlamına gelir."
+  ],
+  "cafe": [
+    "Kafeler, restoranlarla aynı yangın yönetmeliğine tabidir — tam bir mutfak olmasa bile İtfaiye raporu ve Baca sertifikasına ihtiyacınız olur. Kontrol listesini ister misiniz?",
+    "Hafif yiyecek veya pasta servisi yapan kafeler belediye hijyen kurallarına tabidir. Tam onay için 30-60 gün beklemelisiniz."
+  ],
+  "clothing": [
+    "Giyim mağazalarının ilçe belediyesinden İşyeri Açma ve Çalışma Ruhsatı alması gerekir. Yangın gereksinimleri gıda işletmelerinden daha hafiftir.",
+    "Giyim mağazası ruhsatı en basit olanlardan biridir; Ticaret Sicil ve NACE kodunuz hazır olduktan sonra 15-30 gün sürer."
+  ],
+  "retail": [
+    "İstanbul'daki perakende işletmelerinin İşyeri Açma ve Çalışma Ruhsatı alması gerekir — süreç basittir ve genellikle 15-30 gün sürer.",
+    "Genel perakende, yanıcı malzemeler bulundurmadığınız veya belirli bir alanı aşmadığınız sürece İtfaiye denetimini tetiklemez."
+  ],
+  "office": [
+    "Ofis ve danışmanlık işletmelerinin İstanbul'daki en basit ruhsat gereksinimleri vardır; temel olarak İşyeri Açma Ruhsatı ve vergi kaydı. 10-20 gün sürebilir.",
+    "Ofis ruhsatı çoğu durumda İtfaiye raporuna ihtiyaç duymaz. Ana gereksinimleriniz Ticaret Sicili, NACE kodu, kira sözleşmesi ve belediye ruhsatıdır."
+  ],
+  "barber": [
+    "Bir berber salonunun İşyeri Açma Ruhsatı'nın yanı sıra kişisel hijyen işletmeleri için GSM (Gayrisıhhî Müessese) sertifikasına ihtiyacı vardır.",
+    "Berber veya kuaför salonu için, işletme sahibinin veya müdürün profesyonel ustalık belgesine sahip olduğunu kanıtlamanız gerekecektir."
+  ],
+  "gym": [
+    "Spor salonu veya fitness merkezinin İşyeri Açma Ruhsatı'nın yanı sıra Gençlik ve Spor İl Müdürlüğü'nden uygunluk kontrolü alması gerekir.",
+    "Bir spor salonu için, ruhsat verilmeden önce kadronuzda en az bir sertifikalı spor eğitmeni bulunmalıdır."
+  ],
+  "pharmacy": [
+    "Eczane açmak, standart belediye ruhsatının yanı sıra Türk Eczacıları Birliği (TEB) onayı gerektirir.",
+    "Eczane ruhsatları il düzeyinde düzenlenir — İl Sağlık Müdürlüğü ana iletişim noktanız olacaktır."
+  ],
+  "bakery": [
+    "Fırın işletmek için İşyeri Açma Ruhsatı, Gıda Sicil Belgesi ve Baca Uygunluğu sertifikası gereklidir.",
+    "Üretim mutfağı olan fırınlar, restoranlarla aynı hijyen denetimlerine tabidir; süreci 30-60 gün olarak öngörmelisiniz."
+  ],
+  "cost": [
+    "İstanbul'daki ruhsat ücretleri iş türüne göre değişir — basit bir perakende ruhsatı genellikle 500-2.000 TL arasında belediye ücreti tutarken, restoranlar 10.000 TL'ye kadar çıkabilir. Ne açıyorsunuz?",
+    "Ana maliyetler: Ticaret Sicil harcı (500-1.500 TL), noter ücretleri (500-2.000 TL) ve belediye ruhsat harcıdır. Gıda işletmeleri için denetim ücretlerini de ekleyin.",
+    "Toplam maliyet iş türünüze bağlıdır. Ofisler en ucuz (1.500-3.000 TL), perakende orta seviye, gıda işletmeleri ise en pahalıdır. Bütçe planlaması yapalım mı?"
+  ],
+  "location": [
+    "İstanbul'da ruhsatlar ilçe belediyesi (Beşiktaş, Kadıköy, vb.) tarafından verilir. Her ilçenin kendi ruhsat ofisi vardır. Siz hangi bölgedesiniz?",
+    "İşyeri Açma ve Çalışma Ruhsatı işlemleriniz ilgili ilçe belediyesinde yürütülür. Başvuruların çoğu e-Devlet üzerinden başlatılabilir ancak yerinde denetim gerekir."
+  ],
+  "how_it_works": [
+    "İstanbul'da iş açmak üç ana sütun üzerindedir: ① Şirket kuruluşu (Vergi No, Ticaret Sicil, MERSİS), ② İşletme ruhsatı (ilçe belediyesi), ③ Sektörel izinler (itfaiye, hijyen, vb.).",
+    "Genel resim şöyledir: Önce şirketinizi tescil ettirin, ardından ilçe belediyesine işletme ruhsatı için başvurun. Tüm süreç iş türüne göre 15-90 gün sürer."
+  ],
+  "nace": [
+    "NACE kodunuz, Türkiye'deki resmi faaliyet sınıflandırmanızdır — vergi kategorinizi, ruhsat kademenizi ve hangi denetimlerin uygulanacağını belirler. Ne tür bir iş açıyorsunuz?",
+    "Türkiye'deki NACE kodları Avrupa standartlarını takip eder. Yaygın olanlar: 56.10 (Restoran), 62.01 (Yazılım), 47.71 (Giyim Perakende). Kodunuzu bulalım mı?"
+  ],
+  "tax_id": [
+    "Vergi Kimlik Numarası, Türkiye'de iş açan her yabancı için ilk adımdır. Pasaportunuzla en yakın vergi dairesinden alabilirsiniz. Ücretsizdir ve yaklaşık 30 dakika sürer.",
+    "Vergi numarası almak için şahsen vergi dairesine gitmeli veya e-Devlet üzerinden (varsa) başvurmalısınız. Banka hesabı ve şirket kuruluşu için bu numara zorunludur."
+  ],
+  "steps": [
+    "İstanbul'da iş açmak için 14 ana yasal adım vardır: Vergi No, şirket türü, isim tescili, NACE kodu, ana sözleşme, adres, noter onayı, sermaye, ticaret sicili, banka hesabı, vergi dairesi, belediye formları, muhasebeci ve açılış. Detay ister misiniz?",
+    "Süreç Vergi Numarası ile başlar ve çalışma ruhsatı ile sona erer. Şu an hangi aşamadasınız?"
+  ]
+}

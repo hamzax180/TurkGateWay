@@ -1,0 +1,51 @@
+{
+  "company_formation": [
+    "Türkiye'de şirket kurmak mı istiyorsunuz? Güzel bir karar. Yabancı girişimciler için en yaygın seçenek Ltd. Şirkettir. MERSİS kaydıyla başlamanızı sağlayalım mı?",
+    "Ltd. Şirket kuruluşu, belgeleriniz hazırsa 5-10 iş günü sürer. Her şeyden önce — ortakların kimlikleri ve bir ofis adresiniz hazır mı?",
+    "Türkiye aslında şirket kuruluşu için oldukça iş dostu bir yerdir. MERSİS portalı isim rezervasyonu ve ana sözleşme işlemlerini çevrimiçi halleder. Tam kılavuz hazır mı?",
+    "Yabancı girişimciler için Ltd. Şirket en iyi yoldur — esnek yapı ve düşük sermaye gerekliliği. Kuruluş yol haritanızı oluşturalım mı?"
+  ],
+  "contract_review": [
+    "⚖️ **Sözleşme İncelemesi**\n\nİş, kira ve ortaklık sözleşmeleri için kapsamlı hukuk incelemesi sunuyoruz.\n\n📄 **Gerekli Belgeler:**\n• Sözleşme kopyası\n• Kimlik belgesi\n\n💬 İmzalamadan önce hukuki inceleme yaptırmak doğru bir karardır!",
+    "⚖️ **Hukuki Sözleşme Analizi**\n\nSözleşme analiz edilip haklarınızı korumak için incelenir.\n\n✅ Cezai şartlar, süre ve fesih prosedürlerine odaklanacağız.\n\n💬 Sözleşme dilini belirtir misiniz?"
+  ],
+  "employment_law": [
+    "⚖️ **Türk İş Hukuku**\n\nİşçilerin hakları 4857 sayılı kanunla korunmaktadır. Bir yıldan fazla çalıştıysanız, Kıdem Tazminatı ve İhbar Tazminatı haklarınız doğabilir.\n\n💬 İşten çıkarma bildirimi yazılı olarak yapıldı mı?",
+    "⚖️ **İşçi Hakları**\n\nTürkiye'deki iş mahkemeleri genellikle işçi lehinedir ve ispat yükümlülüğü işverendedir. Yasal haklarınızı hesaplamak ister misiniz?"
+  ],
+  "residence_permit": [
+    "⚖️ **Çalışma ve İkamet İzinleri**\n\nÇalışma izni başvuruları, işvereniniz tarafından Çalışma Bakanlığı portalı üzerinden yapılır. Kendi başınıza başvuramazsınız.\n\n💬 İşvereniniz işlemleri başlattı mı?",
+    "⚖️ **Yabancı İkamet İşlemleri (İkamet)**\n\nVize veya giriş damgası süresi dolmadan ikamete başvurmalısınız. Ana belgeler: pasaport, sağlık sigortası ve noter onaylı sözleşme.\n\n💬 Başvuru adımlarında size rehberlik etmemi ister misiniz?"
+  ],
+  "dispute": [
+    "⚖️ **Hukuki İhtilaflar**\n\nHukuki süreçlerle uğraşmak stresli olabilir ama iyi bir planlama işi kolaylaştırır. Ne tür bir uyuşmazlıkla karşı karşıyasınız?\n\n💬 Dava size mi açıldı yoksa siz mi açmak istiyorsunuz?"
+  ],
+  "dispute_defendant": [
+    "⚖️ **Dava Savunması**\n\nSize karşı bir dava açıldığında, savunmanızı ve delillerinizi sunmak için süre başlar. Yasal süreyi kaçırmamak çok önemlidir.\n\n💬 Resmi bir tebligat (İhtarname) veya mahkeme çağrısı aldınız mı?"
+  ],
+  "dispute_plaintiff": [
+    "⚖️ **Dava Açma Süreci**\n\nİlk adım genellikle arabuluculuğa veya mahkemeye gitmeden önce talebinizi resmileştirmek için noter onaylı ihtarname göndermektir.\n\n💬 Tüm delilleri topladınız mı?"
+  ],
+  "general_legal": [
+    "⚖️ **Genel Hukuki Danışmanlık**\n\nTürk Hukuku — sözleşmeler, şirket kuruluşu, işçi hakları, ikamet ve hukuki ihtilaflar konularında uzmanım.\n\n💬 Bugün aklınızda ne var?"
+  ],
+  "legal_timelines": [
+    "⚖️ **Yasal Süreler**\n\nŞirket kuruluşu: 5-10 gün. Sözleşme incelemesi: 1 hafta. İş arabuluculuğu: 2-3 hafta. Mahkeme süreci: 6-18 ay.\n\n💬 Hangi prosedürle ilgileniyorsunuz?"
+  ],
+  "real_estate": [
+    "⚖️ **Türkiye'de Gayrimenkul**\n\nGayrimenkul alım veya satımında Tapu sürecini dikkatle incelemek gerekir. Alıyor musunuz, satıyor musunuz yoksa kiralıyor mu?",
+    "Kira artışları ve tahliye davaları Türkiye'de sıkı kurallara tabidir. Durumunuzu anlatır mısınız?"
+  ],
+  "criminal": [
+    "⚖️ **Ceza Davaları**\n\nCeza davaları acil müdahale gerektirir. Türkiye'de gözaltına alınan herkesin avukat ve susma hakkı vardır.\n\n💬 Gözaltında olan biri mi var?"
+  ],
+  "debt": [
+    "⚖️ **Alacak Tahsili**\n\nMahkeme davasına gerek kalmadan İcra Takibi başlatabiliriz. Alacağın yazılı kanıtı var mı?\n\n💬 Alacak tahsili icra müdürlükleri üzerinden yürütülür."
+  ],
+  "criminal_victim": [
+    "⚖️ **Suç Duyurusu**\n\nİlk adım, adliye veya karakolda resmi şikayet dilekçesi vermektir. İfadenizin doğru kaydedilmesi önemlidir.\n\n💬 Karakola gittiniz mi?"
+  ],
+  "criminal_accused": [
+    "⚖️ **Ceza Savunması**\n\nUnutmayın: Susma hakkınız ve avukat isteme hakkınız var. Avukat olmadan ifade vermeyiniz.\n\n💬 Şu an gözaltında mısınız?"
+  ]
+}
