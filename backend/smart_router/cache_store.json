@@ -14,5 +14,9 @@
   "7859b78ed0b918545679e01e7f25220b": {
     "response": "Hi there! 🎓 I am your Student Advisor. How can I help you today?",
     "ts": 1775689839.7082942
+  },
+  "494147337c20b7ad4fa040e85514d1d2": {
+    "response": "🎓 **Student ID Extension**\n\nIf you extended your studies, you must renew your ID at **Student Affairs**.\n\n📄 **Required:**\n• Expired Kimlik\n• Active Öğrenci Belgesi (Enrollment Certificate)\n• 1 Photo\n\n💬 Pro tip: Keep a digital copy of your active certificate on phone!",
+    "ts": 1775690139.2672663
   }
 }

@@ -176,8 +176,8 @@ INTENT_MAP = {
 
     # --- Student Agent intents ---
     "student.renew_id": [
-        r"\b(renew (my )?(student )?(id|kimlik|card)|kimlik renew|id renewal|expired (kimlik|id|card)|replace (my )?(student )?(id|card))\b",
-        r"(تجديد [اأ]?ل?هوي[ةه]|تجديد [اأ]?ل?بطاق[ةه]|بطاق[ةه] طالب|هوي[ةه] طالب|تجديد [اأ]?ل?كارنيه|تجديد [اأ]?ل?كملك|بطاقة)"
+        r"\b(renew (my )?(student|uni|university|campus) (id|kimlik|card)|(student|uni) id renewal|expired (student id|uni id)|replace (my )?(student|uni) (id|card))\b",
+        r"(تجديد [اأ]?ل?هوي[ةه] [اأ]?ل?جامعي[ةه]|تجديد بطاق[ةه] [اأ]?ل?جامع[ةه]|بطاق[ةه] طالب|هوي[ةه] طالب|تجديد [اأ]?ل?كارنيه [اأ]?ل?جامعي)"
     ],
     "student.kimlik_lost": [
         r"\b(lost (my )?(kimlik|student id|id card)|stolen (kimlik|card)|missing (kimlik|id))\b",
@@ -200,8 +200,8 @@ INTENT_MAP = {
         r"(أوراق الجامعة|مستندات التقديم|ايش مطلوب للجامعة|وثائق الجامعة|ملف التسجيل)"
     ],
     "student.residence_permit": [
-        r"\b(student (residence|ikamet)|ikamet (permit|izni)|residence permit (for student)|g[o\xf6]\xc3\xa7 idaresi)\b",
-        r"(اقامة طالب|إقامة طالب|تجديد الاقامة|اقامة|الاقامة الطلابية)"
+        r"\b(student (residence|ikamet)|ikamet (permit|renewal|application|izni)|residence permit (renewal|for student|extension)|g[o\xf6]\xc3\xa7 idaresi|goc idaresi|migration (office|permit))\b",
+        r"(اقامة طالب|إقامة طالب|تجديد الاقامة|اقامة|الاقامة الطلابية|تجديد الكملك|تجديد الإقامة)"
     ],
     "student.transport_card": [
         r"\b(istanbulkart|transport card|student card|bus card|travel card|metro card|m\u00fczekart|discount card)\b",
