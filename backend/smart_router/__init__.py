@@ -571,4 +571,16 @@ async def smart_router_handle(
         response_cache.set(query, ai_response, assistant_type, language)
         return ai_response
 
-    return {"tr": "Üzgünüm, anlayamadım. Lütfen asistanı doğru seçtiğinizden emin olun.", "ar": "عذراً، لم أفهم ذلك. يرجى التأكد من اختيار المساعد الصحيح.", "en": "I'm sorry, I didn't catch that. Please ensure the correct assistant is selected."}.get(language)
+    # Smart Offline Orchestrator Fallback
+    if language == "ar":
+        if assistant_type == "student": return "عذراً، لم أتمكن من التعرف على طلبك بدقة. بصفتي مستشار الطلاب، يمكنني مساعدتك فوراً في:\n- استخراج أو تجديد الإقامة الطلابية (الكملك)\n- التسجيل في الجامعات والمنح\n- استخراج كرت المواصلات وسكن الطلاب\n- معادلة الشهادات (Denklik).\nكيف يمكنني توجيهك اليوم؟"
+        elif assistant_type == "lawyer": return "عذراً، لم يتعرف النظام على طلبك. بصفتي المستشار القانوني، أنا هنا لدعمك في:\n- مراجعة العقود التجارية\n- النزاعات العمالية والقضايا\n- إجراءات الإقامة القانونية وتأسيس الشركات.\nيرجى إعادة صياغة استفسارك."
+        else: return "عذراً، لم أفهم طلبك. بصفتي مستشار التراخيص، أختص بمساعدتك في:\n- إجراءات تأسيس الأعمال (مطعم، كافيه، مكتب، صيدلية، إلخ)\n- معرفة التكاليف والمستندات المطلوبة\n- التواصل مع البلدية والدوائر الحكومية.\nما هو النشاط الذي تود القيام به؟"
+    elif language == "tr":
+        if assistant_type == "student": return "Üzgünüm, sorunuzu tam olarak anlayamadım. Öğrenci Danışmanı olarak size şunlarda yardımcı olabilirim:\n- Öğrenci İkamet İzni (Kimlik) alma veya uzatma\n- Üniversite kayıt ve denklik işlemleri\n- Yurt ve ulaşım kartı.\nSize en iyi nasıl yardımcı olabilirim?"
+        elif assistant_type == "lawyer": return "Üzgünüm, sorunuzu anlayamadım. Hukuk Danışmanı olarak uzmanlık alanlarım:\n- Sözleşme inceleme\n- İş hukuku ve davalar\n- Şirket kuruluşu.\nLütfen sorunuzu detaylandırın."
+        else: return "Üzgünüm, sorunuzu anlayamadım. Ruhsat Danışmanı olarak size:\n- İşyeri açma ruhsatı (Kafe, Restoran, Ofis vb.)\n- Gerekli belgeler ve maliyetler\n- Belediye süreçleri hakkında bilgi verebilirim.\nHangi işletmeyi açmak istiyorsunuz?"
+    else:
+        if assistant_type == "student": return "I'm sorry, I didn't quite catch that. As your Student Advisor, I can help you with:\n- University registration\n- Residence permits (Kimlik) renewals\n- Student housing and transport cards.\nHow can I assist you today?"
+        elif assistant_type == "lawyer": return "I'm sorry, I couldn't process your request. As your Legal Advisor, I can assist with:\n- Contract reviews\n- Legal disputes and employment law\n- Company formation.\nPlease rephrase your query."
+        else: return "I'm sorry, I didn't catch that. As your Permit Advisor, I can guide you through:\n- Opening a business (Cafe, Restaurant, Retail, etc.)\n- Required documents and permit costs\n- Municipality regulations.\nWhat type of business are you starting?"

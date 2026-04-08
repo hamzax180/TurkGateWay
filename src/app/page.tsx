@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight, CheckCircle, Bot, Globe, Database,
@@ -54,10 +55,53 @@ const howItWorksSteps = (t: any) => [
   }
 ];
 
+const FlipCard = ({ step, i, isRTL, t }: { step: any; i: number; isRTL: boolean; t: any }) => {
+  const [isFlipped, setIsFlipped] = useState(false);
+  const clickText = t('click_to_flip');
+  const displayText = (!clickText || clickText === 'click_to_flip' || clickText === 'CLICK_TO_FLIP') ? 'Tap to reveal' : clickText;
+
+  return (
+    <motion.div
+      whileInView={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 30 }}
+      viewport={{ once: true }}
+      transition={{ delay: i * 0.15, duration: 0.8, ease: "easeOut" }}
+      className="relative w-full h-[400px] cursor-pointer group [perspective:1200px]"
+      onClick={() => setIsFlipped(!isFlipped)}
+    >
+      <motion.div
+        className="w-full h-full relative [transform-style:preserve-3d]"
+        animate={{ rotateY: isFlipped ? 180 : 0 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} // Smooth snappy curve
+      >
+        {/* Front */}
+        <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] flex flex-col justify-center items-center text-center rounded-[32px] bg-gradient-to-br from-white/10 to-white/0 backdrop-blur-md border border-white/20 p-10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:bg-white/10 hover:border-white/30 transition-all duration-500">
+          <h4 className="text-4xl md:text-5xl font-medium text-white drop-shadow-md tracking-tight leading-[1.1] mb-6">{step.title}</h4>
+          
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center gap-3 text-white/80 text-xs font-bold tracking-[0.2em] uppercase">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+            </span>
+            {displayText}
+          </div>
+        </div>
+
+        {/* Back */}
+        <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] flex flex-col justify-center items-center text-center rounded-[32px] bg-gradient-to-br from-[#1a1a2e]/95 to-[#16213e]/95 backdrop-blur-2xl border border-white/20 p-10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all duration-500">
+          <p className="text-[20px] md:text-[22px] text-white/90 leading-relaxed font-light">
+            {step.desc}
+          </p>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 export default function Home() {
   const { t, isRTL } = useLanguage();
   const { user } = useAuth();
-  const stepsData = howItWorksData(t);
+  const stepsData = howItWorksSteps(t);
   const featureData = featuresData(t);
   const statsDisplay = statsData(t);
   
@@ -211,19 +255,7 @@ export default function Home() {
  
           <div className="grid grid-cols-1 md:grid-cols-3 gap-16">
             {stepsData.map((step, i) => (
-              <motion.div
-                key={i}
-                whileInView={{ opacity: 1, y: 0 }}
-                initial={{ opacity: 0, y: 20 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.2 }}
-                className={`flex flex-col space-y-6 group/card ${isRTL ? 'text-right items-end' : 'text-left items-start'}`}
-              >
-                <h4 className="text-6xl font-medium text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.9)] tracking-tight">{step.title}</h4>
-                <p className="text-[22px] text-white/90 leading-relaxed font-normal drop-shadow-[0_3px_6px_rgba(0,0,0,0.9)]">
-                  {step.desc}
-                </p>
-              </motion.div>
+              <FlipCard key={i} step={step} i={i} isRTL={isRTL} t={t} />
             ))}
           </div>
         </div>
