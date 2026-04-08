@@ -19,7 +19,7 @@ INTENT_MAP = {
         r"(مرحبا|مرحباً|هلا|أهلا|أهلاً|سلام|السلام عليكم|صباح الخير|مساء الخير|كيف الحال)"
     ],
     "smalltalk": [
-        r"\b(how are you|how do you do|hows it going|what's up|whats up|how are things|hows life|nasılsın|naber|nasıl gidiyor)\b",
+        r"\b(how are you|how do you do|hows it going|what's up|whats up|how are things|hows life|nasılsın|naber|nasıl gidiyor|how are u|how r u|hw r u|hw are u|how r uu|how are ytou)\b",
         r"(كيف حالك|شو أخبارك|شخبارك|شلونك|كيفك|كيف الحال|عساك بخير|عامل ايه|شمسوي)"
     ],
     "identity": [
@@ -321,7 +321,27 @@ def detect_intent(
     """
     Scan the message for keyword matches.
     """
+    # Phonetic/Shorthand Normalization
+    normalization_map = {
+        r"\bu\b": "you",
+        r"\br\b": "are",
+        r"\bytou\b": "you",
+        r"\byu\b": "you",
+        r"\bhow r uu\b": "how are you",
+        r"\bhow r u\b": "how are you",
+        r"\bhw r u\b": "how are you",
+        r"\bhw r uu\b": "how are you",
+        r"\bhow are ytou\b": "how are you",
+        r"\bhow r ytou\b": "how are you",
+        r"\bn\b": "and",
+        r"\bthx\b": "thanks",
+        r"\bur\b": "your",
+        r"\bplz\b": "please",
+    }
+    
     text = message.lower().strip()
+    for pattern, replacement in normalization_map.items():
+        text = re.sub(pattern, replacement, text)
 
     # Walk the intent map in priority order: 
     # 1. Global social/trust intents (greeting, trust, identity, farewell, thanks)
@@ -339,62 +359,66 @@ def detect_intent(
 
     sorted_intents = sorted(COMPILED_INTENT_MAP.items(), key=priority)
     
-    # 1. Check for very specific intent matches first (e.g. renew id)
-    # 2. Prevent billing from matching if 'id' or 'kimlik' is present in student context
+    candidates = []
+
+    # Pass 1: Strict Regex Matches (Confidence 1.0)
     for intent_key, compiled_patterns in sorted_intents:
-        # Hijack Prevention: if student assistant and we see 'renew id', don't let billing win
         if assistant_type == "student" and intent_key == "billing.subscription":
-            if re.search(r"\b(id|kimlik)\b", text):
-                continue
+            if re.search(r"\b(id|kimlik)\b", text): continue
 
         for compiled_pattern in compiled_patterns:
             if compiled_pattern.search(text):
                 parts = intent_key.split(".", 1)
-                group = parts[0]
-                sub = parts[1] if len(parts) > 1 else None
+                group, sub = parts[0], (parts[1] if len(parts) > 1 else None)
+                
+                # Priority: If it matches the CURRENT assistant domain or is GLOBAL, return immediately
+                if group == assistant_type or group in {"greeting", "trust", "smalltalk", "thanks", "farewell", "identity", "capabilities"}:
+                    return group, sub, 1.0
+                
+                # Otherwise, store it as a redirection candidate
+                candidates.append((group, sub, 1.0))
 
-                # If a user asks a lawyer question inside the permit agent, catch it and redirect
-                agent_domains = {"permit", "student", "lawyer"}
-                if group in agent_domains and group != assistant_type:
-                    return "redirect", f"{group}:{sub}" if sub else group, 1.0
-
-                return group, sub, 1.0
-
-    # 3. If no direct match found, try a greedy fuzzy match pass over the intent keys
-    #    to catch typos in keywords like "isnyout" vs "is your"
-    #    (threshold 0.75 for tight matching)
+    # Pass 2: Fuzzy Logic Typos (Confidence 0.7 - 0.95)
     from difflib import SequenceMatcher
-
     words = text.split()
+    
     for intent_key, _ in sorted_intents:
-        # Check all patterns' literal words against input words
         original_patterns = INTENT_MAP[intent_key]
         for pattern in original_patterns:
-            # Simple word-level fuzzy comparison for keywords buried in patterns
-            # (Remove regex special chars from basic keyword checking)
             clean_pattern = re.sub(r'[\^$*+?{}[\]\\|()]', ' ', pattern)
             pattern_words = clean_pattern.split()
             
             for pw in pattern_words:
-                if len(pw) < 5: continue
+                if len(pw) < 4: continue
                 for tw in words:
-                    if len(tw) < 5: continue
-                    # Similarity ratio
+                    if len(tw) < 4: continue
                     ratio = SequenceMatcher(None, tw, pw).ratio()
-                    if ratio >= 0.85: # Stricter typo match
+                    
+                    if ratio >= 0.80:
                         parts = intent_key.split(".", 1)
-                        group = parts[0]
-                        sub = parts[1] if len(parts) > 1 else None
+                        group, sub = parts[0], (parts[1] if len(parts) > 1 else None)
                         
-                        # Apply same redirection logic as regex
-                        agent_domains = {"permit", "student", "lawyer"}
-                        if group in agent_domains and group != assistant_type:
-                            return "redirect", f"{group}:{sub}" if sub else group, 0.9
-                            
-                        return group, sub, 0.9
+                        # Weighting: current assistant domain gets a boost
+                        score = ratio
+                        if group == assistant_type: score += 0.05
+                        
+                        candidates.append((group, sub, min(score, 0.95)))
 
-    # 4. Final last-resort specialized checks
-    if any(w in words for w in ["right", "rightlj", "true", "accurate"]):
+    # If we have candidates, pick the "Correctest" (highest confidence)
+    if candidates:
+        # Sort by confidence descending
+        candidates.sort(key=lambda x: x[2], reverse=True)
+        best_group, best_sub, best_conf = candidates[0]
+        
+        # Redirection logic
+        agent_domains = {"permit", "student", "lawyer"}
+        if best_group in agent_domains and best_group != assistant_type:
+            return "redirect", f"{best_group}:{best_sub}" if best_sub else best_group, best_conf
+            
+        return best_group, best_sub, best_conf
+
+    # Pass 3: Hard-coded fallback keywords
+    if any(w in words for w in ["right", "correct", "true", "accurate"]):
         return "trust", None, 0.8
 
     return None, None, 0.0

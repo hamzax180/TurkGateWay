@@ -211,9 +211,16 @@ async def smart_router_handle(
     lawyer_model=None,
     history_text: str = ""
 ) -> Optional[str]:
+    import asyncio
+    
+    # --- PHASE 1: Start Thinking ---
+    # This task runs in parallel while we calculate the "correctest" answer locally.
+    wait_task = asyncio.create_task(asyncio.sleep(3.0))
+    
     query = query.strip()
     cached = response_cache.get(query, assistant_type, language)
     if cached:
+        await wait_task
         return cached
 
     user_blocks = re.findall(r"\[user\]:([\s\S]*?)(?=\[assistant\]:|\[user\]:|-{5,}|$)", history_text.lower())
@@ -401,8 +408,8 @@ async def smart_router_handle(
                     elif ack_district and "business" in missing_items: msg = f"Got it — **{ack_district}** noted! 📍 Now: **What type of business** are you planning to open (e.g., Cafe, Retail, Restaurant)?"
                     else:
                         msg = "To map out your exact roadmap, could you please tell me: "
-                        if "business" in missing_items: msg += "**What type of business** (e.g., Cafe, Retail)? "
                         if "district" in missing_items: msg += "**Which district of Istanbul** are you opening in?"
+                await wait_task
                 return msg
 
             district = district_display
@@ -515,6 +522,7 @@ async def smart_router_handle(
         out_str = f"💬 {summ}\n\n📋 **{labels['ag']}:** {', '.join(agencies)}\n📄 **{labels['dc']}:** {', '.join(docs[:6])}\n✅ **{labels['st']}:**\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps_list)) + f"\n\n⏱️ **{labels['tm']}:** {timeline} {labels['dy']}"
         dashboard_dump = state.model_dump()
         if hasattr(dashboard_dump.get("last_updated"), "isoformat"): dashboard_dump["last_updated"] = dashboard_dump["last_updated"].isoformat()
+        await wait_task
         return out_str, dashboard_dump
 
     intent_group, sub_intent, confidence = detect_intent(query, assistant_type)
@@ -554,6 +562,7 @@ async def smart_router_handle(
                         if trans_result and trans_result.text: response = trans_result.text.strip()
                     except Exception: pass
             response_cache.set(query, response, assistant_type, language)
+            await wait_task
             return response
 
     if intent_group in {"permit", "student", "lawyer"}:
@@ -565,16 +574,24 @@ async def smart_router_handle(
                     rag_response = await generate_rag_response(query=query, agent_type=assistant_type, language=language, gemini_model=model_map.get(assistant_type, gemini_model), retrieved_chunks=rag_chunks)
                     if rag_response:
                         response_cache.set(query, rag_response, assistant_type, language)
+                        await wait_task
                         return rag_response
             except Exception: pass
         return None
 
+    # --- PHASE 2: Deep Local Search & Decision ---
+    # We try to find the "Correctest" answer by looking at history and fuzzy patterns.
     ai_response = await ai_fallback_response(query=query, assistant_type=assistant_type, gemini_model=gemini_model, student_model=student_model, lawyer_model=lawyer_model, rag_context=[], language=language)
+    
+    # Ensure we finish the 3-second "thought" period
+    await wait_task
+
     if ai_response:
         response_cache.set(query, ai_response, assistant_type, language)
         return ai_response
 
-    # Smart Offline Orchestrator Fallback
+    # --- PHASE 3: Smart Offline Orchestrator (Last Resort) ---
+    # If even AI fails or is offline, provide a high-quality humanized guide.
     if language == "ar":
         if assistant_type == "student": return "عذراً، لم أتمكن من التعرف على طلبك بدقة. بصفتي مستشار الطلاب، يمكنني مساعدتك فوراً في:\n- استخراج أو تجديد الإقامة الطلابية (الكملك)\n- التسجيل في الجامعات والمنح\n- استخراج كرت المواصلات وسكن الطلاب\n- معادلة الشهادات (Denklik).\nكيف يمكنني توجيهك اليوم؟"
         elif assistant_type == "lawyer": return "عذراً، لم يتعرف النظام على طلبك. بصفتي المستشار القانوني، أنا هنا لدعمك في:\n- مراجعة العقود التجارية\n- النزاعات العمالية والقضايا\n- إجراءات الإقامة القانونية وتأسيس الشركات.\nيرجى إعادة صياغة استفسارك."
