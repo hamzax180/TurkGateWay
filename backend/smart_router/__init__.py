@@ -154,13 +154,16 @@ _ALL_BUSINESS_TYPES = [
     "store", "company", "clothing", "hotel", "clinic", "school",
 ]
 
-def _fuzzy_match(word: str, candidates: list, threshold: float = 0.70) -> str | None:
+def _fuzzy_match(word: str, candidates: list, threshold: float = 0.75) -> str | None:
     """Return the best candidate if similarity >= threshold, else None."""
     word = word.lower().strip()
-    if len(word) < 3:
+    # Skip extremely short words to save massive CPU cycles
+    if len(word) < 4:
         return None
     best, best_score = None, 0.0
     for c in candidates:
+        if abs(len(c) - len(word)) > 3:
+            continue # Fast length heuristic to skip impossible matches
         score = SequenceMatcher(None, word, c).ratio()
         if score > best_score:
             best, best_score = c, score

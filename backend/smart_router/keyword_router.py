@@ -302,6 +302,14 @@ INTENT_MAP = {
         r"(استشارة قانونية|استشاره|محامي|سؤال قانوني|مشورة|استفسار قانوني|نصيحة قانونية)"
     ],
 }
+
+# ---------------------------------------------------------------------------
+# Pre-compile Regexes for 0ms Latency
+# ---------------------------------------------------------------------------
+COMPILED_INTENT_MAP = {
+    key: [re.compile(p, flags=re.IGNORECASE) for p in patterns]
+    for key, patterns in INTENT_MAP.items()
+}
 # ---------------------------------------------------------------------------
 # Public function
 # ---------------------------------------------------------------------------
@@ -329,18 +337,18 @@ def detect_intent(
         if key.startswith(f"{assistant_type}."): return 1
         return 2
 
-    sorted_intents = sorted(INTENT_MAP.items(), key=priority)
+    sorted_intents = sorted(COMPILED_INTENT_MAP.items(), key=priority)
     
     # 1. Check for very specific intent matches first (e.g. renew id)
     # 2. Prevent billing from matching if 'id' or 'kimlik' is present in student context
-    for intent_key, patterns in sorted_intents:
+    for intent_key, compiled_patterns in sorted_intents:
         # Hijack Prevention: if student assistant and we see 'renew id', don't let billing win
         if assistant_type == "student" and intent_key == "billing.subscription":
             if re.search(r"\b(id|kimlik)\b", text):
                 continue
 
-        for pattern in patterns:
-            if re.search(pattern, text, flags=re.IGNORECASE):
+        for compiled_pattern in compiled_patterns:
+            if compiled_pattern.search(text):
                 parts = intent_key.split(".", 1)
                 group = parts[0]
                 sub = parts[1] if len(parts) > 1 else None
@@ -358,9 +366,10 @@ def detect_intent(
     from difflib import SequenceMatcher
 
     words = text.split()
-    for intent_key, patterns in sorted_intents:
+    for intent_key, _ in sorted_intents:
         # Check all patterns' literal words against input words
-        for pattern in patterns:
+        original_patterns = INTENT_MAP[intent_key]
+        for pattern in original_patterns:
             # Simple word-level fuzzy comparison for keywords buried in patterns
             # (Remove regex special chars from basic keyword checking)
             clean_pattern = re.sub(r'[\^$*+?{}[\]\\|()]', ' ', pattern)
