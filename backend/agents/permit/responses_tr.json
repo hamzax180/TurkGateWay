@@ -18,7 +18,10 @@
     "İstanbul'daki restoranlar, alkol servisi yapıyorsanız bir de TAPDK lisansı gerektirir. Tam ruhsat yol haritasını ister misiniz?",
     "Restoranlar için en zor kısım itfaiye ve hijyen denetimleridir — toplamda 45-90 gün sürebilir. Süreci başlatmak ister misiniz?",
     "İstanbul'da restoran ruhsatı; yangın uyumu, belediye hijyen denetimi ve ticaret sicil kaydı gerektirir. Adım adım kılavuza hazır mısınız?",
-    "Canlı müzik yapan restoranların ayrıca Canlı Müzik İzni'ne ihtiyacı vardır. Müzik yapmayı planlıyor musunuz?"
+    "Canlı müzik yapan restoranların ayrıca Canlı Müzik İzni'ne ihtiyacı vardır. Müzik yapmayı planlıyor musunuz?",
+    "İstanbul'da yeme-içme sektörü harikadır, ancak bürokratik açıdan en katı olanıdır! En büyük engeliniz İtfaiye ve baca (Baca) onayları olacaktır. Baktığınız mekan ticari mutfak için uygun mu?",
+    "Restoran açmak harika bir fikir! Ancak restoran ruhsatlarının biraz daha uzun sürdüğünü (yaklaşık 90 güne kadar) unutmayın. Bunun sebebi belediyenin hijyen ve itfaiye için fiziksel denetleyiciler göndermesidir. Kontrol listenizi oluşturmaya başlayalım mı?",
+    "Ne nefis bir proje! 🍽️ Gıda ile uğraşacağınız için yerel belediye (Belediye) tesisatınızı ve havalandırmanızı çok sıkı inceleyecektir. Kira sözleşmesini imzalamadan önce mülk sahibinin baca kurulumuna izin verdiğinden emin olmalısınız!"
   ],
   "timeline": [
     "İstanbul'da ruhsat süreleri 15 gün (basit ofis) ile 90 gün (restoran) arasında değişmektedir. İş türünüz nedir?",
@@ -102,7 +105,10 @@
     "Ana maliyetler: Ticaret Sicil harcı (500-1.500 TL), noter ücretleri (500-2.000 TL) ve belediye ruhsat harcıdır. Gıda işletmeleri için denetim ücretlerini de ekleyin.",
     "Toplam malizet iş türünüze bağlıdır. Ofisler en ucuz (1.500-3.000 TL), perakende orta seviye, gıda işletmeleri ise en pahalıdır. Bütçe planlaması yapalım mı?",
     "Ruhsat harçlarının yanı sıra muhasebeci kurulum masraflarını ve ana sözleşme için noter ücretlerini unutmayın. Toplam bütçenizi buna göre şekillendirebiliriz.",
-    "Dürüst olmak gerekirse belediye harçları çok yüksek değil; asıl maliyet profesyonel hizmetlerde (muhasebeci, noter vb.) toplanıyor. Tahmini bir bütçe ister misiniz?"
+    "Dürüst olmak gerekirse belediye harçları çok yüksek değil; asıl maliyet profesyonel hizmetlerde (muhasebeci, noter vb.) toplanıyor. Tahmini bir bütçe ister misiniz?",
+    "Bütçeleme çok önemlidir, size tamamen katılıyorum! 💸 Gerçek maliyet ne yapacağınıza göre büyük ölçüde değişir. Örneğin bir yazılım danışmanlığı başlangıçta sadece birkaç bin lira öderken, bir kafe belediye sağlık denetimleri için oldukça fazla ödeyebilir. İşiniz tam olarak nedir?",
+    "Bu konuda tamamen şeffaf olalım: en ağır başlangıç maliyetleri aslında belediye izinleri değil, Noter ve Ticaret Odası kayıt ücretleridir. Bunlar ödendikten sonra, belediye ruhsat ücreti genellikle dükkanınızın metrekaresine göre hesaplanır. Alanınızın büyüklüğü belli mi?",
+    "Hiçbir kötü sürprizle karşılaşmamanız için bütçeyi birlikte hesaplayabiliriz! Eğer bana kesin iş faaliyetinizi ve tercih ettiğiniz ilçeyi söylerseniz, sizin için gerçekçi bir maliyet tahmini çıkarabilirim. Nasıl bir fikir?"
   ],
   "location": [
     "İstanbul'da ruhsatlar ilçe belediyesi (Beşiktaş, Kadıköy, vb.) tarafından verilir. Her ilçenin kendi ruhsat ofisi vardır. Siz hangi bölgedesiniz?",
@@ -137,6 +143,9 @@
     "Süreç Vergi Numarası ile başlar ve çalışma ruhsatı ile sona erer. Şu an hangi aşamadasınız?",
     "İş türünüze ve bulunacağınız ilçeye özel olarak hazırlanacak tam 14 adımlık yol haritanızı oluşturmamı ister misiniz?",
     "En kritik adımlar Vergi No, Ticaret Sicili ve Belediye Ruhsatıdır — diğer tüm işlemler bu üçü üzerine inşa edilir.",
-    "Adım 1 her zaman Vergi Kimlik Numarasıdır. Bu adımı hâlâ gerçekleştirmediniz mi?"
+    "Adım 1 her zaman Vergi Kimlik Numarasıdır. Bu adımı hâlâ gerçekleştirmediniz mi?",
+    "Biliyorum 'yasal işlemler' kulağa biraz sıkıcı gelebilir, ama inanın bana! Bu sadece sırayla halletmemiz gereken bir kontrol listesi. Düşmesi gereken ilk domino taşı Vergi Numaranızı almaktır. Nasıl alacağınızı anlatmamı ister misiniz?",
+    "Gözünüzde büyümemesi için bu masif projeyi küçük parçalara ayıralım! İlk olarak Ticaret Sicili aracılığıyla yasal varlığınızı kuruyoruz. Ardından gerçek ruhsat için ilçenizin belediyesine yöneliyoruz. Bu kuşbakışı özet mantıklı geldi mi?",
+    "Açılış gününe giden yolda yaklaşık 14 durak var ama endişelenmeyin, yanı başınızdayım! 🚗 En ağır iş Noter ve Ticaret Odası aşamasında yani en baştadır. Bu işlem bittiğinde belediye ruhsatları çok daha pürüzsüz ilerler. Adım 1 ile başlayalım mı?"
   ]
 }

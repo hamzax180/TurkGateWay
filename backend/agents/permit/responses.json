@@ -4,7 +4,10 @@
     "Great question! The first step is getting your Tax ID (Vergi Numarası). What district are you in?",
     "Starting a business in Istanbul involves about 14 legal steps. Want me to walk you through them based on your business type?",
     "The process begins with choosing your legal structure (Ltd. Şirket or AŞ). What industry are you going into?",
-    "First things first — do you have a specific district in Istanbul in mind? That affects which municipality handles your permits."
+    "First things first — do you have a specific district in Istanbul in mind? That affects which municipality handles your permits.",
+    "Welcome to the world of Turkish entrepreneurship! I know the bureaucracy can seem intimidating at first, but if we take it step by step, it's actually quite straightforward. Do you already have a commercial space in mind?",
+    "That's an exciting venture! As your permit advisor, I'm here to handle all the legal headaches so you can focus on your business. Let's start with the absolute basics: do you already have a Turkish Tax ID?",
+    "You've come to the right place! We'll map out everything from the Notary to the Municipality. To give you the best advice, could you tell me exactly what kind of business you're launching?"
   ],
   "documents": [
     "Standard documents include: ID/Passport, Lease Agreement, Tax Plate, and NACE code. Is your business a restaurant, retail, or office?",
@@ -18,7 +21,10 @@
     "Restaurants in Istanbul also require a TAPDK licence if you serve alcohol. Want the full permit roadmap?",
     "The toughest part for restaurants is the fire and hygiene inspections — expect 45–90 days total. Want to start the process?",
     "A restaurant permit in Istanbul requires fire compliance, municipal hygiene inspection, and a trade registry entry. Ready for the step-by-step?",
-    "Restaurants with live music also need a Canlı Müzik İzni. Do you plan to have music?"
+    "Restaurants with live music also need a Canlı Müzik İzni. Do you plan to have music?",
+    "Opening a restaurant here is a fantastic idea, but F&B permits are the strictest of all! Your biggest hurdle will be the fire department (İtfaiye) and chimney (Baca) sign-offs. Is the venue you're looking at already equipped for commercial cooking?",
+    "Istanbul's food scene is amazing! Just keep in mind that restaurant permits take significantly longer (up to 90 days) because the municipality has to send physical hygiene and fire inspectors. Should we start drafting your checklist so you're prepared?",
+    "I love a good restaurant project! 🍽️ Since you'll be dealing with food, the local municipality (Belediye) will scrutinize your layout and ventilation heavily. Before signing a lease, ensure the landlord allows chimney installation!"
   ],
   "timeline": [
     "Permit timelines in Istanbul range from 15 days (simple office) to 90 days (restaurant with alcohol). What's your business type?",
@@ -46,7 +52,10 @@
     "The 14-step process starts with your Tax ID and ends with your operating permit. Which step are you on?",
     "Want me to generate the full 14-step roadmap tailored to your business type and district?",
     "The critical steps are Tax ID, Trade Registry, and Municipal Permit. Everything else builds on those three.",
-    "Step 1 is always the Tax ID (Vergi Numarası). Have you done that yet?"
+    "Step 1 is always the Tax ID (Vergi Numarası). Have you done that yet?",
+    "I know 'corporate legal steps' can sound a bit dry, but I promise it's essentially just a checklist we need to knock out one by one! The very first domino that needs to fall is getting your Tax ID. Should I explain how to get that?",
+    "Let's break this massive project into bite-sized pieces so it's not overwhelming! First, we establish your legal entity through the Trade Registry. Then, we pivot to your district's Municipality for the actual operating permit. Does that high-level view make sense?",
+    "The road to opening day has about 14 stops, but don't worry, I'm riding shotgun! 🚗 The heaviest lifting is right at the beginning with the Notary and Trade Registry. Once that's done, the municipal permits are much smoother. Shall we review Step 1?"
   ],
   "cafe": [
     "A cafe has the same fire compliance requirements as a restaurant — you need an İtfaiye report and Baca certificate even without a full kitchen. Want the checklist?",
@@ -109,7 +118,10 @@
     "Great question to ask upfront! The main costs are: Trade Registry fee (~500–1,500 TL), notary fees (~500–2,000 TL), and the municipal permit fee (500–5,000 TL depending on business type). For food businesses, add inspection fees on top. Want a breakdown?",
     "The total cost depends on your business type. Offices are cheapest (1,500–3,000 TL all-in), retail is mid-range (2,000–5,000 TL), and food businesses are the most expensive due to fire and hygiene inspections (5,000–15,000 TL). What are you opening?",
     "Beyond the permit fees, don’t forget accountant setup costs (~500–1,500 TL/month ongoing) and notary fees for your Articles of Association. The government fees alone are usually 2,000–8,000 TL depending on your business. Want the full cost breakdown?",
-    "Honestly, the permit fees aren’t that high — it’s the professional service fees (accountant, notary, lawyer if needed) that add up. Want me to give you a realistic total budget estimate for your specific business type and district?"
+    "Honestly, the permit fees aren’t that high — it’s the professional service fees (accountant, notary, lawyer if needed) that add up. Want me to give you a realistic total budget estimate for your specific business type and district?",
+    "Budgeting is crucial, I completely agree! 💸 The true cost really fluctuates based on what you're doing. A software consultancy might only pay a few thousand Lira in setup, while a cafe requires expensive municipal health inspections. What exactly is your business?",
+    "Let's be totally transparent about this: the heaviest initial costs aren't actually the municipal permits, but the Notary and the Chamber of Commerce registration fees. Once those are paid, the local permit is usually based on the square meterage of your shop. Do you know how big your space will be?",
+    "I'll help you calculate this so there are no nasty surprises! If you can tell me your exact business activity and your preferred district, I can pull together a very realistic cost estimate for your first month. How does that sound?"
   ],
   "location": [
     "In Istanbul, permits are issued by your district municipality (ilçe belediyesi) — so Beşiktaş, Kadıköy, Şişli, etc. each have their own permit office. Which district are you opening in?",
