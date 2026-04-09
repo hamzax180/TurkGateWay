@@ -99,18 +99,20 @@ export default function HelpPage() {
                 iconColor: "text-emerald-500",
                 href: "/docs#resources" 
               }
-            ].map((cat, i) => (
-              <Link href={cat.href} key={i}>
-                <motion.div
-                  whileHover={{ y: -8, scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`glass-mesh ${cat.color || 'mesh-indigo'} p-8 rounded-[40px] border border-[var(--border)] shadow-xl cursor-pointer h-full flex flex-col group relative overflow-hidden`}
-                >
-                  <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity pointer-events-none">
-                    {cat.icons[0] && <cat.icons[0] size={120} />}
-                  </div>
+            ].map((cat, i) => {
+              const MainIcon = cat.icons[0];
+              return (
+                <Link href={cat.href} key={i}>
+                  <motion.div
+                    whileHover={{ y: -8, scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`glass-mesh ${cat.color || 'mesh-indigo'} p-8 rounded-[40px] border border-[var(--border)] shadow-xl cursor-pointer h-full flex flex-col group relative overflow-hidden`}
+                  >
+                    <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity pointer-events-none">
+                      {MainIcon && <MainIcon size={120} />}
+                    </div>
 
-                  <div className="mb-6 flex gap-2 relative z-10">
+                    <div className="mb-6 flex gap-2 relative z-10">
                     {cat.icons.map((Icon, idx) => (
                       <div key={idx} className={`p-4 rounded-2xl ${cat.iconBg} border border-white/10 shadow-sm backdrop-blur-md`}>
                         <Icon className={cat.iconColor} size={24} />
@@ -128,7 +130,8 @@ export default function HelpPage() {
                   </div>
                 </motion.div>
               </Link>
-            ))}
+            );
+          })}
           </div>
 
           {/* FAQ Section */}
