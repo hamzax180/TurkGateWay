@@ -102,7 +102,7 @@ export default function HelpPage() {
               {faqs.map((faq, i) => (
                 <div 
                   key={i}
-                  className="rounded-[24px] bg-[var(--surface-2)]/30 border border-[var(--border)] overflow-hidden h-fit"
+                  className="rounded-[24px] bg-[var(--surface-2)]/10 backdrop-blur-md border border-[var(--border)] overflow-hidden h-fit"
                 >
                   <button 
                     onClick={() => setOpenFaq(openFaq === i ? null : i)}
