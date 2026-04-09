@@ -162,6 +162,7 @@ export default function HelpPage() {
                 Open Support Ticket
               </button>
             </div>
+          </div>
         </div>
 
         <footer className="py-16 text-center text-[var(--muted)] text-sm mt-auto opacity-50">
