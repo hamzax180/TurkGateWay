@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HelpCircle, Search, MessageCircle, FileText, Mail, ChevronDown, ArrowLeft, ExternalLink, LifeBuoy, Book, Users } from 'lucide-react';
+import { HelpCircle, MessageCircle, FileText, Mail, ChevronDown, ArrowLeft, ExternalLink, LifeBuoy, Book, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
@@ -12,7 +12,6 @@ import Navbar from '../components/Navbar';
 export default function HelpPage() {
   const { t, isRTL } = useLanguage();
   const { token } = useAuth();
-  const [searchQuery, setSearchQuery] = useState('');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -35,10 +34,6 @@ export default function HelpPage() {
     }
   ];
 
-  const filteredFaqs = faqs.filter(f => 
-    f.q.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    f.a.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
     <div className="flex h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-500 overflow-hidden">
@@ -72,19 +67,6 @@ export default function HelpPage() {
               <LifeBuoy size={32} />
             </motion.div>
             <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight">How can we help you?</h2>
-            <div className="max-w-2xl relative group">
-              <div className="absolute inset-0 bg-indigo-500/10 blur-[40px] opacity-0 group-focus-within:opacity-100 transition-opacity" />
-              <div className="relative flex items-center bg-[var(--surface-2)] border border-[var(--border)] rounded-[24px] px-6 py-4 shadow-xl group-focus-within:border-indigo-500/50 transition-all">
-                <Search className="text-[var(--muted)] mr-4" size={20} />
-                <input 
-                  type="text" 
-                  placeholder={t('help_search')}
-                  className="flex-1 bg-transparent border-none outline-none text-lg placeholder:text-[var(--muted)]"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
           </div>
 
           {/* Quick Links Category Cards */}
@@ -117,7 +99,7 @@ export default function HelpPage() {
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredFaqs.map((faq, i) => (
+              {faqs.map((faq, i) => (
                 <div 
                   key={i}
                   className="rounded-[24px] bg-[var(--surface-2)]/30 border border-[var(--border)] overflow-hidden h-fit"
