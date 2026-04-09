@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, MessageSquare, Trash2, Menu, Settings, HelpCircle, History, Zap, Search, X, Star, MoreVertical, ChevronRight, LayoutDashboard, Home, LogOut } from 'lucide-react';
+import { Plus, MessageSquare, Trash2, Menu, Settings, HelpCircle, History, Zap, Search, X, Star, MoreVertical, ChevronRight, LayoutDashboard, Home, LogOut, Building2, GraduationCap, Scale } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
@@ -386,9 +386,9 @@ const SidebarInner = React.memo(({
       {showLabels && (
         <motion.div variants={itemVariants} className="flex bg-[var(--surface-2)] p-1 rounded-xl mx-3 mb-2 mt-3 shrink-0">
           {[
-            { id: 'permit', label: t('assistant_permit'), icon: '🏢' },
-            { id: 'student', label: t('assistant_student'), icon: '🎓' },
-            { id: 'lawyer', label: t('assistant_lawyer'), icon: '⚖️' },
+            { id: 'permit', label: t('assistant_permit'), icon: Building2, color: 'text-indigo-500' },
+            { id: 'student', label: t('assistant_student'), icon: GraduationCap, color: 'text-purple-500' },
+            { id: 'lawyer', label: t('assistant_lawyer'), icon: Scale, color: 'text-blue-500' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -397,9 +397,9 @@ const SidebarInner = React.memo(({
                   onSwitchAssistant(tab.id as any);
                 }
               }}
-              className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all outline-none ${assistantType === tab.id ? 'bg-[var(--surface-1)] shadow-sm text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
+              className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg flex flex-col items-center justify-center gap-1 transition-all outline-none ${assistantType === tab.id ? 'bg-[var(--surface-1)] shadow-sm text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
             >
-              <span>{tab.icon}</span>
+              <tab.icon size={14} className={assistantType === tab.id ? tab.color : 'opacity-50'} />
               {tab.label}
             </button>
           ))}

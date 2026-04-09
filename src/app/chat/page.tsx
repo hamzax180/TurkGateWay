@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Sparkles, User, Mic, Plus, ChevronDown, Building2, FileText, Search, Clock, HelpCircle, Scale, Menu } from 'lucide-react';
+import { Send, Sparkles, User, Mic, Plus, ChevronDown, Building2, FileText, Search, Clock, HelpCircle, Scale, Menu, GraduationCap } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useLanguage } from '../context/LanguageContext';
@@ -439,8 +439,8 @@ export default function ChatPage() {
                     onClick={() => switchAssistant('permit')}
                     className={`flex items-center gap-4 md:gap-5 px-5 md:px-8 py-4 md:py-5 w-full rounded-full transition-all duration-300 group relative overflow-hidden ${assistantType === 'permit' ? 'glass-mesh mesh-indigo border-indigo-500/50 text-[var(--text)] shadow-[0_0_30px_rgba(99,102,241,0.2)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] border border-transparent hover:border-white/10'}`}
                   >
-                    <div className="w-11 h-11 md:w-14 md:h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
-                      <span className="text-2xl md:text-3xl filter drop-shadow-md">🏢</span>
+                    <div className="w-11 h-11 md:w-14 md:h-14 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
+                      <Building2 size={isMobile ? 24 : 28} className="text-indigo-500" />
                     </div>
                     <div className="flex flex-col text-left">
                       <span className="text-[17px] md:text-[20px] font-bold tracking-tight leading-none mb-1">{t('assistant_permit')} {t('navbar_chat').replace('AI ', '')}</span>
@@ -453,8 +453,8 @@ export default function ChatPage() {
                     onClick={() => switchAssistant('student')}
                     className={`flex items-center gap-4 md:gap-5 px-5 md:px-8 py-4 md:py-5 w-full rounded-full transition-all duration-300 group relative overflow-hidden ${assistantType === 'student' ? 'glass-mesh mesh-purple border-purple-500/50 text-[var(--text)] shadow-[0_0_30px_rgba(168,85,247,0.2)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] border border-transparent hover:border-white/10'}`}
                   >
-                    <div className="w-11 h-11 md:w-14 md:h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
-                      <span className="text-2xl md:text-3xl filter drop-shadow-md">🎓</span>
+                    <div className="w-11 h-11 md:w-14 md:h-14 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
+                      <GraduationCap size={isMobile ? 24 : 28} className="text-purple-500" />
                     </div>
                     <div className="flex flex-col text-left">
                       <span className="text-[17px] md:text-[20px] font-bold tracking-tight leading-none mb-1">{t('assistant_student')} {t('navbar_chat').replace('AI ', '')}</span>
@@ -467,8 +467,8 @@ export default function ChatPage() {
                     onClick={() => switchAssistant('lawyer')}
                     className={`flex items-center gap-4 md:gap-5 px-5 md:px-8 py-4 md:py-5 w-full rounded-full transition-all duration-300 group relative overflow-hidden ${assistantType === 'lawyer' ? 'glass-mesh mesh-indigo border-indigo-500/50 text-[var(--text)] shadow-[0_0_30px_rgba(59,130,246,0.2)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] border border-transparent hover:border-white/10'}`}
                   >
-                    <div className="w-11 h-11 md:w-14 md:h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
-                      <span className="text-2xl md:text-3xl filter drop-shadow-md">⚖️</span>
+                    <div className="w-11 h-11 md:w-14 md:h-14 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform duration-300">
+                      <Scale size={isMobile ? 24 : 28} className="text-blue-500" />
                     </div>
                     <div className="flex flex-col text-left">
                       <span className="text-[17px] md:text-[20px] font-bold tracking-tight leading-none mb-1">{t('assistant_lawyer')} {t('navbar_chat').replace('AI ', '')}</span>
