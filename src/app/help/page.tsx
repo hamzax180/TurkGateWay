@@ -61,9 +61,9 @@ export default function HelpPage() {
       <main className="flex-1 flex flex-col min-w-0 transition-colors duration-300 relative overflow-y-auto slim-scroll">
         <Navbar isAppPage onMobileMenuClick={() => setMobileMenuOpen(true)} />
 
-        <div className="max-w-5xl mx-auto w-full px-4 py-8 md:py-16">
+        <div className="w-full px-6 md:px-12 py-8 md:py-16">
           {/* Search Hero */}
-          <div className="text-center mb-16">
+          <div className="text-left mb-16">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -72,7 +72,7 @@ export default function HelpPage() {
               <LifeBuoy size={32} />
             </motion.div>
             <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight">How can we help you?</h2>
-            <div className="max-w-2xl mx-auto relative group">
+            <div className="max-w-2xl relative group">
               <div className="absolute inset-0 bg-indigo-500/10 blur-[40px] opacity-0 group-focus-within:opacity-100 transition-opacity" />
               <div className="relative flex items-center bg-[var(--surface-2)] border border-[var(--border)] rounded-[24px] px-6 py-4 shadow-xl group-focus-within:border-indigo-500/50 transition-all">
                 <Search className="text-[var(--muted)] mr-4" size={20} />
@@ -110,7 +110,7 @@ export default function HelpPage() {
           </div>
 
           {/* FAQ Section */}
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-3xl">
             <h3 className="text-2xl font-black mb-10 tracking-tight flex items-center gap-3">
               <HelpCircle className="text-indigo-500" size={28} />
               {t('help_faq')}
@@ -149,11 +149,11 @@ export default function HelpPage() {
           </div>
 
           {/* Support CTA */}
-          <div className="mt-24 p-12 rounded-[48px] bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-center shadow-2xl shadow-indigo-500/30 relative overflow-hidden group mb-20">
+          <div className="mt-24 p-12 rounded-[48px] bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-left shadow-2xl shadow-indigo-500/30 relative overflow-hidden group mb-20 max-w-4xl">
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
             <h3 className="text-3xl font-black mb-4 relative z-10">Still have questions?</h3>
-            <p className="opacity-90 mb-10 text-lg relative z-10">Our support team is available 24/7 to help you with municipal complexities.</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center relative z-10">
+            <p className="opacity-90 mb-10 text-lg relative z-10 max-w-xl">Our support team is available 24/7 to help you with municipal complexities.</p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-start relative z-10">
               <button className="px-10 py-4 rounded-full bg-white text-indigo-600 font-black shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2">
                 <Mail size={20} />
                 Email Support

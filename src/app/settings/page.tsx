@@ -58,7 +58,7 @@ export default function SettingsPage() {
       <main className="flex-1 flex flex-col min-w-0 transition-colors duration-300 relative overflow-y-auto slim-scroll">
         <Navbar isAppPage onMobileMenuClick={() => setMobileMenuOpen(true)} />
 
-        <div className="max-w-5xl mx-auto w-full px-4 py-8 md:py-12">
+        <div className="w-full px-6 md:px-12 py-8 md:py-12 relative z-10">
           <div className="flex flex-col md:flex-row gap-8">
             
             {/* Sidebar Tabs */}
