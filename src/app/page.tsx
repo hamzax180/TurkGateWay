@@ -78,7 +78,7 @@ const FlipCard = ({ step, i, isRTL, t }: { step: any; i: number; isRTL: boolean;
         <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] flex flex-col justify-center items-center text-center rounded-[32px] bg-gradient-to-br from-white/10 to-white/0 backdrop-blur-md border border-white/20 p-10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:bg-white/10 hover:border-white/30 transition-all duration-500">
           <h4 className="text-4xl md:text-5xl font-medium text-white drop-shadow-md tracking-tight leading-[1.1] mb-6">{step.title}</h4>
           
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center gap-3 text-white/80 text-xs font-bold tracking-[0.2em] uppercase">
+          <div className="opacity-70 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center gap-3 text-white font-bold tracking-[0.2em] uppercase">
             <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
