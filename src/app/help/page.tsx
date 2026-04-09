@@ -110,23 +110,23 @@ export default function HelpPage() {
           </div>
 
           {/* FAQ Section */}
-          <div className="max-w-3xl">
-            <h3 className="text-2xl font-black mb-10 tracking-tight flex items-center gap-3">
+          <div className="max-w-6xl w-full">
+            <h3 className="text-2xl md:text-3xl font-black mb-12 tracking-tight flex items-center justify-start md:justify-center gap-3">
               <HelpCircle className="text-indigo-500" size={28} />
               {t('help_faq')}
             </h3>
             
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredFaqs.map((faq, i) => (
                 <div 
                   key={i}
-                  className="rounded-[24px] bg-[var(--surface-2)]/30 border border-[var(--border)] overflow-hidden"
+                  className="rounded-[24px] bg-[var(--surface-2)]/30 border border-[var(--border)] overflow-hidden h-fit"
                 >
                   <button 
                     onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                    className="w-full text-left px-8 py-6 flex items-center justify-between hover:bg-[var(--surface-2)]/50 transition-all"
+                    className="w-full text-left px-8 py-6 flex items-center justify-between hover:bg-[var(--surface-2)]/50 transition-all min-h-[96px]"
                   >
-                    <span className="font-bold text-lg pr-8">{faq.q}</span>
+                    <span className="font-bold text-lg pr-4">{faq.q}</span>
                     <ChevronDown className={`shrink-0 transition-transform duration-300 ${openFaq === i ? 'rotate-180' : ''}`} />
                   </button>
                   <AnimatePresence>
@@ -137,7 +137,7 @@ export default function HelpPage() {
                         exit={{ height: 0, opacity: 0 }}
                         className="border-t border-[var(--border)]"
                       >
-                        <div className="px-8 py-6 text-[var(--muted)] leading-relaxed">
+                        <div className="px-8 py-6 text-[var(--muted)] leading-relaxed bg-[var(--surface-1)]/30">
                           {faq.a}
                         </div>
                       </motion.div>
