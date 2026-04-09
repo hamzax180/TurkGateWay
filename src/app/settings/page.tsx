@@ -106,25 +106,25 @@ export default function SettingsPage() {
               {activeTab === 'general' && (
                 <div className="space-y-6">
                   {/* Appearance Card */}
-                  <div className="glass-mesh mesh-indigo rounded-[32px] p-6 border border-[var(--border)] shadow-xl overflow-hidden">
-                    <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
+                  <div className="glass-mesh mesh-indigo rounded-[32px] p-5 border border-[var(--border)] shadow-xl overflow-hidden">
+                    <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                       <Settings className="text-indigo-500" size={20} />
                       {t('settings_appearance')}
                     </h2>
                     
-                    <div className="space-y-6">
-                      <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--surface-2)]/40 border border-[var(--border)]">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[var(--surface-2)]/40 border border-[var(--border)]">
                         <div>
                           <p className="font-bold">{t('settings_theme')}</p>
-                          <p className="text-sm text-[var(--muted)]">Switch between light and dark mode</p>
+                          <p className="text-xs text-[var(--muted)]">Switch between light and dark mode</p>
                         </div>
                         <ThemeToggle />
                       </div>
 
-                      <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--surface-2)]/40 border border-[var(--border)]">
+                      <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[var(--surface-2)]/40 border border-[var(--border)]">
                         <div>
                           <p className="font-bold">{t('settings_lang')}</p>
-                          <p className="text-sm text-[var(--muted)]">Choose your preferred interface language</p>
+                          <p className="text-xs text-[var(--muted)]">Choose your preferred interface language</p>
                         </div>
                         <LanguageSwitcher />
                       </div>
@@ -132,10 +132,10 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Beta Card */}
-                  <div className="bg-[var(--surface-2)]/30 rounded-[32px] p-6 border border-[var(--border)]">
-                    <h3 className="font-bold mb-2">Beta Features</h3>
-                    <p className="text-sm text-[var(--muted)] mb-4">Try out new experimental features before they are released globally.</p>
-                    <button className="px-5 py-2.5 rounded-full bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 hover:scale-105 transition-all">
+                  <div className="bg-[var(--surface-2)]/30 rounded-[32px] p-5 border border-[var(--border)]">
+                    <h3 className="font-bold mb-1">Beta Features</h3>
+                    <p className="text-xs text-[var(--muted)] mb-3">Try out new experimental features before they are released globally.</p>
+                    <button className="px-5 py-2 rounded-full bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-500/25 hover:scale-105 transition-all">
                       Enroll in Beta
                     </button>
                   </div>
