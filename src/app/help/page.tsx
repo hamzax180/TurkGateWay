@@ -77,6 +77,8 @@ export default function HelpPage() {
                 title: "Documentation", 
                 desc: "Detailed guides for business permits, students, and lawyer protocols", 
                 color: "mesh-indigo", 
+                iconBg: "bg-indigo-500/10",
+                iconColor: "text-indigo-500",
                 href: "/docs" 
               },
               { 
@@ -84,6 +86,8 @@ export default function HelpPage() {
                 title: "Community", 
                 desc: "Join 10k+ businesses and students in Istanbul", 
                 color: "mesh-purple", 
+                iconBg: "bg-purple-500/10",
+                iconColor: "text-purple-500",
                 href: "/docs#community" 
               },
               { 
@@ -91,6 +95,8 @@ export default function HelpPage() {
                 title: "Resource Center", 
                 desc: "Checklists, laws and PDF templates", 
                 color: "mesh-emerald", 
+                iconBg: "bg-emerald-500/10",
+                iconColor: "text-emerald-500",
                 href: "/docs#resources" 
               }
             ].map((cat, i) => (
@@ -98,19 +104,27 @@ export default function HelpPage() {
                 <motion.div
                   whileHover={{ y: -8, scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className={`glass-mesh ${cat.color || 'mesh-indigo'} p-8 rounded-[40px] border border-[var(--border)] shadow-xl cursor-pointer h-full flex flex-col group`}
+                  className={`glass-mesh ${cat.color || 'mesh-indigo'} p-8 rounded-[40px] border border-[var(--border)] shadow-xl cursor-pointer h-full flex flex-col group relative overflow-hidden`}
                 >
-                  <div className="mb-6 flex gap-2">
+                  <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity pointer-events-none">
+                    {cat.icons[0] && <cat.icons[0] size={120} />}
+                  </div>
+
+                  <div className="mb-6 flex gap-2 relative z-10">
                     {cat.icons.map((Icon, idx) => (
-                      <div key={idx} className="p-3 rounded-2xl bg-white/5 border border-white/10">
-                        <Icon className="opacity-90 text-white" size={24} />
+                      <div key={idx} className={`p-4 rounded-2xl ${cat.iconBg} border border-white/10 shadow-sm backdrop-blur-md`}>
+                        <Icon className={cat.iconColor} size={24} />
                       </div>
                     ))}
                   </div>
-                  <h3 className="text-xl md:text-2xl font-black mb-3 tracking-tight">{cat.title}</h3>
-                  <p className="text-sm text-[var(--muted)] leading-relaxed mb-8 flex-1">{cat.desc}</p>
-                  <div className="mt-auto flex items-center gap-2 text-indigo-400 font-bold text-sm uppercase tracking-widest group-hover:text-indigo-300 transition-colors">
-                    Explore <ExternalLink size={14} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                  
+                  <div className="relative z-10">
+                    <h3 className="text-xl md:text-2xl font-black mb-3 tracking-tight group-hover:text-white transition-colors">{cat.title}</h3>
+                    <p className="text-sm text-[var(--muted)] leading-relaxed mb-8 flex-1 group-hover:text-[var(--text)] transition-colors opacity-80">{cat.desc}</p>
+                    
+                    <div className="mt-auto flex items-center gap-2 text-indigo-400 font-bold text-sm uppercase tracking-widest group-hover:text-indigo-300 transition-colors">
+                      Explore <ExternalLink size={14} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                    </div>
                   </div>
                 </motion.div>
               </Link>
