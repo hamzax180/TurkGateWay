@@ -70,26 +70,46 @@ export default function HelpPage() {
           </div>
 
           {/* Quick Links Category Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
             {[
-              { icon: Book, title: "Documentation", desc: "Detailed guides for business permits & protocols", color: "mesh-indigo", href: "/docs#permit" },
-              { icon: GraduationCap, title: "Student Guide", desc: "How to handle residence permits & university docs", color: "mesh-purple", href: "/docs#student" },
-              { icon: Scale, title: "Lawyer Portal", desc: "Legal frameworks and municipal compliance logs", color: "mesh-blue", href: "/docs#lawyer" },
-              { icon: Users, title: "Community", desc: "Join 10k+ businesses and students in Istanbul", color: "mesh-emerald", href: "/docs#community" },
-              { icon: FileText, title: "Resource Center", desc: "Checklists, laws and PDF templates", color: "mesh-indigo", href: "/docs#resources" }
+              { 
+                icons: [Book, GraduationCap, Scale], 
+                title: "Documentation", 
+                desc: "Detailed guides for business permits, students, and lawyer protocols", 
+                color: "mesh-indigo", 
+                href: "/docs" 
+              },
+              { 
+                icons: [Users], 
+                title: "Community", 
+                desc: "Join 10k+ businesses and students in Istanbul", 
+                color: "mesh-purple", 
+                href: "/docs#community" 
+              },
+              { 
+                icons: [FileText], 
+                title: "Resource Center", 
+                desc: "Checklists, laws and PDF templates", 
+                color: "mesh-emerald", 
+                href: "/docs#resources" 
+              }
             ].map((cat, i) => (
               <Link href={cat.href} key={i}>
                 <motion.div
                   whileHover={{ y: -8, scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className={`glass-mesh ${cat.color || 'mesh-indigo'} p-8 rounded-[40px] border border-[var(--border)] shadow-xl cursor-pointer h-full flex flex-col`}
+                  className={`glass-mesh ${cat.color || 'mesh-indigo'} p-8 rounded-[40px] border border-[var(--border)] shadow-xl cursor-pointer h-full flex flex-col group`}
                 >
-                  <div className="mb-6 p-3 rounded-2xl bg-white/5 w-fit border border-white/10">
-                    <cat.icon className="opacity-90" size={32} />
+                  <div className="mb-6 flex gap-2">
+                    {cat.icons.map((Icon, idx) => (
+                      <div key={idx} className="p-3 rounded-2xl bg-white/5 border border-white/10">
+                        <Icon className="opacity-90 text-white" size={24} />
+                      </div>
+                    ))}
                   </div>
                   <h3 className="text-xl md:text-2xl font-black mb-3 tracking-tight">{cat.title}</h3>
                   <p className="text-sm text-[var(--muted)] leading-relaxed mb-8 flex-1">{cat.desc}</p>
-                  <div className="mt-auto flex items-center gap-2 text-indigo-400 font-bold text-sm group-hover:text-indigo-300 transition-colors uppercase tracking-widest">
+                  <div className="mt-auto flex items-center gap-2 text-indigo-400 font-bold text-sm uppercase tracking-widest group-hover:text-indigo-300 transition-colors">
                     Explore <ExternalLink size={14} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                   </div>
                 </motion.div>
