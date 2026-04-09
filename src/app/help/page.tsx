@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HelpCircle, MessageCircle, FileText, Mail, ChevronDown, ArrowLeft, ExternalLink, LifeBuoy, Book, Users } from 'lucide-react';
+import { HelpCircle, MessageCircle, FileText, Mail, ChevronDown, ArrowLeft, ExternalLink, LifeBuoy, Book, Users, GraduationCap, Scale } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
@@ -70,24 +70,30 @@ export default function HelpPage() {
           </div>
 
           {/* Quick Links Category Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
             {[
-              { icon: Book, title: "Documentation", desc: "Detailed guides for business permits", color: "mesh-indigo" },
-              { icon: Users, title: "Community", desc: "Join 10k+ businesses in Istanbul", color: "mesh-purple" },
-              { icon: FileText, title: "Resource Center", desc: "Checklists, laws and PDF templates", color: "mesh-emerald" }
+              { icon: Book, title: "Documentation", desc: "Detailed guides for business permits & protocols", color: "mesh-indigo", href: "/docs#permit" },
+              { icon: GraduationCap, title: "Student Guide", desc: "How to handle residence permits & university docs", color: "mesh-purple", href: "/docs#student" },
+              { icon: Scale, title: "Lawyer Portal", desc: "Legal frameworks and municipal compliance logs", color: "mesh-blue", href: "/docs#lawyer" },
+              { icon: Users, title: "Community", desc: "Join 10k+ businesses and students in Istanbul", color: "mesh-emerald", href: "/docs#community" },
+              { icon: FileText, title: "Resource Center", desc: "Checklists, laws and PDF templates", color: "mesh-indigo", href: "/docs#resources" }
             ].map((cat, i) => (
-              <motion.div
-                key={i}
-                whileHover={{ y: -5 }}
-                className={`glass-mesh ${cat.color} p-8 rounded-[32px] border border-[var(--border)] shadow-xl cursor-pointer`}
-              >
-                <cat.icon className="mb-4 opacity-80" size={28} />
-                <h3 className="text-xl font-black mb-2">{cat.title}</h3>
-                <p className="text-sm text-[var(--muted)] leading-relaxed">{cat.desc}</p>
-                <div className="mt-6 flex items-center gap-2 text-[var(--accent)] font-bold text-sm">
-                  Explore <ExternalLink size={14} />
-                </div>
-              </motion.div>
+              <Link href={cat.href} key={i}>
+                <motion.div
+                  whileHover={{ y: -8, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`glass-mesh ${cat.color || 'mesh-indigo'} p-8 rounded-[40px] border border-[var(--border)] shadow-xl cursor-pointer h-full flex flex-col`}
+                >
+                  <div className="mb-6 p-3 rounded-2xl bg-white/5 w-fit border border-white/10">
+                    <cat.icon className="opacity-90" size={32} />
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-black mb-3 tracking-tight">{cat.title}</h3>
+                  <p className="text-sm text-[var(--muted)] leading-relaxed mb-8 flex-1">{cat.desc}</p>
+                  <div className="mt-auto flex items-center gap-2 text-indigo-400 font-bold text-sm group-hover:text-indigo-300 transition-colors uppercase tracking-widest">
+                    Explore <ExternalLink size={14} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                  </div>
+                </motion.div>
+              </Link>
             ))}
           </div>
 
