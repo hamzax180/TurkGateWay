@@ -213,10 +213,10 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <div className="p-6 rounded-[32px] border border-red-500/20 bg-red-500/5 mt-12">
-                    <h3 className="font-bold text-red-500 mb-2">Danger Zone</h3>
-                    <p className="text-sm text-[var(--muted)] mb-4">Once you delete your account, there is no going back. Please be certain.</p>
-                    <button className="px-5 py-2.5 rounded-full bg-white text-red-600 border border-red-200 font-bold text-sm hover:bg-red-50 shadow-sm transition-all">
+                  <div className="p-5 rounded-[32px] border border-red-500/20 bg-red-500/5 mt-8 max-w-xl mx-auto text-center">
+                    <h3 className="font-bold text-red-500 mb-1">Danger Zone</h3>
+                    <p className="text-xs text-[var(--muted)] mb-3 mx-auto max-w-sm">Once you delete your account, there is no going back. Please be certain.</p>
+                    <button className="px-6 py-2 rounded-full bg-white text-red-600 border border-red-200 font-bold text-xs hover:bg-red-50 shadow-sm transition-all">
                       {t('settings_delete_account')}
                     </button>
                   </div>
