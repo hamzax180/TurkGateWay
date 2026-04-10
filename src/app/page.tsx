@@ -119,17 +119,15 @@ export default function Home() {
         
         {/* ── Real Turkish Flag Background (Animated Entry & Ambient Sway) ── */}
         <div className="absolute inset-x-0 top-0 h-[55vh] md:h-screen pointer-events-none z-0 select-none overflow-hidden">
-          {/* Animated Red Section (Locked to Hero Viewport - MAX RED FOCUS) */}
+          {/* Animated Red Section (Locked to Hero Viewport - FULL WIDTH FOCUS) */}
           <motion.div 
             initial={{ opacity: 0, y: -100, x: 0 }}
             animate={{ opacity: 1, y: 0, x: 0 }}
             transition={{ duration: 2.2, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-0 md:left-1/2 md:right-0 bg-[#E30A17] shadow-[0_20px_60px_rgba(227,10,23,0.2)]"
+            className="absolute inset-0 bg-[#E30A17] shadow-[0_20px_60px_rgba(227,10,23,0.2)]"
             style={{ 
-              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 20%), linear-gradient(to top, transparent 0%, black 30%)',
-              maskImage: 'linear-gradient(to right, transparent 0%, black 20%), linear-gradient(to top, transparent 0%, black 30%)',
-              WebkitMaskComposite: 'source-in',
-              maskComposite: 'intersect'
+              WebkitMaskImage: 'linear-gradient(to top, transparent 0%, black 25%)',
+              maskImage: 'linear-gradient(to top, transparent 0%, black 25%)',
             }}
           >
 
