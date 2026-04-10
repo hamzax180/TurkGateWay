@@ -938,7 +938,7 @@ export default function Dashboard() {
                 <div className="space-y-3">
                   {(data?.execution_plan?.assigned_agents?.length > 0 ? data.execution_plan.assigned_agents : ['Permit Agent', 'Student Agent', 'Legal Agent']).map((name: string, i: number) => {
                     const isActive = data?.execution_plan?.assigned_agents?.some((a: any) => a.toLowerCase().includes(name.toLowerCase().split(' ')[0]));
-                    const type = name.toLowerCase().includes('student') ? 'student' : name.toLowerCase().includes('lawyer') ? 'lawyer' : 'permit';
+                    const type = name.toLowerCase().includes('student') ? 'student' : (name.toLowerCase().includes('lawyer') || name.toLowerCase().includes('legal') || name.toLowerCase().includes('law')) ? 'lawyer' : 'permit';
                     
                     return (
                       <div 
