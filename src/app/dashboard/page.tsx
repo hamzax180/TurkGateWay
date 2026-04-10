@@ -749,13 +749,26 @@ export default function Dashboard() {
                           {s.title}
                         </h3>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className={
-                            (s.responsible.includes('Agent') || s.responsible.includes('Ajan') || s.responsible.includes('وكيل'))
-                              ? 'agent-chip' : 'human-chip'
-                          }>
-                            {(s.responsible.includes('Agent') || s.responsible.includes('Ajan') || s.responsible.includes('وكيل')) ? '⚡ Agent' : '👤 Human'}
-                          </span>
-                          <StepBadge status={s.status} />
+                          {(s.responsible.includes('Agent') || s.responsible.includes('Ajan') || s.responsible.includes('وكيل')) ? (
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)] group">
+                              <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}>
+                                <Cpu size={10} className="text-red-500" />
+                              </motion.div>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-red-500">AGENT</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+                              <User size={10} className="text-blue-500" />
+                              <span className="text-[10px] font-black uppercase tracking-widest text-blue-500">HUMAN</span>
+                            </div>
+                          )}
+                          <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm backdrop-blur-md transition-all ${
+                            s.status === 'completed'
+                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500 shadow-emerald-500/5'
+                              : 'bg-amber-500/10 border-amber-500/20 text-amber-500 shadow-amber-500/5'
+                          }`}>
+                            {s.status === 'completed' ? t('status_completed') : t('status_pending')}
+                          </div>
                         </div>
                       </div>
                       <p className={`text-[12px] text-[var(--muted)] leading-relaxed transition-all duration-300 ${expanded === i ? 'line-clamp-none opacity-100' : 'line-clamp-1 opacity-60 group-hover:opacity-100'}`}>
@@ -949,7 +962,7 @@ export default function Dashboard() {
                   </span>
                 </div>
                 <div className="space-y-3">
-                  {(data?.execution_plan?.assigned_agents?.length > 0 ? data.execution_plan.assigned_agents : ['Permit Agent', 'Student Agent', 'Legal Agent']).map((name: string, i: number) => {
+                  {(data?.execution_plan?.assigned_agents?.length > 0 ? data.execution_plan.assigned_agents : ['Permit Agent', 'Student Agent', 'Lawyer Agent']).map((name: string, i: number) => {
                     const isActive = data?.execution_plan?.assigned_agents?.some((a: any) => a.toLowerCase().includes(name.toLowerCase().split(' ')[0]));
                     const type = name.toLowerCase().includes('student') ? 'student' : (name.toLowerCase().includes('lawyer') || name.toLowerCase().includes('legal') || name.toLowerCase().includes('law')) ? 'lawyer' : 'permit';
                     

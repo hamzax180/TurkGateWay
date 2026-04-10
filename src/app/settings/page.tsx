@@ -401,9 +401,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <footer className="py-12 mt-auto text-center opacity-30 text-xs font-medium tracking-widest uppercase">
-          AI Advisor • Settings Engine v1.0
-        </footer>
+
       </main>
     </div>
   );
