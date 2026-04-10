@@ -118,8 +118,8 @@ export default function Home() {
       <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col items-center justify-center transition-colors duration-500 overflow-hidden relative">
         
         {/* ── Real Turkish Flag Background (Animated Entry & Ambient Sway) ── */}
-        <div className="absolute inset-0 pointer-events-none z-0 select-none overflow-hidden">
-          {/* Animated Red Section (Descending from Air + Wind Sway + ULTRA SMOOTH MASK) */}
+        <div className="absolute inset-x-0 top-0 h-screen pointer-events-none z-0 select-none overflow-hidden">
+          {/* Animated Red Section (Locked to Hero Viewport) */}
           <motion.div 
             initial={{ opacity: 0, x: "100%" }}
             animate={{ opacity: 1, x: 0 }}
@@ -130,7 +130,7 @@ export default function Home() {
               maskImage: 'linear-gradient(to right, transparent 0%, black 50%)'
             }}
           >
-            {/* The "Sign of Turkey" (Exactly in the middle of the red zone) */}
+            {/* The "Sign of Turkey" (Guaranteed Centering in Viewport) */}
             <motion.div 
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ 
@@ -146,7 +146,6 @@ export default function Home() {
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] md:w-[500px] flex items-center justify-center z-20"
             >
               <svg viewBox="0 0 800 600" className="w-full h-auto fill-white drop-shadow-[0_0_80px_rgba(255,255,255,0.4)]">
-                {/* Mathematical Turkish Moon & Star */}
                 <circle cx="360" cy="300" r="150" />
                 <circle cx="410" cy="300" r="120" fill="#E30A17" />
                 <path d="M490,300 l50,15 l-30,-45 l30,-45 l-50,15 l-15,-50 l-15,50 l-50,-15 l30,45 l-30,45 l50,-15 z" />
