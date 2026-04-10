@@ -121,7 +121,7 @@ export default function HelpPage() {
                   </div>
                   
                   <div className="relative z-10">
-                    <h3 className="text-xl md:text-2xl font-black mb-3 tracking-tight group-hover:text-white transition-colors">{cat.title}</h3>
+                    <h3 className="text-xl md:text-2xl font-black mb-3 tracking-tight transition-colors">{cat.title}</h3>
                     <p className="text-sm text-[var(--muted)] leading-relaxed mb-8 flex-1 group-hover:text-[var(--text)] transition-colors opacity-80">{cat.desc}</p>
                     
                     <div className="mt-auto flex items-center gap-2 text-indigo-400 font-bold text-sm uppercase tracking-widest group-hover:text-indigo-300 transition-colors">
