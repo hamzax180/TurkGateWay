@@ -450,3 +450,17 @@ body {
     radial-gradient(at 0% 0%, rgba(52, 211, 153, 0.15) 0px, transparent 50%),
     radial-gradient(at 100% 100%, rgba(5, 150, 105, 0.1) 0px, transparent 50%);
 }
+
+.turkish-flag-mask {
+  mask-image: linear-gradient(to bottom, black 75%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 75%, transparent 100%);
+}
+
+@media (min-width: 768px) {
+  .turkish-flag-mask {
+    mask-image: linear-gradient(to right, transparent 0%, black 15%), linear-gradient(to bottom, black 75%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 15%), linear-gradient(to bottom, black 75%, transparent 100%);
+    mask-composite: intersect;
+    -webkit-mask-composite: source-in;
+  }
+}

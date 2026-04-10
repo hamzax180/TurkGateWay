@@ -124,11 +124,7 @@ export default function Home() {
             initial={{ opacity: 0, y: -100, x: 0 }}
             animate={{ opacity: 1, y: 0, x: 0 }}
             transition={{ duration: 2.2, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-0 md:left-1/2 md:right-0 bg-[#E30A17]"
-            style={{ 
-              WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-              maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
-            }}
+            className="absolute inset-0 md:left-1/2 md:right-0 bg-[#E30A17] turkish-flag-mask"
           >
 
             {/* The "Sign of Turkey" (Exactly in the middle of this intense red) */}
