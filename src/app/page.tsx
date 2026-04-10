@@ -126,10 +126,8 @@ export default function Home() {
             transition={{ duration: 2.2, ease: [0.16, 1, 0.3, 1] }}
             className="absolute inset-0 md:left-1/2 md:right-0 bg-[#E30A17]"
             style={{ 
-              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 15%), linear-gradient(to bottom, black 70%, transparent 100%)',
-              maskImage: 'linear-gradient(to right, transparent 0%, black 15%), linear-gradient(to bottom, black 70%, transparent 100%)',
-              WebkitMaskComposite: 'source-in',
-              maskComposite: 'intersect'
+              WebkitMaskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
+              maskImage: 'linear-gradient(to bottom, black 75%, transparent 100%)',
             }}
           >
 
