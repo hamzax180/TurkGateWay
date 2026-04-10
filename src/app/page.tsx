@@ -163,11 +163,6 @@ export default function Home() {
           <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[var(--bg)] to-transparent z-30" />
         </div>
 
-          {/* Depth Overlays */}
-          <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-[var(--bg)] to-transparent z-30" />
-          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[var(--bg)] to-transparent z-30" />
-        </div>
-
       {/* ═══════════════ PERMIT ASSISTANT CONTENT ═══════════════ */}
       <section className="w-full max-w-4xl mx-auto flex flex-col items-center text-center space-y-10 pt-24 pb-10 px-6 relative z-10">
 
