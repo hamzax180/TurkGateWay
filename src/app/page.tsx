@@ -124,10 +124,11 @@ export default function Home() {
             initial={{ opacity: 0, x: "100%" }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 2.2, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute right-0 top-0 bottom-0 w-full md:w-1/2 bg-[#E30A17] shadow-[-30px_0_80px_rgba(227,10,23,0.1)]"
+            className="absolute right-0 top-0 bottom-0 w-full md:w-1/2 shadow-[-30px_0_80px_rgba(227,10,23,0.1)]"
             style={{ 
-              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 50%)',
-              maskImage: 'linear-gradient(to right, transparent 0%, black 50%)'
+              background: 'radial-gradient(circle at 70% 50%, #E30A17 0%, #8B0000 100%)',
+              WebkitMaskImage: 'linear-gradient(to right, transparent 5%, black 40%)',
+              maskImage: 'linear-gradient(to right, transparent 5%, black 40%)'
             }}
           >
             {/* The "Sign of Turkey" (Guaranteed Centering in Viewport) */}
