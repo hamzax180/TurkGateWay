@@ -58,7 +58,7 @@ export default function HelpPage() {
 
         <div className="w-full px-6 md:px-12 py-8 md:py-16">
           {/* Search Hero */}
-          <div className="text-left mb-16">
+          <div className="text-center mb-16 flex flex-col items-center">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}

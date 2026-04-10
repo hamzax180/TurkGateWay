@@ -35,7 +35,7 @@ INTENT_MAP = {
         r"(مع السلامة|باي|وداعا|في أمان الله|اشوفك على خير|وداعاً)"
     ],
     "thanks": [
-        r"\b(thank(s| you)|thx|cheers|much appreciated|appreciate it)\b",
+        r"\b(thank(s| you)|thx|cheers|nice|good|great|perfect|much appreciated|appreciate it)\b",
         r"(شكرا|شكراً|يعطيك العافية|تسلم|مشكور|ما قصرت|ممتن|تشكرات|الف شكر)"
     ],
     "trust": [
@@ -394,7 +394,9 @@ def detect_intent(
                     if len(tw) < 4: continue
                     ratio = SequenceMatcher(None, tw, pw).ratio()
                     
-                    if ratio >= 0.80:
+                    # Tighten threshold for short words to prevent 'nice' matching 'notice' (0.8)
+                    min_ratio = 0.85 if len(tw) <= 4 else 0.80
+                    if ratio >= min_ratio:
                         parts = intent_key.split(".", 1)
                         group, sub = parts[0], (parts[1] if len(parts) > 1 else None)
                         

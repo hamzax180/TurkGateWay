@@ -206,12 +206,12 @@ export default function Home() {
           ))}
         </motion.div>
 
-        {/* Scroll Down Arrow - Moved lower to bridge the gap */}
+        {/* Scroll Down Arrow - Moved further up for better vertical alignment */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 2.8, duration: 1 }}
-          className="pt-32 flex flex-col items-center gap-2 cursor-pointer group"
+          className="pt-6 flex flex-col items-center gap-2 cursor-pointer group"
           onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
         >
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--muted)] group-hover:text-[var(--text)] transition-colors">

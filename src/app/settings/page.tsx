@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Settings, User, Moon, Sun, Languages, History, Shield, LogOut, ChevronRight, ArrowLeft } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Settings, User, Moon, Sun, Languages, History, Shield, LogOut, ChevronRight, ArrowLeft, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +10,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
+import { apiFetch } from '../utils/api';
 
 export default function SettingsPage() {
   const { t, language, setLanguage, isRTL } = useLanguage();
@@ -18,12 +19,39 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('general');
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const [cleared, setCleared] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   if (!mounted) return null;
+
+  const handleClearHistory = async () => {
+    if (!token) return;
+    try {
+      setIsClearing(true);
+      const res = await apiFetch(`/chat/sessions/clear?token=${token}`, {
+        method: 'DELETE'
+      });
+      if (res?.ok) {
+        setCleared(true);
+        setTimeout(() => {
+          setCleared(false);
+          setShowClearConfirm(false);
+          // Refresh to update sidebar and other persistent components
+          window.location.reload();
+        }, 1500);
+      }
+    } catch (e) {
+      console.error("Failed to clear history", e);
+    } finally {
+      setIsClearing(false);
+    }
+  };
 
   const tabs = [
     { id: 'general', icon: Settings, label: t('settings_appearance') },
@@ -173,15 +201,67 @@ export default function SettingsPage() {
 
               {activeTab === 'history' && (
                 <div className="space-y-6">
-                  <div className="p-8 rounded-[32px] bg-[var(--surface-2)]/30 border border-[var(--border)] text-center">
-                    <History size={48} className="mx-auto text-[var(--muted)] mb-4 opacity-50" />
-                    <h2 className="text-xl font-bold mb-2">{t('settings_history')}</h2>
-                    <p className="text-[var(--muted)] max-w-sm mx-auto mb-8">
+                  <div className="p-10 rounded-[40px] bg-[var(--surface-2)]/30 border border-[var(--border)] text-center relative overflow-hidden">
+                    <History size={48} className="mx-auto text-[var(--muted)] mb-6 opacity-40" />
+                    <h2 className="text-2xl font-black mb-3 tracking-tight">{t('settings_history')}</h2>
+                    <p className="text-[var(--muted)] max-w-sm mx-auto mb-10 text-sm leading-relaxed">
                       Manage your chat history and stored documents across all of your specialized AI agents.
                     </p>
-                    <button className="px-8 py-3 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 font-bold hover:bg-red-500 hover:text-white transition-all">
-                      {t('settings_clear_history')}
-                    </button>
+                    
+                    <AnimatePresence mode="wait">
+                      {cleared ? (
+                        <motion.div
+                          key="cleared"
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 1.1 }}
+                          className="flex flex-col items-center gap-2 text-emerald-500"
+                        >
+                          <CheckCircle2 size={32} />
+                          <span className="font-bold underline underline-offset-4 decoration-2">History Cleared</span>
+                        </motion.div>
+                      ) : showClearConfirm ? (
+                        <motion.div
+                          key="confirm"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="flex flex-col items-center gap-6"
+                        >
+                          <div className="flex items-center gap-3 p-4 rounded-2xl bg-red-500/5 border border-red-500/10 text-red-500 text-sm font-medium">
+                            <AlertCircle size={18} />
+                            This action cannot be undone. Are you sure?
+                          </div>
+                          <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-xs">
+                            <button
+                              onClick={handleClearHistory}
+                              disabled={isClearing}
+                              className="w-full px-8 py-3.5 rounded-2xl bg-red-500 text-white font-black shadow-xl shadow-red-500/20 hover:bg-red-600 active:scale-95 transition-all text-sm disabled:opacity-50"
+                            >
+                              {isClearing ? t('dashboard_processing') : t('settings_confirm_clear')}
+                            </button>
+                            <button
+                              onClick={() => setShowClearConfirm(false)}
+                              disabled={isClearing}
+                              className="w-full px-8 py-3.5 rounded-2xl bg-[var(--surface-2)] text-[var(--text)] font-black hover:bg-[var(--surface-3)] transition-all text-sm"
+                            >
+                              {t('settings_cancel')}
+                            </button>
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <motion.button
+                          key="initial"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          onClick={() => setShowClearConfirm(true)}
+                          className="px-10 py-4 rounded-2xl bg-red-500/10 text-red-500 border border-red-500/20 font-black hover:bg-red-500 hover:text-white hover:shadow-2xl hover:shadow-red-500/20 transition-all text-sm active:scale-95"
+                        >
+                          {t('settings_clear_history')}
+                        </motion.button>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
               )}

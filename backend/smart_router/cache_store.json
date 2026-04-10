@@ -1,10 +1,18 @@
 {
-  "cdcea85bdd091e84254df20b029d4d14": {
-    "response": "Here’s the big picture: register your company first (Tax ID → MERSİS → Notary → Trade Registry → Bank Account → Tax Office), then apply for your operating licence at the district municipality. The whole process takes 15–90 days depending on your business type. What are you planning to open?",
-    "ts": 1775751767.0724854
+  "24d4da6f825e7d26037eac757cf6cdf0": {
+    "response": "Hello! 👋 I am your Permit Advisor. What type of business are you planning to start?",
+    "ts": 1775824107.0430586
   },
-  "02a89b8313d45effe434a685ea0ebc9c": {
-    "response": "An office permit doesn't need an İtfaiye report in most cases. Your main requirements are Trade Registry, NACE code, lease, and municipal licence.",
-    "ts": 1775751780.3913233
+  "048ed9a5dea580eff743c348faffb7e5": {
+    "response": "Let's break this massive project into bite-sized pieces so it's not overwhelming! First, we establish your legal entity through the Trade Registry. Then, we pivot to your district's Municipality for the actual operating permit. Does that high-level view make sense?",
+    "ts": 1775824129.3097184
+  },
+  "35f6bc929602872b879bf79d3a46b085": {
+    "response": "Severance pay (kıdem tazminatı) is calculated as 30 days' salary for every year of service. If you were let go without cause, you're likely owed more than just that. Want me to map out everything you can claim?\n\n*( Please switch to **Lawyer Advisor** mode. )*",
+    "ts": 1775824145.0712159
+  },
+  "051be8a3578ab2483fc164a22fed50e2": {
+    "response": "Hello! 👋 I am your Permit Advisor. What type of business are you planning to start?",
+    "ts": 1775824522.1936424
   }
 }

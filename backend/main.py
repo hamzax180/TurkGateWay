@@ -904,6 +904,21 @@ async def clear_chat_history(session_id: str, token: Optional[str] = None, db: S
     return {"status": "success"}
 
 
+@app.delete("/chat/sessions/clear")
+async def clear_all_sessions(token: str, db: Session = Depends(get_db)):
+    user = await get_current_user(token, db)
+    # Delete all sessions belonging to this user.
+    # We delete sessions, and cascade delete should handle messages.
+    # To be absolutely sure in SQLite without relying solely on DB-level cascade:
+    session_ids = [s.id for s in db.query(ChatSession.id).filter(ChatSession.user_id == user.id).all()]
+    if session_ids:
+        db.query(ChatMessage).filter(ChatMessage.session_id.in_(session_ids)).delete(synchronize_session=False)
+        db.query(ChatSession).filter(ChatSession.user_id == user.id).delete(synchronize_session=False)
+        db.commit()
+
+    return {"status": "success", "message": "All conversations cleared"}
+
+
 @app.get("/workflow/latest")
 async def get_latest(token: Optional[str] = None, session_id: Optional[str] = None, db: Session = Depends(get_db)):
     user = None
@@ -1200,4 +1215,5 @@ async def get_admin_subscribers(db: Session = Depends(get_db), current_user: DBU
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8003)
+    # Using 'main:app' string instead of app object to enable reload
+    uvicorn.run("main:app", host="0.0.0.0", port=8003, reload=True, reload_dirs=["backend"])
