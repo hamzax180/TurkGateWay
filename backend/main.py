@@ -246,21 +246,21 @@ async def _run_local_fallback(query: str, assistant_type: str, language: str, us
         # Hardcoded local fallbacks if even smart router fails
         if assistant_type == "student":
             fallbacks = {
-                "en": "I'm currently operating in offline mode. As your Student Advisor, I can help with university registration, resident IDs (Ikamet), and student life in Turkey. What specific student task are you working on?",
-                "tr": "Şu anda çevrimdışı modda çalışıyorum. Öğrenci Danışmanınız olarak üniversite kaydı, İkamet ve Türkiye'deki öğrenci yaşamı hakkında yardımcı olabilirim. Hangi işlemde takıldınız?",
-                "ar": "أعمل حالياً في وضع عدم الاتصال. بصفتي مستشار الطلاب، يمكنني مساعدتك في التسجيل الجامعي، إقامة الطالب (الكملك) والحياة الطلابية. ما هو الإجراء الذي تود الاستفسار عنه؟"
+                "en": "As your Student Advisor, I can help you with university registration, resident IDs (Ikamet), and student life in Turkey. What specific student task are you working on?",
+                "tr": "Öğrenci Danışmanınız olarak üniversite kaydı, İkamet ve Türkiye'deki öğrenci yaşamı hakkında yardımcı olabilirim. Hangi işlemde takıldınız?",
+                "ar": "بصفتي مستشارك الطلابي، يمكنني مساعدتك في التسجيل الجامعي، إقامة الطالب والحياة الطلابية. ما هو الإجراء الذي تود الاستفسار عنه؟"
             }
         elif assistant_type == "lawyer":
             fallbacks = {
-                "en": "I'm currently operating in offline mode. As your Legal Advisor, I can assist with contracts, company formation, and legal disputes. Please provide more details about your legal query.",
-                "tr": "Şu anda çevrimdışı modda çalışıyorum. Hukuk Danışmanınız olarak sözleşmeler, şirket kuruluşu ve hukuki ihtilaflar konusunda yardımcı olabilirim. Lütfen sorunuzu detaylandırın.",
-                "ar": "أعمل حالياً في وضع عدم الاتصال. بصفتي مستشاراً قانونياً، يمكنني مساعدتك في العقود وتأسيس الشركات والنزاعات القانونية. يرجى تزويدي بمزيد من التفاصيل."
+                "en": "As your Legal Advisor, I can assist with contracts, company formation, and legal disputes. Please provide more details about your legal query.",
+                "tr": "Hukuk Danışmanınız olarak sözleşmeler, şirket kuruluşu ve hukuki ihtilaflar konusunda yardımcı olabilirim. Lütfen sorunuzu detaylandırın.",
+                "ar": "بصفتي مستشاراً قانونياً، يمكنني مساعدتك في العقود وتأسيس الشركات والنزاعات القانونية. يرجى تزويدي بمزيد من التفاصيل."
             }
         else: # permit
             fallbacks = {
-                "en": "I'm currently operating in offline mode. For business permits, you generally need to register with your district municipality. What specific business (Cafe, Retail, etc.) are you planning?",
-                "tr": "Şu anda çevrimdışı modda çalışıyorum. İşyeri ruhsatları için genellikle bağlı bulunduğunuz ilçe belediyesine başvurmanız gerekir. Hangi tür işletme (Kafe, Mağaza vb.) açmayı planlıyorsunuz?",
-                "ar": "أعمل حالياً في وضع عدم الاتصال. للحصول على تراخيص الأعمال، تحتاج عادةً إلى التسجيل في بلدية منطقتك. ما هو نوع النشاط التجاري الذي تخطط لفتحه؟"
+                "en": "For business permits, you generally need to register with your district municipality. What specific business (Cafe, Retail, etc.) are you planning?",
+                "tr": "İşyeri ruhsatları için genellikle bağlı bulunduğunuz ilçe belediyesine başvurmanız gerekir. Hangi tür işletme (Kafe, Mağaza vb.) açmayı planlıyorsunuz?",
+                "ar": "للحصول على تراخيص الأعمال، تحتاج عادةً إلى التسجيل في بلدية منطقتك. ما هو نوع النشاط التجاري الذي تخطط لفتحه؟"
             }
         return fallbacks.get(language, fallbacks["en"])
     except Exception as e:
@@ -939,12 +939,12 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
         try:
             fallback_answer = await _run_local_fallback(query_text, assistant_type, language, user.full_name if user else "")
             
-            # Save fallback message with a premium "Local Core" badge
-            assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=f"🛡️ [Backup Core] {fallback_answer}")
+            # Save fallback message
+            assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=f"{fallback_answer}")
             db.add(assistant_msg)
             db.commit()
             
-            return {"role": "assistant", "content": f"🛡️ [Backup Core] {fallback_answer}", "session_title": db_session.title if db_session else None}
+            return {"role": "assistant", "content": f"{fallback_answer}", "session_title": db_session.title if db_session else None}
         except:
             return {"role": "assistant", "content": f"Critical Error: {str(e)}"}
 

@@ -608,17 +608,17 @@ async def smart_router_handle(
         response_cache.set(query, ai_response, assistant_type, language)
         return ai_response
 
-    # --- PHASE 3: Smart Offline Orchestrator (Last Resort) ---
-    # If even AI fails or is offline, provide a high-quality humanized guide.
+    # --- PHASE 3: Smart Orchestrator (Last Resort) ---
+    # provide a high-quality humanized guide.
     if language == "ar":
-        if assistant_type == "student": return "أعمل حالياً في وضع عدم الاتصال. بصفتي مستشار الطلاب، يمكنني مساعدتك في:\n- استخراج أو تجديد الإقامة الطلابية (الكملك)\n- التسجيل في الجامعات والمنح\n- استخراج كرت المواصلات وسكن الطلاب\n- معادلة الشهادات (Denklik).\nما هو الإجراء الذي تود الاستفسار عنه؟"
-        elif assistant_type == "lawyer": return "أعمل حالياً في وضع عدم الاتصال. بصفتي المستشار القانوني، أنا هنا لدعمك في:\n- مراجعة العقود التجارية\n- النزاعات العمالية والقضايا\n- إجراءات الإقامة القانونية وتأسيس الشركات.\nيرجى تزويدي بمزيد من التفاصيل."
-        else: return "أعمل حالياً في وضع عدم الاتصال. بصفتي مستشار التراخيص، أختص بمساعدتك في:\n- إجراءات تأسيس الأعمال (مطعم، كافيه، مكتب، صيدلية، إلخ)\n- معرفة التكاليف والمستندات المطلوبة\n- التواصل مع البلدية والدوائر الحكومية.\nما هو النشاط الذي تود القيام به؟"
+        if assistant_type == "student": return "بصفتي مستشارك الطلابي، يسعدني مساعدتك في الإجراءات التالية:\n- استخراج أو تجديد الإقامة الطلابية (الكملك)\n- التسجيل في الجامعات والمنح\n- استخراج كرت المواصلات وسكن الطلاب\n- معادلة الشهادات (Denklik).\nما هو الإجراء الذي تود الاستفسار عنه حالياً؟"
+        elif assistant_type == "lawyer": return "بصفتي مستشارك القانوني، أنا هنا لدعمك وتوجيهك في:\n- مراجعة العقود التجارية\n- النزاعات العمالية والقضايا\n- إجراءات الإقامة القانونية وتأسيس الشركات.\nيرجى تزويدي بمزيد من التفاصيل حول قضيتك."
+        else: return "بصفتي مستشارك لتراخيص الأعمال، أختص بمساعدتك في:\n- إجراءات تأسيس الأعمال (مطعم، كافيه، مكتب، صيدلية، إلخ)\n- معرفة التكاليف والمستندات المطلوبة\n- التواصل مع البلدية والدوائر الحكومية.\nما هو النشاط الذي تود البدء به؟"
     elif language == "tr":
-        if assistant_type == "student": return "Şu anda çevrimdışı modda çalışıyorum. Öğrenci Danışmanı olarak size şunlarda yardımcı olabilirim:\n- Öğrenci İkamet İzni (Kimlik) alma veya uzatma\n- Üniversite kayıt ve denklik işlemleri\n- Yurt ve ulaşım kartı.\nHangi işlemde takıldınız?"
-        elif assistant_type == "lawyer": return "Şu anda çevrimdışı modda çalışıyorum. Hukuk Danışmanı olarak uzmanlık alanlarım:\n- Sözleşme inceleme\n- İş hukuku ve davalar\n- Şirket kuruluşu.\nLütfen sorunuzu detaylandırın."
-        else: return "Şu anda çevrimdışı modda çalışıyorum. Ruhsat Danışmanı olarak size:\n- İşyeri açma ruhsatı (Kafe, Restoran, Ofis vb.)\n- Gerekli belgeler ve maliyetler\n- Belediye süreçleri hakkında bilgi verebilirim.\nHangi işletmeyi açmak istiyorsunuz?"
+        if assistant_type == "student": return "Öğrenci Danışmanınız olarak size şu konularda hızlıca yardımcı olabilirim:\n- Öğrenci İkamet İzni (Kimlik) alma veya uzatma\n- Üniversite kayıt ve denklik işlemleri\n- Yurt ve ulaşım kartı.\nHangi işlemde takıldınız?"
+        elif assistant_type == "lawyer": return "Hukuk Danışmanınız olarak uzmanlık alanlarım şunlardır:\n- Sözleşme inceleme\n- İş hukuku ve davalar\n- Şirket kuruluşu.\nLütfen sorunuzu detaylandırın, size en doğru yolu gösterelim."
+        else: return "Ruhsat Danışmanınız olarak size şu konularda rehberlik edebilirim:\n- İşyeri açma ruhsatı (Kafe, Restoran, Ofis vb.)\n- Gerekli belgeler ve maliyetler\n- Belediye süreçleri hakkında bilgi.\nHangi işletmeyi açmak istiyorsunuz?"
     else:
-        if assistant_type == "student": return "I'm currently operating in offline mode. As your Student Advisor, I can help with university registration, resident IDs (Ikamet), and student life in Turkey. What specific student task are you working on?"
-        elif assistant_type == "lawyer": return "I'm currently operating in offline mode. As your Legal Advisor, I can assist with contracts, company formation, and legal disputes. Please provide more details about your legal query."
-        else: return "I'm currently operating in offline mode. For business permits, you generally need to register with your district municipality. What specific business (Cafe, Retail, etc.) are you planning?"
+        if assistant_type == "student": return "As your Student Advisor, I can help you navigate university registration, resident IDs (Ikamet), and student life in Turkey. What specific student task are you working on today?"
+        elif assistant_type == "lawyer": return "As your Legal Advisor, I can assist you with contract reviews, company formation, and legal disputes. Please provide more details about your legal query so I can guide you."
+        else: return "As your Permit Advisor, I specialize in helping you with business licenses (Cafe, Retail, etc.), required documents, and costs. What specific business are you planning to start?"

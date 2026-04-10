@@ -1,8 +1,4 @@
 {
-  "be89dfa0014cd1b9171f2f7cd629bc29": {
-    "response": "🎓 **Student ID Extension**\n\nIf you extended your studies, you must renew your ID at **Student Affairs**.\n\n📄 **Required:**\n• Expired Kimlik\n• Active Öğrenci Belgesi (Enrollment Certificate)\n• 1 Photo\n\n💬 Pro tip: Keep a digital copy of your active certificate on phone!",
-    "ts": 1775852728.6711147
-  },
   "e39ec14c00e00d4a5a305e4a580ea9e2": {
     "response": "You've come to the right place! We'll map out everything from the Notary to the Municipality. To give you the best advice, could you tell me exactly what kind of business you're launching?",
     "ts": 1775855063.4966748
@@ -10,5 +6,9 @@
   "ee6ded1f356966c64890d96f75e046af": {
     "response": "🎓 **Don't Miss the Date!**\n\nAcademic deadlines for international students are usually earlier than for local students.\n\n⚠️ **Important:** If you miss the registration window, you might lose your seat and your student visa could become invalid. \n\n💬 Would you like me to check the current registration calendar for your university?",
     "ts": 1775856221.2442386
+  },
+  "4a378f792ea4f2d7dcc924a168e4be73": {
+    "response": "🎓 **Don't Miss the Date!**\n\nAcademic deadlines for international students are usually earlier than for local students.\n\n⚠️ **Important:** If you miss the registration window, you might lose your seat and your student visa could become invalid. \n\n💬 Would you like me to check the current registration calendar for your university?",
+    "ts": 1775857140.8648043
   }
 }
