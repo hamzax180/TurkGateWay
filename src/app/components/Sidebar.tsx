@@ -263,7 +263,7 @@ const SidebarInner = React.memo(({
       opacity: 0,
       transition: {
         duration: 0.2,
-        ease: 'easeIn'
+        ease: 'easeIn' as const
       }
     }
   };

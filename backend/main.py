@@ -224,6 +224,35 @@ async def _get_history_context(session_id: str, db: Session, limit: int = 10, cu
         print(f"[_get_history_context error] {e}")
         return ""
 
+async def _run_local_fallback(query: str, assistant_type: str, language: str, user_name: str = "") -> str:
+    """Last resort: Try to get a locally correct answer if AI fails."""
+    try:
+        from smart_router import smart_router_handle
+        # Force the smart router to be more aggressive by passing a dummy history if needed
+        # and ignore the confidence threshold by setting it to a specialized 'fallback' mode
+        result = await smart_router_handle(
+            query=query,
+            assistant_type=assistant_type,
+            user_name=user_name,
+            language=language,
+            history_text="[OFFLINE FALLBACK MODE]" # Signals the router to try harder
+        )
+        
+        if result:
+            if isinstance(result, tuple):
+                return result[0]
+            return result
+            
+        # Hardcoded local fallbacks if even smart router fails
+        fallbacks = {
+            "en": "I'm currently operating in offline mode. For business permits, you generally need to register with your district municipality. What specific business (Cafe, Retail, etc.) are you planning?",
+            "tr": "Şu anda çevrimdışı modda çalışıyorum. İşyeri ruhsatları için genellikle bağlı bulunduğunuz ilçe belediyesine başvurmanız gerekir. Hangi tür işletme (Kafe, Mağaza vb.) açmayı planlıyorsunuz?",
+            "ar": "أعمل حالياً في وضع عدم الاتصال. للحصول على تراخيص الأعمال، تحتاج عادةً إلى التسجيل في بلدية منطقتك. ما هو نوع النشاط التجاري الذي تخطط لفتحه؟"
+        }
+        return fallbacks.get(language, fallbacks["en"])
+    except:
+        return "I'm experiencing connectivity issues and couldn't process your request locally. Please check your internet or API settings."
+
 async def _run_with_agents(query: str, user: Optional[DBUser] = None, db: Session = None, language: str = "en", session_id: str = "default-session") -> str:
     """Run the multi-agent langgraph workflow."""
     if not _agents_available:
@@ -877,7 +906,18 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
 
     except Exception as e:
         print(f"[AgentQuery ERROR] {e}")
-        return {"role": "assistant", "content": f"Error: {str(e)}"}
+        # Try local fallback if AI fails (e.g. invalid API key)
+        try:
+            fallback_answer = await _run_local_fallback(query_text, assistant_type, language, user.full_name if user else "")
+            
+            # Save fallback message
+            assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=f"⚠️ [Offline Mode] {fallback_answer}")
+            db.add(assistant_msg)
+            db.commit()
+            
+            return {"role": "assistant", "content": f"⚠️ [Offline Mode] {fallback_answer}", "session_title": db_session.title if db_session else None}
+        except:
+            return {"role": "assistant", "content": f"Critical Error: {str(e)}"}
 
 @app.get("/chat/history/{session_id}")
 async def get_chat_history(session_id: str, token: str, db: Session = Depends(get_db)):

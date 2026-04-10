@@ -117,55 +117,29 @@ export default function Home() {
       <Navbar />
       <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col items-center justify-center transition-colors duration-500 overflow-hidden relative">
         
-        {/* ── Real Turkish Flag Background (Animated Entry & Ambient Sway) ── */}
+        {/* ── Real Turkish Flag Video Background ── */}
         <div className="absolute inset-x-0 top-0 h-[55vh] md:h-screen pointer-events-none z-0 select-none overflow-hidden">
-          {/* Animated Red Section (Locked to Hero Viewport - Splash on Mobile, Half on Desktop) */}
           <motion.div 
-            initial={{ opacity: 0, y: -100, x: 0 }}
-            animate={{ 
-              opacity: 1, 
-              y: 0, 
-              x: 0,
-              rotate: [0, 0.4, -0.4, 0],
-              skew: [0, 0.2, -0.2, 0],
-              scale: [1, 1.001, 0.999, 1]
-            }}
-            transition={{ 
-              opacity: { duration: 2.2, ease: [0.16, 1, 0.3, 1] },
-              y: { duration: 2.2, ease: [0.16, 1, 0.3, 1] },
-              rotate: { duration: 10, repeat: Infinity, ease: "easeInOut" },
-              skew: { duration: 8, repeat: Infinity, ease: "easeInOut" },
-              scale: { duration: 6, repeat: Infinity, ease: "easeInOut" }
-            }}
-            className="absolute inset-0 md:left-1/2 md:right-0 bg-[#E30A17] turkish-flag-mask"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 2 }}
+            className="absolute inset-0 md:left-1/2 md:right-0 turkish-flag-mask"
           >
-            {/* Silk Texture Simulation Overlay */}
-            <div className="absolute inset-0 opacity-20 cloth-shimmer pointer-events-none" />
-
-            {/* The "Sign of Turkey" (Exactly in the middle of this intense red) */}
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ 
-                opacity: 1, 
-                scale: [1, 1.05, 1],
-                y: [0, -10, 0],
-                transition: { 
-                  opacity: { delay: 1, duration: 2 },
-                  scale: { repeat: Infinity, duration: 8, ease: "easeInOut" },
-                  y: { repeat: Infinity, duration: 6, ease: "easeInOut" }
-                } 
-              }}
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] md:w-[500px] flex items-center justify-center z-20"
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
             >
-              <svg viewBox="0 0 800 600" className="w-full h-auto fill-white drop-shadow-[0_0_80px_rgba(255,255,255,0.4)]">
-                <circle cx="360" cy="300" r="150" />
-                <circle cx="410" cy="300" r="120" fill="#E30A17" />
-                <path d="M490,300 l50,15 l-30,-45 l30,-45 l-50,15 l-15,-50 l-15,50 l-50,-15 l30,45 l-30,45 l50,-15 z" />
-              </svg>
-            </motion.div>
+              <source src="/turkeyflag.mp4" type="video/mp4" />
+            </video>
+            
+            {/* Silk Texture Simulation Overlay (kept for added luxury feel) */}
+            <div className="absolute inset-0 opacity-10 cloth-shimmer" />
           </motion.div>
 
-          {/* Depth Overlays (Intense Red Focus) */}
+          {/* Depth Overlays */}
           <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[var(--bg)] to-transparent z-30" />
           <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[var(--bg)] to-transparent z-30" />
         </div>

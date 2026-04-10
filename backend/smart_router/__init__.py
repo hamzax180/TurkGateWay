@@ -125,14 +125,16 @@ _NEW_CONSULTATION_PATTERNS = [
     r"\b(renew|replace).{1,15}(id|kimlik|student id)\b",
 ]
 
-# Patterns to catch an isolated answer to a clarifying question (matched against query alone)
-_ISOLATED_ANSWER_PATTERNS = [
-    r"^(a |an |my )?(cafe|kafe|restaurant|restoran|retail|office|ofis|pharmacy|eczane|bakery|f[\u0131i]r[\u0131i]n|barber|berber|gym|spor|shop|store|company|ma[\u011fg]aza|d[\u00fcu]kkan)$",
-    r"^(in |at )?(adalar|arnavutkoy|arnavutköy|atasehir|ataşehir|avcilar|avcılar|bagcilar|bağcılar|bahcelievler|bahçelievler|bakirkoy|bakırköy|basaksehir|başakşehir|bayrampasa|bayrampaşa|besiktas|beşiktaş|beykoz|beylikduzu|beylikdüzü|beyoglu|beyoğlu|buyukcekmece|büyükçekmece|catalca|çatalca|cekmekoy|çekmeköy|esenler|esenyurt|eyup|eyüp|eyüpsultan|fatih|gaziosmanpasa|gaziosmanpaşa|gungoren|güngören|kadikoy|kadıköy|kagithane|kağıthane|kartal|kucukcekmece|küçükçekmece|maltepe|pendik|sancaktepe|sariyer|sarıyer|sile|şile|silivri|sisli|şişli|sultanbeyli|sultangazi|tuzla|umraniye|ümraniye|uskudar|üsküdar|zeytinburnu)$"
+# Meta-questions about the system or process that should ALWAYS go to AI orchestrator
+_META_QUERY_PATTERNS = [
+    r"\b(information|details|explain|how does|what is|tell me more|help me with|question about|step [0-9]|understand)\b",
+    r"\b(who are you|what can you|how to use|where is the dashboard|how it works)\b",
+    r"\?",
 ]
 
 _NEW_CONSULTATION_RE = re.compile("|".join(_NEW_CONSULTATION_PATTERNS), flags=re.IGNORECASE)
 _ISOLATED_ANSWER_RE = re.compile("|".join(_ISOLATED_ANSWER_PATTERNS), flags=re.IGNORECASE)
+_META_QUERY_RE = re.compile("|".join(_META_QUERY_PATTERNS), flags=re.IGNORECASE)
 
 # ---------------------------------------------------------------------------
 # Fuzzy matching for typos (e.g. "bacheveler" → "bahcelievler")
@@ -247,6 +249,13 @@ async def smart_router_handle(
         if fuzzy_district_match or fuzzy_business_match:
             has_relevant_kw = True
     
+    # --- PHASE 0: Meta-Query Bypass ---
+    # If the user is asking a complex question about the system or process,
+    # skip the canned response and let the full AI orchestrator handle it.
+    if _META_QUERY_RE.search(query) and len(query.split()) > 3:
+        print(f"[SmartRouter] Meta-query detected ('{query[:20]}...'). Bypassing for AI orchestrator.")
+        return None
+
     if _NEW_CONSULTATION_RE.search(query) or _ISOLATED_ANSWER_RE.match(query) or (is_clarifying and has_relevant_kw):
         from models.schemas import PermitState, CombinedPermitResult, ExecutionPlan, StepDetail, PermitPlan
         from utils.protocol import get_localized_steps

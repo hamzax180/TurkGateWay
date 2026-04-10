@@ -11,7 +11,7 @@ import Sidebar from './Sidebar';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 
-export default function Navbar({ isAppPage = false }: { isAppPage?: boolean }) {
+export default function Navbar({ isAppPage = false, onMobileMenuClick }: { isAppPage?: boolean; onMobileMenuClick?: () => void }) {
   const pathname = usePathname();
   const { user, logout, isAuthenticated } = useAuth();
   const [scrolled, setScrolled] = useState(false);
@@ -129,7 +129,10 @@ export default function Navbar({ isAppPage = false }: { isAppPage?: boolean }) {
         {/* Mobile Menu Toggle */}
         <button
           className="md:hidden p-2 text-gray-400 hover:text-white transition-colors"
-          onClick={() => setOpen(!open)}
+          onClick={() => {
+            if (onMobileMenuClick) onMobileMenuClick();
+            else setOpen(!open);
+          }}
           aria-label="Toggle menu"
         >
           {open ? <X size={20} /> : <Menu size={20} />}
