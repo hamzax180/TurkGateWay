@@ -60,10 +60,24 @@ export default function Dashboard() {
   const [password, setPassword] = useState('••••••••••••');
   const [automatedStepId, setAutomatedStepId] = useState<number | null>(null);
   const [dashboardSessionId, setDashboardSessionId] = useState<string | null>(null);
+  const [activeAssistantType, setActiveAssistantType] = useState<'permit' | 'student' | 'lawyer'>('permit');
+
+  // Load initial assistant type
+  useEffect(() => {
+    const stored = localStorage.getItem('permitops_assistant_type') as any;
+    if (stored) setActiveAssistantType(stored);
+  }, []);
 
   // Subscription State
   const [iyzicoFormHtml, setIyzicoFormHtml] = useState<string | null>(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
+
+  const handleSwitchAssistant = (type: 'permit' | 'student' | 'lawyer') => {
+    setActiveAssistantType(type);
+    localStorage.setItem('permitops_assistant_type', type);
+    localStorage.removeItem('permitops_active_session_id');
+    fetchState();
+  };
 
   const askAiAboutStep = (step: { id: number; title: string; summary: string; detail: string; responsible: string }) => {
     const q = `I need more information about Step ${step.id}: "${step.title}". ${step.detail ? step.detail.slice(0, 300) : step.summary} Can you explain this in more detail, including what exactly I need to do, which documents I need, and any tips?`;
@@ -91,6 +105,9 @@ export default function Dashboard() {
         // _session_id is the authoritative session this data belongs to
         const resolvedSession = json._session_id || sid;
         if (resolvedSession) setDashboardSessionId(resolvedSession);
+        
+        // Update active type if session has one
+        if (json.assistant_type) setActiveAssistantType(json.assistant_type);
       }
     } catch (e) {
       console.error("Failed to fetch dashboard data", e);
@@ -334,12 +351,6 @@ export default function Dashboard() {
       setShowToast(true);
       setTimeout(() => setShowToast(false), 5000);
     }
-  };
-
-  const handleSwitchAssistant = (type: string) => {
-    localStorage.setItem('permitops_assistant_type', type);
-    localStorage.removeItem('permitops_active_session_id');
-    fetchState();
   };
 
   const renderContent = () => {
@@ -990,7 +1001,7 @@ export default function Dashboard() {
     <div className="flex h-screen overflow-hidden selection:bg-purple-500/30 relative bg-[var(--bg)]">
       <Sidebar 
         currentSessionId={dashboardSessionId}
-        assistantType="permit"
+        assistantType={activeAssistantType}
         showAllTypes
         onSessionSelect={(id, title) => {
           localStorage.setItem('permitops_active_session_id', id);
