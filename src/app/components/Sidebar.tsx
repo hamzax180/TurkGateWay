@@ -286,7 +286,7 @@ const SidebarInner = React.memo(({
       animate="visible"
       exit="exit"
       variants={containerVariants}
-      className="h-full flex flex-col bg-[var(--surface)]"
+      className="h-full flex flex-col bg-[var(--surface-2)]/40 dark:bg-[var(--surface)] border-r border-[var(--border)]"
     >
       {/* Search bar */}
       {isMobile ? (

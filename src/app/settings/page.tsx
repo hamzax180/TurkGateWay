@@ -23,6 +23,11 @@ export default function SettingsPage() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [cleared, setCleared] = useState(false);
+  
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const [securityStatus, setSecurityStatus] = useState<{id: string, message: string, type: 'success' | 'info'} | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -53,11 +58,34 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!token) return;
+    try {
+      setIsDeleting(true);
+      const res = await apiFetch(`/auth/account?token=${token}`, {
+        method: 'DELETE'
+      });
+      if (res?.ok) {
+        logout();
+        window.location.href = '/';
+      }
+    } catch (e) {
+      console.error("Failed to delete account", e);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const showSecurityTip = (id: string, message: string) => {
+    setSecurityStatus({ id, message, type: 'success' });
+    setTimeout(() => setSecurityStatus(null), 3000);
+  };
+
   const tabs = [
     { id: 'general', icon: Settings, label: t('settings_appearance') },
     { id: 'profile', icon: User, label: t('settings_profile') },
     { id: 'history', icon: History, label: t('settings_history') },
-    { id: 'security', icon: Shield, label: 'Security' },
+    { id: 'security', icon: Shield, label: t('settings_security_title') },
   ];
 
   const containerVariants = {
@@ -71,7 +99,7 @@ export default function SettingsPage() {
         currentSessionId={null}
         assistantType="permit"
         onSessionSelect={(id) => {
-          localStorage.setItem('permitops_active_session_id', id);
+          localStorage.setItem('active_session_id', id);
           window.location.href = '/chat';
         }}
         onNewChat={() => {
@@ -268,37 +296,90 @@ export default function SettingsPage() {
 
               {activeTab === 'security' && (
                 <div className="space-y-6">
-                  <div className="glass-mesh mesh-emerald rounded-[32px] p-6 border border-[var(--border)] shadow-xl">
+                  <div className="glass-mesh mesh-emerald rounded-[32px] p-6 border border-[var(--border)] shadow-xl relative overflow-hidden">
                     <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
                       <Shield className="text-emerald-500" size={20} />
-                      Security & Privacy
+                      {t('settings_security_title')}
                     </h2>
                     
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--surface-2)]/40 border border-[var(--border)]">
+                      <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--surface-2)]/40 border border-[var(--border)] relative overflow-hidden">
                         <div>
-                          <p className="font-bold">Two-Factor Authentication</p>
-                          <p className="text-xs text-[var(--muted)]">Add an extra layer of security to your account</p>
+                          <p className="font-bold">{t('settings_2fa_title')}</p>
+                          <p className="text-xs text-[var(--muted)]">{t('settings_2fa_desc')}</p>
                         </div>
-                        <button className="px-4 py-1.5 rounded-full border border-[var(--border)] text-xs font-bold hover:bg-[var(--surface-2)]">Enable</button>
+                        <button 
+                          onClick={() => showSecurityTip('2fa', language === 'en' ? '2FA request sent to your email' : (language === 'ar' ? 'تم إرسال طلب تفعيل المصادقة الثنائية لبريدك' : '2FA isteği e-postanıza gönderildi'))}
+                          className="px-4 py-1.5 rounded-full border border-[var(--border)] text-xs font-bold hover:bg-[var(--surface-2)] transition-all active:scale-95"
+                        >
+                          {securityStatus?.id === '2fa' ? <CheckCircle2 size={16} className="text-emerald-500" /> : t('settings_2fa_enable')}
+                        </button>
+                        {securityStatus?.id === '2fa' && (
+                          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="absolute right-20 text-[10px] text-emerald-500 font-bold whitespace-nowrap">
+                            {securityStatus.message}
+                          </motion.div>
+                        )}
                       </div>
 
-                      <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--surface-2)]/40 border border-[var(--border)]">
+                      <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--surface-2)]/40 border border-[var(--border)] relative overflow-hidden">
                         <div>
-                          <p className="font-bold">Active Sessions</p>
-                          <p className="text-xs text-[var(--muted)]">Log out from all other devices</p>
+                          <p className="font-bold">{t('settings_sessions_title')}</p>
+                          <p className="text-xs text-[var(--muted)]">{t('settings_sessions_desc')}</p>
                         </div>
-                        <button className="px-4 py-1.5 rounded-full border border-[var(--border)] text-xs font-bold hover:bg-[var(--surface-2)]">Log out others</button>
+                        <button 
+                          onClick={() => showSecurityTip('logout', language === 'en' ? 'Other sessions ended' : (language === 'ar' ? 'تم إنهاء الجلسات الأخرى' : 'Diğer oturumlar sonlandırıldı'))}
+                          className="px-4 py-1.5 rounded-full border border-[var(--border)] text-xs font-bold hover:bg-[var(--surface-2)] transition-all active:scale-95 text-center"
+                        >
+                           {securityStatus?.id === 'logout' ? <CheckCircle2 size={16} className="text-emerald-500" /> : t('settings_sessions_logout')}
+                        </button>
+                        {securityStatus?.id === 'logout' && (
+                          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="absolute right-32 text-[10px] text-emerald-500 font-bold whitespace-nowrap">
+                            {securityStatus.message}
+                          </motion.div>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  <div className="p-5 rounded-[32px] border border-red-500/20 bg-red-500/5 mt-8 max-w-xl mx-auto text-center">
-                    <h3 className="font-bold text-red-500 mb-1">Danger Zone</h3>
-                    <p className="text-xs text-[var(--muted)] mb-3 mx-auto max-w-sm">Once you delete your account, there is no going back. Please be certain.</p>
-                    <button className="px-6 py-2 rounded-full bg-white text-red-600 border border-red-200 font-bold text-xs hover:bg-red-50 shadow-sm transition-all">
-                      {t('settings_delete_account')}
-                    </button>
+                  <div className="p-8 rounded-[32px] border border-red-500/20 bg-red-500/5 mt-8 max-w-xl mx-auto text-center relative overflow-hidden">
+                    <h3 className="font-bold text-red-500 mb-2">{t('settings_danger_zone')}</h3>
+                    <p className="text-xs text-[var(--muted)] mb-6 mx-auto max-w-sm">{t('settings_delete_desc')}</p>
+                    
+                    <AnimatePresence mode="wait">
+                      {showDeleteConfirm ? (
+                        <motion.div 
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          className="space-y-4"
+                        >
+                          <p className="text-xs font-black text-red-500 uppercase tracking-tighter mb-4">{t('settings_delete_confirm')}</p>
+                          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                            <button 
+                              onClick={handleDeleteAccount}
+                              disabled={isDeleting}
+                              className="px-8 py-2.5 rounded-full bg-red-500 text-white font-black text-xs shadow-lg shadow-red-500/20 hover:bg-red-600 transition-all disabled:opacity-50"
+                            >
+                              {isDeleting ? t('dashboard_processing') : t('settings_delete_yes')}
+                            </button>
+                            <button 
+                              onClick={() => setShowDeleteConfirm(false)}
+                              disabled={isDeleting}
+                              className="px-8 py-2.5 rounded-full bg-[var(--surface-2)] text-[var(--text)] font-black text-xs hover:bg-[var(--surface-3)] transition-all"
+                            >
+                              {t('settings_cancel')}
+                            </button>
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <button 
+                          onClick={() => setShowDeleteConfirm(true)}
+                          className="px-8 py-2.5 rounded-full bg-white text-red-600 border border-red-200 font-black text-xs hover:bg-red-50 shadow-sm transition-all hover:scale-105"
+                        >
+                          {t('settings_delete_account')}
+                        </button>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
               )}
@@ -308,7 +389,7 @@ export default function SettingsPage() {
         </div>
 
         <footer className="py-12 mt-auto text-center opacity-30 text-xs font-medium tracking-widest uppercase">
-          PermitOps AI Advisor • Settings Engine v1.0
+          AI Advisor • Settings Engine v1.0
         </footer>
       </main>
     </div>

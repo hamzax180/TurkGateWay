@@ -29,8 +29,8 @@ export default function HelpPage() {
       a: "The Student Agent helps you prepare the roadmap, checklists, and document templates for e-Devlet and Göç İدايرة submissions. We automate the verification but you must still attend your assigned appointment."
     },
     {
-      q: "Is PermitOps AI officially affiliated with the government?",
-      a: "No, PermitOps AI is an independent platform that helps navigate bureaucratic protocols. We use AI to simplify local laws and municipal guidelines for your convenience."
+      q: "Is TurkGateway AI officially affiliated with the government?",
+      a: "No, TurkGateway AI is an independent platform that helps navigate bureaucratic protocols. We use AI to simplify local laws and municipal guidelines for your convenience."
     }
   ];
 
@@ -41,7 +41,7 @@ export default function HelpPage() {
         currentSessionId={null}
         assistantType="permit"
         onSessionSelect={(id) => {
-          localStorage.setItem('permitops_active_session_id', id);
+          localStorage.setItem('TurkGateway_active_session_id', id);
           window.location.href = '/chat';
         }}
         onNewChat={() => {
@@ -191,7 +191,7 @@ export default function HelpPage() {
         </div>
 
         <footer className="py-16 text-center text-[var(--muted)] text-sm mt-auto opacity-50">
-          <p>© 2026 PermitOps AI • {t('footer_version')}</p>
+          <p>© 2026 TurkGateway AI • {t('footer_version')}</p>
         </footer>
       </main>
     </div>

@@ -52,7 +52,7 @@ export default function DocumentationPage() {
         currentSessionId={null}
         assistantType="permit"
         onSessionSelect={(id) => {
-          localStorage.setItem('permitops_active_session_id', id);
+          localStorage.setItem('TurkGateway_active_session_id', id);
           window.location.href = '/chat';
         }}
         onNewChat={() => {
@@ -101,7 +101,7 @@ export default function DocumentationPage() {
               </div>
               <h1 className="text-4xl md:text-6xl font-black mb-6 tracking-tighter">Documentation</h1>
               <p className="text-xl text-[var(--muted)] leading-relaxed max-w-2xl">
-                Welcome to the PermitOps AI knowledge center. Here you can find detailed information on how our specialized agents work and how they can help you navigate local administrative protocols.
+                Welcome to the TurkGateway AI knowledge center. Here you can find detailed information on how our specialized agents work and how they can help you navigate local administrative protocols.
               </p>
               
               <div className="mt-12 p-8 rounded-[40px] bg-[var(--surface-2)]/30 border border-[var(--border)] relative overflow-hidden group">
@@ -249,7 +249,7 @@ export default function DocumentationPage() {
           <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center text-white font-black text-xs">P</div>
-              <span className="font-black tracking-tighter text-xl">PERMITOPS</span>
+              <span className="font-black tracking-tighter text-xl">TurkGateway</span>
             </div>
             <div className="flex gap-8 text-[var(--muted)] text-sm font-medium">
               <a href="#" className="hover:text-indigo-500 transition-colors">Privacy</a>

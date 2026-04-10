@@ -1,6 +1,6 @@
-# PermitOps AI 🚀
+# TurkGateway AI 🚀
 
-PermitOps AI is a professional permit consulting platform designed to simplify the complex process of obtaining business licenses in Istanbul. It leverages AI agents to provide personalized, district-specific guidance for various business types (Restaurant, Cafe, Retail, etc.) across all 39 districts of Istanbul.
+TurkGateway AI is a professional permit consulting platform designed to simplify the complex process of obtaining business licenses in Istanbul. It leverages AI agents to provide personalized, district-specific guidance for various business types (Restaurant, Cafe, Retail, etc.) across all 39 districts of Istanbul.
 
 ## 🌟 Key Features
 

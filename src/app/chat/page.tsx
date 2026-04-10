@@ -362,7 +362,7 @@ export default function ChatPage() {
             <span className="text-[17px] font-semibold text-[var(--text)] tracking-tight">
               {(() => {
                 if (!sessionTitle || msgs.length === 0 || sessionTitle === t('chat_new')) {
-                  return assistantType === 'permit' ? `${t('assistant_permit')} ${t('navbar_chat').replace('AI ', '')}` : assistantType === 'student' ? `${t('assistant_student')} ${t('navbar_chat').replace('AI ', '')}` : `${t('assistant_lawyer')} ${t('navbar_chat').replace('AI ', '')}`;
+                  return assistantType === 'permit' ? `${t('assistant_permit')} AI Agent` : assistantType === 'student' ? `${t('assistant_student')} AI Agent` : `${t('assistant_lawyer')} AI Agent`;
                 }
                 
                 const match = sessionTitle.toLowerCase().match(/^(.+?)\s+in\s+(.+)$/);
@@ -401,7 +401,7 @@ export default function ChatPage() {
             <span className="text-xl font-semibold text-[var(--text)] opacity-90 tracking-tight">
               {(() => {
                 if (!sessionTitle || msgs.length === 0 || sessionTitle === t('chat_new')) {
-                  return assistantType === 'permit' ? `${t('assistant_permit')} ${t('navbar_chat').replace('AI ', '')}` : assistantType === 'student' ? `${t('assistant_student')} ${t('navbar_chat').replace('AI ', '')}` : `${t('assistant_lawyer')} ${t('navbar_chat').replace('AI ', '')}`;
+                  return assistantType === 'permit' ? `${t('assistant_permit')} AI Agent` : assistantType === 'student' ? `${t('assistant_student')} AI Agent` : `${t('assistant_lawyer')} AI Agent`;
                 }
                 const match = sessionTitle.toLowerCase().match(/^(.+?)\s+in\s+(.+)$/);
                 if (match) {
@@ -437,7 +437,7 @@ export default function ChatPage() {
                 className="fixed top-16 md:top-28 left-1/2 -translate-x-1/2 bg-[var(--surface-1)] border border-[var(--border)] rounded-[32px] md:rounded-[48px] shadow-[0_32px_80px_rgba(0,0,0,0.6)] p-4 md:p-6 w-[90vw] max-w-[420px] z-[100] flex flex-col gap-4 md:gap-5 overflow-hidden"
               >
                 <div className="px-4 md:px-5 pb-2 md:pb-3 border-b border-[var(--border)]/50 mb-1">
-                  <p className="text-base md:text-lg font-bold tracking-tight bg-gradient-to-r from-[#4285f4] via-[#9b72cb] to-[#d96570] bg-clip-text text-transparent">
+                  <p className="text-base md:text-lg font-bold tracking-tight bg-gradient-to-r from-[#4285f4] via-[#9b72cb] to-[#d96570] bg-clip-text text-transparent text-center">
                     {t('chat_switch_assistant')}
                   </p>
                 </div>
@@ -451,7 +451,7 @@ export default function ChatPage() {
                       <Building2 size={isMobile ? 24 : 28} className="text-indigo-500" />
                     </div>
                     <div className="flex flex-col text-left">
-                      <span className="text-[17px] md:text-[20px] font-bold tracking-tight leading-none mb-1">{t('assistant_permit')} {t('navbar_chat').replace('AI ', '')}</span>
+                      <span className="text-[17px] md:text-[20px] font-bold tracking-tight leading-none mb-1">{t('assistant_permit')} AI Agent</span>
                       <span className="text-[12px] md:text-[13px] opacity-60 font-medium">{t('chat_permit_desc')}</span>
                     </div>
                     {assistantType === 'permit' && <div className="ml-auto w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.8)]" />}
@@ -465,7 +465,7 @@ export default function ChatPage() {
                       <GraduationCap size={isMobile ? 24 : 28} className="text-purple-500" />
                     </div>
                     <div className="flex flex-col text-left">
-                      <span className="text-[17px] md:text-[20px] font-bold tracking-tight leading-none mb-1">{t('assistant_student')} {t('navbar_chat').replace('AI ', '')}</span>
+                      <span className="text-[17px] md:text-[20px] font-bold tracking-tight leading-none mb-1">{t('assistant_student')} AI Agent</span>
                       <span className="text-[12px] md:text-[13px] opacity-60 font-medium">{t('chat_student_desc')}</span>
                     </div>
                     {assistantType === 'student' && <div className="ml-auto w-2.5 h-2.5 rounded-full bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.8)]" />}
@@ -479,7 +479,7 @@ export default function ChatPage() {
                       <Scale size={isMobile ? 24 : 28} className="text-blue-500" />
                     </div>
                     <div className="flex flex-col text-left">
-                      <span className="text-[17px] md:text-[20px] font-bold tracking-tight leading-none mb-1">{t('assistant_lawyer')} {t('navbar_chat').replace('AI ', '')}</span>
+                      <span className="text-[17px] md:text-[20px] font-bold tracking-tight leading-none mb-1">{t('assistant_lawyer')} AI Agent</span>
                       <span className="text-[12px] md:text-[13px] opacity-60 font-medium">{t('chat_lawyer_desc')}</span>
                     </div>
                     {assistantType === 'lawyer' && <div className="ml-auto w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)]" />}

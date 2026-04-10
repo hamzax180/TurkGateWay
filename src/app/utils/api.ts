@@ -55,9 +55,9 @@ export async function apiFetch(
       // Global 401 Handling: If unauthorized, clear the token
       if (res.status === 401) {
         console.warn("Unauthorized request (401). Clearing token...");
-        localStorage.removeItem('permitops_token');
+        localStorage.removeItem('tgw_token');
         // Dispatch event for same-window listeners (standard 'storage' event only fires for OTHER windows)
-        window.dispatchEvent(new StorageEvent('storage', { key: 'permitops_token', newValue: null }));
+        window.dispatchEvent(new StorageEvent('storage', { key: 'tgw_token', newValue: null }));
       }
       
       return res;

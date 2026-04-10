@@ -519,7 +519,7 @@ export default function Dashboard() {
                 <Activity size={10} className="animate-pulse" />
                 {t('dashboard_live_session')} · #{data?.combined_result?.location && !data.combined_result.location.includes('_') ? `IST-${data.combined_result.location.substring(0,3).toUpperCase().replace(/İ/g, 'I')}-4221` : 'IST-TR-4221'}
               </span>
-              <h1 className="text-3xl md:text-5xl font-bold text-[var(--text)] tracking-tight drop-shadow-sm dark:drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">
+              <h1 className="text-3xl md:text-5xl font-bold text-[var(--text)] tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.05)] dark:drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">
                 {(() => {
                   const loc = data?.combined_result?.location || '';
                   if (loc.startsWith('student.')) return t('dashboard_student_title');

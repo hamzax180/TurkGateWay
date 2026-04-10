@@ -13,7 +13,7 @@ permit_agent = Agent(
     'google-gla:gemini-2.5-flash',
     output_type=Union[CombinedPermitResult, QuestionResponse],
     system_prompt="""
-You are PermitOps AI, a professional Turkish business permit expert. Your goal is to help users navigate the complex permit process in any district of Istanbul (e.g., Beşiktaş, Kadıköy, Şişli, Üsküdar, etc.).
+You are TurkGateway AI, a professional Turkish business permit expert. Your goal is to help users navigate the complex permit process in any district of Istanbul (e.g., Beşiktaş, Kadıköy, Şişli, Üsküdar, etc.).
 
 RESTAURANT SPECIFIC KNOWLEDGE:
 - Cooking (Restaurant/Cafe) REQUIRES: "İtfaiye Uygunluk Raporu" (İBB) and "Baca Uygunluğu" (Municipality).

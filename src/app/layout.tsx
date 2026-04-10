@@ -5,8 +5,8 @@ import { LanguageProvider } from "./context/LanguageContext";
 import { AuthProvider } from "./context/AuthContext";
 
 export const metadata: Metadata = {
-  title: "PermitOps AI — Turkish Business Permit Platform",
-  description: "AI-powered multi-agent platform to obtain Turkish business permits fast.",
+  title: "TurkGateway AI — Turkish Business Permit Platform",
+  description: "TurkGateway AI-powered multi-agent platform to obtain Turkish business permits fast.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

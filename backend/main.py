@@ -153,6 +153,19 @@ async def get_me(token: str, db: Session = Depends(get_db)):
         "subscription_status": user.subscription_status
     }
 
+@app.delete("/auth/account")
+async def delete_account(token: str, db: Session = Depends(get_db)):
+    user = await get_current_user(token, db)
+    # Delete all associated data
+    session_ids = [s.id for s in db.query(ChatSession.id).filter(ChatSession.user_id == user.id).all()]
+    if session_ids:
+        db.query(ChatMessage).filter(ChatMessage.session_id.in_(session_ids)).delete(synchronize_session=False)
+        db.query(ChatSession).filter(ChatSession.user_id == user.id).delete(synchronize_session=False)
+    
+    db.delete(user)
+    db.commit()
+    return {"status": "success", "message": "Account deleted successfully"}
+
 import uuid
 
 @app.get("/chat/sessions")

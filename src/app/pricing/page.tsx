@@ -66,7 +66,7 @@ export default function PricingPage() {
   const handleSubscribe = async (planType: 'monthly' | 'yearly') => {
     try {
       setIsSubscribing(true);
-      const token = localStorage.getItem('permitops_token');
+      const token = localStorage.getItem('TurkGateway_token');
       if (!token) {
         setToast({ message: 'Please log in to browse plans', type: 'error' });
         router.push('/login');
@@ -316,7 +316,7 @@ export default function PricingPage() {
         {/* ── FAQ ── */}
         <section className="max-w-2xl mx-auto px-6 pb-20">
           <h2 className="text-xl font-bold text-[var(--text)] mb-2">{t('pricing_faq_title')}</h2>
-          <p className="text-sm text-[var(--muted)] mb-8">{t('pricing_faq_subtitle')} <a href="mailto:support@permitops.ai" className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">{t('pricing_contact_us')}</a></p>
+          <p className="text-sm text-[var(--muted)] mb-8">{t('pricing_faq_subtitle')} <a href="mailto:support@TurkGateway.ai" className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">{t('pricing_contact_us')}</a></p>
 
           <div className="divide-y divide-[var(--border)] border border-[var(--border)] rounded-xl overflow-hidden shadow-sm">
             {FAQ_DATA.map((item: any, i: number) => (
