@@ -307,10 +307,10 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1, duration: 1 }}
-            className="md:hidden flex items-center justify-center gap-2 mb-8 text-white/60 font-medium text-sm tracking-widest uppercase"
+            className="md:hidden flex items-center justify-center gap-3 mb-10 text-white font-bold text-base tracking-[0.2em] uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
           >
             <span>{t('scroll_right') || 'Scroll Right'}</span>
-            <ArrowRight size={16} className="animate-pulse" />
+            <ArrowRight size={20} className="animate-pulse text-white" />
           </motion.div>
  
           <div className="flex overflow-x-auto pb-12 md:grid md:grid-cols-3 md:gap-16 snap-x snap-mandatory no-scrollbar px-0 md:px-0">
