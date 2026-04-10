@@ -280,6 +280,8 @@ const translations: Record<Language, Record<string, string>> = {
     settings_cancel: 'Cancel',
     settings_clear_history: 'Clear History',
     biz_clothing: 'Clothing Store', biz_hotel: 'Hotel', biz_clinic: 'Clinic', biz_school: 'School',
+    scroll_right: 'Scroll Right',
+    click_to_flip: 'Tap to reveal',
   },
   tr: {
     navbar_home: 'Ana Sayfa',
@@ -548,6 +550,8 @@ const translations: Record<Language, Record<string, string>> = {
     settings_confirm_clear: 'Evet, geçmişi temizle',
     settings_cancel: 'İptal',
     settings_clear_history: 'Geçmişi Temizle',
+    scroll_right: 'Sağa Kaydır',
+    click_to_flip: 'Görmek için dokun',
   },
   ar: {
     navbar_home: 'الرئيسية',
@@ -776,6 +780,8 @@ const translations: Record<Language, Record<string, string>> = {
     settings_confirm_clear: 'نعم، امسح السجل',
     settings_cancel: 'إلغاء',
     settings_clear_history: 'مسح السجل',
+    scroll_right: 'مرر لليمين',
+    click_to_flip: 'انقر للكشف',
   }
 };
 
