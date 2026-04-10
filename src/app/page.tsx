@@ -318,7 +318,7 @@ export default function Home() {
           viewport={{ once: true }}
           className="text-[10px] md:text-[11px] font-black tracking-[0.3em] uppercase text-[var(--muted)]"
         >
-          © 2026 ALL RIGHTS RESERVED{' '}
+          © 2026 ALL RIGHTS RESERVED BY TurkGateWay AND POWERED BY{' '}
           <a 
             href="https://webocontrol.com" 
             target="_blank" 
