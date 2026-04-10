@@ -63,7 +63,9 @@ export default function Navbar({ isAppPage = false }: { isAppPage?: boolean }) {
   return (
     <>
     <header
-      className={`${isAppPage ? 'relative z-[20] w-full shrink-0' : 'fixed inset-x-0 top-0 z-[100]'} transition-all duration-300 ${scrolled ? 'bg-[var(--surface)]/95 backdrop-blur-xl border-b border-[var(--border)] shadow-md' : 'bg-[var(--bg)]/90 backdrop-blur-md border-b border-[var(--border)]/30'
+      className={`${isAppPage ? 'relative z-[20] w-full shrink-0' : 'fixed inset-x-0 top-0 z-[100]'} transition-all duration-300 ${scrolled 
+          ? 'bg-[var(--surface)]/95 backdrop-blur-xl border-b border-[var(--border)] shadow-md' 
+          : 'bg-transparent'
         }`}
     >
       <div className="w-full px-4 md:pl-20 md:pr-12 h-16 flex items-center justify-between">
