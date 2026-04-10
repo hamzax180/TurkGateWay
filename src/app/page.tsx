@@ -303,14 +303,22 @@ export default function Home() {
         </div>
 
         <div className="max-w-6xl mx-auto relative z-10 px-6">
-          <div className="text-center mb-24 space-y-6">
-
             <h2 className="text-5xl md:text-7xl font-medium text-white drop-shadow-[0_6px_10px_rgba(0,0,0,0.9)] tracking-tight leading-tight max-w-4xl mx-auto">{t('process_subtitle')}</h2>
           </div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1, duration: 1 }}
+            className="md:hidden flex items-center justify-center gap-2 mb-8 text-white/60 font-medium text-sm tracking-widest uppercase"
+          >
+            <span>{t('scroll_right') || 'Scroll Right'}</span>
+            <ArrowRight size={16} className="animate-pulse" />
+          </motion.div>
  
-          <div className="flex overflow-x-auto pb-12 gap-5 md:grid md:grid-cols-3 md:gap-16 snap-x snap-mandatory no-scrollbar px-6 md:px-0">
+          <div className="flex overflow-x-auto pb-12 md:grid md:grid-cols-3 md:gap-16 snap-x snap-mandatory no-scrollbar px-0 md:px-0">
             {stepsData.map((step, i) => (
-              <div key={i} className="min-w-[75vw] md:min-w-0 snap-center">
+              <div key={i} className="min-w-full md:min-w-0 snap-center px-6 md:px-0">
                 <FlipCard step={step} i={i} isRTL={isRTL} t={t} />
               </div>
             ))}
