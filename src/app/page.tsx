@@ -178,7 +178,12 @@ export default function Home() {
             </span>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-medium tracking-tight text-[var(--text)] leading-tight drop-shadow-[0_2px_20px_rgba(255,255,255,1)]">
+          <h1 
+            className="text-5xl md:text-7xl font-bold tracking-tight text-white leading-tight"
+            style={{ 
+              textShadow: '0 4px 20px rgba(0,0,0,0.5), -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000' 
+            }}
+          >
             {t('home_hero_title')}
           </h1>
 
@@ -186,7 +191,10 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 1 }}
-            className="text-3xl md:text-4xl text-[var(--muted)] font-light drop-shadow-[0_2px_15px_rgba(255,255,255,1)]"
+            className="text-3xl md:text-4xl text-white font-medium"
+            style={{ 
+              textShadow: '0 2px 15px rgba(0,0,0,0.4), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000' 
+            }}
           >
             {t('home_hero_subtitle')}
           </motion.h2>
@@ -195,7 +203,10 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.2, duration: 2 }}
-            className="text-xl md:text-2xl text-[var(--muted)] font-light italic opacity-60 drop-shadow-[0_2px_10px_rgba(255,255,255,1)]"
+            className="text-xl md:text-2xl text-white font-light italic"
+            style={{ 
+              textShadow: '0 2px 10px rgba(0,0,0,0.3), -0.5px -0.5px 0 #000, 0.5px -0.5px 0 #000, -0.5px 1.5px 0 #000, 0.5px 1.5px 0 #000' 
+            }}
           >
             {t('home_hero_question') || 'Where should we start?'}
           </motion.p>
