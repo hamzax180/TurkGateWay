@@ -125,10 +125,13 @@ export default function Home() {
             animate={{ opacity: 1, y: 0, x: 0 }}
             transition={{ duration: 2.2, ease: [0.16, 1, 0.3, 1] }}
             className="absolute inset-0 md:left-1/2 md:right-0 bg-[#E30A17] shadow-[0_20px_60px_rgba(227,10,23,0.2)]"
+            style={{ 
+              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 20%), linear-gradient(to top, transparent 0%, black 30%)',
+              maskImage: 'linear-gradient(to right, transparent 0%, black 20%), linear-gradient(to top, transparent 0%, black 30%)',
+              WebkitMaskComposite: 'source-in',
+              maskComposite: 'intersect'
+            }}
           >
-            {/* Transition Mask: Ultra-Sharp on Mobile, Sharp on Desktop */}
-            <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[var(--bg)] to-transparent md:hidden z-10" />
-            <div className="absolute inset-y-0 left-0 w-64 bg-gradient-to-r from-[var(--bg)] to-transparent hidden md:block z-10" />
 
             {/* The "Sign of Turkey" (Exactly in the middle of this intense red) */}
             <motion.div 
