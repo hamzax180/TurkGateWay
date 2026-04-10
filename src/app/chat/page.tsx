@@ -348,24 +348,24 @@ export default function ChatPage() {
         </div>
 
         {/* Mobile Top Bar — Agent selection replaces static title */}
-        <div className="flex md:hidden items-center justify-between px-4 h-14 shrink-0 border-b border-[var(--border)] bg-[var(--bg)] z-30">
+        <div className="flex md:hidden items-center justify-between px-4 h-20 shrink-0 border-b border-[var(--border)] bg-[var(--bg)] z-30">
           <button
             onClick={() => setMobileMenuOpen(true)}
             className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[var(--surface-2)] text-[var(--text)] transition-colors"
           >
             <Menu size={22} />
           </button>
-          <div
-            className="flex flex-col items-center justify-center cursor-pointer hover:bg-[var(--surface-2)] px-3 py-1 rounded-xl transition-all"
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          >
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <span className="text-[12px] font-extrabold uppercase tracking-widest text-indigo-500 opacity-90">
+          <div className="flex flex-col items-center justify-center py-2 h-auto">
+            <div
+              className="flex items-center gap-2 cursor-pointer hover:bg-[var(--surface-2)] px-4 py-1.5 rounded-full transition-all border border-[var(--border)] bg-[var(--surface-1)] mb-2"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            >
+              <span className="text-[13px] font-extrabold uppercase tracking-widest text-indigo-500">
                 {assistantType === 'permit' ? t('assistant_permit') : assistantType === 'student' ? t('assistant_student') : t('assistant_lawyer')} Agent
               </span>
               <ChevronDown size={11} className={`text-indigo-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </div>
-            <span className="text-[15px] font-bold text-[var(--text)] tracking-tight leading-none truncate max-w-[180px]">
+            <span className="text-[16px] font-bold text-[var(--text)] tracking-tight leading-none truncate max-w-[200px]">
               {(() => {
                 if (!sessionTitle || msgs.length === 0 || sessionTitle === t('chat_new')) return t('chat_new');
                 const match = sessionTitle.toLowerCase().match(/^(.+?)\s+in\s+(.+)$/);
@@ -395,31 +395,29 @@ export default function ChatPage() {
         <div className="hidden md:block h-4 shrink-0" />
 
         {/* Gemini-Style Content Header - Desktop only */}
-        <div className="hidden md:flex h-20 items-center justify-center px-6 shrink-0 z-30 relative" ref={dropdownRef}>
+        <div className="hidden md:flex flex-col items-center justify-center pt-10 pb-6 shrink-0 z-30 relative" ref={dropdownRef}>
           <div
-            className="flex flex-col items-center justify-center cursor-pointer hover:bg-[var(--surface-2)] px-6 py-2 rounded-2xl transition-all border border-transparent hover:border-[var(--border)]"
+            className="flex items-center gap-3 cursor-pointer hover:bg-[var(--surface-2)] px-6 py-2.5 rounded-full transition-all border border-[var(--border)] bg-[var(--surface-1)] shadow-sm hover:shadow-md mb-6"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
-            <div className="flex items-center gap-2 mb-2.5">
-              <span className="text-[14px] font-extrabold uppercase tracking-[0.3em] bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent opacity-90">
-                {assistantType === 'permit' ? t('assistant_permit') : assistantType === 'student' ? t('assistant_student') : t('assistant_lawyer')} Agent
-              </span>
-              <ChevronDown size={14} className={`text-indigo-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-            </div>
-            <span className="text-xl font-bold text-[var(--text)] opacity-95 tracking-tight leading-none">
-              {(() => {
-                if (!sessionTitle || msgs.length === 0 || sessionTitle === t('chat_new')) return t('chat_new');
-                const match = sessionTitle.toLowerCase().match(/^(.+?)\s+in\s+(.+)$/);
-                if (match) {
-                  const bizKey = `biz_${match[1].trim()}`;
-                  const distKey = `dist_${match[2].trim().replace(/\s/g, '').toLowerCase()}`;
-                  const lb = t(bizKey), ld = t(distKey);
-                  if (lb !== bizKey && ld !== distKey) return `${lb} ${t('connect_in')} ${ld}`;
-                }
-                return sessionTitle;
-              })()}
+            <span className="text-[16px] font-extrabold uppercase tracking-[0.35em] bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
+              {assistantType === 'permit' ? t('assistant_permit') : assistantType === 'student' ? t('assistant_student') : t('assistant_lawyer')} Agent
             </span>
+            <ChevronDown size={14} className={`text-indigo-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </div>
+          <span className="text-2xl font-bold text-[var(--text)] opacity-95 tracking-tight leading-none">
+            {(() => {
+              if (!sessionTitle || msgs.length === 0 || sessionTitle === t('chat_new')) return t('chat_new');
+              const match = sessionTitle.toLowerCase().match(/^(.+?)\s+in\s+(.+)$/);
+              if (match) {
+                const bizKey = `biz_${match[1].trim()}`;
+                const distKey = `dist_${match[2].trim().replace(/\s/g, '').toLowerCase()}`;
+                const lb = t(bizKey), ld = t(distKey);
+                if (lb !== bizKey && ld !== distKey) return `${lb} ${t('connect_in')} ${ld}`;
+              }
+              return sessionTitle;
+            })()}
+          </span>
         </div>
 
         {/* Agent Selection Dropdown — renders on both mobile & desktop */}
