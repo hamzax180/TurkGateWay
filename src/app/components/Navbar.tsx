@@ -11,7 +11,7 @@ import Sidebar from './Sidebar';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 
-export default function Navbar({ isAppPage = false, onMobileMenuClick }: { isAppPage?: boolean; onMobileMenuClick?: () => void }) {
+export default function Navbar({ isAppPage = false, onMobileMenuClick, extraContent }: { isAppPage?: boolean; onMobileMenuClick?: () => void; extraContent?: React.ReactNode }) {
   const pathname = usePathname();
   const { user, logout, isAuthenticated } = useAuth();
   const [scrolled, setScrolled] = useState(false);
@@ -68,36 +68,43 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick }: { isApp
           : 'bg-transparent'
         }`}
     >
-      <div className="w-full px-4 md:pl-20 md:pr-12 h-16 flex items-center justify-between">
+      <div className="w-full px-4 md:px-12 h-16 flex items-center justify-between">
 
         {/* Logo removed */}
 
         {/* Desktop Nav - Left Aligned */}
-        <nav className="hidden md:flex items-center gap-1">
-          {links.map(({ href, label }) => {
-            const active = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-colors ${active ? 'text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'
-                  }`}
-              >
-                {active && (
-                  <motion.span
-                    layoutId="nav-active"
-                    className="absolute inset-0 rounded-lg bg-[var(--surface-2)]"
-                    transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
-                  />
-                )}
-                <span className="relative">{label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-1">
+            {links.map(({ href, label }) => {
+              const active = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`relative px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${active ? 'text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'
+                    }`}
+                >
+                  {active && (
+                    <motion.span
+                      layoutId="nav-active"
+                      className="absolute inset-0 rounded-lg bg-[var(--surface-2)]"
+                      transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
+                    />
+                  )}
+                  <span className="relative">{label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Center Slot for App Navigation/Tools - Screen Centered */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center justify-center z-40">
+          {extraContent}
+        </div>
 
         {/* Right CTA */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-3 relative z-50">
           <LanguageSwitcher />
           <ThemeToggle />
           {isAuthenticated ? (

@@ -132,6 +132,11 @@ _META_QUERY_PATTERNS = [
     r"\?",
 ]
 
+_ISOLATED_ANSWER_PATTERNS = [
+    r"^(cafe|kafe|restaurant|restoran|retail|bakery|f[\u0131i]r[\u0131i]n|pharmacy|eczane|gym|spor|barber|berber|office|ofis|tech)$",
+    r"^(adalar|arnavutkoy|atasehir|avcilar|bagcilar|bahcelievler|bakirkoy|basaksehir|bayrampasa|besiktas|beykoz|beylikduzu|beyoglu|buyukcekmece|catalca|cekmekoy|esenler|esenyurt|eyup|fatih|gaziosmanpasa|gungoren|kadikoy|kagithane|kartal|kucukcekmece|maltepe|pendik|sancaktepe|sariyer|sile|silivri|sisli|sultanbeyli|sultangazi|tuzla|umraniye|uskudar|zeytinburnu)$"
+]
+
 _NEW_CONSULTATION_RE = re.compile("|".join(_NEW_CONSULTATION_PATTERNS), flags=re.IGNORECASE)
 _ISOLATED_ANSWER_RE = re.compile("|".join(_ISOLATED_ANSWER_PATTERNS), flags=re.IGNORECASE)
 _META_QUERY_RE = re.compile("|".join(_META_QUERY_PATTERNS), flags=re.IGNORECASE)

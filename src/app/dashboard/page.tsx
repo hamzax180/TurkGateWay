@@ -336,6 +336,12 @@ export default function Dashboard() {
     }
   };
 
+  const handleSwitchAssistant = (type: string) => {
+    localStorage.setItem('permitops_assistant_type', type);
+    localStorage.removeItem('permitops_active_session_id');
+    router.push('/chat');
+  };
+
   const renderContent = () => {
     if (loading) {
       return <LoadingScreen />;
@@ -529,7 +535,7 @@ export default function Dashboard() {
             className="flex flex-col sm:flex-row sm:items-center justify-between gap-5"
           >
             <div className="space-y-1.5">
-              <span className="badge badge-purple">
+              <span className="badge badge-red">
                 <Activity size={10} className="animate-pulse" />
                 {t('dashboard_live_session')} · #{data?.combined_result?.location && !data.combined_result.location.includes('_') ? `IST-${data.combined_result.location.substring(0,3).toUpperCase().replace(/İ/g, 'I')}-4221` : 'IST-TR-4221'}
               </span>
@@ -545,7 +551,7 @@ export default function Dashboard() {
               </h1>
               <p className="text-sm text-[var(--muted)] flex items-center gap-3 flex-wrap font-medium dark:drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
                 <span className="flex items-center gap-1.5">
-                  <MapPin size={12} className="text-purple-500" />
+                  <MapPin size={12} className="text-red-500" />
                   {(() => {
                     const loc = data?.combined_result?.location || '';
                     if (loc.includes('_') || loc.includes('.')) {
@@ -616,13 +622,19 @@ export default function Dashboard() {
               { label: t('dashboard_compliance_score'), value: `${progress > 0 ? progress : '0'}%`,  from: '#34d399', to: '#10b981', icon: ShieldCheck,  iconColor: '#34d399', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.25)', mesh: 'mesh-emerald' },
               { label: t('dashboard_steps_complete'),   value: `${done}/${steps.length}`,            from: '#c084fc', to: '#a855f7', icon: CheckCircle2, iconColor: '#c084fc', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.25)', mesh: 'mesh-purple' },
               { label: t('dashboard_est_days'),         value: `${Math.max(0, steps.length*2 - done*2)}d`, from: '#fcd34d', to: '#f59e0b', icon: Clock,    iconColor: '#fcd34d', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.25)', mesh: 'mesh-amber'  },
-              { label: t('dashboard_active_agents'),    value: `${data?.execution_plan?.assigned_agents?.length || 0}`, from: '#60a5fa', to: '#3b82f6', icon: Cpu, iconColor: '#60a5fa', bg: 'rgba(59,130,246,0.12)', border: 'rgba(59,130,246,0.25)', mesh: 'mesh-indigo' },
+              { label: t('dashboard_active_agents'),    value: `${data?.execution_plan?.assigned_agents?.length || 0}`, from: '#f87171', to: '#ef4444', icon: Cpu, iconColor: '#f87171', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.25)', mesh: 'mesh-amber' },
             ] as const).map((s, i) => (
               <motion.div 
                 key={i} 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + (i * 0.05) }}
+                initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                whileHover={{ y: -6, scale: 1.02, transition: { duration: 0.2 } }}
+                transition={{ 
+                  delay: 0.15 + (i * 0.1),
+                  type: 'spring',
+                  stiffness: 100,
+                  damping: 15
+                }}
                 className={`glow-card bg-[var(--surface)] p-6 flex flex-col gap-4 group cursor-default shadow-lg overflow-hidden border border-[var(--border)]`}
               >
                 <div className={`absolute inset-0 ${s.mesh} opacity-30 group-hover:opacity-50 transition-opacity`} />
@@ -681,7 +693,12 @@ export default function Dashboard() {
             {/* Workflow Steps */}
             <div className="lg:col-span-8 space-y-2 min-w-0">
               <div className="flex items-center justify-between px-2 mb-2">
-                <h2 className="text-xl font-black tracking-tight uppercase tracking-[0.05em]">{t('dashboard_roadmap')}</h2>
+              <div className="flex flex-col items-center justify-center mb-10 text-center">
+                <h2 className="text-2xl md:text-3xl font-black tracking-[0.2em] uppercase bg-gradient-to-r from-[var(--text)] via-[var(--text)] to-[var(--muted)] bg-clip-text text-transparent drop-shadow-sm">
+                  {t('dashboard_roadmap') || 'ROADMAP'}
+                </h2>
+                <div className="h-1 w-20 bg-gradient-to-r from-red-500 to-transparent rounded-full mt-2" />
+              </div>
                 <div className="flex items-center gap-4 text-[11px] font-black uppercase tracking-[0.15em] text-[var(--muted)]">
                    <div className="flex items-center gap-1.5"><div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" /> DONE</div>
                    <div className="flex items-center gap-1.5"><div className="h-1.5 w-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" /> ACTIVE</div>
@@ -919,20 +936,34 @@ export default function Dashboard() {
                   </span>
                 </div>
                 <div className="space-y-3">
-                  {(data?.execution_plan?.assigned_agents || ['Planner', 'Classifier']).map((name: string, i: number) => (
-                    <div key={i} className="flex items-center gap-3 p-3.5 rounded-2xl transition-all hover:bg-[var(--surface-2)] glass-mesh mesh-purple shadow-sm">
-                      <div className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0 text-purple-600 dark:text-purple-400 bg-purple-500/10 dark:bg-purple-500/20 border border-purple-500/20 shadow-sm">
-                        <Cpu size={14} />
+                  {(data?.execution_plan?.assigned_agents?.length > 0 ? data.execution_plan.assigned_agents : ['Permit Agent', 'Student Agent', 'Legal Agent']).map((name: string, i: number) => {
+                    const isActive = data?.execution_plan?.assigned_agents?.some((a: any) => a.toLowerCase().includes(name.toLowerCase().split(' ')[0]));
+                    const type = name.toLowerCase().includes('student') ? 'student' : name.toLowerCase().includes('lawyer') ? 'lawyer' : 'permit';
+                    
+                    return (
+                      <div 
+                        key={i} 
+                        onClick={() => handleSwitchAssistant(type)}
+                        className={`group flex items-center gap-3 p-3.5 rounded-2xl transition-all hover:translate-x-1 cursor-pointer glass-mesh ${isActive ? 'mesh-red shadow-[0_0_20px_rgba(239,68,68,0.1)] hover:bg-red-500/5' : 'border-[var(--border)] bg-[var(--surface-1)] hover:bg-[var(--surface-2)]'} shadow-sm`}
+                      >
+                        <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${isActive ? 'text-red-600 dark:text-red-400 bg-red-500/10 dark:bg-red-500/20 border-red-500/20 group-hover:bg-red-500/30' : 'text-[var(--muted)] bg-[var(--surface-2)] border-[var(--border)]'} border shadow-sm transition-colors`}>
+                          <Cpu size={14} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-[14px] font-bold ${isActive ? 'text-[var(--text)]' : 'text-[var(--muted)]'}`}>{name}</p>
+                          <p className="text-[11px] text-[var(--muted)] font-medium truncate">{t('dashboard_agent_status')}</p>
+                        </div>
+                        <div className="flex flex-col items-end">
+                           <span className={`text-[9px] font-black uppercase tracking-widest group-hover:hidden transition-colors ${isActive ? 'text-red-500' : 'text-[var(--muted)] opacity-50'}`}>
+                             {isActive ? t('dashboard_running') : 'STOPPED'}
+                           </span>
+                           <span className={`hidden group-hover:block text-[9px] font-black uppercase tracking-widest text-red-600 animate-pulse`}>
+                             SWITCH →
+                           </span>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[14px] font-bold text-[var(--text)]">{name}</p>
-                        <p className="text-[11px] text-[var(--muted)] font-medium truncate">{t('dashboard_agent_status')}</p>
-                      </div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-purple-400">
-                        {t('dashboard_running')}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -969,11 +1000,7 @@ export default function Dashboard() {
           localStorage.removeItem('permitops_active_session_id');
           router.push('/chat');
         }}
-        onSwitchAssistant={(type) => {
-          localStorage.setItem('permitops_assistant_type', type);
-          localStorage.removeItem('permitops_active_session_id');
-          router.push('/chat');
-        }}
+        onSwitchAssistant={handleSwitchAssistant}
         onDeleteSession={(id) => {}}
         token={token}
         mobileOpen={mobileMenuOpen}

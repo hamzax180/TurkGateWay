@@ -386,9 +386,9 @@ const SidebarInner = React.memo(({
       {showLabels && (
         <motion.div variants={itemVariants} className="flex bg-[var(--surface-2)] p-1 rounded-xl mx-3 mb-2 mt-3 shrink-0">
           {[
-            { id: 'permit', label: t('assistant_permit'), icon: Building2, color: 'text-indigo-500' },
-            { id: 'student', label: t('assistant_student'), icon: GraduationCap, color: 'text-purple-500' },
-            { id: 'lawyer', label: t('assistant_lawyer'), icon: Scale, color: 'text-blue-500' },
+            { id: 'permit', label: t('assistant_permit'), icon: Building2, color: 'text-red-500' },
+            { id: 'student', label: t('assistant_student'), icon: GraduationCap, color: 'text-red-500' },
+            { id: 'lawyer', label: t('assistant_lawyer'), icon: Scale, color: 'text-red-500' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -437,7 +437,7 @@ const SidebarInner = React.memo(({
               title={s.title}
             >
               {!showLabels && (
-                <MessageSquare size={18} className={currentSessionId === s.id ? "text-indigo-500" : "text-[var(--muted)]"} />
+                <MessageSquare size={18} className={currentSessionId === s.id ? "text-red-500" : "text-[var(--muted)]"} />
               )}
               {showLabels && (
                 <span className={`text-sm tracking-tight truncate flex-1 pr-6 ${currentSessionId === s.id ? 'font-bold' : 'font-medium opacity-90'}`}>{getDisplayTitle(s.title)}</span>

@@ -308,6 +308,28 @@ export default function Home() {
         </div>
       </section>
     </main>
+
+    {/* ── Minimalist Footer ── */}
+    <footer className="w-full py-10 border-t border-white/5 bg-[var(--surface)] relative z-10">
+      <div className="max-w-6xl mx-auto px-6 text-center">
+        <motion.p 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="text-[10px] md:text-[11px] font-black tracking-[0.3em] uppercase text-[var(--muted)]"
+        >
+          © 2026 ALL RIGHTS RESERVED{' '}
+          <a 
+            href="https://webocontrol.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-block hover:text-[var(--text)] transition-colors"
+          >
+            <span>WEBO</span><span className="text-red-600">CONTROL</span>
+          </a>
+        </motion.p>
+      </div>
+    </footer>
     </>
   );
 }
