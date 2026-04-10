@@ -124,9 +124,9 @@ export default function Home() {
             initial={{ opacity: 0, y: -100, x: 0 }}
             animate={{ opacity: 1, y: 0, x: 0 }}
             transition={{ duration: 2.2, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-0 md:left-1/2 md:right-0 bg-[#E30A17] shadow-[0_20px_60px_rgba(227,10,23,0.1)]"
+            className="absolute inset-0 md:left-1/2 md:right-0 shadow-[0_20px_60px_rgba(227,10,23,0.15)]"
             style={{ 
-              background: 'radial-gradient(circle at 70% 50%, #E30A17 0%, #8B0000 100%)',
+              background: 'radial-gradient(circle at 70% 50%, #FF1A2A 0%, #A3000E 100%)',
             }}
           >
             {/* Transition Mask: Vertical on Mobile, Horizontal on Desktop */}
@@ -150,7 +150,7 @@ export default function Home() {
             >
               <svg viewBox="0 0 800 600" className="w-full h-auto fill-white drop-shadow-[0_0_80px_rgba(255,255,255,0.4)]">
                 <circle cx="360" cy="300" r="150" />
-                <circle cx="410" cy="300" r="120" fill="#E30A17" />
+                <circle cx="410" cy="300" r="120" fill="#CD0011" />
                 <path d="M490,300 l50,15 l-30,-45 l30,-45 l-50,15 l-15,-50 l-15,50 l-50,-15 l30,45 l-30,45 l50,-15 z" />
               </svg>
             </motion.div>
