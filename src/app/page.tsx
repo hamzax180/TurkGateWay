@@ -308,9 +308,9 @@ export default function Home() {
             <h2 className="text-5xl md:text-7xl font-medium text-white drop-shadow-[0_6px_10px_rgba(0,0,0,0.9)] tracking-tight leading-tight max-w-4xl mx-auto">{t('process_subtitle')}</h2>
           </div>
  
-          <div className="flex overflow-x-auto pb-12 gap-6 md:grid md:grid-cols-3 md:gap-16 snap-x snap-mandatory no-scrollbar px-6 md:px-0">
+          <div className="flex overflow-x-auto pb-12 gap-5 md:grid md:grid-cols-3 md:gap-16 snap-x snap-mandatory no-scrollbar px-6 md:px-0">
             {stepsData.map((step, i) => (
-              <div key={i} className="min-w-[85vw] md:min-w-0 snap-center">
+              <div key={i} className="min-w-[75vw] md:min-w-0 snap-center">
                 <FlipCard step={step} i={i} isRTL={isRTL} t={t} />
               </div>
             ))}
