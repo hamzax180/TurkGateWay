@@ -7,14 +7,22 @@
     "First things first — do you have a specific district in Istanbul in mind? That affects which municipality handles your permits.",
     "Welcome to the world of Turkish entrepreneurship! I know the bureaucracy can seem intimidating at first, but if we take it step by step, it's actually quite straightforward. Do you already have a commercial space in mind?",
     "That's an exciting venture! As your permit advisor, I'm here to handle all the legal headaches so you can focus on your business. Let's start with the absolute basics: do you already have a Turkish Tax ID?",
-    "You've come to the right place! We'll map out everything from the Notary to the Municipality. To give you the best advice, could you tell me exactly what kind of business you're launching?"
+    "You've come to the right place! We'll map out everything from the Notary to the Municipality. To give you the best advice, could you tell me exactly what kind of business you're launching?",
+    "Every great business in Istanbul starts with a single step: getting your Tax ID. It sounds administrative, but it's the foundation of everything else we'll do together. Do you have a rough timeline for when you'd like to open your doors?",
+    "Navigating the Turkish bureaucratic landscape can be tricky, but that's exactly what I'm here for! 🏢 Let's start with your location — have you narrowed down which district (Belediye) you want to be in? Each has slightly different vibes and rules.",
+    "Starting a business here is a bold move, and I'm ready to help you nail the legal side! Have you already decided on a name for your company? The Chamber of Commerce (ITO) will need to approve it before we proceed.",
+    "Welcome! 🇹🇷 To give you the most accurate roadmap, I need to know: what's the dream? Are we talking a tech startup in Kağıthane, a boutique in Nişantaşı, or maybe a cozy cafe in Kadıköy?"
   ],
   "documents": [
     "Standard documents include: ID/Passport, Lease Agreement, Tax Plate, and NACE code. Is your business a restaurant, retail, or office?",
     "You'll need your ID, a signed lease, and your NACE registration. Want me to tailor the full list to your business type?",
     "The required documents depend on your business type. For a restaurant, add the İtfaiye report and Baca certificate on top of the standard set.",
     "Core documents are: passport/ID, notarized lease, NACE code, and Tax ID. Need the full list?",
-    "Document requirements vary by business type and district. Tell me your business type and I'll give you the exact checklist."
+    "Document requirements vary by business type and district. Tell me your business type and I'll give you the exact checklist.",
+    "Think of your documents as your business's passport. 📑 We'll need to gather your ID, your NACE code (activity classification), and your notarized lease. Are you planning to rent a physical space, or are you looking at a virtual office setup?",
+    "To make your application bulletproof, we need a precise set of papers. Beyond the basics, will you be the sole owner, or are there multiple founders? That changes the 'Signature Circular' requirements we need to prepare.",
+    "The 'Ruhsat' (operating license) application is all about the paperwork. I'll help you organize everything from your Tax Plate to your Chamber of Commerce registration. Do you already have a notarized translation of your passport?",
+    "Let's get your 'evrak' (documents) in order! 📄 The district municipality won't even look at an incomplete file. I can generate a custom checklist for you once you share what type of business you're building."
   ],
   "restaurant": [
     "For a restaurant you'll need the İtfaiye Uygunluk Raporu (fire safety) and Baca Uygunluğu (chimney inspection). Shall I walk you through all 14 steps?",
@@ -24,14 +32,22 @@
     "Restaurants with live music also need a Canlı Müzik İzni. Do you plan to have music?",
     "Opening a restaurant here is a fantastic idea, but F&B permits are the strictest of all! Your biggest hurdle will be the fire department (İtfaiye) and chimney (Baca) sign-offs. Is the venue you're looking at already equipped for commercial cooking?",
     "Istanbul's food scene is amazing! Just keep in mind that restaurant permits take significantly longer (up to 90 days) because the municipality has to send physical hygiene and fire inspectors. Should we start drafting your checklist so you're prepared?",
-    "I love a good restaurant project! 🍽️ Since you'll be dealing with food, the local municipality (Belediye) will scrutinize your layout and ventilation heavily. Before signing a lease, ensure the landlord allows chimney installation!"
+    "I love a good restaurant project! 🍽️ Since you'll be dealing with food, the local municipality (Belediye) will scrutinize your layout and ventilation heavily. Before signing a lease, ensure the landlord allows chimney installation!",
+    "Food and beverage is one of the most rewarding but strictly regulated sectors in Istanbul. 🥙 You'll need to navigate the 'Fire Report' (İtfaiye) and the 'Hygiene Inspection' carefully. Are you planning a full-service kitchen or more of a cold-food cafe concept?",
+    "The restaurant business here is legendary! Just remember that the 'Baca' (chimney) compliance is the #1 reason permit applications get delayed. Is the building you're looking at a historic 'SİT' area? That adds another layer of approval.",
+    "Opening a restaurant requires patience and precision. 🥩 From the Municipality to the Tax Office, we have to follow the steps in exact order to avoid fines. Do you already have an accountant to help with the monthly filings?",
+    "Exciting news about the restaurant! 🥗 Just a heads-up: if you're serving meat or specialty dairy, the Ministry of Agriculture may also need to do a spot check on your kitchen. Are you planning to import any specific ingredients?"
   ],
   "timeline": [
     "Permit timelines in Istanbul range from 15 days (simple office) to 90 days (restaurant with alcohol). What's your business type?",
     "Most retail permits are done in 2–4 weeks. Restaurants take longer due to fire and hygiene inspections — usually 45–90 days.",
     "Timeline depends heavily on your business type and district. A standard office can be approved in as little as 15 days.",
     "Expect 45–90 days if you're opening a restaurant or cafe. Retail and service businesses are usually 15–30 days.",
-    "The slowest part is municipal inspections, which can add 2–4 weeks. What type of business are you opening?"
+    "The slowest part is municipal inspections, which can add 2–4 weeks. What type of business are you opening?",
+    "In the Turkish system, patience is a strategy! ⏱️ A simple office setup might take 3 weeks, but a high-risk manufacturing or food-prep site can take 3 months. When is your target 'Grand Opening' date?",
+    "Legal timelines are dictated by the Chamber of Commerce and the District Municipality. I'll help you navigate the 'hızlı' (fast) lanes where possible! Are you looking for a standard registration or an expedited one?",
+    "Time is money! 💸 I'll provide a realistic 'best-case' and 'worst-case' timeline once I know your district. Some municipalities like Beşiktaş or Kadıköy are quite digitalized and faster than others.",
+    "Typically, we looking at a 14-step marathon. 🏃💨 We can sprint through the first 5 steps in a week, but the final operating license depends on the inspector's schedule. Shall we get Step 1 started today?"
   ],
   "alcohol": [
     "An alcohol licence (TAPDK Belgesi) is issued by the Ministry of Agriculture and takes 4–8 weeks on its own.",

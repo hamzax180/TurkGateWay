@@ -4,14 +4,22 @@
     "Harika bir soru! İlk adım Vergi Numarası almaktır. Hangi ilçedesiniz?",
     "İstanbul'da bir iş kurmak yaklaşık 14 yasal adımı içerir. İş türünüze göre size rehberlik etmemi ister misiniz?",
     "Süreç yasal yapınızı seçmekle başlar (Ltd. Şirket veya AŞ). Hangi sektöre giriyorsunuz?",
-    "Her şeyden önce — İstanbul'da aklınızda belirli bir ilçe var mı? Bu, ruhsat işlemlerinizi hangi belediyenin yürüteceğini etkiler."
+    "Her şeyden önce — İstanbul'da aklınızda belirli bir ilçe var mı? Bu, ruhsat işlemlerinizi hangi belediyenin yürüteceğini etkiler.",
+    "İstanbul'un dinamik iş dünyasına hoş geldiniz! 🇹🇷 Başarılı bir açılışın ilk kuralı, doğru Vergi Dairesi ile başlamaktır. Aklınızda belirli bir açılış tarihi var mı? Süreci buna göre geriye doğru planlayabiliriz.",
+    "İş kurma süreci bir maratondur ve ben sizin antrenörünüz olarak buradayım! 🏢 İlk adımımız, işletmenizin 'NACE kodu'nu doğru belirlemek olacak. Bu, tüm vergi ve ruhsat yükümlülüklerinizin temelini oluşturur.",
+    "Harika bir girişim fikri! İstanbul gibi bir metropolde iş kurmak heyecan verici ama aynı zamanda titiz bir takip gerektirir. Şirket isminiz için ITO (İstanbul Ticaret Odası) sorgulamasını yaptık mı?",
+    "Merhaba! Girişimcilik yolculuğunuzda size rehberlik etmek için sabırsızlanıyorum. Başlamadan önce sormam gerek: Tek başınıza mı yola çıkıyorsunuz yoksa ortaklı bir yapı mı düşünüyorsunuz?"
   ],
   "documents": [
     "Standart belgeler şunları içerir: Kimlik/Pasaport, Kira Sözleşmesi, Vergi Levhası ve NACE kodu. İşletmeniz restoran, perakende mi yoksa ofis mi?",
     "Kimliğinize, imzalı kira sözleşmesine ve NACE kaydınıza ihtiyacınız olacak. İş türünüze özel tam listeyi hazırlamamı ister misiniz?",
     "Gerekli belgeler iş türünüze bağlıdır. Bir restoran için standart sete ek olarak İtfaiye Uygunluk Raporu ve Baca Sertifikası da eklemeniz gerekir.",
     "Temel belgeler: pasaport/kimlik, noter onaylı kira sözleşmesi, NACE kodu ve Vergi Kimlik Numarası. Tam listeye mi ihtiyacınız var?",
-    "Belge gereksinimleri iş türüne ve ilçeye göre değişir. İş türünüzü söylerseniz size tam kontrol listesini verebilirim."
+    "Belge gereksinimleri iş türüne ve ilçeye göre değişir. İş türünüzü söylerseniz size tam kontrol listesini verebilirim.",
+    "Belgelerinizi projenizin temeli olarak düşünün. 📑 Kimlik, imza beyannamesi ve noter onaylı kira kontratı olmazsa olmazlarımız. Bu evrakların dijital kopyalarını hazırlamaya başladınız mı?",
+    "Eksiksiz bir başvuru dosyası, belediye onay sürecini en az iki hafta hızlandırır. Sizin için sektöre özel bir 'Evrak Kontrol Listesi' oluşturmamı ister misiniz?",
+    "Ruhsat başvurusu (Ruhsat) tamamen evrak disiplini ile ilgilidir. İmzalı kira sözleşmenizden vergi levhanıza kadar her şeyi sıraya koyacağız. Pasaportunuzun noter onaylı çevirisi hazır mı?",
+    "Hadi evrak klasörünüzü birlikte düzenleyelim! 📄 Belediye eksik belge ile yapılan başvuruları genellikle reddeder. İş kolunuzu söylerseniz size en güncel listeyi sunabilirim."
   ],
   "restaurant": [
     "Bir restoran için İtfaiye Uygunluk Raporu ve Baca Uygunluğu sertifikasına ihtiyacınız olacak. Tüm 14 adımı birlikte gözden geçirelim mi?",
@@ -21,14 +29,22 @@
     "Canlı müzik yapan restoranların ayrıca Canlı Müzik İzni'ne ihtiyacı vardır. Müzik yapmayı planlıyor musunuz?",
     "İstanbul'da yeme-içme sektörü harikadır, ancak bürokratik açıdan en katı olanıdır! En büyük engeliniz İtfaiye ve baca (Baca) onayları olacaktır. Baktığınız mekan ticari mutfak için uygun mu?",
     "Restoran açmak harika bir fikir! Ancak restoran ruhsatlarının biraz daha uzun sürdüğünü (yaklaşık 90 güne kadar) unutmayın. Bunun sebebi belediyenin hijyen ve itfaiye için fiziksel denetleyiciler göndermesidir. Kontrol listenizi oluşturmaya başlayalım mı?",
-    "Ne nefis bir proje! 🍽️ Gıda ile uğraşacağınız için yerel belediye (Belediye) tesisatınızı ve havalandırmanızı çok sıkı inceleyecektir. Kira sözleşmesini imzalamadan önce mülk sahibinin baca kurulumuna izin verdiğinden emin olmalısınız!"
+    "Ne nefis bir proje! 🍽️ Gıda ile uğraşacağınız için yerel belediye (Belediye) tesisatınızı ve havalandırmanızı çok sıkı inceleyecektir. Kira sözleşmesini imzalamadan önce mülk sahibinin baca kurulumuna izin verdiğinden emin olmalısınız!",
+    "Gastronomi sektörü İstanbul'un en kazançlı ama en çok denetlenen alanlarından biridir. 🥙 İtfaiye Uygunluk Belgesi ve İl Tarım Müdürlüğü onaylarını almadan kapılarınızı açmamalısınız. Mutfağınızın teknik çizimleri hazır mı?",
+    "Restoran açmak sabır ve detaycılık işidir! 🥩 Mutfak havalandırması ve yangın çıkışları konusunda belediye asla taviz vermez. Mekanınız için bir 'Kapasite Raporu' almayı planlıyor muyuz?",
+    "Vay canına, yeni bir restoran! 🥗 Şunu unutmayın: Eğer canlı müzik de olacaksa, ruhsat sürecine bir de desibel ölçümü ve ses yalıtımı denetimi eklenecek. Konseptinizde müzik yayını var mı?",
+    "Mutfaktan gelen kokular şimdiden iştah açıcı! 🍝 Ancak teknik olarak 'Baca Uygunluğu' alamazsak, belediye işletme ruhsatını onaylamayacaktır. Binanın yönetimi baca kurulumu için yazılı rıza verdi mi?"
   ],
   "timeline": [
     "İstanbul'da ruhsat süreleri 15 gün (basit ofis) ile 90 gün (restoran) arasında değişmektedir. İş türünüz nedir?",
     "Çoğu perakende ruhsatı 2-4 hafta içinde tamamlanır. Restoranlar itfaiye ve hijyen denetimleri nedeniyle daha uzun sürer — genellikle 45-90 gün.",
     "Zaman çizelgesi iş türünüze ve ilçenize bağlıdır. Standart bir ofis 15 gün gibi kısa bir sürede onaylanabilir.",
     "Bir restoran veya kafe açıyorsanız 45-90 gün beklemelisiniz. Perakende ve hizmet işletmeleri genellikle 15-30 gün sürer.",
-    "En yavaş kısım belediye denetimleridir ve bu da sürece 2-4 hafta ekleyebilir. Ne tür bir işletme açıyorsunuz?"
+    "En yavaş kısım belediye denetimleridir ve bu da sürece 2-4 hafta ekleyebilir. Ne tür bir işletme açıyorsunuz?",
+    "Türkiye'deki bürokratik süreçlerde sabır, en büyük sermayenizdir! ⏱️ Standart bir danışmanlık ofisini 2 haftada kurabiliriz ancak bir üretim tesisi için 3-4 ay ayırmanız gerekir. Hedef açılış tarihiniz ne zaman?",
+    "Zaman çizelgesi, Ticaret Odası ve ilgili Belediye'nin iş yüküne göre esner. Ben sizin için en hızlı (Hızlı) rotayı çizeceğim! Şirketleşme aşamasını tamamladık mı yoksa daha yolun başında mıyız?",
+    "Zaman paradır! 💸 Bölgeye göre değişmekle birlikte, Beşiktaş veya Şişli gibi belediyeler dijital altyapıları sayesinde nispeten daha hızlı sonuç verir. Hangi ilçeyi hedefliyorsunuz?",
+    "Bu 14 adımlık bir 'bürokrasi maratonu'. 🏃💨 İlk 5 adımı bir haftada bitirebiliriz ama asıl zaman alan belediyenin yerinde yapacağı fiziksel denetimlerdir. İlk dominoyu bugün devirelim mi?"
   ],
   "alcohol": [
     "Alkol ruhsatı (TAPDK Belgesi) Tarım Bakanlığı tarafından verilir ve tek başına 4-8 hafta sürer.",

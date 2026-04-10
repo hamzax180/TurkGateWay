@@ -114,6 +114,12 @@ INTENT_MAP = {
         r"\b(bakery|f[ıi]r[ıi]n|bread|pastanesi)\b",
         r"(مخبز|فرن|حلويات|مخبوزات|فطائر|معجنات)"
     ],
+    "permit.restaurant_typo": [
+        r"\b(resteruant|resteraunt|restarant|restuarant|resturant)\b"
+    ],
+    "permit.cafe_typo": [
+        r"\b(caffe|cafee|cafetaria|cafeterya)\b"
+    ],
 
     "permit.how_to_start": [
         r"\b(how (do i|to) (start|open|begin|register|set up)|starting a business|open a business|open my business)\b",

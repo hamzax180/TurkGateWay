@@ -51,7 +51,7 @@ app.add_middleware(
 # --- Try to load the agent pipeline (optional, runs in thread to avoid deadlock) ---
 _agents_available = False
 try:
-    from workflow.orchestrator import orchestrator
+    from workflow.permit_orchestrator import orchestrator
     from models.schemas import PermitState
     _agents_available = True
     print("[Startup] Agent pipeline loaded successfully")

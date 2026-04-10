@@ -254,14 +254,14 @@ async def smart_router_handle(
 
         if assistant_type == "permit":
             _BUSINESS_KEYWORDS = [
-                (["restaurant", "restoran", "lokanta", "dining", "dinner"], "Restaurant", "Restoran", "مطعم"),
-                (["cafe", "kafe", "coffee shop", "kahve", "pastane", "tea house"], "Café", "Kafe", "مقاهي"),
-                (["bakery", "fırın", "firın", "bread", "pastry"], "Bakery", "Fırın", "مخبز"),
+                (["restaurant", "restoran", "lokanta", "dining", "dinner", "resteruant", "resteraunt"], "Restaurant", "Restoran", "مطعم"),
+                (["cafe", "kafe", "coffee shop", "kahve", "pastane", "tea house", "caffe", "cafee"], "Café", "Kafe", "مقاهي"),
+                (["bakery", "fırın", "firın", "bread", "pastry", "cafetaria"], "Bakery", "Fırın", "مخبز"),
                 (["pharmacy", "eczane", "chemist", "drugstore"], "Pharmacy", "Eczane", "صيدلية"),
                 (["barber", "berber", "hair salon", "kuaför", "kuafor", "beauty", "güzellik", "spa"], "Hair Salon / Beauty", "Kuaför / Güzellik Salonu", "صالون حلاقة / تجميل"),
                 (["gym", "fitness", "spor salonu", "crossfit"], "Gym / Fitness Centre", "Spor Salonu / Fitness", "صالة ألعاب رياضية"),
-                (["clothing", "giyim", "boutique", "apparel", "fashion"], "Clothing Store", "Giyim Mağazası", "متجر ملابس"),
-                (["retail", "shop", "store", "mağaza", "dükkan", "grocery", "bakkal", "market"], "Retail Shop", "Perakende Mağaza", "متجر تجزئة"),
+                (["clothing", "giyim", "boutique", "apparel", "fashion", "mağaza", "dükkan"], "Clothing Store", "Giyim Mağazası", "متجر ملابس"),
+                (["retail", "shop", "store", "market", "grocery", "bakkal"], "Retail Shop", "Perakende Mağaza", "متجر تجزئة"),
                 (["office", "ofis", "consulting", "danışmanlık", "agency", "büro"], "Office / Consultancy", "Ofis / Danışmanlık", "مكتب / استشارات"),
                 (["tech", "software", "yazılım", "startup"], "Tech / Software Company", "Teknoloji / Yazılım Şirketi", "شركة تقنية / برمجيات"),
                 (["hotel", "hostel", "accommodation", "konaklama"], "Hotel / Accommodation", "Otel / Konaklama", "فندق / إقامة"),
@@ -276,7 +276,9 @@ async def smart_router_handle(
                     break
             if business_type_en == "Business":
                 for kw_list, en_n, tr_n, ar_n in _BUSINESS_KEYWORDS:
-                    if any(kw in user_history_text for kw in kw_list):
+                    # Check history more robustly — match whole words or chunks to handle typos like 'resteruant'
+                    hist_lower = user_history_text.lower()
+                    if any(kw in hist_lower for kw in kw_list):
                         business_type_en, business_type_tr, business_type_ar = en_n, tr_n, ar_n
                         break
             
