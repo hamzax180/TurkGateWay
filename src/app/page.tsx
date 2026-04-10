@@ -118,7 +118,7 @@ export default function Home() {
       <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col items-center justify-center transition-colors duration-500 overflow-hidden relative">
         
         {/* ── Real Turkish Flag Background (Animated Entry & Ambient Sway) ── */}
-        <div className="fixed inset-0 pointer-events-none z-0 select-none overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none z-0 select-none overflow-hidden">
           {/* Animated Red Section (Descending from Air + Wind Sway + ULTRA SMOOTH MASK) */}
           <motion.div 
             initial={{ opacity: 0, x: "100%" }}
@@ -275,9 +275,9 @@ export default function Home() {
       </section>
 
       {/* ═══════════════ HOW IT WORKS SECTION ═══════════════ */}
-      <section id="how-it-works" className="w-full relative overflow-hidden py-40 z-20">
-        {/* Live Video Background - Masked to allow Flag visibility on Right */}
-        <div className="absolute inset-0 z-0 w-full h-full md:[mask-image:linear-gradient(to_right,black_60%,transparent_100%)] opacity-90">
+      <section id="how-it-works" className="w-full relative overflow-hidden py-40">
+        {/* Live Video Background - Brighter & Full Fit */}
+        <div className="absolute inset-0 z-0 w-full h-full">
           <video
             autoPlay
             loop
