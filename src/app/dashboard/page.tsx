@@ -386,9 +386,9 @@ export default function Dashboard() {
               )}
             </div>
           </div>
-      {/* Video Background */}
-      <div className="absolute inset-0 z-0 w-full h-full overflow-hidden">
-        {/* Fallback Gradient */}
+      {/* Video Background with Premium Radial Effects */}
+      <div className="absolute inset-0 z-0 w-full h-full overflow-hidden pointer-events-none">
+        {/* Base Fallback Gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-[var(--surface-2)] via-[var(--bg)] to-[var(--surface-2)] dark:hidden" />
         
         <video
@@ -400,17 +400,18 @@ export default function Dashboard() {
             const video = e.currentTarget;
             video.style.opacity = '1';
           }}
-          style={{ opacity: 0, transition: 'opacity 1s ease' }}
-          className="absolute inset-0 w-full h-full object-cover z-10 hidden"
+          className="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000 grayscale-[0.2] contrast-[1.1] brightness-[0.7]"
         >
-          <source src="/dashboard_bg.mp4" type="video/mp4" />
+          <source src="https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-circuit-board-1549-large.mp4" type="video/mp4" />
         </video>
 
-        {/* Dynamic mesh gradient overlays */}
-        <div className="absolute inset-0 z-20 pointer-events-none opacity-20 dark:opacity-40">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/20 blur-[120px] animate-pulse" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-600/20 blur-[120px] animate-pulse [animation-delay:2s]" />
-        </div>
+        {/* Cinematic Radial Overlays for Depth */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.08)_0%,transparent_70%)] mix-blend-screen" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(239,68,68,0.05)_0%,transparent_50%)] mix-blend-screen" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(139,92,246,0.05)_0%,transparent_50%)] mix-blend-screen" />
+        
+        {/* Soft Vignette */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]" />
       </div>
 
       <div className="relative z-20 pt-6 md:pt-24 pb-20 px-4 md:px-6">
