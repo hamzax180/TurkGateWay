@@ -25,6 +25,7 @@ export default function SettingsPage() {
   const [cleared, setCleared] = useState(false);
   
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   
   const [securityStatus, setSecurityStatus] = useState<{id: string, message: string, type: 'success' | 'info'} | null>(null);
@@ -351,21 +352,33 @@ export default function SettingsPage() {
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.95 }}
-                          className="space-y-4"
+                          className="space-y-5"
                         >
-                          <p className="text-xs font-black text-red-500 uppercase tracking-tighter mb-4">{t('settings_delete_confirm')}</p>
+                          <div className="space-y-2">
+                            <p className="text-xs font-black text-red-500 uppercase tracking-tight">{t('settings_delete_confirm')}</p>
+                            <input
+                              type="text"
+                              value={deleteConfirmText}
+                              onChange={(e) => setDeleteConfirmText(e.target.value)}
+                              placeholder={language === 'ar' ? 'اكتب "DELETE" هنا' : (language === 'tr' ? '"DELETE" yazın' : 'Type "DELETE" here')}
+                              className="w-full max-w-xs mx-auto block px-4 py-3 rounded-2xl border-2 border-red-500/20 bg-white dark:bg-black/20 text-center font-black text-red-500 placeholder:text-red-500/30 focus:border-red-500 focus:outline-none transition-all shadow-inner"
+                            />
+                          </div>
                           <div className="flex flex-col sm:flex-row gap-3 justify-center">
                             <button 
                               onClick={handleDeleteAccount}
-                              disabled={isDeleting}
-                              className="px-8 py-2.5 rounded-full bg-red-500 text-white font-black text-xs shadow-lg shadow-red-500/20 hover:bg-red-600 transition-all disabled:opacity-50"
+                              disabled={isDeleting || deleteConfirmText !== 'DELETE'}
+                              className="px-8 py-3 rounded-full bg-red-500 text-white font-black text-xs shadow-lg shadow-red-500/20 hover:bg-red-600 transition-all disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
                             >
                               {isDeleting ? t('dashboard_processing') : t('settings_delete_yes')}
                             </button>
                             <button 
-                              onClick={() => setShowDeleteConfirm(false)}
+                              onClick={() => {
+                                setShowDeleteConfirm(false);
+                                setDeleteConfirmText("");
+                              }}
                               disabled={isDeleting}
-                              className="px-8 py-2.5 rounded-full bg-[var(--surface-2)] text-[var(--text)] font-black text-xs hover:bg-[var(--surface-3)] transition-all"
+                              className="px-8 py-3 rounded-full bg-[var(--surface-2)] text-[var(--text)] font-black text-xs hover:bg-[var(--surface-3)] transition-all"
                             >
                               {t('settings_cancel')}
                             </button>
