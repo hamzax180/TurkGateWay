@@ -122,38 +122,34 @@ export default function Home() {
           {/* Animated Red Section (Descending from Air + Wind Sway + ULTRA SMOOTH MASK) */}
           <motion.div 
             initial={{ opacity: 0, x: "100%" }}
-            animate={{ 
-              opacity: 1, 
-              x: 0, 
-              transition: { duration: 2.2, ease: [0.16, 1, 0.3, 1] }
-            }}
-            className="absolute right-0 top-0 bottom-0 w-full md:w-[60%] bg-[#E30A17] flex items-center justify-center shadow-[-30px_0_80px_rgba(227,10,23,0.1)]"
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 2.2, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute right-0 top-0 bottom-0 w-full md:w-1/2 bg-[#E30A17] shadow-[-30px_0_80px_rgba(227,10,23,0.1)]"
             style={{ 
               WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 50%)',
               maskImage: 'linear-gradient(to right, transparent 0%, black 50%)'
             }}
           >
-            {/* The "Sign of Turkey" (Ambient Floating) */}
+            {/* The "Sign of Turkey" (Exactly in the middle of the red zone) */}
             <motion.div 
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ 
                 opacity: 1, 
-                scale: [1, 1.03, 1],
-                y: [0, -8, 0],
-                rotate: [0, 0.5, 0],
+                scale: [1, 1.05, 1],
+                y: [0, -10, 0],
                 transition: { 
                   opacity: { delay: 1, duration: 2 },
-                  scale: { repeat: Infinity, duration: 10, ease: "easeInOut" },
-                  y: { repeat: Infinity, duration: 7, ease: "easeInOut" },
-                  rotate: { repeat: Infinity, duration: 12, ease: "easeInOut" }
+                  scale: { repeat: Infinity, duration: 8, ease: "easeInOut" },
+                  y: { repeat: Infinity, duration: 6, ease: "easeInOut" }
                 } 
               }}
-              className="w-[300px] md:w-[600px] flex items-center justify-center opacity-100 relative z-20 md:ml-[20%]"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] md:w-[500px] flex items-center justify-center z-20"
             >
               <svg viewBox="0 0 800 600" className="w-full h-auto fill-white drop-shadow-[0_0_80px_rgba(255,255,255,0.4)]">
-                <circle cx="350" cy="300" r="150" />
-                <circle cx="400" cy="300" r="120" fill="#E30A17" />
-                 <path d="M480,300 l60,20 l-35,-55 l35,-55 l-60,20 l-20,-60 l-20,60 l-60,-20 l35,55 l-35,55 l60,-20 z" transform="translate(10, 0)" />
+                {/* Mathematical Turkish Moon & Star */}
+                <circle cx="360" cy="300" r="150" />
+                <circle cx="410" cy="300" r="120" fill="#E30A17" />
+                <path d="M490,300 l50,15 l-30,-45 l30,-45 l-50,15 l-15,-50 l-15,50 l-50,-15 l30,45 l-30,45 l50,-15 z" />
               </svg>
             </motion.div>
           </motion.div>
