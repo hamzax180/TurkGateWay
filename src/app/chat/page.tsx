@@ -695,7 +695,7 @@ export default function ChatPage() {
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.5, duration: 0.5 }}
-                    className="text-3xl md:text-5xl font-bold tracking-tight text-[#c4c7c5] dark:text-[#444746]"
+                    className="text-3xl md:text-5xl font-bold tracking-tight text-gray-500/50 dark:text-gray-400/50"
                   >
                     {t('chat_begin')}
                   </motion.h1>
@@ -835,7 +835,7 @@ export default function ChatPage() {
 
                           if (m.role === 'assistant') {
                             return (
-                              <div className={`prose prose-invert max-w-none ${isRTL ? 'text-right' : 'text-left'}`} dir={isRTL ? 'rtl' : 'ltr'}>
+                              <div className={`prose dark:prose-invert max-w-none ${isRTL ? 'text-right' : 'text-left'}`} dir={isRTL ? 'rtl' : 'ltr'}>
                                 <ReactMarkdown
                                   remarkPlugins={[remarkGfm]}
                                   components={{
