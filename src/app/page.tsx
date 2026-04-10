@@ -191,9 +191,9 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 1 }}
-            className="text-3xl md:text-4xl text-white font-medium"
+            className="text-3xl md:text-4xl text-[var(--muted)] font-light"
             style={{ 
-              textShadow: '0 2px 15px rgba(0,0,0,0.4), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000' 
+              textShadow: '0 2px 15px rgba(255,255,255,1), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000' 
             }}
           >
             {t('home_hero_subtitle')}
@@ -203,9 +203,9 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.2, duration: 2 }}
-            className="text-xl md:text-2xl text-white font-light italic"
+            className="text-xl md:text-2xl text-[var(--muted)] font-light italic opacity-80"
             style={{ 
-              textShadow: '0 2px 10px rgba(0,0,0,0.3), -0.5px -0.5px 0 #000, 0.5px -0.5px 0 #000, -0.5px 1.5px 0 #000, 0.5px 1.5px 0 #000' 
+              textShadow: '0 2px 10px rgba(255,255,255,1), -0.5px -0.5px 0 #000, 0.5px -0.5px 0 #000, -0.5px 1.5px 0 #000, 0.5px 1.5px 0 #000' 
             }}
           >
             {t('home_hero_question') || 'Where should we start?'}
