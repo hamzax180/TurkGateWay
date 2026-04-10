@@ -119,21 +119,18 @@ export default function Home() {
         
         {/* ── Real Turkish Flag Background (Animated Entry & Ambient Sway) ── */}
         <div className="absolute inset-x-0 top-0 h-[55vh] md:h-screen pointer-events-none z-0 select-none overflow-hidden">
-          {/* Animated Red Section (Locked to Hero Viewport - Splash on Mobile, Half on Desktop) */}
+          {/* Animated Red Section (Locked to Hero Viewport - MAX RED FOCUS) */}
           <motion.div 
             initial={{ opacity: 0, y: -100, x: 0 }}
             animate={{ opacity: 1, y: 0, x: 0 }}
             transition={{ duration: 2.2, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-0 md:left-1/2 md:right-0 shadow-[0_20px_60px_rgba(227,10,23,0.15)]"
-            style={{ 
-              background: 'radial-gradient(circle at 70% 50%, #FF1A2A 0%, #A3000E 100%)',
-            }}
+            className="absolute inset-0 md:left-1/2 md:right-0 bg-[#E30A17] shadow-[0_20px_60px_rgba(227,10,23,0.2)]"
           >
-            {/* Transition Mask: Vertical on Mobile, Horizontal on Desktop */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[var(--bg)] md:hidden z-10" />
+            {/* Transition Mask: Ultra-Sharp on Mobile, Sharp on Desktop */}
+            <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[var(--bg)] to-transparent md:hidden z-10" />
             <div className="absolute inset-y-0 left-0 w-64 bg-gradient-to-r from-[var(--bg)] to-transparent hidden md:block z-10" />
 
-            {/* The "Sign of Turkey" (Guaranteed Centering in Active Zone) */}
+            {/* The "Sign of Turkey" (Exactly in the middle of this intense red) */}
             <motion.div 
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ 
@@ -150,7 +147,7 @@ export default function Home() {
             >
               <svg viewBox="0 0 800 600" className="w-full h-auto fill-white drop-shadow-[0_0_80px_rgba(255,255,255,0.4)]">
                 <circle cx="360" cy="300" r="150" />
-                <circle cx="410" cy="300" r="120" fill="#CD0011" />
+                <circle cx="410" cy="300" r="120" fill="#E30A17" />
                 <path d="M490,300 l50,15 l-30,-45 l30,-45 l-50,15 l-15,-50 l-15,50 l-50,-15 l30,45 l-30,45 l50,-15 z" />
               </svg>
             </motion.div>
