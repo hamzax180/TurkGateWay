@@ -339,7 +339,7 @@ export default function Dashboard() {
   const handleSwitchAssistant = (type: string) => {
     localStorage.setItem('permitops_assistant_type', type);
     localStorage.removeItem('permitops_active_session_id');
-    router.push('/chat');
+    fetchState();
   };
 
   const renderContent = () => {
@@ -994,11 +994,11 @@ export default function Dashboard() {
         showAllTypes
         onSessionSelect={(id, title) => {
           localStorage.setItem('permitops_active_session_id', id);
-          router.push('/chat');
+          fetchState();
         }}
         onNewChat={() => {
           localStorage.removeItem('permitops_active_session_id');
-          router.push('/chat');
+          fetchState();
         }}
         onSwitchAssistant={handleSwitchAssistant}
         onDeleteSession={(id) => {}}
