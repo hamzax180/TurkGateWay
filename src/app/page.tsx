@@ -298,11 +298,10 @@ export default function Home() {
           </video>
           {/* Sharp Gradual Transitions (The Split) */}
           <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[var(--bg)] to-transparent z-10" />
-
-
         </div>
 
-        <div className="max-w-6xl mx-auto relative z-10 px-6">
+        <div className="max-w-6xl mx-auto relative z-10 px-6 text-center">
+          <div className="mb-24 space-y-6">
             <h2 className="text-5xl md:text-7xl font-medium text-white drop-shadow-[0_6px_10px_rgba(0,0,0,0.9)] tracking-tight leading-tight max-w-4xl mx-auto">{t('process_subtitle')}</h2>
           </div>
 
