@@ -552,6 +552,8 @@ export default function Dashboard() {
               </span>
               <h1 className="text-4xl md:text-6xl font-black text-gradient-premium tracking-tight drop-shadow-[0_2px_15px_rgba(0,0,0,0.08)] py-1">
                 {(() => {
+                  if (activeAssistantType === 'student') return t('dashboard_student_title');
+                  if (activeAssistantType === 'lawyer') return t('dashboard_legal_title');
                   const loc = data?.combined_result?.location || '';
                   if (loc.startsWith('student.')) return t('dashboard_student_title');
                   if (loc.startsWith('lawyer.')) return t('dashboard_legal_title');
