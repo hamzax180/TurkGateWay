@@ -153,9 +153,9 @@ export default function Home() {
             </motion.div>
           </motion.div>
 
-          {/* Depth Overlays */}
+          {/* Depth Overlays (Enhanced Blend) */}
           <div className="absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-[var(--bg)] to-transparent z-30" />
-          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[var(--bg)] to-transparent z-30" />
+          <div className="absolute inset-x-0 bottom-0 h-[40vh] bg-gradient-to-t from-[var(--bg)] via-[var(--bg)]/80 to-transparent z-30" />
         </div>
 
       {/* ═══════════════ PERMIT ASSISTANT CONTENT ═══════════════ */}
