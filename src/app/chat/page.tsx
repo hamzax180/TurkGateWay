@@ -359,11 +359,11 @@ export default function ChatPage() {
             className="flex flex-col items-center justify-center cursor-pointer hover:bg-[var(--surface-2)] px-3 py-1 rounded-xl transition-all"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
-            <div className="flex items-center gap-1 mb-0.5">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-500 opacity-90">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="text-[12px] font-extrabold uppercase tracking-widest text-indigo-500 opacity-90">
                 {assistantType === 'permit' ? t('assistant_permit') : assistantType === 'student' ? t('assistant_student') : t('assistant_lawyer')} Agent
               </span>
-              <ChevronDown size={10} className={`text-indigo-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={11} className={`text-indigo-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </div>
             <span className="text-[15px] font-bold text-[var(--text)] tracking-tight leading-none truncate max-w-[180px]">
               {(() => {
@@ -400,11 +400,11 @@ export default function ChatPage() {
             className="flex flex-col items-center justify-center cursor-pointer hover:bg-[var(--surface-2)] px-6 py-2 rounded-2xl transition-all border border-transparent hover:border-[var(--border)]"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[12px] font-bold uppercase tracking-[0.25em] bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent opacity-90">
+            <div className="flex items-center gap-2 mb-2.5">
+              <span className="text-[14px] font-extrabold uppercase tracking-[0.3em] bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent opacity-90">
                 {assistantType === 'permit' ? t('assistant_permit') : assistantType === 'student' ? t('assistant_student') : t('assistant_lawyer')} Agent
               </span>
-              <ChevronDown size={12} className={`text-indigo-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={14} className={`text-indigo-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </div>
             <span className="text-xl font-bold text-[var(--text)] opacity-95 tracking-tight leading-none">
               {(() => {
