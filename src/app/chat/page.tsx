@@ -356,15 +356,18 @@ export default function ChatPage() {
             <Menu size={22} />
           </button>
           <div
-            className="flex items-center gap-1.5 cursor-pointer hover:bg-[var(--surface-2)] px-3 py-1.5 rounded-full transition-all"
+            className="flex flex-col items-center justify-center cursor-pointer hover:bg-[var(--surface-2)] px-3 py-1 rounded-xl transition-all"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
-            <span className="text-[17px] font-semibold text-[var(--text)] tracking-tight">
+            <div className="flex items-center gap-1 mb-0.5">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-500 opacity-90">
+                {assistantType === 'permit' ? t('assistant_permit') : assistantType === 'student' ? t('assistant_student') : t('assistant_lawyer')} Agent
+              </span>
+              <ChevronDown size={10} className={`text-indigo-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            </div>
+            <span className="text-[15px] font-bold text-[var(--text)] tracking-tight leading-none truncate max-w-[180px]">
               {(() => {
-                if (!sessionTitle || msgs.length === 0 || sessionTitle === t('chat_new')) {
-                  return assistantType === 'permit' ? `${t('assistant_permit')} AI Agent` : assistantType === 'student' ? `${t('assistant_student')} AI Agent` : `${t('assistant_lawyer')} AI Agent`;
-                }
-                
+                if (!sessionTitle || msgs.length === 0 || sessionTitle === t('chat_new')) return t('chat_new');
                 const match = sessionTitle.toLowerCase().match(/^(.+?)\s+in\s+(.+)$/);
                 if (match) {
                   const bizKey = `biz_${match[1].trim()}`;
@@ -375,7 +378,6 @@ export default function ChatPage() {
                 return sessionTitle;
               })()}
             </span>
-            <ChevronDown size={16} className={`text-[var(--muted)] opacity-50 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </div>
           <div className="flex items-center gap-2">
             {user ? (
@@ -395,14 +397,18 @@ export default function ChatPage() {
         {/* Gemini-Style Content Header - Desktop only */}
         <div className="hidden md:flex h-20 items-center justify-center px-6 shrink-0 z-30 relative" ref={dropdownRef}>
           <div
-            className="flex items-center gap-2 cursor-pointer hover:bg-[var(--surface-2)] px-4 py-2 rounded-full transition-all border border-transparent hover:border-[var(--border)]"
+            className="flex flex-col items-center justify-center cursor-pointer hover:bg-[var(--surface-2)] px-6 py-2 rounded-2xl transition-all border border-transparent hover:border-[var(--border)]"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
-            <span className="text-xl font-semibold text-[var(--text)] opacity-90 tracking-tight">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[12px] font-bold uppercase tracking-[0.25em] bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent opacity-90">
+                {assistantType === 'permit' ? t('assistant_permit') : assistantType === 'student' ? t('assistant_student') : t('assistant_lawyer')} Agent
+              </span>
+              <ChevronDown size={12} className={`text-indigo-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            </div>
+            <span className="text-xl font-bold text-[var(--text)] opacity-95 tracking-tight leading-none">
               {(() => {
-                if (!sessionTitle || msgs.length === 0 || sessionTitle === t('chat_new')) {
-                  return assistantType === 'permit' ? `${t('assistant_permit')} AI Agent` : assistantType === 'student' ? `${t('assistant_student')} AI Agent` : `${t('assistant_lawyer')} AI Agent`;
-                }
+                if (!sessionTitle || msgs.length === 0 || sessionTitle === t('chat_new')) return t('chat_new');
                 const match = sessionTitle.toLowerCase().match(/^(.+?)\s+in\s+(.+)$/);
                 if (match) {
                   const bizKey = `biz_${match[1].trim()}`;
@@ -413,7 +419,6 @@ export default function ChatPage() {
                 return sessionTitle;
               })()}
             </span>
-            <ChevronDown size={18} className={`text-[var(--muted)] opacity-50 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </div>
         </div>
 
