@@ -102,6 +102,17 @@ body {
     transform: translateY(-1px);
   }
 
+  .btn-indigo {
+    background: linear-gradient(135deg, #4f46e5, #6366f1);
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(79,70,229,0.3), 0 4px 16px rgba(79,70,229,0.25);
+  }
+  .btn-indigo:hover {
+    background: linear-gradient(135deg, #4338ca, #4f46e5);
+    box-shadow: 0 4px 24px rgba(79,70,229,0.45);
+    transform: translateY(-1px);
+  }
+
   .btn-outline {
     background: var(--surface-2);
     color: var(--muted);
@@ -204,6 +215,38 @@ body {
     box-shadow: 0 12px 48px rgba(0,0,0,0.14);
   }
 
+  /* ----- Premium Glow ----- */
+  .glow-card {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .glow-card:hover {
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.15);
+    border-color: rgba(var(--accent-rgb), 0.3);
+    transform: translateY(-4px);
+  }
+  .dark .glow-card:hover {
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  .glow-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at center, var(--accent) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    filter: blur(40px);
+    z-index: -1;
+  }
+  .glow-card:hover::before {
+    opacity: 0.15;
+  }
+
   /* ----- Step Number Badge ----- */
   .step-num {
     display: flex; align-items: center; justify-content: center;
@@ -300,6 +343,14 @@ body {
   animation: shimmer-sweep 2.5s linear infinite;
   pointer-events: none;
   z-index: 0;
+}
+
+/* Premium Text Gradient */
+.text-gradient-premium {
+  background: linear-gradient(135deg, #4285f4 0%, #9b72cb 50%, #d96570 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Step card left accent bar */

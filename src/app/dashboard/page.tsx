@@ -519,7 +519,7 @@ export default function Dashboard() {
                 <Activity size={10} className="animate-pulse" />
                 {t('dashboard_live_session')} · #{data?.combined_result?.location && !data.combined_result.location.includes('_') ? `IST-${data.combined_result.location.substring(0,3).toUpperCase().replace(/İ/g, 'I')}-4221` : 'IST-TR-4221'}
               </span>
-              <h1 className="text-3xl md:text-5xl font-bold text-[var(--text)] tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.05)] dark:drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">
+              <h1 className="text-4xl md:text-6xl font-black text-gradient-premium tracking-tight drop-shadow-[0_2px_15px_rgba(0,0,0,0.08)] py-1">
                 {(() => {
                   const loc = data?.combined_result?.location || '';
                   if (loc.startsWith('student.')) return t('dashboard_student_title');
@@ -549,15 +549,15 @@ export default function Dashboard() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2.5 md:gap-3 shrink-0">
               {/* Subscription Status Badge */}
-              <div className={`px-4 py-2 rounded-full flex items-center gap-2 border shadow-sm transition-all ${
+              <div className={`h-10 px-4 rounded-full flex items-center gap-2 border transition-all cursor-default ${
                 data?.subscription_status === 'active' 
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500' 
-                  : 'bg-indigo-500/10 border-indigo-500/30 text-indigo-500'
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
+                  : 'bg-[var(--surface-2)]/50 border-[var(--border)] text-[var(--muted)]'
               }`}>
-                <Sparkles size={14} className={data?.subscription_status === 'active' ? '' : 'opacity-40'} />
-                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">
+                <Sparkles size={13} className={data?.subscription_status === 'active' ? 'text-emerald-500' : 'text-[var(--muted)] opacity-50'} />
+                <span className="text-[11px] font-bold uppercase tracking-wider hidden sm:inline whitespace-nowrap">
                   {data?.subscription_status === 'active' ? t('dashboard_premium') : t('dashboard_free_plan')}
                 </span>
               </div>
@@ -566,20 +566,25 @@ export default function Dashboard() {
                 <button 
                   onClick={handleSubscribe}
                   disabled={isSubscribing}
-                  className="btn btn-indigo !py-2 !px-4 !text-[12px] !rounded-full shadow-lg hover:scale-105 transition-all flex items-center gap-2"
+                  className="btn btn-indigo !h-10 !px-5 !text-[11px] !rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
                 >
                   {isSubscribing ? <RefreshCw size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
-                  {isSubscribing ? t('dashboard_starting') : t('dashboard_upgrade')}
+                  <span className="uppercase tracking-wide">{isSubscribing ? t('dashboard_starting') : t('dashboard_upgrade')}</span>
                 </button>
               )}
 
-              <button onClick={refresh} className="btn btn-outline !py-2 !px-3 !text-sm lg:flex hidden items-center gap-2 !rounded-full">
-                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              <button 
+                onClick={refresh} 
+                className="btn btn-outline !h-10 !w-10 !p-0 !text-sm lg:flex hidden items-center justify-center !rounded-full hover:bg-[var(--surface-2)] border-[var(--border)] transition-all"
+                title="Refresh"
+              >
+                <RefreshCw size={15} className={loading ? 'animate-spin' : 'text-[var(--muted)]'} />
               </button>
               
               <Link href="/chat">
-                <button className="btn btn-purple !py-2 !px-5 !text-[12px] flex items-center gap-1.5 !rounded-full group shadow-md hover:shadow-purple-500/20">
-                  <ArrowRight size={14} /> {t('dashboard_ask_ai')}
+                <button className="btn btn-purple !h-10 !px-6 !text-[11px] flex items-center gap-2 !rounded-full group shadow-xl hover:shadow-purple-500/30 hover:scale-[1.03] active:scale-95 transition-all">
+                  <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" /> 
+                  <span className="uppercase tracking-wide">{t('dashboard_ask_ai')}</span>
                 </button>
               </Link>
             </div>
@@ -597,52 +602,76 @@ export default function Dashboard() {
               { label: t('dashboard_compliance_score'), value: `${progress > 0 ? progress : '0'}%`,  from: '#34d399', to: '#10b981', icon: ShieldCheck,  iconColor: '#34d399', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.25)', mesh: 'mesh-emerald' },
               { label: t('dashboard_steps_complete'),   value: `${done}/${steps.length}`,            from: '#c084fc', to: '#a855f7', icon: CheckCircle2, iconColor: '#c084fc', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.25)', mesh: 'mesh-purple' },
               { label: t('dashboard_est_days'),         value: `${Math.max(0, steps.length*2 - done*2)}d`, from: '#fcd34d', to: '#f59e0b', icon: Clock,    iconColor: '#fcd34d', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.25)', mesh: 'mesh-amber'  },
-              { label: t('dashboard_active_agents'),    value: `${data?.execution_plan?.assigned_agents?.length || 0}`, from: '#f0abfc', to: '#e879f9', icon: Cpu, iconColor: '#f0abfc', bg: 'rgba(232,121,249,0.12)', border: 'rgba(232,121,249,0.25)', mesh: 'mesh-indigo' },
+              { label: t('dashboard_active_agents'),    value: `${data?.execution_plan?.assigned_agents?.length || 0}`, from: '#60a5fa', to: '#3b82f6', icon: Cpu, iconColor: '#60a5fa', bg: 'rgba(59,130,246,0.12)', border: 'rgba(59,130,246,0.25)', mesh: 'mesh-indigo' },
             ] as const).map((s, i) => (
-              <div key={i} className={`glass-mesh ${s.mesh} p-5 flex items-center gap-4 transition-all group cursor-default hover:scale-[1.02] hover:shadow-lg relative overflow-hidden`}>
-                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
-                <div style={{ background: s.bg, border: `1px solid ${s.border}` }} className="h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
-                  <s.icon size={22} style={{ color: s.iconColor }} />
+              <motion.div 
+                key={i} 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 + (i * 0.05) }}
+                className={`glow-card bg-[var(--surface)] p-6 flex flex-col gap-4 group cursor-default shadow-lg overflow-hidden border border-[var(--border)]`}
+              >
+                <div className={`absolute inset-0 ${s.mesh} opacity-30 group-hover:opacity-50 transition-opacity`} />
+                <div className="flex items-center justify-between relative z-10 w-full">
+                  <div style={{ background: s.bg, border: `1px solid ${s.border}` }} className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
+                    <s.icon size={18} style={{ color: s.iconColor }} />
+                  </div>
+                  <div className="h-2 w-2 rounded-full animate-pulse" style={{ background: s.iconColor }} />
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-[var(--muted)] font-bold uppercase tracking-widest truncate mb-1">{s.label}</p>
-                  <p className="text-2xl font-black leading-tight" style={{ background: `linear-gradient(135deg, ${s.from}, ${s.to})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.value}</p>
+                <div className="relative z-10">
+                  <p className="text-[10px] text-[var(--muted)] font-black uppercase tracking-[0.15em] mb-1.5">{s.label}</p>
+                  <p className="text-3xl font-black leading-tight tracking-tight" style={{ background: `linear-gradient(135deg, ${s.from}, ${s.to})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.value}</p>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </motion.div>
 
           {/* ── Progress Bar ── */}
-          <div className="glass-card p-4 flex items-center gap-5">
-            <div className="flex flex-col shrink-0">
-              <span className="text-[10px] text-[var(--muted)] font-bold uppercase tracking-widest">{t('dashboard_overall_progress')}</span>
-              <span className="text-xl font-black text-[var(--text)] mt-0.5">{progress}%</span>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.35, duration: 0.5 }}
+            className="glass-card p-5 flex items-center gap-6 shadow-2xl relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+            <div className="flex flex-col shrink-0 relative z-10">
+              <span className="text-[11px] text-[var(--muted)] font-black uppercase tracking-[0.2em]">{t('dashboard_overall_progress')}</span>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="text-3xl font-black text-[var(--text)]">{progress}%</span>
+                <span className="text-xs font-bold text-emerald-500">+{Math.round(progress/2)}%</span>
+              </div>
             </div>
-            <div className="flex-1 h-3 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden border border-[var(--border)] shadow-inner">
+            <div className="flex-1 h-3.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden border border-[var(--border)] shadow-inner relative z-10">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
-                transition={{ duration: 1.4, ease: [0.34, 1.56, 0.64, 1], delay: 0.3 }}
+                transition={{ duration: 1.6, ease: [0.34, 1.56, 0.64, 1], delay: 0.5 }}
                 className="h-full rounded-full relative overflow-hidden"
-                style={{ background: 'linear-gradient(90deg, #7c3aed, #a855f7, #c084fc)' }}
+                style={{ background: 'linear-gradient(90deg, #4f46e5, #7c3aed, #a855f7, #c084fc)' }}
               >
-                <div className="absolute inset-0 bg-[length:200%_100%] animate-[shimmer-sweep_2s_linear_infinite]" style={{ background: 'linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.2) 50%, transparent 75%)', backgroundSize: '200% 100%' }} />
+                <div className="absolute inset-0 bg-[length:200%_100%] animate-[shimmer-sweep_2s_linear_infinite]" style={{ background: 'linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.3) 50%, transparent 75%)', backgroundSize: '200% 100%' }} />
               </motion.div>
             </div>
-            <div className="text-right shrink-0">
-              <span className="text-[10px] text-[var(--muted)] font-bold uppercase tracking-widest block">Steps</span>
-              <span className="text-sm font-black text-[var(--text)]">{done}/{steps.length}</span>
+            <div className="text-right shrink-0 relative z-10">
+              <span className="text-[11px] text-[var(--muted)] font-black uppercase tracking-[0.2em] block">Status</span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                <span className="text-sm font-black text-[var(--text)] tracking-wider">{done} / {steps.length}</span>
+              </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* ── Main Grid ── */}
           <div className="grid lg:grid-cols-12 gap-5">
 
             {/* Workflow Steps */}
             <div className="lg:col-span-8 space-y-2 min-w-0">
-              <div className="flex items-center justify-between px-0.5 mb-1">
-                <h2 className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">{t('dashboard_workflow_steps')}</h2>
-                <span className="text-[10px] font-bold text-[var(--muted)] opacity-70 uppercase tracking-widest">{done} of {steps.length} done</span>
+              <div className="flex items-center justify-between px-2 mb-2">
+                <h2 className="text-xl font-black tracking-tight uppercase tracking-[0.05em]">{t('dashboard_roadmap')}</h2>
+                <div className="flex items-center gap-4 text-[11px] font-black uppercase tracking-[0.15em] text-[var(--muted)]">
+                   <div className="flex items-center gap-1.5"><div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" /> DONE</div>
+                   <div className="flex items-center gap-1.5"><div className="h-1.5 w-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" /> ACTIVE</div>
+                </div>
               </div>
               {(showAllSteps && data?.subscription_status === 'active' ? steps : steps.slice(0, 3)).map((s, i) => (
                 <motion.div
@@ -650,44 +679,47 @@ export default function Dashboard() {
                   initial={{ opacity: 0, x: -14 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05, ease: 'easeOut', duration: 0.35 }}
-                  className={`glass-card overflow-hidden cursor-pointer
-                    ${
-                      s.status === 'completed'   ? 'step-card-completed' :
-                      s.status === 'in-progress' ? 'step-card-inprogress' :
-                                                   'step-card-pending'
-                    }`}
                   onClick={() => setExpanded(expanded === i ? null : i)}
+                  className={`glow-card bg-[var(--surface)] border border-[var(--border)] rounded-[28px] cursor-pointer group transition-all relative z-10 ${
+                    expanded === i ? 'ring-2 ring-indigo-500/20 bg-[var(--surface-2)]/40 shadow-2xl' : 'hover:bg-[var(--surface-2)]/30'
+                  } ${
+                    s.status === 'completed'   ? 'step-card-completed' :
+                    s.status === 'in-progress' ? 'step-card-inprogress' :
+                                                 'step-card-pending'
+                  }`}
                 >
-                  <div className="p-4 flex items-center gap-3">
-                    {/* Step number */}
-                    <div className={`step-num ${
-                      s.status === 'completed'   ? 'step-num-completed' :
-                      s.status === 'in-progress' ? 'step-num-inprogress' : ''
-                    }`}>
-                      {s.status === 'completed' ? <CheckCircle2 size={13} /> : s.id}
+                  <div className="p-5 flex items-start gap-5">
+                    <div className="shrink-0 relative">
+                      <div className={`step-num h-9 w-9 !text-[12px] !font-black !rounded-xl !bg-[var(--surface-2)] !border-[var(--border)] transition-all ${
+                        s.status === 'completed'   ? 'step-num-completed shadow-lg shadow-emerald-500/20 !bg-emerald-500 !text-white' : 
+                        s.status === 'in-progress' ? 'step-num-inprogress shadow-lg shadow-purple-500/20 !bg-purple-500 !text-white' :
+                        expanded === i ? '!bg-indigo-500 !text-white' : ''
+                      }`}>
+                        {s.status === 'completed' ? <Check size={18} /> : i + 1}
+                      </div>
                     </div>
 
-                  <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-bold text-[var(--text)] text-[15px] leading-tight break-words flex-1 min-w-[200px]">{s.title}</h3>
+                    <div className="flex-1 min-w-0 pt-1">
+                      <div className="flex items-center justify-between mb-1.5 gap-2">
+                        <h3 className={`text-[15px] font-black tracking-tight truncate pr-4 transition-colors uppercase ${expanded === i ? 'text-indigo-500' : 'text-[var(--text)]'}`}>
+                          {s.title}
+                        </h3>
                         <div className="flex items-center gap-2 shrink-0">
-                          <StepBadge status={s.status} />
-                          {/* Responsible chip */}
                           <span className={
                             (s.responsible.includes('Agent') || s.responsible.includes('Ajan') || s.responsible.includes('وكيل'))
                               ? 'agent-chip' : 'human-chip'
                           }>
                             {(s.responsible.includes('Agent') || s.responsible.includes('Ajan') || s.responsible.includes('وكيل')) ? '⚡ Agent' : '👤 Human'}
                           </span>
+                          <StepBadge status={s.status} />
                         </div>
                       </div>
-                      <p className="text-[13px] text-[var(--muted)] mt-0.5 font-medium truncate">{s.summary}</p>
+                      <p className={`text-[12px] text-[var(--muted)] leading-relaxed transition-all duration-300 ${expanded === i ? 'line-clamp-none opacity-100' : 'line-clamp-1 opacity-60 group-hover:opacity-100'}`}>
+                        {s.summary}
+                      </p>
                     </div>
 
-                    <ChevronDown
-                      size={15}
-                      className={`text-[var(--muted)] opacity-70 transition-transform duration-300 shrink-0 ${expanded === i ? 'rotate-180' : ''}`}
-                    />
+                    <ChevronDown size={20} className={`shrink-0 text-[var(--muted)] opacity-30 mt-1.5 transition-transform duration-500 ${expanded === i ? 'rotate-180 opacity-100 text-indigo-500' : ''}`} />
                   </div>
 
                   <AnimatePresence>
