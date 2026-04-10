@@ -170,12 +170,12 @@ export default function Home() {
         >
           <div className="flex items-center justify-center gap-3 mb-2">
             <div className="w-6 h-6 animate-pulse bg-gradient-to-tr from-[#4285f4] via-[#9b72cb] to-[#d96570] rounded-full blur-[2px] opacity-80" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-[#8ab4f8] dark:to-[#9b72cb] font-semibold text-lg">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-[#8ab4f8] dark:to-[#9b72cb] font-semibold text-lg drop-shadow-[0_2px_10px_rgba(255,255,255,0.8)]">
               {t('home_hero_greeting_user').replace('Hamza', user?.fullName || 'Guest')}
             </span>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-medium tracking-tight text-[var(--text)] leading-tight">
+          <h1 className="text-5xl md:text-7xl font-medium tracking-tight text-[var(--text)] leading-tight drop-shadow-[0_2px_15px_rgba(255,255,255,0.7)]">
             {t('home_hero_title')}
           </h1>
 
@@ -183,7 +183,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 1 }}
-            className="text-3xl md:text-4xl text-[var(--muted)] font-light"
+            className="text-3xl md:text-4xl text-[var(--muted)] font-light drop-shadow-[0_2px_10px_rgba(255,255,255,0.7)]"
           >
             {t('home_hero_subtitle')}
           </motion.h2>
@@ -192,7 +192,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.2, duration: 2 }}
-            className="text-xl md:text-2xl text-[var(--muted)] font-light italic opacity-60"
+            className="text-xl md:text-2xl text-[var(--muted)] font-light italic opacity-60 drop-shadow-[0_2px_8px_rgba(255,255,255,0.6)]"
           >
             {t('home_hero_question') || 'Where should we start?'}
           </motion.p>
