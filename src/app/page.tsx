@@ -118,20 +118,22 @@ export default function Home() {
       <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col items-center justify-center transition-colors duration-500 overflow-hidden relative">
         
         {/* ── Real Turkish Flag Background (Animated Entry & Ambient Sway) ── */}
-        <div className="absolute inset-x-0 top-0 h-screen pointer-events-none z-0 select-none overflow-hidden">
-          {/* Animated Red Section (Locked to Hero Viewport) */}
+        <div className="absolute inset-x-0 top-0 h-[40vh] md:h-screen pointer-events-none z-0 select-none overflow-hidden">
+          {/* Animated Red Section (Locked to Hero Viewport - Splash on Mobile, Half on Desktop) */}
           <motion.div 
-            initial={{ opacity: 0, x: "100%" }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: -100, x: 0 }}
+            animate={{ opacity: 1, y: 0, x: 0 }}
             transition={{ duration: 2.2, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute right-0 top-0 bottom-0 w-full md:w-1/2 shadow-[-30px_0_80px_rgba(227,10,23,0.1)]"
+            className="absolute inset-0 md:left-1/2 md:right-0 bg-[#E30A17] shadow-[0_20px_60px_rgba(227,10,23,0.1)]"
             style={{ 
               background: 'radial-gradient(circle at 70% 50%, #E30A17 0%, #8B0000 100%)',
-              WebkitMaskImage: 'linear-gradient(to right, transparent 5%, black 40%)',
-              maskImage: 'linear-gradient(to right, transparent 5%, black 40%)'
             }}
           >
-            {/* The "Sign of Turkey" (Guaranteed Centering in Viewport) */}
+            {/* Transition Mask: Vertical on Mobile, Horizontal on Desktop */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[var(--bg)] md:hidden z-10" />
+            <div className="absolute inset-y-0 left-0 w-64 bg-gradient-to-r from-[var(--bg)] to-transparent hidden md:block z-10" />
+
+            {/* The "Sign of Turkey" (Guaranteed Centering in Active Zone) */}
             <motion.div 
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ 
@@ -144,7 +146,7 @@ export default function Home() {
                   y: { repeat: Infinity, duration: 6, ease: "easeInOut" }
                 } 
               }}
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] md:w-[500px] flex items-center justify-center z-20"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] md:w-[500px] flex items-center justify-center z-20"
             >
               <svg viewBox="0 0 800 600" className="w-full h-auto fill-white drop-shadow-[0_0_80px_rgba(255,255,255,0.4)]">
                 <circle cx="360" cy="300" r="150" />
