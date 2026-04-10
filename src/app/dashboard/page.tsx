@@ -76,6 +76,7 @@ export default function Dashboard() {
   const fetchState = useCallback(async () => {
     try {
       setLoading(true);
+      const startTime = Date.now();
       const token = localStorage.getItem('permitops_token');
       const sid = localStorage.getItem('permitops_active_session_id');
       const params = new URLSearchParams();
@@ -94,6 +95,14 @@ export default function Dashboard() {
     } catch (e) {
       console.error("Failed to fetch dashboard data", e);
     } finally {
+      // Ensure the loading screen shows for at least 2 seconds for branding/traffic control
+      const endTime = Date.now();
+      const elapsed = endTime - startTime;
+      const remaining = Math.max(0, 2000 - elapsed);
+      
+      if (remaining > 0) {
+        await new Promise(resolve => setTimeout(resolve, remaining));
+      }
       setLoading(false);
     }
   }, []);
