@@ -118,7 +118,7 @@ export default function Home() {
       <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col items-center justify-center transition-colors duration-500 overflow-hidden relative">
         
         {/* ── Real Turkish Flag Background (Animated Entry & Ambient Sway) ── */}
-        <div className="absolute inset-x-0 top-0 h-[40vh] md:h-screen pointer-events-none z-0 select-none overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-[55vh] md:h-screen pointer-events-none z-0 select-none overflow-hidden">
           {/* Animated Red Section (Locked to Hero Viewport - Splash on Mobile, Half on Desktop) */}
           <motion.div 
             initial={{ opacity: 0, y: -100, x: 0 }}
