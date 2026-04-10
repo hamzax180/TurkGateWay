@@ -67,6 +67,12 @@ export default function ChatPage() {
   useEffect(() => {
     let mounted = true;
     const initSession = async () => {
+      // Check for forced type from dashboard/sidebar
+      const forcedType = localStorage.getItem('permitops_assistant_type') as 'permit' | 'student' | 'lawyer' | null;
+      if (forcedType) {
+        setAssistantType(forcedType);
+      }
+
       if (isAuthenticated && token) {
         try {
           const res = await apiFetch(`/chat/sessions?token=${token}`);
@@ -79,15 +85,8 @@ export default function ChatPage() {
             const forcedSessionId = localStorage.getItem('permitops_ask_step_session');
             if (forcedSessionId) {
               localStorage.removeItem('permitops_ask_step_session');
-
-              // Find the title for the forced session to update UI nicely
               const fSession = data.find((s: any) => s.id === forcedSessionId);
-
-              // We use a callback in setSessionId just in case it's mid-update
-              setSessionId(prev => {
-                // If it already resolved to something else ignore, otherwise force:
-                return forcedSessionId;
-              });
+              setSessionId(forcedSessionId);
               setSessionTitle(fSession ? (fSession.title || '') : '');
               if (fSession && fSession.assistant_type) {
                 setAssistantType(fSession.assistant_type);
@@ -100,17 +99,19 @@ export default function ChatPage() {
             const activeSession = data.find((s: any) => s.id === activeSessionId);
 
             if (activeSession) {
-              // Restore active session fully
               setSessionId(activeSession.id);
               setSessionTitle(activeSession.title || '');
-              if (activeSession.assistant_type) {
+              // Only override assistant type if no forced type exists
+              if (!forcedType && activeSession.assistant_type) {
                 setAssistantType(activeSession.assistant_type);
               }
+            } else if (!activeSessionId && forcedType) {
+              // Redirected from dashboard with a SPECIFIC agent but NO session
+              handleNewChat();
             } else if (data.length > 0) {
-              // Fallback to most recent session overall
               setSessionId(data[0].id);
               setSessionTitle(data[0].title || '');
-              if (data[0].assistant_type) setAssistantType(data[0].assistant_type);
+              if (!forcedType && data[0].assistant_type) setAssistantType(data[0].assistant_type);
             } else {
               handleNewChat();
             }
