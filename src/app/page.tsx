@@ -124,10 +124,10 @@ export default function Home() {
             initial={{ opacity: 0, y: -100, x: 0 }}
             animate={{ opacity: 1, y: 0, x: 0 }}
             transition={{ duration: 2.2, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-0 md:left-1/2 md:right-0 bg-[#E30A17] shadow-[0_20px_60px_rgba(227,10,23,0.2)]"
+            className="absolute inset-0 md:left-1/2 md:right-0 bg-[#E30A17]"
             style={{ 
-              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 20%), linear-gradient(to top, transparent 0%, black 30%)',
-              maskImage: 'linear-gradient(to right, transparent 0%, black 20%), linear-gradient(to top, transparent 0%, black 30%)',
+              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 8%), linear-gradient(to top, transparent 0%, black 20%)',
+              maskImage: 'linear-gradient(to right, transparent 0%, black 8%), linear-gradient(to top, transparent 0%, black 20%)',
               WebkitMaskComposite: 'source-in',
               maskComposite: 'intersect'
             }}
