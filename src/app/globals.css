@@ -6,11 +6,16 @@
 /* ─── Flexible Theme Tokens ─── */
 :root {
   --bg: #f8faff;
+  --bg-rgb: 248, 250, 255;
   --surface: #ffffff;
+  --surface-rgb: 255, 255, 255;
+  --surface-1: #ffffff;
   --surface-2: #f0f4f9;
-  --border: rgba(0, 0, 0, 0.05);
-  --border-2: rgba(0, 0, 0, 0.08);
+  --surface-2-rgb: 240, 244, 249;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-2: rgba(0, 0, 0, 0.12);
   --accent: #1a73e8;
+  --accent-rgb: 26, 115, 232;
   --text: #171a1c;
   --muted: #5f6368;
   --radius: 20px;
@@ -19,11 +24,16 @@
 
 .dark {
   --bg: #000000;
+  --bg-rgb: 0, 0, 0;
   --surface: #1e1f20;
+  --surface-rgb: 30, 31, 32;
+  --surface-1: #1e1f20;
   --surface-2: #2a2b2d;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-2: rgba(255, 255, 255, 0.15);
+  --surface-2-rgb: 42, 43, 45;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-2: rgba(255, 255, 255, 0.18);
   --accent: #8ab4f8;
+  --accent-rgb: 138, 180, 248;
   --text: #e3e3e3;
   --muted: #9aa0a6;
   --nav-bg: rgba(14, 14, 14, 0.8);
@@ -117,7 +127,6 @@ body {
     background: var(--surface-2);
     color: var(--muted);
     border: 1px solid var(--border);
-    backdrop-filter: blur(8px);
   }
   .btn-outline:hover {
     background: var(--surface);
@@ -210,9 +219,30 @@ body {
     box-shadow: 0 4px 24px rgba(0,0,0,0.06);
     transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
   }
+  .dark .glass-card {
+    background: rgba(30, 31, 32, 0.7);
+  }
   .glass-card:hover {
     border-color: var(--border-2);
     box-shadow: 0 12px 48px rgba(0,0,0,0.14);
+  }
+
+  /* ----- Glassmorphism Mesh ----- */
+  .glass-mesh {
+    background: rgba(var(--surface-rgb), 0.7);
+    backdrop-filter: blur(28px) saturate(200%);
+    -webkit-backdrop-filter: blur(28px) saturate(200%);
+    border: 1px solid var(--border);
+    box-shadow: 
+      0 4px 24px rgba(0,0,0,0.06),
+      inset 0 0 0 1px rgba(var(--surface-rgb), 0.1);
+  }
+  .dark .glass-mesh {
+    background: rgba(30, 31, 32, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.02);
   }
 
   /* ----- Premium Glow ----- */
@@ -336,6 +366,24 @@ body {
   100% { transform: scale(2.2); opacity: 0; }
 }
 
+.live-dot-red { position: relative; width: 8px; height: 8px; }
+.live-dot-red::before {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background: #ef4444; animation: ping 1.4s ease-out infinite;
+}
+.live-dot-red::after {
+  content: ''; position: absolute; inset: 1px; border-radius: 50%; background: #ef4444;
+}
+
+.live-dot-purple { position: relative; width: 8px; height: 8px; }
+.live-dot-purple::before {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background: #a855f7; animation: ping 1.4s ease-out infinite;
+}
+.live-dot-purple::after {
+  content: ''; position: absolute; inset: 1px; border-radius: 50%; background: #a855f7;
+}
+
 /* shimmer sweep for active stat card */
 @keyframes shimmer-sweep {
   0% { background-position: -200% 0; }
@@ -390,23 +438,44 @@ body {
 
 /* ─── Mesh Gradients (Gradual UI) ─── */
 .agent-chip {
-  @apply flex items-center gap-2 px-3 py-1 rounded-full border bg-black/40 backdrop-blur-md transition-all duration-500;
-  border-color: rgba(239, 68, 68, 0.3);
-  box-shadow: 0 0 15px rgba(239, 68, 68, 0.1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  backdrop-blur: 12px;
+  transition: all 0.5s ease;
+  color: var(--text);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.dark .agent-chip {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
 }
 
 .agent-chip-active {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(0, 0, 0, 0.6));
-  border-color: rgba(239, 68, 68, 0.6);
-  box-shadow: 0 0 25px rgba(239, 68, 68, 0.2), inset 0 0 10px rgba(239, 68, 68, 0.1);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), var(--surface-2));
+  border-color: rgba(239, 68, 68, 0.4);
 }
 
 .neural-chip {
   position: relative;
-  background: linear-gradient(145deg, rgba(239, 68, 68, 0.05), rgba(0, 0, 0, 0.8));
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(239, 68, 68, 0.02), var(--surface));
+  border: 1px solid var(--border);
+  border-radius: 20px;
   overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04), inset 0 0 15px rgba(239, 68, 68, 0.02);
+}
+
+.dark .neural-chip {
+  background: linear-gradient(145deg, rgba(239, 68, 68, 0.05), rgba(0, 0, 0, 0.8));
+  border-color: rgba(239, 68, 68, 0.2);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 15px rgba(239, 68, 68, 0.05);
 }
 
@@ -556,8 +625,18 @@ body {
   animation: shimmer-silk 6s ease-in-out infinite;
 }
 
-@keyframes shimmer-silk {
-  0% { background-position: -50% -50%; }
-  50% { background-position: 150% 150%; }
-  100% { background-position: -50% -50%; }
+/* ─── Deep Mesh (Premium Background) ─── */
+.deep-mesh {
+  background-color: #000000;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(239, 68, 68, 0.05) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(139, 92, 246, 0.03) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(79, 70, 229, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(239, 68, 68, 0.08) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+.dark .deep-mesh {
+  background-color: #000000;
 }

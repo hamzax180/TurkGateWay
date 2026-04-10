@@ -545,11 +545,13 @@ async def smart_router_handle(
     if confidence > 0:
         if intent_group == "redirect":
             target_agent, target_sub_intent = sub_intent.split(":", 1) if sub_intent and ":" in sub_intent else (sub_intent, None)
-            underlying_response = _pick_response(target_agent, target_sub_intent, language=language)
-            if target_agent == "lawyer": suffix = {"tr": "Lütfen yukarıdan **Avukat Danışmanı** moduna geçin.", "ar": "يرجى التبديل لوضع **المستشار القانوني**.", "en": "Please switch to **Lawyer Advisor** mode."}.get(language, "Please switch to Lawyer mode.")
-            elif target_agent == "student": suffix = {"tr": "Lütfen **Öğrenci Danışmanı** moduna geçin.", "ar": "يرجى التبديل لوضع **المستشار الطلابي**.", "en": "Please switch to **Student Advisor** mode."}.get(language, "Please switch to Student mode.")
-            else: suffix = {"tr": "Lütfen **Ruhsat Danışmanı** moduna geçin.", "ar": "يرجى التبديل لمستشار التراخيص.", "en": "Please switch to **Permit Advisor** mode."}.get(language, "Please switch to Permit mode.")
-            raw_response = f"{underlying_response}\n\n*( {suffix} )*" if underlying_response else f"*( {suffix} )*"
+            
+            # Hide the answer and ONLY show the switch message as requested by USER
+            if target_agent == "lawyer": suffix = {"tr": "Bu konu hukuki uzmanlık gerektirmektedir. Lütfen yukarıdan **Avukat Danışmanı** moduna geçin.", "ar": "هذا الموضوع يتطلب خبرة قانونية. يرجى التبديل لوضع **المستشار القانوني** من الأعلى.", "en": "This topic requires legal expertise. Please switch to **Lawyer Advisor** mode using the selector above."}.get(language, "Please switch to Lawyer mode.")
+            elif target_agent == "student": suffix = {"tr": "Öğrenci prosedürleri için lütfen yukarıdan **Öğrenci Danışmanı** moduna geçin.", "ar": "بالنسبة للإجراءات الطلابية، يرجى التبديل لوضع **المستشار الطلابي** من الأعلى.", "en": "For student procedures, please switch to **Student Advisor** mode using the selector above."}.get(language, "Please switch to Student mode.")
+            else: suffix = {"tr": "İşletme ruhsatı işlemleri için lütfen yukarıdan **Ruhsat Danışmanı** moduna geçin.", "ar": "بالنسبة لإجراءات تراخيص الأعمال، يرجى التبديل لوضع **مستشار التراخيص** من الأعلى.", "en": "For business permit procedures, please switch to **Permit Advisor** mode using the selector above."}.get(language, "Please switch to Permit mode.")
+            
+            raw_response = f"*( {suffix} )*"
         else:
             raw_response = None
             if _RAG_AVAILABLE and sub_intent:
@@ -609,14 +611,14 @@ async def smart_router_handle(
     # --- PHASE 3: Smart Offline Orchestrator (Last Resort) ---
     # If even AI fails or is offline, provide a high-quality humanized guide.
     if language == "ar":
-        if assistant_type == "student": return "عذراً، لم أتمكن من التعرف على طلبك بدقة. بصفتي مستشار الطلاب، يمكنني مساعدتك فوراً في:\n- استخراج أو تجديد الإقامة الطلابية (الكملك)\n- التسجيل في الجامعات والمنح\n- استخراج كرت المواصلات وسكن الطلاب\n- معادلة الشهادات (Denklik).\nكيف يمكنني توجيهك اليوم؟"
-        elif assistant_type == "lawyer": return "عذراً، لم يتعرف النظام على طلبك. بصفتي المستشار القانوني، أنا هنا لدعمك في:\n- مراجعة العقود التجارية\n- النزاعات العمالية والقضايا\n- إجراءات الإقامة القانونية وتأسيس الشركات.\nيرجى إعادة صياغة استفسارك."
-        else: return "عذراً، لم أفهم طلبك. بصفتي مستشار التراخيص، أختص بمساعدتك في:\n- إجراءات تأسيس الأعمال (مطعم، كافيه، مكتب، صيدلية، إلخ)\n- معرفة التكاليف والمستندات المطلوبة\n- التواصل مع البلدية والدوائر الحكومية.\nما هو النشاط الذي تود القيام به؟"
+        if assistant_type == "student": return "أعمل حالياً في وضع عدم الاتصال. بصفتي مستشار الطلاب، يمكنني مساعدتك في:\n- استخراج أو تجديد الإقامة الطلابية (الكملك)\n- التسجيل في الجامعات والمنح\n- استخراج كرت المواصلات وسكن الطلاب\n- معادلة الشهادات (Denklik).\nما هو الإجراء الذي تود الاستفسار عنه؟"
+        elif assistant_type == "lawyer": return "أعمل حالياً في وضع عدم الاتصال. بصفتي المستشار القانوني، أنا هنا لدعمك في:\n- مراجعة العقود التجارية\n- النزاعات العمالية والقضايا\n- إجراءات الإقامة القانونية وتأسيس الشركات.\nيرجى تزويدي بمزيد من التفاصيل."
+        else: return "أعمل حالياً في وضع عدم الاتصال. بصفتي مستشار التراخيص، أختص بمساعدتك في:\n- إجراءات تأسيس الأعمال (مطعم، كافيه، مكتب، صيدلية، إلخ)\n- معرفة التكاليف والمستندات المطلوبة\n- التواصل مع البلدية والدوائر الحكومية.\nما هو النشاط الذي تود القيام به؟"
     elif language == "tr":
-        if assistant_type == "student": return "Üzgünüm, sorunuzu tam olarak anlayamadım. Öğrenci Danışmanı olarak size şunlarda yardımcı olabilirim:\n- Öğrenci İkamet İzni (Kimlik) alma veya uzatma\n- Üniversite kayıt ve denklik işlemleri\n- Yurt ve ulaşım kartı.\nSize en iyi nasıl yardımcı olabilirim?"
-        elif assistant_type == "lawyer": return "Üzgünüm, sorunuzu anlayamadım. Hukuk Danışmanı olarak uzmanlık alanlarım:\n- Sözleşme inceleme\n- İş hukuku ve davalar\n- Şirket kuruluşu.\nLütfen sorunuzu detaylandırın."
-        else: return "Üzgünüm, sorunuzu anlayamadım. Ruhsat Danışmanı olarak size:\n- İşyeri açma ruhsatı (Kafe, Restoran, Ofis vb.)\n- Gerekli belgeler ve maliyetler\n- Belediye süreçleri hakkında bilgi verebilirim.\nHangi işletmeyi açmak istiyorsunuz?"
+        if assistant_type == "student": return "Şu anda çevrimdışı modda çalışıyorum. Öğrenci Danışmanı olarak size şunlarda yardımcı olabilirim:\n- Öğrenci İkamet İzni (Kimlik) alma veya uzatma\n- Üniversite kayıt ve denklik işlemleri\n- Yurt ve ulaşım kartı.\nHangi işlemde takıldınız?"
+        elif assistant_type == "lawyer": return "Şu anda çevrimdışı modda çalışıyorum. Hukuk Danışmanı olarak uzmanlık alanlarım:\n- Sözleşme inceleme\n- İş hukuku ve davalar\n- Şirket kuruluşu.\nLütfen sorunuzu detaylandırın."
+        else: return "Şu anda çevrimdışı modda çalışıyorum. Ruhsat Danışmanı olarak size:\n- İşyeri açma ruhsatı (Kafe, Restoran, Ofis vb.)\n- Gerekli belgeler ve maliyetler\n- Belediye süreçleri hakkında bilgi verebilirim.\nHangi işletmeyi açmak istiyorsunuz?"
     else:
-        if assistant_type == "student": return "I'm sorry, I didn't quite catch that. As your Student Advisor, I can help you with:\n- University registration\n- Residence permits (Kimlik) renewals\n- Student housing and transport cards.\nHow can I assist you today?"
-        elif assistant_type == "lawyer": return "I'm sorry, I couldn't process your request. As your Legal Advisor, I can assist with:\n- Contract reviews\n- Legal disputes and employment law\n- Company formation.\nPlease rephrase your query."
-        else: return "I'm sorry, I didn't catch that. As your Permit Advisor, I can guide you through:\n- Opening a business (Cafe, Restaurant, Retail, etc.)\n- Required documents and permit costs\n- Municipality regulations.\nWhat type of business are you starting?"
+        if assistant_type == "student": return "I'm currently operating in offline mode. As your Student Advisor, I can help with university registration, resident IDs (Ikamet), and student life in Turkey. What specific student task are you working on?"
+        elif assistant_type == "lawyer": return "I'm currently operating in offline mode. As your Legal Advisor, I can assist with contracts, company formation, and legal disputes. Please provide more details about your legal query."
+        else: return "I'm currently operating in offline mode. For business permits, you generally need to register with your district municipality. What specific business (Cafe, Retail, etc.) are you planning?"

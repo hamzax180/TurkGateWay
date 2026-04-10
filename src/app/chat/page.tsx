@@ -343,7 +343,7 @@ export default function ChatPage() {
   if (!isLoaded) return <LoadingScreen />;
 
   return (
-    <div className="flex h-screen overflow-hidden selection:bg-purple-500/30 relative bg-[var(--bg)]">
+    <div className="flex h-screen overflow-hidden selection:bg-purple-500/30 relative bg-[var(--bg)] dark:deep-mesh transition-colors duration-500">
       <Sidebar
         currentSessionId={sessionId}
         assistantType={assistantType}
@@ -564,9 +564,9 @@ export default function ChatPage() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2, duration: 0.8 }}
-                className="flex flex-col items-center justify-center text-center px-4 pt-4 md:pt-8 mb-6"
+                className="flex flex-col items-center justify-center text-center px-4 pt-2 md:pt-8 mb-4 md:mb-6"
               >
-                <div className="relative mb-12">
+                <div className="relative mb-6 md:mb-12">
                   {/* Holographic scanning grid area */}
                   <div className="absolute inset-[-60px] rounded-full overflow-hidden pointer-events-none opacity-20">
                     <div className="absolute inset-0" style={{ 
@@ -585,7 +585,7 @@ export default function ChatPage() {
                       rotate: { duration: 12, repeat: Infinity, ease: "linear" },
                       scale: { duration: 4, repeat: Infinity, ease: "easeInOut" }
                     }}
-                    className="absolute inset-[-25px] rounded-[35%] border-[1.5px] border-dashed border-red-500/40 blur-[1px]"
+                    className="absolute inset-[-15px] md:inset-[-25px] rounded-[35%] border-[1.5px] border-dashed border-red-500/40 blur-[1px]"
                   />
 
                   {/* Counter-rotating technical ring */}
@@ -598,7 +598,7 @@ export default function ChatPage() {
                       rotate: { duration: 18, repeat: Infinity, ease: "linear" },
                       scale: { duration: 5, repeat: Infinity, ease: "easeInOut" }
                     }}
-                    className="absolute inset-[-40px] rounded-full border-t border-b border-red-500/20"
+                    className="absolute inset-[-25px] md:inset-[-40px] rounded-full border-t border-b border-red-500/20"
                   />
 
                   {/* Floating technical particles (Orbital Swarm) */}
@@ -653,7 +653,7 @@ export default function ChatPage() {
                       shadow: '0 0 70px rgba(239,68,68,0.7)'
                     }}
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                    className="relative h-28 w-28 rounded-3xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-[0_0_50px_rgba(239,68,68,0.5)] overflow-hidden border border-red-400/40"
+                    className="relative h-20 w-20 md:h-28 md:w-28 rounded-2xl md:rounded-3xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-[0_0_50px_rgba(239,68,68,0.5)] overflow-hidden border border-red-400/40"
                     style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}
                   >
                     {/* Active Interior Scanning Bar */}
@@ -670,7 +670,7 @@ export default function ChatPage() {
                       style={{ transform: 'translateZ(20px)' }}
                       transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                     >
-                      <Cpu size={48} className="text-white" />
+                      <Cpu size={isMobile ? 32 : 48} className="text-white" />
                     </motion.div>
 
                     {/* Scanning light streak */}
@@ -687,7 +687,7 @@ export default function ChatPage() {
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.4, duration: 0.5 }}
-                    className="text-4xl md:text-7xl font-bold text-gradient-premium tracking-tighter py-2"
+                    className="text-3xl md:text-7xl font-bold text-gradient-premium tracking-tighter py-1 md:py-2"
                   >
                     {t('chat_greeting').replace('{name}', user?.fullName || (user?.email ? user.email.split('@')[0] : 'there'))}
                   </motion.span>
@@ -695,7 +695,7 @@ export default function ChatPage() {
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.5, duration: 0.5 }}
-                    className="text-3xl md:text-5xl font-bold tracking-tight text-gray-500/50 dark:text-gray-400/50"
+                    className="text-2xl md:text-5xl font-bold tracking-tight text-[var(--muted)] opacity-50"
                   >
                     {t('chat_begin')}
                   </motion.h1>
@@ -705,7 +705,7 @@ export default function ChatPage() {
               {/* Suggestion Chips — Gemini style: left-aligned simple pills on mobile, fancy chips on desktop */}
               <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.3 }}
-                className="flex flex-col md:flex-row md:flex-wrap md:justify-center gap-2 md:gap-2.5 mt-6 md:mt-0 md:mb-8"
+                className="grid grid-cols-2 lg:flex lg:flex-row lg:flex-wrap lg:justify-center gap-2 md:gap-2.5 mt-4 md:mt-0 md:mb-8"
               >
                 {(assistantType === 'student' ? [
                   { emoji: "🪪", label: t('chat_sug_renew'), mesh: 'mesh-red' },
@@ -732,9 +732,9 @@ export default function ChatPage() {
                   <div
                     key={i}
                     onClick={() => send(chip.label)}
-                    className={`md:glass-mesh md:${chip.mesh} text-[var(--text)] text-[15px] md:text-[16px] py-3 md:py-4 px-5 md:px-6 rounded-full md:rounded-[28px] flex items-center gap-3 md:gap-4 font-medium md:font-bold select-none md:backdrop-blur-xl transition-all hover:scale-[1.02] md:hover:scale-105 active:scale-95 cursor-pointer border border-[var(--border)] md:border-white/10 bg-[var(--surface-1)] md:bg-transparent md:opacity-95 md:shadow-[0_8px_30px_rgba(0,0,0,0.12)] group w-fit`}
+                    className={`lg:glass-mesh lg:${chip.mesh} text-[var(--text)] text-[13px] md:text-[16px] py-2.5 md:py-4 px-4 md:px-6 rounded-2xl md:rounded-[28px] flex items-center gap-2.5 md:gap-4 font-medium md:font-bold select-none md:backdrop-blur-xl transition-all hover:scale-[1.02] md:hover:scale-105 active:scale-95 cursor-pointer border border-[var(--border)] lg:border-white/10 bg-[var(--surface-1)] lg:bg-transparent lg:opacity-95 lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] group w-full lg:w-fit`}
                   >
-                    <div className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/5 md:bg-white/10 border border-white/10 md:border-white/20 flex items-center justify-center md:shadow-inner group-hover:bg-white/20 transition-colors shrink-0">
+                    <div className="w-7 h-7 md:w-12 md:h-12 rounded-full bg-white/5 md:bg-white/10 border border-white/10 md:border-white/20 flex items-center justify-center md:shadow-inner group-hover:bg-white/20 transition-colors shrink-0">
                       <span className="text-lg md:text-2xl filter drop-shadow-sm">{chip.emoji}</span>
                     </div>
                     {chip.label}

@@ -45,7 +45,7 @@ export default function Sidebar({
   onSwitchAssistant = () => {},
   mobileOnly = false,
 }: SidebarProps) {
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, language } = useLanguage();
   const { logout, isAuthenticated } = useAuth();
   const router = useRouter();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -140,6 +140,7 @@ export default function Sidebar({
             filteredSessions={filteredSessions}
             isAuthenticated={isAuthenticated}
             logout={logout}
+            language={language}
           />
         </motion.aside>
       )}
@@ -187,6 +188,7 @@ export default function Sidebar({
                 filteredSessions={filteredSessions}
                 isAuthenticated={isAuthenticated}
                 logout={logout}
+                language={language}
               />
             </motion.div>
           </>
@@ -225,6 +227,7 @@ const SidebarInner = React.memo(({
   filteredSessions,
   isAuthenticated,
   logout,
+  language,
 }: { 
   isMobile?: boolean,
   isExpanded: boolean,
@@ -247,6 +250,7 @@ const SidebarInner = React.memo(({
   filteredSessions: any[],
   isAuthenticated: boolean,
   logout: () => void,
+  language: string,
 }) => {
   const showLabels = isMobile || isExpanded;
 
@@ -286,7 +290,7 @@ const SidebarInner = React.memo(({
       animate="visible"
       exit="exit"
       variants={containerVariants}
-      className="h-full flex flex-col bg-[var(--surface-2)]/40 dark:bg-[var(--surface)] border-r border-[var(--border)]"
+      className="h-full flex flex-col bg-[var(--surface)] dark:bg-[var(--surface)]/80 dark:backdrop-blur-xl border-r border-[var(--border)]"
     >
       {/* Search bar */}
       {isMobile ? (
@@ -323,6 +327,7 @@ const SidebarInner = React.memo(({
       <motion.div variants={itemVariants} className={`${isMobile ? 'px-3 mb-1' : 'px-4 mb-6'} shrink-0`}>
         <button
           onClick={() => { onNewChat(); if (isMobile) onMobileClose?.(); }}
+          title={t('sidebar_new_chat')}
           className={`group flex items-center justify-start gap-3 transition-all duration-300 ${
             isMobile
               ? 'w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)]'
@@ -434,13 +439,17 @@ const SidebarInner = React.memo(({
                 onSessionSelect(s.id, s.title);
                 if (isMobile) onMobileClose?.();
               }}
-              title={s.title}
             >
               {!showLabels && (
                 <MessageSquare size={18} className={currentSessionId === s.id ? "text-red-500" : "text-[var(--muted)]"} />
               )}
               {showLabels && (
-                <span className={`text-sm tracking-tight truncate flex-1 pr-6 ${currentSessionId === s.id ? 'font-bold' : 'font-medium opacity-90'}`}>{getDisplayTitle(s.title)}</span>
+                <span 
+                  title={s.title}
+                  className={`text-sm tracking-tight truncate flex-1 pr-6 ${currentSessionId === s.id ? 'font-bold' : 'font-medium opacity-90'}`}
+                >
+                  {getDisplayTitle(s.title)}
+                </span>
               )}
               {showLabels && (
                 <button
@@ -448,9 +457,10 @@ const SidebarInner = React.memo(({
                     e.stopPropagation();
                     onDeleteSession(s.id);
                   }}
+                  title={language === 'ar' ? 'حذف الدردشة' : language === 'tr' ? 'Sohbeti Sil' : 'Delete Chat'}
                   className="absolute right-3 opacity-0 group-hover:opacity-100 p-1.5 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
                 >
-                  <MoreVertical size={16} />
+                  <Trash2 size={16} />
                 </button>
               )}
             </motion.div>

@@ -72,6 +72,11 @@ export default function Dashboard() {
   const [iyzicoFormHtml, setIyzicoFormHtml] = useState<string | null>(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
 
+  // Progress Increase State
+  const [prevProgress, setPrevProgress] = useState(0);
+  const [showIncrease, setShowIncrease] = useState(false);
+  const [increaseAmount, setIncreaseAmount] = useState(0);
+
   const handleSwitchAssistant = (type: 'permit' | 'student' | 'lawyer') => {
     setActiveAssistantType(type);
     localStorage.setItem('permitops_assistant_type', type);
@@ -268,6 +273,24 @@ export default function Dashboard() {
   const done = steps.filter(s => s.status === 'completed').length;
   const progress = steps.length > 0 ? Math.round((done / steps.length) * 100) : 0;
 
+  useEffect(() => {
+    // Show increase if loading just finished and progress has changed
+    if (!loading && progress > prevProgress) {
+      const diff = progress - prevProgress;
+      setIncreaseAmount(diff);
+      setShowIncrease(true);
+      const timer = setTimeout(() => setShowIncrease(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, progress]); // Trigger when loading state changes or progress updates
+
+  useEffect(() => {
+    // Only update prevProgress when NOT showing increase, or after it's been shown
+    if (!loading && !showIncrease) {
+      setPrevProgress(progress);
+    }
+  }, [loading, progress, showIncrease]);
+
   const currentAutomatedStep = automatedStepId ? steps.find(s => s.id === automatedStepId) : null;
   const isMersis = currentAutomatedStep && (
     [3, 4, 5].includes(currentAutomatedStep.id) ||
@@ -359,7 +382,7 @@ export default function Dashboard() {
     }
 
     return (
-      <main className="flex-1 min-w-0 relative overflow-y-auto overflow-x-hidden slim-scroll bg-[var(--bg)]">
+      <main className="flex-1 min-w-0 relative overflow-y-auto overflow-x-hidden slim-scroll bg-[var(--bg)] dark:deep-mesh transition-colors duration-500">
           {/* Desktop Navbar */}
           <div className="hidden md:block">
             <Navbar isAppPage />
@@ -546,12 +569,16 @@ export default function Dashboard() {
             transition={{ ease: 'easeOut', duration: 0.4 }}
             className="flex flex-col sm:flex-row sm:items-center justify-between gap-5"
           >
-            <div className="space-y-1.5">
-              <span className="badge badge-red">
-                <Activity size={10} className="animate-pulse" />
-                {t('dashboard_live_session')} · #{data?.combined_result?.location && !data.combined_result.location.includes('_') ? `IST-${data.combined_result.location.substring(0,3).toUpperCase().replace(/İ/g, 'I')}-4221` : 'IST-TR-4221'}
-              </span>
-              <h1 className="text-4xl md:text-6xl font-extrabold text-gradient-premium tracking-tight drop-shadow-[0_2px_15px_rgba(0,0,0,0.08)] py-1">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.15)] backdrop-blur-md">
+                  <div className="live-dot-red" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">
+                    {t('dashboard_live_session')} · #{data?.combined_result?.location && !data.combined_result.location.includes('_') ? `IST-${data.combined_result.location.substring(0,3).toUpperCase().replace(/İ/g, 'I')}-4221` : 'IST-TR-4221'}
+                  </span>
+                </span>
+              </div>
+              <h1 className="text-4xl md:text-6xl font-black text-gradient-premium tracking-tighter py-2 font-[Outfit] leading-tight">
                 {(() => {
                   if (activeAssistantType === 'student') return t('dashboard_student_title');
                   if (activeAssistantType === 'lawyer') return t('dashboard_legal_title');
@@ -563,35 +590,46 @@ export default function Dashboard() {
                   return t('dashboard_title') || 'Permit Dashboard';
                 })()}
               </h1>
-              <p className="text-sm text-[var(--muted)] flex items-center gap-3 flex-wrap font-medium dark:drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
-                <span className="flex items-center gap-1.5">
-                  <MapPin size={12} className="text-red-500" />
-                  {(() => {
-                    const loc = data?.combined_result?.location || '';
-                    if (loc.includes('_') || loc.includes('.')) {
-                       // Format the intent e.g., student_renew -> Renew Id, student.register_uni -> Register Uni
-                       const parts = loc.split(/[._]/);
-                       const formatted = parts.map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
-                       return formatted;
-                    }
-                    if (loc) return `${loc} ${data?.combined_result?.business_type || ''}`;
-                    return isRTL ? 'مشروع في إسطنبول' : 'Istanbul Area';
-                  })()}
-                </span>
-                <span className="h-3 w-px bg-[var(--border)]" />
-                <span className="flex items-center gap-1.5" suppressHydrationWarning><Calendar size={12} className="text-purple-500" /> {data?.last_updated ? `${t('dashboard_updated')} ${new Date(data.last_updated).toLocaleDateString()}` : t('dashboard_no_session')}</span>
-              </p>
+              <div className="flex items-center gap-4 py-2">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--border)] backdrop-blur-sm group hover:border-red-500/30 transition-all">
+                  <MapPin size={12} className="text-red-500 group-hover:scale-120 transition-transform" />
+                  <span className="text-[13px] font-bold text-[var(--text)] tracking-tight">
+                    {(() => {
+                      const loc = data?.combined_result?.location || '';
+                      if (loc.includes('_') || loc.includes('.')) {
+                         const parts = loc.split(/[._]/);
+                         const formatted = parts.map((p: string) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+                         return formatted;
+                      }
+                      if (loc) return `${loc} ${data?.combined_result?.business_type || ''}`;
+                      return isRTL ? 'مشروع في إسطنبول' : 'Istanbul Area';
+                    })()}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--border)] backdrop-blur-sm group hover:border-purple-500/30 transition-all">
+                  <Calendar size={12} className="text-purple-500 group-hover:scale-120 transition-transform" />
+                  <span className="text-[13px] font-bold text-[var(--text)] tracking-tight" suppressHydrationWarning>
+                    {data?.last_updated ? `${t('dashboard_updated')} ${new Date(data.last_updated).toLocaleDateString()}` : t('dashboard_no_session')}
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center gap-2.5 md:gap-3 shrink-0">
               {/* Subscription Status Badge */}
-              <div className={`h-10 px-4 rounded-full flex items-center gap-2 border transition-all cursor-default ${
+              <div className={`h-11 px-5 rounded-full flex items-center gap-2.5 border transition-all duration-300 cursor-default shadow-lg ${
                 data?.subscription_status === 'active' 
-                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
-                  : 'bg-[var(--surface-2)]/50 border-[var(--border)] text-[var(--muted)]'
+                  ? 'glass-mesh mesh-emerald border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-emerald-500/10 active:scale-95' 
+                  : 'bg-[var(--surface-2)]/80 border-[var(--border)] text-[var(--muted)] hover:border-[var(--border-2)] hover:bg-[var(--surface-2)] shadow-sm'
               }`}>
-                <Sparkles size={13} className={data?.subscription_status === 'active' ? 'text-emerald-500' : 'text-[var(--muted)] opacity-50'} />
-                <span className="text-[11px] font-bold uppercase tracking-wider hidden sm:inline whitespace-nowrap">
+                <div className="relative">
+                  <Sparkles size={14} className={data?.subscription_status === 'active' ? 'text-emerald-500 animate-pulse' : 'text-[var(--muted)] opacity-50'} />
+                  {data?.subscription_status === 'active' && (
+                    <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }} transition={{ duration: 2, repeat: Infinity }} className="absolute inset-0 bg-emerald-400 blur-md rounded-full -z-10" />
+                  )}
+                </div>
+                <span className="text-[12px] font-black uppercase tracking-[0.2em] hidden sm:inline-block whitespace-nowrap">
                   {data?.subscription_status === 'active' ? t('dashboard_premium') : t('dashboard_free_plan')}
                 </span>
               </div>
@@ -678,7 +716,18 @@ export default function Dashboard() {
               <span className="text-[11px] text-[var(--muted)] font-bold uppercase tracking-[0.2em]">{t('dashboard_overall_progress')}</span>
               <div className="flex items-baseline gap-1 mt-0.5">
                 <span className="text-3xl font-bold text-[var(--text)]">{progress}%</span>
-                <span className="text-xs font-bold text-emerald-500">+{Math.round(progress/2)}%</span>
+                <AnimatePresence>
+                  {showIncrease && (
+                    <motion.span
+                      initial={{ opacity: 0, scale: 0.5, y: 5 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.5, y: -5 }}
+                      className="text-xs font-bold text-emerald-500"
+                    >
+                      +{increaseAmount}%
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
             <div className="flex-1 h-3.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden border border-[var(--border)] shadow-inner relative z-10">
@@ -726,7 +775,7 @@ export default function Dashboard() {
                   transition={{ delay: i * 0.05, ease: 'easeOut', duration: 0.35 }}
                   onClick={() => setExpanded(expanded === i ? null : i)}
                   className={`glow-card bg-[var(--surface)] border border-[var(--border)] rounded-[28px] cursor-pointer group transition-all relative z-10 ${
-                    expanded === i ? 'ring-2 ring-indigo-500/20 bg-[var(--surface-2)]/40 shadow-2xl' : 'hover:bg-[var(--surface-2)]/30'
+                    expanded === i ? 'ring-2 ring-indigo-500/20 bg-[var(--surface-1)] shadow-2xl' : 'hover:bg-[var(--surface-2)] shadow-sm'
                   } ${
                     s.status === 'completed'   ? 'step-card-completed' :
                     s.status === 'in-progress' ? 'step-card-inprogress' :
@@ -1014,7 +1063,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden selection:bg-purple-500/30 relative bg-[var(--bg)]">
+    <div className="flex h-screen overflow-hidden selection:bg-purple-500/30 relative bg-[var(--bg)] dark:deep-mesh transition-colors duration-500">
       <Sidebar 
         currentSessionId={dashboardSessionId}
         assistantType={activeAssistantType}

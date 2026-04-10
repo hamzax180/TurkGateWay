@@ -179,6 +179,11 @@ INTENT_MAP = {
         r"\b(tax id|vergi (numarası|no)|tax number|tax registration|tax office|vergi dairesi)\b",
         r"(رقم ضريبي|ضريبة|ضرائب|الرقم الضريبي|دائرة الضرائب)"
     ],
+    "permit.support": [
+        r"(🆘|help|support|contact support|customer service|need help)",
+        r"(مساعدة|دعم|تواصل|🆘)"
+    ],
+
 
     # --- Student Agent intents ---
     "student.renew_id": [
@@ -225,9 +230,25 @@ INTENT_MAP = {
         r"\b(scholarship|scholarships|burs|turkiye burslari|ytb|financial aid|tuition funding)\b",
         r"(منحة|منح|المنحة التركية|منحة دراسية|مساعدة مالية|منحة مجانية)"
     ],
+    "student.deadlines": [
+        r"\b(deadline|deadlines|when (does|do) (application|registration|enrollment) (end|close)|son ba\u015fvuru|last day)\b",
+        r"(موعد|مواعيد|متى ينتهي|اخر موعد|آخر موعد|متى يغلق|نهاية التسجيل)"
+    ],
+    "student.visa": [
+        r"\b(visa|student visa|vize|ogrenci vizesi|[o\u0131g]renci vizesi)\b",
+        r"(فيزا|تأشيرة|تاشيرة|تأشيرة طالب|فيزا طالب|فيزة)"
+    ],
     "student.work_rules": [
         r"\b(can i work|work permit for student|student jobs|part time|part-time|working while studying|legal to work)\b",
         r"(شغل|الشغل|العمل|هل مسموح اشتغل|عمل كطالب|دوام جزئي|وظيفة طالب)"
+    ],
+    "student.language_courses": [
+        r"\b(learn turkish|turkish course|tomer|tömer|language school|language center|turkish classes)\b",
+        r"(تعلم تركي|تومر|كورس تركي|معهد لغات|لغة تركية|دراسة لغة)"
+    ],
+    "student.shelp": [
+        r"(🆘|student help|help student|help me with student|i need student help)",
+        r"(مساعدة الطالب|مساعدة|🆘)"
     ],
 
     # --- Lawyer Agent intents ---
@@ -306,6 +327,10 @@ INTENT_MAP = {
         r"\b(i need|i want|looking for) (a |an )?(lawyer|legal|attorney|advice|help)\b",
         r"\b(can you help|help me|i have a question|legal question)\b",
         r"(استشارة قانونية|استشاره|محامي|سؤال قانوني|مشورة|استفسار قانوني|نصيحة قانونية)"
+    ],
+    "lawyer.support": [
+        r"(🆘|help|support|contact support|customer service|need help)",
+        r"(مساعدة|دعم|تواصل|🆘)"
     ],
 }
 

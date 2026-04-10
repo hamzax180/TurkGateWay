@@ -1,18 +1,14 @@
 {
-  "24d4da6f825e7d26037eac757cf6cdf0": {
-    "response": "Hello! 👋 I am your Permit Advisor. What type of business are you planning to start?",
-    "ts": 1775824107.0430586
+  "be89dfa0014cd1b9171f2f7cd629bc29": {
+    "response": "🎓 **Student ID Extension**\n\nIf you extended your studies, you must renew your ID at **Student Affairs**.\n\n📄 **Required:**\n• Expired Kimlik\n• Active Öğrenci Belgesi (Enrollment Certificate)\n• 1 Photo\n\n💬 Pro tip: Keep a digital copy of your active certificate on phone!",
+    "ts": 1775852728.6711147
   },
-  "048ed9a5dea580eff743c348faffb7e5": {
-    "response": "Let's break this massive project into bite-sized pieces so it's not overwhelming! First, we establish your legal entity through the Trade Registry. Then, we pivot to your district's Municipality for the actual operating permit. Does that high-level view make sense?",
-    "ts": 1775824129.3097184
+  "e39ec14c00e00d4a5a305e4a580ea9e2": {
+    "response": "You've come to the right place! We'll map out everything from the Notary to the Municipality. To give you the best advice, could you tell me exactly what kind of business you're launching?",
+    "ts": 1775855063.4966748
   },
-  "35f6bc929602872b879bf79d3a46b085": {
-    "response": "Severance pay (kıdem tazminatı) is calculated as 30 days' salary for every year of service. If you were let go without cause, you're likely owed more than just that. Want me to map out everything you can claim?\n\n*( Please switch to **Lawyer Advisor** mode. )*",
-    "ts": 1775824145.0712159
-  },
-  "051be8a3578ab2483fc164a22fed50e2": {
-    "response": "Hello! 👋 I am your Permit Advisor. What type of business are you planning to start?",
-    "ts": 1775824522.1936424
+  "ee6ded1f356966c64890d96f75e046af": {
+    "response": "🎓 **Don't Miss the Date!**\n\nAcademic deadlines for international students are usually earlier than for local students.\n\n⚠️ **Important:** If you miss the registration window, you might lose your seat and your student visa could become invalid. \n\n💬 Would you like me to check the current registration calendar for your university?",
+    "ts": 1775856221.2442386
   }
 }

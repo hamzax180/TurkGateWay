@@ -145,7 +145,7 @@ export default function Home() {
         </div>
 
       {/* ═══════════════ PERMIT ASSISTANT CONTENT ═══════════════ */}
-      <section className="w-full max-w-4xl mx-auto flex flex-col items-center text-center space-y-10 pt-24 pb-10 px-6 relative z-10">
+      <section className="w-full max-w-4xl mx-auto flex flex-col items-center text-center space-y-8 pt-20 md:pt-24 pb-10 px-6 relative z-10">
 
         {/* Animated Header Group */}
         <motion.div
@@ -154,15 +154,15 @@ export default function Home() {
           transition={{ duration: 0.8 }}
           className="space-y-4"
         >
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="w-6 h-6 animate-pulse bg-gradient-to-tr from-[#4285f4] via-[#9b72cb] to-[#d96570] rounded-full blur-[2px] opacity-80" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-[#8ab4f8] dark:to-[#9b72cb] font-semibold text-lg drop-shadow-[0_2px_10px_rgba(255,255,255,0.8)]">
+          <div className="flex items-center justify-center gap-3 mb-1">
+            <div className="w-5 h-5 animate-pulse bg-gradient-to-tr from-[#4285f4] via-[#9b72cb] to-[#d96570] rounded-full blur-[2px] opacity-80" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-[#8ab4f8] dark:to-[#9b72cb] font-semibold text-base md:text-lg drop-shadow-[0_2px_10px_rgba(255,255,255,0.8)]">
               {t('home_hero_greeting_user').replace('Hamza', user?.fullName || 'Guest')}
             </span>
           </div>
 
           <h1 
-            className="text-5xl md:text-7xl font-bold tracking-tight text-white leading-tight"
+            className="text-4xl md:text-7xl font-bold tracking-tight text-white leading-tight"
             style={{ 
               textShadow: '0 4px 20px rgba(0,0,0,0.5), -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000' 
             }}
@@ -174,7 +174,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 1 }}
-            className="text-3xl md:text-4xl text-[var(--muted)] font-light"
+            className="text-2xl md:text-4xl text-[var(--muted)] font-light max-w-2xl mx-auto"
             style={{ 
               textShadow: '0 2px 15px rgba(255,255,255,1), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000' 
             }}
@@ -186,7 +186,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.2, duration: 2 }}
-            className="text-xl md:text-2xl text-[var(--muted)] font-light italic opacity-80"
+            className="text-lg md:text-2xl text-[var(--muted)] font-light italic opacity-80"
             style={{ 
               textShadow: '0 2px 10px rgba(255,255,255,1), -0.5px -0.5px 0 #000, 0.5px -0.5px 0 #000, -0.5px 1.5px 0 #000, 0.5px 1.5px 0 #000' 
             }}
@@ -203,21 +203,21 @@ export default function Home() {
           className="w-full max-w-2xl relative group"
         >
           <div className="absolute inset-0 bg-[var(--accent)]/5 rounded-2xl blur-xl group-hover:bg-[var(--accent)]/10 transition-all duration-300 -z-10" />
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-6 flex flex-col gap-4 text-left shadow-xl dark:shadow-2xl">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-4 md:p-6 flex flex-col gap-4 text-left shadow-xl dark:shadow-2xl">
             <input
               type="text"
               placeholder={t('chat_placeholder')}
-              className="bg-transparent border-none outline-none text-xl text-[var(--text)] placeholder-[var(--muted)] w-full"
+              className="bg-transparent border-none outline-none text-lg md:text-xl text-[var(--text)] placeholder-[var(--muted)] w-full"
             />
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between pt-1 md:pt-2">
               <div className="flex items-center gap-4 text-[var(--muted)]">
-                <FileText size={20} className="hover:text-[var(--text)] cursor-pointer transition-colors" />
-                <Bot size={20} className="hover:text-[var(--text)] cursor-pointer transition-colors" />
+                <FileText size={18} className="hover:text-[var(--text)] cursor-pointer transition-colors" />
+                <Bot size={18} className="hover:text-[var(--text)] cursor-pointer transition-colors" />
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-[var(--muted)] font-medium">Fast v2.4</span>
+              <div className="flex items-center gap-2 md:gap-3">
+                <span className="text-[10px] md:text-xs text-[var(--muted)] font-medium">Fast v2.5</span>
                 <Link href="/chat">
-                  <button className="bg-[var(--surface-2)] hover:bg-[var(--border-2)] p-2 rounded-full transition-colors border border-[var(--border)]">
+                  <button className="bg-[var(--surface-2)] hover:bg-[var(--border-2)] p-1.5 md:p-2 rounded-full transition-colors border border-[var(--border)]">
                     <ArrowRight size={18} className="text-blue-500" />
                   </button>
                 </Link>
@@ -231,12 +231,12 @@ export default function Home() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 2.2, duration: 1 }}
-          className="flex flex-wrap items-center justify-center gap-3 pt-2 pb-2"
+          className="flex flex-wrap items-center justify-center gap-2 md:gap-3 pt-1 pb-1"
         >
           {categories.map((item, i) => (
             <button
               key={i}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--border-2)] hover:bg-[var(--surface-2)] transition-all text-sm font-medium text-[var(--text)] shadow-sm"
+              className="flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-full bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--border-2)] hover:bg-[var(--surface-2)] transition-all text-xs md:text-sm font-medium text-[var(--text)] shadow-sm"
             >
               <item.icon size={14} className={item.color} />
               {item.label}

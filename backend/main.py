@@ -244,20 +244,40 @@ async def _run_local_fallback(query: str, assistant_type: str, language: str, us
             return result
             
         # Hardcoded local fallbacks if even smart router fails
-        fallbacks = {
-            "en": "I'm currently operating in offline mode. For business permits, you generally need to register with your district municipality. What specific business (Cafe, Retail, etc.) are you planning?",
-            "tr": "Şu anda çevrimdışı modda çalışıyorum. İşyeri ruhsatları için genellikle bağlı bulunduğunuz ilçe belediyesine başvurmanız gerekir. Hangi tür işletme (Kafe, Mağaza vb.) açmayı planlıyorsunuz?",
-            "ar": "أعمل حالياً في وضع عدم الاتصال. للحصول على تراخيص الأعمال، تحتاج عادةً إلى التسجيل في بلدية منطقتك. ما هو نوع النشاط التجاري الذي تخطط لفتحه؟"
-        }
+        if assistant_type == "student":
+            fallbacks = {
+                "en": "I'm currently operating in offline mode. As your Student Advisor, I can help with university registration, resident IDs (Ikamet), and student life in Turkey. What specific student task are you working on?",
+                "tr": "Şu anda çevrimdışı modda çalışıyorum. Öğrenci Danışmanınız olarak üniversite kaydı, İkamet ve Türkiye'deki öğrenci yaşamı hakkında yardımcı olabilirim. Hangi işlemde takıldınız?",
+                "ar": "أعمل حالياً في وضع عدم الاتصال. بصفتي مستشار الطلاب، يمكنني مساعدتك في التسجيل الجامعي، إقامة الطالب (الكملك) والحياة الطلابية. ما هو الإجراء الذي تود الاستفسار عنه؟"
+            }
+        elif assistant_type == "lawyer":
+            fallbacks = {
+                "en": "I'm currently operating in offline mode. As your Legal Advisor, I can assist with contracts, company formation, and legal disputes. Please provide more details about your legal query.",
+                "tr": "Şu anda çevrimdışı modda çalışıyorum. Hukuk Danışmanınız olarak sözleşmeler, şirket kuruluşu ve hukuki ihtilaflar konusunda yardımcı olabilirim. Lütfen sorunuzu detaylandırın.",
+                "ar": "أعمل حالياً في وضع عدم الاتصال. بصفتي مستشاراً قانونياً، يمكنني مساعدتك في العقود وتأسيس الشركات والنزاعات القانونية. يرجى تزويدي بمزيد من التفاصيل."
+            }
+        else: # permit
+            fallbacks = {
+                "en": "I'm currently operating in offline mode. For business permits, you generally need to register with your district municipality. What specific business (Cafe, Retail, etc.) are you planning?",
+                "tr": "Şu anda çevrimdışı modda çalışıyorum. İşyeri ruhsatları için genellikle bağlı bulunduğunuz ilçe belediyesine başvurmanız gerekir. Hangi tür işletme (Kafe, Mağaza vb.) açmayı planlıyorsunuz?",
+                "ar": "أعمل حالياً في وضع عدم الاتصال. للحصول على تراخيص الأعمال، تحتاج عادةً إلى التسجيل في بلدية منطقتك. ما هو نوع النشاط التجاري الذي تخطط لفتحه؟"
+            }
         return fallbacks.get(language, fallbacks["en"])
     except Exception as e:
         print(f"[_run_local_fallback CRITICAL] {e}")
-        # High-End Hardcoded fallbacks if even smart router fails to load
-        fallbacks = {
-            "en": "I am currently processing your request using my backup neural engine. For university ID (Kimlik) renewals, please visit your faculty's Student Affairs office with your old ID and a new photo.",
-            "tr": "İsteğinizi şu anda yedek yerel motorumla işliyorum. Öğrenci Kimlik yenileme işlemleri için lütfen eski kimliğiniz ve yeni bir fotoğrafınızla birlikte fakültenizin Öğrenci İşleri bürosuna başvurun.",
-            "ar": "أقوم حالياً بمعالجة طلبك عبر المحرك العصبي الاحتياطي. لتجديد هوية الطالب (Kimlik)، يرجى مراجعة مكتب شؤون الطلاب في كليتك مع هويتك القديمة وصورة شخصية حديثة."
-        }
+        # Assistant-aware high-end fallbacks
+        if assistant_type == "student":
+            fallbacks = {
+                "en": "I am currently processing your request using my backup student engine. For university ID (Kimlik) renewals, please visit your faculty's Student Affairs office with your old ID and a photo.",
+                "tr": "İsteğinizi şu anda yedek öğrenci motorumla işliyorum. Öğrenci Kimlik yenileme işlemleri için lütfen eski kimliğiniz ve bir fotoğrafınızla birlikte fakültenizin Öğrenci İşleri bürosuna başvurun.",
+                "ar": "أقوم حالياً بمعالجة طلبك عبر محرك الطلاب الاحتياطي. لتجديد هوية الطالب (Kimlik)، يرجى مراجعة مكتب شؤون الطلاب في كليتك مع هويتك القديمة وصورة شخصية."
+            }
+        else:
+            fallbacks = {
+                "en": "I am currently processing your request using my backup neural engine. For permits, please contact your local municipality directly for the most up-to-date requirements.",
+                "tr": "İsteğinizi şu anda yedek yerel motorumla işliyorum. Ruhsat işlemleri için lütfen en güncel şartlar hakkında doğrudan bağlı bulunduğunuz belediye ile iletişime geçin.",
+                "ar": "أقوم حالياً بمعالجة طلبك عبر المحرك العصبي الاحتياطي. بالنسبة للتصاريح، يرجى التواصل مع البلدية المحلية مباشرة للحصول على أحدث المتطلبات."
+            }
         return fallbacks.get(language, fallbacks["en"])
 
 async def _run_with_agents(query: str, user: Optional[DBUser] = None, db: Session = None, language: str = "en", session_id: str = "default-session") -> str:
@@ -912,7 +932,9 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
         return {"role": "assistant", "content": answer, "session_title": db_session.title if db_session else None}
 
     except Exception as e:
-        print(f"[AgentQuery ERROR] {e}")
+        print(f"[AgentQuery CRITICAL ERROR] {e}")
+        import traceback
+        traceback.print_exc()
         # Try local fallback if AI fails (e.g. invalid API key)
         try:
             fallback_answer = await _run_local_fallback(query_text, assistant_type, language, user.full_name if user else "")
