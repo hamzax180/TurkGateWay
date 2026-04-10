@@ -11,6 +11,7 @@ import { apiFetch } from '../utils/api';
 
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
+import LoadingScreen from '../components/LoadingScreen';
 
 type Role = 'assistant' | 'user';
 interface Msg { id: number; role: Role; content: string; }
@@ -128,7 +129,13 @@ export default function ChatPage() {
   // Load messages from backend when sessionId changes
   useEffect(() => {
     const loadHistory = async () => {
-      if (!sessionId) return;
+      const startTime = Date.now();
+      if (!sessionId) {
+        // Even if no session, show loading for 2s for branding
+        await new Promise(r => setTimeout(r, 2000));
+        setIsLoaded(true);
+        return;
+      }
 
       if (isAuthenticated && token) {
         try {
@@ -159,6 +166,12 @@ export default function ChatPage() {
           }
         }
       }
+      
+      const endTime = Date.now();
+      const elapsed = endTime - startTime;
+      const remaining = Math.max(0, 2000 - elapsed);
+      if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
+      
       setIsLoaded(true);
     };
     loadHistory();
@@ -325,6 +338,8 @@ export default function ChatPage() {
   };
 
   const isEmpty = msgs.length === 0;
+
+  if (!isLoaded) return <LoadingScreen />;
 
   return (
     <div className="flex h-screen overflow-hidden selection:bg-purple-500/30 relative bg-[var(--bg)]">
@@ -498,19 +513,49 @@ export default function ChatPage() {
 
           {isEmpty ? (
             <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-5 md:px-6">
-              {/* Welcome Text — top on mobile, centered on desktop */}
+              {/* Welcome Message — Cinematic AI Entrance */}
               <motion.div
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-                className="w-full text-left mt-6 md:mt-0 md:flex-1 md:flex md:flex-col md:justify-center"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2, duration: 0.8 }}
+                className="flex-1 flex flex-col items-center justify-center text-center px-4"
               >
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-3xl md:text-6xl font-medium bg-gradient-to-r from-[#4285f4] via-[#9b72cb] to-[#d96570] bg-clip-text text-transparent">
-                    {t('chat_welcome').replace('{name}', user?.fullName || (user?.email ? user.email.split('@')[0] : 'there'))}
-                  </span>
+                <div className="relative mb-10">
+                  <motion.div 
+                    animate={{ 
+                      rotate: [0, 360],
+                      scale: [1, 1.15, 1]
+                    }}
+                    transition={{ 
+                      rotate: { duration: 15, repeat: Infinity, ease: "linear" },
+                      scale: { duration: 4, repeat: Infinity, ease: "easeInOut" }
+                    }}
+                    className="absolute inset-[-20px] rounded-full bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-purple-500/20 blur-2xl"
+                  />
+                  <div className="relative h-24 w-24 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl overflow-hidden shimmer-border">
+                     <Sparkles size={40} className="text-white animate-[pulse_2s_easeInOut_infinite]" />
+                     <div className="absolute inset-0 bg-white/10 opacity-20 pointer-events-none" />
+                  </div>
                 </div>
-                <h1 className="text-3xl md:text-6xl font-medium tracking-tight text-[#c4c7c5] dark:text-[#444746]">
-                  {t('chat_begin')}
-                </h1>
+
+                <div className="flex flex-col items-center gap-2 mb-4">
+                  <motion.span 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.4, duration: 0.5 }}
+                    className="text-4xl md:text-7xl font-black text-gradient-premium tracking-tighter py-2"
+                  >
+                    {t('chat_greeting').replace('{name}', user?.fullName || (user?.email ? user.email.split('@')[0] : 'there'))}
+                  </motion.span>
+                  <motion.h1 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.5, duration: 0.5 }}
+                    className="text-3xl md:text-5xl font-bold tracking-tight text-[#c4c7c5] dark:text-[#444746]"
+                  >
+                    {t('chat_begin')}
+                  </motion.h1>
+                </div>
               </motion.div>
 
               {/* Suggestion Chips — Gemini style: left-aligned simple pills on mobile, fancy chips on desktop */}

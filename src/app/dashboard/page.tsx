@@ -74,9 +74,9 @@ export default function Dashboard() {
   };
 
   const fetchState = useCallback(async () => {
+    const startTime = Date.now();
     try {
       setLoading(true);
-      const startTime = Date.now();
       const token = localStorage.getItem('permitops_token');
       const sid = localStorage.getItem('permitops_active_session_id');
       const params = new URLSearchParams();
@@ -178,6 +178,7 @@ export default function Dashboard() {
   };
 
   const triggerAutomation = async (id: number) => {
+    const startTime = Date.now();
     try {
       setLoading(true);
       const token = localStorage.getItem('permitops_token');
@@ -194,6 +195,10 @@ export default function Dashboard() {
     } catch (e) {
       console.error("Failed to automate step", e);
     } finally {
+      const endTime = Date.now();
+      const elapsed = endTime - startTime;
+      const remaining = Math.max(0, 2000 - elapsed);
+      if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
       setLoading(false);
     }
   };
@@ -263,6 +268,7 @@ export default function Dashboard() {
   };
 
   const submitEDevlet = async () => {
+    const startTime = Date.now();
     setUploading(true);
     // Open window immediately to avoid popup blocker
     const portalWin = window.open('about:blank', '_blank');
@@ -319,6 +325,11 @@ export default function Dashboard() {
       setToastType("error");
       setToastMessage("Backend offline. Please make sure the server is running.");
     } finally {
+      const endTime = Date.now();
+      const elapsed = endTime - startTime;
+      const remaining = Math.max(0, 2000 - elapsed);
+      if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
+      
       setUploading(false);
       setShowToast(true);
       setTimeout(() => setShowToast(false), 5000);

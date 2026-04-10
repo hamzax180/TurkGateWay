@@ -10,9 +10,9 @@ export default function LoadingScreen() {
   const [step, setStep] = useState(0);
 
   const loadingSteps = [
-    { key: 'loading_preparing', icon: Layers, color: 'text-blue-500' },
+    { key: 'loading_preparing', icon: Cpu, color: 'text-purple-500' },
     { key: 'loading_verifying', icon: ShieldCheck, color: 'text-red-500' },
-    { key: 'loading_analyzing', icon: Cpu, color: 'text-purple-500' },
+    { key: 'loading_analyzing', icon: Layers, color: 'text-blue-500' },
     { key: 'loading_building', icon: Sparkles, color: 'text-amber-500' },
     { key: 'loading_finalizing', icon: Database, color: 'text-emerald-500' },
   ];
