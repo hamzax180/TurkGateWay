@@ -66,7 +66,7 @@ export default function HelpPage() {
             >
               <LifeBuoy size={32} />
             </motion.div>
-            <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight">How can we help you?</h2>
+            <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">How can we help you?</h2>
           </div>
 
           {/* Quick Links Category Cards */}
@@ -136,7 +136,7 @@ export default function HelpPage() {
 
           {/* FAQ Section */}
           <div className="max-w-6xl w-full mx-auto">
-            <h3 className="text-2xl md:text-3xl font-black mb-12 tracking-tight flex items-center justify-center gap-3">
+            <h3 className="text-2xl md:text-3xl font-bold mb-12 tracking-tight flex items-center justify-center gap-3">
               <HelpCircle className="text-indigo-500" size={28} />
               {t('help_faq')}
             </h3>
@@ -176,7 +176,7 @@ export default function HelpPage() {
           {/* Support CTA */}
           <div className="mt-24 p-12 rounded-[48px] bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-center shadow-2xl shadow-indigo-500/30 relative overflow-hidden group mb-20 max-w-4xl mx-auto">
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
-            <h3 className="text-3xl font-black mb-4 relative z-10">Still have questions?</h3>
+            <h3 className="text-3xl font-bold mb-4 relative z-10">Still have questions?</h3>
             <p className="opacity-90 mb-10 text-lg relative z-10 max-w-xl mx-auto">Our support team is available 24/7 to help you with municipal complexities.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center relative z-10">
               <button className="px-10 py-4 rounded-full bg-white text-indigo-600 font-black shadow-xl hover:scale-105 transition-all flex items-center justify-center gap-2">

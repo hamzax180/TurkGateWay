@@ -551,7 +551,7 @@ export default function Dashboard() {
                 <Activity size={10} className="animate-pulse" />
                 {t('dashboard_live_session')} · #{data?.combined_result?.location && !data.combined_result.location.includes('_') ? `IST-${data.combined_result.location.substring(0,3).toUpperCase().replace(/İ/g, 'I')}-4221` : 'IST-TR-4221'}
               </span>
-              <h1 className="text-4xl md:text-6xl font-black text-gradient-premium tracking-tight drop-shadow-[0_2px_15px_rgba(0,0,0,0.08)] py-1">
+              <h1 className="text-4xl md:text-6xl font-extrabold text-gradient-premium tracking-tight drop-shadow-[0_2px_15px_rgba(0,0,0,0.08)] py-1">
                 {(() => {
                   if (activeAssistantType === 'student') return t('dashboard_student_title');
                   if (activeAssistantType === 'lawyer') return t('dashboard_legal_title');
@@ -659,8 +659,8 @@ export default function Dashboard() {
                   <div className="h-2 w-2 rounded-full animate-pulse" style={{ background: s.iconColor }} />
                 </div>
                 <div className="relative z-10">
-                  <p className="text-[10px] text-[var(--muted)] font-black uppercase tracking-[0.15em] mb-1.5">{s.label}</p>
-                  <p className="text-3xl font-black leading-tight tracking-tight" style={{ background: `linear-gradient(135deg, ${s.from}, ${s.to})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.value}</p>
+                  <p className="text-[10px] text-[var(--muted)] font-bold uppercase tracking-[0.15em] mb-1.5">{s.label}</p>
+                  <p className="text-3xl font-bold leading-tight tracking-tight" style={{ background: `linear-gradient(135deg, ${s.from}, ${s.to})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.value}</p>
                 </div>
               </motion.div>
             ))}
@@ -675,9 +675,9 @@ export default function Dashboard() {
           >
             <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-transparent to-purple-500/5 pointer-events-none" />
             <div className="flex flex-col shrink-0 relative z-10">
-              <span className="text-[11px] text-[var(--muted)] font-black uppercase tracking-[0.2em]">{t('dashboard_overall_progress')}</span>
+              <span className="text-[11px] text-[var(--muted)] font-bold uppercase tracking-[0.2em]">{t('dashboard_overall_progress')}</span>
               <div className="flex items-baseline gap-1 mt-0.5">
-                <span className="text-3xl font-black text-[var(--text)]">{progress}%</span>
+                <span className="text-3xl font-bold text-[var(--text)]">{progress}%</span>
                 <span className="text-xs font-bold text-emerald-500">+{Math.round(progress/2)}%</span>
               </div>
             </div>
@@ -693,10 +693,10 @@ export default function Dashboard() {
               </motion.div>
             </div>
             <div className="text-right shrink-0 relative z-10">
-              <span className="text-[11px] text-[var(--muted)] font-black uppercase tracking-[0.2em] block">Status</span>
+              <span className="text-[11px] text-[var(--muted)] font-bold uppercase tracking-[0.2em] block">Status</span>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                <span className="text-sm font-black text-[var(--text)] tracking-wider">{done} / {steps.length}</span>
+                <span className="text-sm font-bold text-[var(--text)] tracking-wider">{done} / {steps.length}</span>
               </div>
             </div>
           </motion.div>
@@ -708,12 +708,12 @@ export default function Dashboard() {
             <div className="lg:col-span-8 space-y-2 min-w-0">
               <div className="flex items-center justify-between px-2 mb-2">
               <div className="flex flex-col items-center justify-center mb-10 text-center">
-                <h2 className="text-2xl md:text-3xl font-black tracking-[0.2em] uppercase bg-gradient-to-r from-[var(--text)] via-[var(--text)] to-[var(--muted)] bg-clip-text text-transparent drop-shadow-sm">
+                <h2 className="text-2xl md:text-3xl font-bold tracking-[0.2em] uppercase bg-gradient-to-r from-[var(--text)] via-[var(--text)] to-[var(--muted)] bg-clip-text text-transparent drop-shadow-sm">
                   {t('dashboard_roadmap') || 'ROADMAP'}
                 </h2>
                 <div className="h-1 w-20 bg-gradient-to-r from-red-500 to-transparent rounded-full mt-2" />
               </div>
-                <div className="flex items-center gap-4 text-[11px] font-black uppercase tracking-[0.15em] text-[var(--muted)]">
+                <div className="flex items-center gap-4 text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--muted)]">
                    <div className="flex items-center gap-1.5"><div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" /> DONE</div>
                    <div className="flex items-center gap-1.5"><div className="h-1.5 w-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" /> ACTIVE</div>
                 </div>
@@ -735,7 +735,7 @@ export default function Dashboard() {
                 >
                   <div className="p-5 flex items-start gap-5">
                     <div className="shrink-0 relative">
-                      <div className={`step-num h-9 w-9 !text-[12px] !font-black !rounded-xl !bg-[var(--surface-2)] !border-[var(--border)] transition-all ${
+                      <div className={`step-num h-9 w-9 !text-[12px] !font-bold !rounded-xl !bg-[var(--surface-2)] !border-[var(--border)] transition-all ${
                         s.status === 'completed'   ? 'step-num-completed shadow-lg shadow-emerald-500/20 !bg-emerald-500 !text-white' : 
                         s.status === 'in-progress' ? 'step-num-inprogress shadow-lg shadow-purple-500/20 !bg-purple-500 !text-white' :
                         expanded === i ? '!bg-indigo-500 !text-white' : ''
@@ -746,7 +746,7 @@ export default function Dashboard() {
 
                     <div className="flex-1 min-w-0 pt-1">
                       <div className="flex items-center justify-between mb-1.5 gap-2">
-                        <h3 className={`text-[15px] font-black tracking-tight truncate pr-4 transition-colors uppercase ${expanded === i ? 'text-indigo-500' : 'text-[var(--text)]'}`}>
+                        <h3 className={`text-[15px] font-bold tracking-tight truncate pr-4 transition-colors uppercase ${expanded === i ? 'text-indigo-500' : 'text-[var(--text)]'}`}>
                           {s.title}
                         </h3>
                         <div className="flex items-center gap-2 shrink-0">
@@ -755,15 +755,15 @@ export default function Dashboard() {
                               <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}>
                                 <Cpu size={10} className="text-red-500" />
                               </motion.div>
-                              <span className="text-[10px] font-black uppercase tracking-widest text-red-500">AGENT</span>
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-red-500">AGENT</span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
                               <User size={10} className="text-blue-500" />
-                              <span className="text-[10px] font-black uppercase tracking-widest text-blue-500">HUMAN</span>
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500">HUMAN</span>
                             </div>
                           )}
-                          <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm backdrop-blur-md transition-all ${
+                          <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border shadow-sm backdrop-blur-md transition-all ${
                             s.status === 'completed'
                               ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500 shadow-emerald-500/5'
                               : 'bg-amber-500/10 border-amber-500/20 text-amber-500 shadow-amber-500/5'

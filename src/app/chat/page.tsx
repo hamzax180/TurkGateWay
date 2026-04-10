@@ -687,7 +687,7 @@ export default function ChatPage() {
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.4, duration: 0.5 }}
-                    className="text-4xl md:text-7xl font-black text-gradient-premium tracking-tighter py-2"
+                    className="text-4xl md:text-7xl font-bold text-gradient-premium tracking-tighter py-2"
                   >
                     {t('chat_greeting').replace('{name}', user?.fullName || (user?.email ? user.email.split('@')[0] : 'there'))}
                   </motion.span>

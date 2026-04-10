@@ -316,7 +316,7 @@ export default function Home() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="text-[10px] md:text-[11px] font-black tracking-[0.3em] uppercase text-[var(--muted)]"
+          className="text-[11px] font-semibold tracking-[0.15em] uppercase text-[var(--muted)] opacity-70"
         >
           © 2026 ALL RIGHTS RESERVED BY TurkGateWay AND POWERED BY{' '}
           <a 
