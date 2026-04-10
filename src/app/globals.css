@@ -229,7 +229,7 @@ body {
     transform: translateY(-4px);
   }
   .dark .glow-card:hover {
-    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 20px 40px -15px rgba(0,0,0,0.5);
     border-color: rgba(255, 255, 255, 0.2);
   }
   .glow-card::before {
@@ -475,4 +475,22 @@ body {
 @keyframes flag-ripple {
   from { mask-position: 0 0, 0 0; -webkit-mask-position: 0 0, 0 0; }
   to { mask-position: 0 200px, 0 0; -webkit-mask-position: 0 200px, 0 0; }
+}
+
+.cloth-shimmer {
+  background: linear-gradient(135deg, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.08) 45%, 
+    rgba(0, 0, 0, 0.05) 50%, 
+    rgba(255, 255, 255, 0.08) 55%, 
+    transparent 100%
+  );
+  background-size: 200% 200%;
+  animation: shimmer-silk 6s ease-in-out infinite;
+}
+
+@keyframes shimmer-silk {
+  0% { background-position: -50% -50%; }
+  50% { background-position: 150% 150%; }
+  100% { background-position: -50% -50%; }
 }

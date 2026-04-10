@@ -122,10 +122,25 @@ export default function Home() {
           {/* Animated Red Section (Locked to Hero Viewport - Splash on Mobile, Half on Desktop) */}
           <motion.div 
             initial={{ opacity: 0, y: -100, x: 0 }}
-            animate={{ opacity: 1, y: 0, x: 0 }}
-            transition={{ duration: 2.2, ease: [0.16, 1, 0.3, 1] }}
+            animate={{ 
+              opacity: 1, 
+              y: 0, 
+              x: 0,
+              rotate: [0, 0.4, -0.4, 0],
+              skew: [0, 0.2, -0.2, 0],
+              scale: [1, 1.001, 0.999, 1]
+            }}
+            transition={{ 
+              opacity: { duration: 2.2, ease: [0.16, 1, 0.3, 1] },
+              y: { duration: 2.2, ease: [0.16, 1, 0.3, 1] },
+              rotate: { duration: 10, repeat: Infinity, ease: "easeInOut" },
+              skew: { duration: 8, repeat: Infinity, ease: "easeInOut" },
+              scale: { duration: 6, repeat: Infinity, ease: "easeInOut" }
+            }}
             className="absolute inset-0 md:left-1/2 md:right-0 bg-[#E30A17] turkish-flag-mask"
           >
+            {/* Silk Texture Simulation Overlay */}
+            <div className="absolute inset-0 opacity-20 cloth-shimmer pointer-events-none" />
 
             {/* The "Sign of Turkey" (Exactly in the middle of this intense red) */}
             <motion.div 
