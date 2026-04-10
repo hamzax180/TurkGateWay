@@ -405,13 +405,13 @@ export default function Dashboard() {
           <source src="https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-circuit-board-1549-large.mp4" type="video/mp4" />
         </video>
 
-        {/* Cinematic Radial Overlays for Depth */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.08)_0%,transparent_70%)] mix-blend-screen" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(239,68,68,0.05)_0%,transparent_50%)] mix-blend-screen" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(139,92,246,0.05)_0%,transparent_50%)] mix-blend-screen" />
+        {/* Cinematic Radial Overlays for Depth — DARK MODE ONLY to prevent washout in light mode */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12)_0%,transparent_70%)] mix-blend-screen dark:block hidden" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(239,68,68,0.08)_0%,transparent_50%)] mix-blend-screen dark:block hidden" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(139,92,246,0.08)_0%,transparent_50%)] mix-blend-screen dark:block hidden" />
         
-        {/* Soft Vignette */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]" />
+        {/* Soft Vignette — DARK MODE ONLY */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.6)_100%)] dark:block hidden" />
       </div>
 
       <div className="relative z-20 pt-6 md:pt-24 pb-20 px-4 md:px-6">
