@@ -554,7 +554,7 @@ const translations: Record<Language, Record<string, string>> = {
   ar: {
     navbar_home: 'الرئيسية',
     navbar_chat: 'TurkGateway AI',
-    navbar_dashboard: 'Dashboard',
+    navbar_dashboard: 'لوحة التحكم',
     navbar_get_started: 'ابدأ الآن',
     home_hero_title: 'منصة الذكاء الاصطناعي للأعمال والقانون والتعليم في تركيا.',
     home_hero_subtitle: 'تنقل بين التصاريح والبروتوكولات القانونية والتسجيل الجامعي بسهولة. يقوم وكلاؤنا المتخصصون بإنشاء خارطة طريق مخصصة لك في ثوانٍ.',
@@ -648,7 +648,7 @@ const translations: Record<Language, Record<string, string>> = {
     navbar_pricing: 'التسعير',
     sidebar_upgrade: 'ترقية',
     sidebar_home: 'الرئيسية',
-    sidebar_dashboard: 'Dashboard',
+    sidebar_dashboard: 'لوحة التحكم',
     sidebar_my_stuff: 'أشيائي',
     sidebar_gems: 'الجواهر',
     sidebar_logout: 'تسجيل الخروج',

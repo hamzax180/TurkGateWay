@@ -343,7 +343,7 @@ export default function ChatPage() {
   if (!isLoaded) return <LoadingScreen />;
 
   return (
-    <div className="flex h-screen overflow-hidden selection:bg-purple-500/30 relative bg-[var(--bg)] dark:deep-mesh transition-colors duration-500">
+    <div className="flex h-screen overflow-hidden selection:bg-purple-500/30 relative bg-gradient-to-tr from-white via-[#f0f7ff] to-[#f5f3ff] dark:deep-mesh transition-colors duration-500">
       <Sidebar
         currentSessionId={sessionId}
         assistantType={assistantType}

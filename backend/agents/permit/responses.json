@@ -11,7 +11,9 @@
     "Every great business in Istanbul starts with a single step: getting your Tax ID. It sounds administrative, but it's the foundation of everything else we'll do together. Do you have a rough timeline for when you'd like to open your doors?",
     "Navigating the Turkish bureaucratic landscape can be tricky, but that's exactly what I'm here for! 🏢 Let's start with your location — have you narrowed down which district (Belediye) you want to be in? Each has slightly different vibes and rules.",
     "Starting a business here is a bold move, and I'm ready to help you nail the legal side! Have you already decided on a name for your company? The Chamber of Commerce (ITO) will need to approve it before we proceed.",
-    "Welcome! 🇹🇷 To give you the most accurate roadmap, I need to know: what's the dream? Are we talking a tech startup in Kağıthane, a boutique in Nişantaşı, or maybe a cozy cafe in Kadıköy?"
+    "Welcome! 🇹🇷 To give you the most accurate roadmap, I need to know: what's the dream? Are we talking a tech startup in Kağıthane, a boutique in Nişantaşı, or maybe a cozy cafe in Kadıköy?",
+    "Every district in Istanbul has its own 'vibe' and regulatory quirks. For example, processing times in Beşiktaş are often faster than in Fatih due to digital adoption. Which municipality are we dealing with?",
+    "Starting a business is a journey, and Step 1 is always the Tax ID (Vergi Numarası). Do you have your passport ready for the Vergi Dairesi visit, or should I explain how that works first?"
   ],
   "documents": [
     "Standard documents include: ID/Passport, Lease Agreement, Tax Plate, and NACE code. Is your business a restaurant, retail, or office?",
@@ -22,7 +24,9 @@
     "Think of your documents as your business's passport. 📑 We'll need to gather your ID, your NACE code (activity classification), and your notarized lease. Are you planning to rent a physical space, or are you looking at a virtual office setup?",
     "To make your application bulletproof, we need a precise set of papers. Beyond the basics, will you be the sole owner, or are there multiple founders? That changes the 'Signature Circular' requirements we need to prepare.",
     "The 'Ruhsat' (operating license) application is all about the paperwork. I'll help you organize everything from your Tax Plate to your Chamber of Commerce registration. Do you already have a notarized translation of your passport?",
-    "Let's get your 'evrak' (documents) in order! 📄 The district municipality won't even look at an incomplete file. I can generate a custom checklist for you once you share what type of business you're building."
+    "Let's get your 'evrak' (documents) in order! 📄 The district municipality won't even look at an incomplete file. I can generate a custom checklist for you once you share what type of business you're building.",
+    "Pro Tip: Always ensure your lease agreement is notarized (noter onaylı). The 'Ruhsat' office will reject a simple signed paper without the notary stamp. Do you need help finding a notary near your location?",
+    "Don't forget your 'Signature Circular' (İmza Sirküleri). This is the document that proves you have the authority to sign for the company. Should I add that to your document checklist?"
   ],
   "restaurant": [
     "For a restaurant you'll need the İtfaiye Uygunluk Raporu (fire safety) and Baca Uygunluğu (chimney inspection). Shall I walk you through all 14 steps?",
@@ -165,6 +169,8 @@
     "To get a Turkish Tax ID, visit your nearest Vergi Dairesi with your passport. Some offices also let you apply online via ivd.gib.gov.tr if you have a Turkish e-Devlet ID. Which city are you in?",
     "The Tax ID (Vergi Numarası) is step one — you can’t open a bank account, register a company, or apply for most permits without it. The good news: it’s quick, free, and just needs your passport. Go to any local tax office.",
     "Got your Tax ID already? Excellent — that’s the foundation for everything else. Next you’ll decide on your company structure (Ltd. or Sole Proprietorship) and then reserve your company name in MERSİS.",
-    "Turkish citizens use their national ID number as their Tax ID automatically. Foreign nationals must visit a Vergi Dairesi in person with their passport. The whole thing takes under an hour and costs nothing — one of the easiest steps in the whole process!"
+    "Turkish citizens use their national ID number as their Tax ID automatically. Foreign nationals must visit a Vergi Dairesi in person with their passport. The whole thing takes under an hour and costs nothing — one of the easiest steps in the whole process!",
+    "If you're in a hurry, you can often get your Tax ID at the 'İnteraktif Vergi Dairesi' online portal if you already have a temporary ID number (starting with 99). Would you like the link to that portal?",
+    "Remember to bring a notarized translation of your passport if the Tax Office requires it — though many in Istanbul central districts (like Beyoğlu or Fatih) accept the original passport directly."
   ]
 }

@@ -8,7 +8,9 @@
     "İstanbul'un dinamik iş dünyasına hoş geldiniz! 🇹🇷 Başarılı bir açılışın ilk kuralı, doğru Vergi Dairesi ile başlamaktır. Aklınızda belirli bir açılış tarihi var mı? Süreci buna göre geriye doğru planlayabiliriz.",
     "İş kurma süreci bir maratondur ve ben sizin antrenörünüz olarak buradayım! 🏢 İlk adımımız, işletmenizin 'NACE kodu'nu doğru belirlemek olacak. Bu, tüm vergi ve ruhsat yükümlülüklerinizin temelini oluşturur.",
     "Harika bir girişim fikri! İstanbul gibi bir metropolde iş kurmak heyecan verici ama aynı zamanda titiz bir takip gerektirir. Şirket isminiz için ITO (İstanbul Ticaret Odası) sorgulamasını yaptık mı?",
-    "Merhaba! Girişimcilik yolculuğunuzda size rehberlik etmek için sabırsızlanıyorum. Başlamadan önce sormam gerek: Tek başınıza mı yola çıkıyorsunuz yoksa ortaklı bir yapı mı düşünüyorsunuz?"
+    "Merhaba! Girişimcilik yolculuğunuzda size rehberlik etmek için sabırsızlanıyorum. Başlamadan önce sormam gerek: Tek başınıza mı yola çıkıyorsunuz yoksa ortaklı bir yapı mı düşünüyorsunuz?",
+    "İstanbul'un her ilçesinin kendine has bir 'havası' ve bürokratik hızı vardır. Örneğin, Beşiktaş Belediyesi dijitalleşme konusunda Fatih Belediyesi'nden (SİT alanı kısıtlamaları nedeniyle) daha hızlı sonuç verebilir. Hangi belediye ile ilerleyeceğiz?",
+    "Bir işe başlamak bir yolculuktur ve 1. Adım her zaman Vergi Kimlik Numarası'dır. Vergi Dairesi ziyareti için pasaportunuz hazır mı, yoksa sürecin nasıl işlediğini anlatmamı mı istersiniz?"
   ],
   "documents": [
     "Standart belgeler şunları içerir: Kimlik/Pasaport, Kira Sözleşmesi, Vergi Levhası ve NACE kodu. İşletmeniz restoran, perakende mi yoksa ofis mi?",
@@ -19,7 +21,9 @@
     "Belgelerinizi projenizin temeli olarak düşünün. 📑 Kimlik, imza beyannamesi ve noter onaylı kira kontratı olmazsa olmazlarımız. Bu evrakların dijital kopyalarını hazırlamaya başladınız mı?",
     "Eksiksiz bir başvuru dosyası, belediye onay sürecini en az iki hafta hızlandırır. Sizin için sektöre özel bir 'Evrak Kontrol Listesi' oluşturmamı ister misiniz?",
     "Ruhsat başvurusu (Ruhsat) tamamen evrak disiplini ile ilgilidir. İmzalı kira sözleşmenizden vergi levhanıza kadar her şeyi sıraya koyacağız. Pasaportunuzun noter onaylı çevirisi hazır mı?",
-    "Hadi evrak klasörünüzü birlikte düzenleyelim! 📄 Belediye eksik belge ile yapılan başvuruları genellikle reddeder. İş kolunuzu söylerseniz size en güncel listeyi sunabilirim."
+    "Hadi evrak klasörünüzü birlikte düzenleyelim! 📄 Belediye eksik belge ile yapılan başvuruları genellikle reddeder. İş kolunuzu söylerseniz size en güncel listeyi sunabilirim.",
+    "Uzman İpucu: Kira sözleşmenizin mutlaka noter onaylı (noter onaylı) olduğundan emin olun. Ruhsat ofisi, noter damgası olmayan basit imzalı kağıtları genellikle kabul etmez. Yakınınızda bir noter bulmanıza yardım edeyim mi?",
+    "İmza Sirküleri'ni unutmayın. Bu, şirket adına imza yetkiniz olduğunu kanıtlayan en önemli belgedir. Bunu evrak kontrol listenize ekleyeyim mi?"
   ],
   "restaurant": [
     "Bir restoran için İtfaiye Uygunluk Raporu ve Baca Uygunluğu sertifikasına ihtiyacınız olacak. Tüm 14 adımı birlikte gözden geçirelim mi?",
@@ -152,7 +156,9 @@
     "Vergi numarası almak için şahsen vergi dairesine gitmeli veya e-Devlet üzerinden (varsa) başvurmalısınız. Banka hesabı ve şirket kuruluşu için bu numara zorunludur.",
     "Vergi Numarası birinci adımdır — bu olmadan banka hesabı açamaz veya şirket tescil edemezsiniz. İyi haber: hızlı, ücretsiz ve sadece pasaport gerektiriyor.",
     "Vergi numaranızı aldınız mı? Harika — bu her şeyin temelidir. Sırada şirket yapınıza karar verip MERSİS üzerinden isim rezervasyonu yapmak var.",
-    "Yabancı uyruklular pasaportlarıyla bir vergi dairesine giderek bu numarayı almalıdır. Bu işlem yaklaşık bir saat sürer ve maliyeti yoktur — sürecin en kolay adımıdır."
+    "Yabancı uyruklular pasaportlarıyla bir vergi dairesine giderek bu numarayı almalıdır. Bu işlem yaklaşık bir saat sürer ve maliyeti yoktur — sürecin en kolay adımıdır.",
+    "Eğer aceleniz varsa ve halihazırda 99 ile başlayan bir geçici kimlik numaranız varsa, Vergi Numaranızı 'İnteraktif Vergi Dairesi' online portalından da alabilirsiniz. Portalın linkini paylaşmamı ister misiniz?",
+    "Vergi Dairesi talep ederse pasaportunuzun noter onaylı tercümesini yanınızda bulundurmayı unutmayın — ancak Beyoğlu veya Fatih gibi merkezi yerlerdeki birçok ofis doğrudan orijinal pasaportu kabul edebiliyor."
   ],
   "steps": [
     "İstanbul'da iş açmak için 14 ana yasal adım vardır: Vergi No, şirket türü, isim tescili, NACE kodu, ana sözleşme, adres, noter onayı, sermaye, ticaret sicili, banka hesabı, vergi dairesi, belediye formları, muhasebeci ve açılış. Detay ister misiniz?",

@@ -349,7 +349,7 @@ const SidebarInner = React.memo(({
           <Link href="/" className="block">
             <button className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)] transition-all">
               <Home size={20} className="text-[var(--text)] shrink-0" />
-              <span className="text-[15px] font-medium text-[var(--text)] text-left">{t('sidebar_home')}</span>
+              <span className={`text-[15px] font-medium text-[var(--text)] ${isRTL ? 'text-right' : 'text-left'}`}>{t('sidebar_home')}</span>
             </button>
           </Link>
         </motion.div>
@@ -361,7 +361,7 @@ const SidebarInner = React.memo(({
           <Link href="/dashboard" className="block">
             <button className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)] transition-all">
               <LayoutDashboard size={20} className="text-[var(--text)] shrink-0" />
-              <span className="text-[15px] font-medium text-[var(--text)] text-left">{t('sidebar_dashboard')}</span>
+              <span className={`text-[15px] font-medium text-[var(--text)] ${isRTL ? 'text-right' : 'text-left'}`}>{t('sidebar_dashboard')}</span>
             </button>
           </Link>
         </motion.div>
@@ -372,7 +372,7 @@ const SidebarInner = React.memo(({
         <motion.div variants={itemVariants} className="px-3 mb-1 shrink-0">
           <button className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)] transition-all">
             <Star size={20} className="text-[var(--text)] shrink-0" />
-            <span className="text-[15px] font-medium text-[var(--text)] text-left">{t('sidebar_my_stuff')}</span>
+            <span className={`text-[15px] font-medium text-[var(--text)] ${isRTL ? 'text-right' : 'text-left'}`}>{t('sidebar_my_stuff')}</span>
           </button>
         </motion.div>
       )}
