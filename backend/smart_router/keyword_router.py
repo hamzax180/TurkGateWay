@@ -8,6 +8,7 @@ confidence = 1.0 for keyword match, 0.0 for no match (triggers AI fallback).
 
 import re
 from typing import Tuple, Optional
+from difflib import SequenceMatcher
 
 # ---------------------------------------------------------------------------
 # Keyword maps — ordered from most specific to least specific
@@ -307,7 +308,7 @@ INTENT_MAP = {
         r"(شرطة|مخفر|سجن|جنائي|نيابة|مدعي عام|مباحث|جناية|جريمة)"
     ],
     "lawyer.criminal_drugs": [
-        r"\b(drug|drugs|narcotic|narcotics|weed|cocaine|hashish|trafficking|possession|uyuşturucu|madde|esrar|caught with)\b",
+        r"\b(drug|drugs|narcotic|narcotics|weed|cocaine|hashish|trafficking|possession|uyuşturucu|madde|esrar|caught (with|wit)|zaza)\b",
         r"(مخدرات|حشيش|كبتاغون|تعاطي|ترويج|حبوب)"
     ],
     "lawyer.criminal_theft": [
@@ -410,7 +411,6 @@ def detect_intent(
                 candidates.append((group, sub, 1.0))
 
     # Pass 2: Fuzzy Logic Typos (Confidence 0.7 - 0.95)
-    from difflib import SequenceMatcher
     words = text.split()
     
     for intent_key, _ in sorted_intents:

@@ -691,6 +691,12 @@ const translations: Record<Language, Record<string, string>> = {
     assistant_permit: 'التراخيص',
     assistant_student: 'الطلاب',
     assistant_lawyer: 'محامي',
+    dashboard_free_plan: 'خطة مجانية',
+    dashboard_premium: 'مميز',
+    dashboard_upgrade: 'ترقية',
+    dashboard_starting: 'جاري البدء...',
+    dashboard_integration: 'تكامل',
+    dashboard_simulating: 'جاري محاكاة نظام البلدية...',
     dashboard_student_title: 'لوحة تحكم الطلاب',
     dashboard_legal_title: 'لوحة تحكم المحامين',
     chat_switch_assistant: 'تبديل الوكيل',
@@ -788,23 +794,39 @@ const translations: Record<Language, Record<string, string>> = {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguage] = useState<Language>('en');
-
-  useEffect(() => {
-    const saved = localStorage.getItem('language') as Language;
-    if (saved && ['en', 'ar', 'tr'].includes(saved)) {
-      setLanguage(saved);
+  // Initialize state from localStorage if available to prevent flash of wrong language
+  const [language, setLanguageState] = useState<Language>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('language') as Language;
+      if (saved && ['en', 'ar', 'tr'].includes(saved)) {
+        // Sync DOM immediately during initialization
+        document.documentElement.lang = saved;
+        document.documentElement.dir = saved === 'ar' ? 'rtl' : 'ltr';
+        return saved;
+      }
     }
-  }, []);
+    return 'en';
+  });
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('language', lang);
+      // Update DOM immediately for instant layout shift
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    }
+  };
 
   useEffect(() => {
+    // Also keep the effect for external changes or persistence
     localStorage.setItem('language', language);
     document.documentElement.lang = language;
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
   }, [language]);
 
   const t = (key: string) => {
-    return translations[language][key] || key;
+    return translations[language]?.[key] || key;
   };
 
   const isRTL = language === 'ar';

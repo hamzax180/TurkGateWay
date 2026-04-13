@@ -128,7 +128,7 @@ _NEW_CONSULTATION_PATTERNS = [
 # Meta-questions about the system or process that should ALWAYS go to AI orchestrator
 _META_QUERY_PATTERNS = [
     r"\b(information|details|explain|how does|what is|tell me more|help me with|question about|step [0-9]|understand)\b",
-    r"\b(who are you|what can you|how to use|where is the dashboard|how it works)\b",
+    r"\b(where is the dashboard|how it works)\b",
     r"\?",
 ]
 
@@ -160,6 +160,37 @@ _ALL_BUSINESS_TYPES = [
     "pharmacy", "eczane", "bakery", "barber", "berber", "gym", "shop",
     "store", "company", "clothing", "hotel", "clinic", "school",
 ]
+
+_UNI_MAP = {
+    "boğaziçi": "Boğaziçi University", "bogazici": "Boğaziçi University",
+    "metu": "METU (ODTÜ)", "odtü": "METU (ODTÜ)", "odtu": "METU (ODTÜ)",
+    "istanbul university": "Istanbul University", "istanbul üniversitesi": "Istanbul University",
+    "itü": "İTÜ (Istanbul Technical)", "itu": "İTÜ (Istanbul Technical)", "istanbul teknik": "İTÜ (Istanbul Technical)",
+    "hacettepe": "Hacettepe University",
+    "koç": "Koç University", "koc": "Koç University",
+    "sabancı": "Sabancı University", "sabanci": "Sabancı University",
+    "bilkent": "Bilkent University",
+    "ankara university": "Ankara University", "ankara üniversitesi": "Ankara University",
+    "ege university": "Ege University", "ege üniversitesi": "Ege University",
+    "altınbaş": "Altınbaş University", "altinbas": "Altınbaş University",
+    "بوغازيتشي": "Boğaziçi University", "الشرق الأوسط": "METU (ODTÜ)", "إسطنبول": "Istanbul University",
+    "كوتش": "Koç University", "سابانجي": "Sabancı University", "بيلكنت": "Bilkent University", 
+    "أنقرة": "Ankara University", "حاجيتيبه": "Hacettepe University", "ألتن باش": "Altınbaş University"
+}
+
+_UNI_DEADLINES = {
+    "Boğaziçi University": {"en": "Mid-July", "tr": "Temmuz Ortası", "ar": "منتصف يوليو"},
+    "METU (ODTÜ)": {"en": "Early July", "tr": "Temmuz Başı", "ar": "أوائل يوليو"},
+    "Istanbul University": {"en": "August", "tr": "Ağustos", "ar": "أغسطس"},
+    "İTÜ (Istanbul Technical)": {"en": "Early August", "tr": "Ağustos Başı", "ar": "أوائل أغسطس"},
+    "Hacettepe University": {"en": "Mid-July", "tr": "Temmuz Ortası", "ar": "منتصف يوليو"},
+    "Koç University": {"en": "Early July", "tr": "Temmuz Başı", "ar": "أوائل يوليو"},
+    "Sabancı University": {"en": "Mid-August", "tr": "Ağustos Ortası", "ar": "منتصف أغسطس"},
+    "Bilkent University": {"en": "Mid-July", "tr": "Temmuz Ortası", "ar": "منتصف يوليو"},
+    "Ankara University": {"en": "August", "tr": "Ağustos", "ar": "أغسطس"},
+    "Ege University": {"en": "Early August", "tr": "Ağustos Başı", "ar": "أوائل أغسطس"},
+    "Altınbaş University": {"en": "Mid-August", "tr": "Ağustos Ortası", "ar": "منتصف أغسطس"}
+}
 
 def _fuzzy_match(word: str, candidates: list, threshold: float = 0.75) -> str | None:
     """Return the best candidate if similarity >= threshold, else None."""
@@ -229,6 +260,21 @@ async def smart_router_handle(
     if cached:
         await wait_task
         return cached
+
+    # --- PHASE 0.5: Contextual Affirmative Check (Handle 'yes' to deadlines) ---
+    lower_q = query.lower().strip().replace("?", "").replace(".", "").replace("!", "")
+    last_assistant_msg = history_text.lower().split("[assistant]:")[-1] if "[assistant]:" in history_text.lower() else ""
+    
+    affirmative = ["yes", "yeah", "yep", "sure", "ok", "okay", "evet", "tamam", "olur", "نعم", "ايوه", "أجل", "طبعا", "طبعاً", "ماشي"]
+    if lower_q in affirmative and last_assistant_msg:
+        if any(marker in last_assistant_msg for marker in ["check the current registration calendar", "registration calendar", "university deadline", "kayıt takvimi", "moaud", "موعد", "announcements", "duyurular", "major schools"]):
+            prompt = {
+                "en": "Great! 🎓 Which university are you targeting? Please type the name (e.g., Boğaziçi, METU, Istanbul University) and I'll find their specific deadline for you.",
+                "tr": "Harika! 🎓 Hangi üniversite ile ilgileniyorsun? Lütfen adını yaz (örneğin Boğaziçi, ODTÜ, İstanbul Üniversitesi), senin için güncel takvime bakayım.",
+                "ar": "ممتاز! 🎓 ما هي الجامعة التي تود الاستفسار عنها؟ يرجى كتابة اسمها (مثلاً جامعة إسطنبول، بوغازيتشي، ODTÜ) وسأبحث لك عن موعدها المحدد."
+            }.get(language, "Great! Which university are you targeting?")
+            await wait_task
+            return prompt
 
     user_blocks = re.findall(r"\[user\]:([\s\S]*?)(?=\[assistant\]:|\[user\]:|-{5,}|$)", history_text.lower())
     user_history_text = " ".join(b.strip() for b in user_blocks)
@@ -468,6 +514,47 @@ async def smart_router_handle(
                     agencies.extend(["Istanbul Fire Department (İBB İtfaiye)"])
 
         elif assistant_type == "student":
+            # Check for specific University deadline first
+            found_uni = None
+            for key, val in _UNI_MAP.items():
+                if key in query.lower():
+                    found_uni = val
+                    break
+            
+            if found_uni:
+                deadline_info = _UNI_DEADLINES.get(found_uni, {}).get(language, "August")
+                prompt_summ = {
+                    "en": f"Found it! 🎓 The deadline for **{found_uni}** is **{deadline_info}**. I've also generated your step-by-step registration roadmap in the dashboard!",
+                    "tr": f"Buldum! 🎓 **{found_uni}** için son tarih **{deadline_info}**. Ayrıca senin için hazırladığım kayıt yol haritasını panelde görebilirsin!",
+                    "ar": f"وجدتها! 🎓 الموعد النهائي لجامعة **{found_uni}** هو **{deadline_info}**. لقد قمت أيضاً بإنشاء خارطة طريق التسجيل الخاصة بك في لوحة التحكم!"
+                }.get(language, f"Found it! The deadline for {found_uni} is {deadline_info}")
+                
+                business_type = "student.register_uni"
+                step_specs = get_localized_steps(language, business_type)
+                details = [StepDetail(id=id_val, title=title, responsible=resp, status="pending", notes=note) for id_val, title, resp, note in step_specs]
+                steps_list = [title for id_val, title, resp, note in step_specs]
+                labels = {"en": {"ag": "Key Institutions", "dc": "Essential Documents", "st": "Registration Steps"}, "tr": {"ag": "Kurumlar", "dc": "Gerekli Belgeler", "st": "Kayıt Adımları"}, "ar": {"ag": "المؤسسات", "dc": "المستندات المطلوبة", "st": "خطوات التسجيل"}}.get(language, {"ag": "Agencies", "dc": "Docs", "st": "Steps"})
+                agencies = ["University Registrar", "Portal / OBS", "MEB (Denklik)"]
+                docs = ["Admission Letter", "Passport", "Original Diploma", "Apostille", "Photos"]
+                
+                combined = CombinedPermitResult(permits=[f"{found_uni} Registration"], agencies=agencies, documents=docs, steps=steps_list, timeline_days=15, summary=prompt_summ, location=found_uni, business_type=business_type)
+                state = PermitState(business_profile={"raw_query": query, "language": language, "university": found_uni}, combined_result=combined, permit_plan=PermitPlan(permits=[found_uni], agencies=agencies, documents=docs), execution_plan=ExecutionPlan(steps=details, assigned_agents=["Student Advisor"]), last_updated=datetime.now())
+                
+                out_str = f"💬 {prompt_summ}\n\n📋 **{labels['ag']}:** {', '.join(agencies)}\n📄 **{labels['dc']}:** {', '.join(docs)}\n✅ **{labels['st']}:**\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps_list))
+                dashboard_dump = state.model_dump()
+                if hasattr(dashboard_dump.get("last_updated"), "isoformat"): dashboard_dump["last_updated"] = dashboard_dump["last_updated"].isoformat()
+                await wait_task
+                return out_str, dashboard_dump
+            
+            # Contextual fallback for unlisted universities
+            if last_assistant_msg and any(k in last_assistant_msg for k in ["targeting", "üniversite", "جامعة", "duyurular", "announcements", "major schools"]):
+                await wait_task
+                return {
+                    "en": "Sorry, I don't have detailed information about this university yet. 🎓 I currently track the registration calendars for the Top 10 universities in Turkey. Is there anything else I can help you with?",
+                    "tr": "Üzgünüm, henüz bu üniversite hakkında detaylı bilgiye sahip değilim. 🎓 Şu anda Türkiye'deki ilk 10 üniversitenin kayıt takvimlerini takip ediyorum. Başka bir konuda yardımcı olabilir miyim?",
+                    "ar": "عذراً، لا أملك معلومات مفصلة عن هذه الجامعة بعد. 🎓 أتابع حالياً مواعيد التسجيل لأفضل 10 جامعات في تركيا. هل يمكنني مساعدتك في أي شيء آخر؟"
+                }.get(language, "Sorry, I don't have information about this university.")
+
             is_renew = "renew" in query.lower() or "replace" in query.lower() or "uzat" in query.lower() or "تجديد" in query.lower()
             business_type = "student_renew" if is_renew else "Student"
             district, timeline = "Istanbul", (10 if is_renew else 30)
@@ -491,16 +578,28 @@ async def smart_router_handle(
                 labels = {"ag":"Institutions / Agencies", "dc":"Documents You'll Need", "st":"Your Action Steps", "tm":"Estimated Timeline", "dy":"days"}
 
         elif assistant_type == "lawyer":
-            lower_q = combined_context
-            if any(k in lower_q for k in ["contract", "sözleşme", "nda", "agreement", "clause", "review", "check"]): lawyer_subtype = "lawyer_contract"
-            elif any(k in lower_q for k in ["company", "formation", "ltd", "a.ş", "şirket", "business registration"]): lawyer_subtype = "lawyer_company"
-            elif any(k in lower_q for k in ["fired", "dismissed", "termination", "severance", "employment", "işten çıkar", "kıdem"]): lawyer_subtype = "lawyer_employment"
-            elif any(k in lower_q for k in ["work permit", "residence permit", "ikamet", "stay in turkey", "çalışma izni"]): lawyer_subtype = "lawyer_residency"
-            elif any(k in lower_q for k in ["dispute", "lawsuit", "court", "mediation", "arabuluculuk", "ihtarname"]): lawyer_subtype = "lawyer_dispute"
-            elif any(k in lower_q for k in ["buy", "sell", "rent", "house", "property", "apartment", "real estate", "tapu"]): lawyer_subtype = "lawyer_real_estate"
-            elif any(k in lower_q for k in ["police", "arrest", "criminal", "charge", "jail", "suç", "drugs", "theft"]): lawyer_subtype = "lawyer_criminal"
-            elif any(k in lower_q for k in ["debt", "unpaid", "invoice", "icra", "haciz", "collection"]): lawyer_subtype = "lawyer_debt"
-            else: lawyer_subtype = "lawyer_contract"
+            # REFINED LOGIC: Check current query FIRST, then combined history
+            query_lower = query.lower()
+            hist_lower = combined_context
+            
+            # Map queries to subtypes
+            def get_subtype(text):
+                if any(k in text for k in ["contract", "sözleşme", "nda", "agreement", "clause", "signing"]): return "lawyer_contract"
+                if any(k in text for k in ["company", "formation", "ltd", "a.ş", "şirket", "business registration"]): return "lawyer_company"
+                if any(k in text for k in ["fired", "dismissed", "termination", "severance", "employment", "işten çıkar", "kıdem"]): return "lawyer_employment"
+                if any(k in text for k in ["work permit", "residence permit", "ikamet", "stay in turkey", "çalışma izni"]): return "lawyer_residency"
+                if any(k in text for k in ["lawsuit", "court", "mediation", "arabuluculuk", "ihtarname"]): return "lawyer_dispute"
+                if any(k in text for k in ["buy", "sell", "rent", "house", "property", "apartment", "real estate", "tapu"]): return "lawyer_real_estate"
+                if any(k in text for k in ["police", "arrest", "criminal", "charge", "jail", "suç", "drugs", "theft", "zaza", "marijuana", "possession", "caught"]): return "lawyer_criminal"
+                if any(k in text for k in ["debt", "unpaid", "invoice", "icra", "haciz", "collection"]): return "lawyer_debt"
+                return None
+
+            # Priority: 1. Current Query 2. Historical Context
+            lawyer_subtype = get_subtype(query_lower) or get_subtype(hist_lower)
+            
+            # If still nothing, let the AI handle it instead of defaulting to Contract
+            if not lawyer_subtype:
+                return None
 
             district, business_type = "Turkey", lawyer_subtype
             if lawyer_subtype == "lawyer_contract":
@@ -562,14 +661,22 @@ async def smart_router_handle(
             if not raw_response: raw_response = _pick_response(intent_group, sub_intent, language=language)
         
         if intent_group == "greeting":
-            if assistant_type == "permit": raw_response = {"tr": "Merhaba! 👋 Ben Ruhsat Danışmanınızım. Ne tür bir işletme açmak istiyorsunuz?", "ar": "أهلاً بك! 👋 أنا مستشارك الخاص لتراخيص الأعمال في تركيا. ما هو نوع النشاط التجاري الذي تخطط لافتتاحه؟", "en": "Hello! 👋 I am your Permit Advisor. What type of business are you planning to start?"}.get(language, raw_response)
-            elif assistant_type == "lawyer": raw_response = {"tr": "Merhaba! ⚖️ Ben Hukuk Danışmanınızım. Size nasıl yardımcı olabilirim?", "ar": "أهلاً بك! ⚖️ أنا مستشارك القانوني المختص. كيف يمكنني مساعدتك اليوم في شؤونك القانونية أو التجارية؟", "en": "Hello! ⚖️ I am your Legal Advisor. How can I assist you?"}.get(language, raw_response)
-            elif assistant_type == "student": raw_response = {"tr": "Merhaba! 🎓 Ben Öğrenci Danışmanınızım. Bugün sana nasıl yardımcı olabilirim?", "ar": "مرحباً بك! 🎓 أنا مستشارك لخدمات الطلاب في تركيا. كيف يمكنني مساعدتك اليوم في رحلتك التعليمية أو إجراءات إقامتك؟", "en": "Hi there! 🎓 I am your Student Advisor. How can I help you today?"}.get(language, raw_response)
+            if assistant_type == "permit": raw_response = {"tr": "Selamlar! 👋 İşletme ruhsatı planlarında sana rehberlik etmek için buradayım. Bugün hangi heyecan verici projeyi başlatıyoruz?", "ar": "أهلاً بك! 👋 يسعدني جداً مساعدتك في الحصول على تراخيص عملك الجديد في تركيا. أخبرني، ما هو النشاط الذي تحلم بافتتاحه؟", "en": "Hi! 👋 I'm so excited to help you get your business license sorted in Turkey. What kind of venture are we launching today?"}.get(language, raw_response)
+            elif assistant_type == "lawyer": raw_response = {"tr": "Merhaba! ⚖️ Hukuki konularda sana destek olmak ve işini sağlama almak için yanındayım. Bugün sana nasıl bir çözüm sunabilirim?", "ar": "مرحباً بك! ⚖️ أنا هنا لأحمي مصالحك القانونية وأوجهك للطريق الصحيح في تركيا. كيف يمكنني دعمك اليوم؟", "en": "Hello there! ⚖️ I'm here to back you up on all things legal and make sure your business is safe and sound. How can I help you out today?"}.get(language, raw_response)
+            elif assistant_type == "student": raw_response = {"tr": "Selamlar! 🎓 Türkiye'deki eğitim hayatında her şeyin yolunda gitmesi için buradayım. Bugün senin için ne yapabilirim?", "ar": "يا أهلاً! 🎓 أنا هنا لأتأكد أن رحلتك التعليمية في تركيا تسير بسلاسة تامة. كيف يمكنني مساعدتك بخبرتي اليوم؟", "en": "Hey! 🎓 I'm here to make sure your student life in Turkey is as smooth as possible. What can I do for you today?"}.get(language, raw_response)
+
+        if intent_group == "smalltalk":
+            if assistant_type == "lawyer": raw_response = {"tr": "Çok iyiyim, sorduğun için teşekkürler! ⚖️ Senin hukuk veya iş süreçlerin nasıl gidiyor? Her şey yolunda mı?", "ar": "أنا في أفضل حال، شكراً لسؤالك! ⚖️ كيف تسير أمورك القانونية أو التجارية حالياً؟ هل كل شيء على ما يرام؟", "en": "I'm doing great, thanks for asking! ⚖️ How are your legal or business matters going today? Keeping everything on track?"}.get(language, raw_response)
+            elif assistant_type == "student": raw_response = {"tr": "Harikayım, teşekkürler! 🎓 Senin öğrencilik hayatın veya başvuru sürecin nasıl gidiyor? Yardım edebileceğim bir durum var mı?", "ar": "أنا بخير والحمد لله! 🎓 كيف تسير رحلتك التعليمية أو إجراءات تقديمك؟ هل هناك أي تحديات تواجهك؟", "en": "I'm doing excellent, thanks! 🎓 How is your student life or application process going? Anything I can help smooth out for you?"}.get(language, raw_response)
+            else: raw_response = {"tr": "Çok iyiyim, teşekkürler! 👋 Senin işletme kurma hayallerin ne durumda? Her şey istediğin gibi gidiyor mu?", "ar": "أنا بخير جداً، شكراً لك! 👋 كيف تسير طموحاتك لافتتاح مشروعك الخاص؟ هل الأمور تسير كما خططت لها؟", "en": "I'm doing very well, thank you! 👋 How are your business plans coming along? Everything moving in the right direction?"}.get(language, raw_response)
 
         if raw_response:
             variables = build_variables(user_name=user_name)
             response = render(raw_response, variables)
-            if language in ["ar", "tr"] and response:
+            # Social intents already have native AR/TR in the library — skip translation
+            _SOCIAL_INTENTS = {"greeting", "smalltalk", "farewell", "thanks", "identity", "capabilities"}
+            needs_translation = language in ["ar", "tr"] and intent_group not in _SOCIAL_INTENTS
+            if needs_translation and response:
                 model_used = gemini_model if assistant_type == "permit" else (student_model if assistant_type == "student" else lawyer_model)
                 if model_used:
                     try:
@@ -579,7 +686,9 @@ async def smart_router_handle(
                         trans_result = await asyncio.to_thread(model_used.generate_content, prompt, generation_config={"temperature": 0.3})
                         if trans_result and trans_result.text: response = trans_result.text.strip()
                     except Exception: pass
-            response_cache.set(query, response, assistant_type, language)
+            # Don't cache social intents — they should vary on each call
+            if intent_group not in _SOCIAL_INTENTS:
+                response_cache.set(query, response, assistant_type, language)
             await wait_task
             return response
 
@@ -611,14 +720,14 @@ async def smart_router_handle(
     # --- PHASE 3: Smart Orchestrator (Last Resort) ---
     # provide a high-quality humanized guide.
     if language == "ar":
-        if assistant_type == "student": return "بصفتي مستشارك الطلابي، يسعدني مساعدتك في الإجراءات التالية:\n- استخراج أو تجديد الإقامة الطلابية (الكملك)\n- التسجيل في الجامعات والمنح\n- استخراج كرت المواصلات وسكن الطلاب\n- معادلة الشهادات (Denklik).\nما هو الإجراء الذي تود الاستفسار عنه حالياً؟"
-        elif assistant_type == "lawyer": return "بصفتي مستشارك القانوني، أنا هنا لدعمك وتوجيهك في:\n- مراجعة العقود التجارية\n- النزاعات العمالية والقضايا\n- إجراءات الإقامة القانونية وتأسيس الشركات.\nيرجى تزويدي بمزيد من التفاصيل حول قضيتك."
-        else: return "بصفتي مستشارك لتراخيص الأعمال، أختص بمساعدتك في:\n- إجراءات تأسيس الأعمال (مطعم، كافيه، مكتب، صيدلية، إلخ)\n- معرفة التكاليف والمستندات المطلوبة\n- التواصل مع البلدية والدوائر الحكومية.\nما هو النشاط الذي تود البدء به؟"
+        if assistant_type == "student": return "أهلاً بك! 👋 يسعدني جداً مساعدتك في رحلتك الدراسية بتركيا. يمكننا البدء فوراً في أمور مثل:\n- تجديد إقامتك الطلابية\n- البحث عن قبول جامعي أو منح\n- ترتيب السكن والمواصلات.\nما هو الشيء الذي يشغل بالك اليوم؟"
+        elif assistant_type == "lawyer": return "أهلاً بك! ⚖️ سأكون معك خطوة بخطوة في شؤونك القانونية. يمكنني مساعدتك بشكل خاص في:\n- مراجعة العقود وتدقيقها\n- قضايا العمل والنزاعات\n- تأسيس الشركات والإقامة.\nتفضل بمشاركتي التفاصيل وسأعطيك أفضل نصيحة."
+        else: return "أهلاً! 👋 دعنا نطلق مشروعك الجديد في تركيا معاً. أنا هنا لأدلك على:\n- خطوات تأسيس عملك (مطعم، مكتب، إلخ)\n- الأوراق المطلوبة والتكاليف التقريبية\n- التعامل مع البلديات.\nأين وصلت في خطتك حتى الآن؟"
     elif language == "tr":
-        if assistant_type == "student": return "Öğrenci Danışmanınız olarak size şu konularda hızlıca yardımcı olabilirim:\n- Öğrenci İkamet İzni (Kimlik) alma veya uzatma\n- Üniversite kayıt ve denklik işlemleri\n- Yurt ve ulaşım kartı.\nHangi işlemde takıldınız?"
-        elif assistant_type == "lawyer": return "Hukuk Danışmanınız olarak uzmanlık alanlarım şunlardır:\n- Sözleşme inceleme\n- İş hukuku ve davalar\n- Şirket kuruluşu.\nLütfen sorunuzu detaylandırın, size en doğru yolu gösterelim."
-        else: return "Ruhsat Danışmanınız olarak size şu konularda rehberlik edebilirim:\n- İşyeri açma ruhsatı (Kafe, Restoran, Ofis vb.)\n- Gerekli belgeler ve maliyetler\n- Belediye süreçleri hakkında bilgi.\nHangi işletmeyi açmak istiyorsunuz?"
+        if assistant_type == "student": return "Selam! 👋 Türkiye'deki öğrencilik serüveninde sana destek olmak için buradayım. Hemen şunları çözebiliriz:\n- İkamet izni ve yenileme süreçleri\n- Üniversite kayıtları ve denklik\n- Yurt ve ulaşım kartı.\nNereden başlayalım?"
+        elif assistant_type == "lawyer": return "Merhaba! ⚖️ Hukuki süreçlerinde sana rehberlik etmek için sabırsızlanıyorum. Özellikle şu konularda yanındayım:\n- Sözleşmelerin incelenmesi\n- İş hukuku ve davalar\n- Şirket kurulumu ve resmi işlemler.\nAklındaki soruyu biraz detaylandırır mısın?"
+        else: return "Merhaba! 👋 Yeni işini kurma heyecanını paylaşıyorum. Senin için şunları netleştirebiliriz:\n- İşyeri açma ruhsatı adımları\n- Gerekli evraklar ve bütçe planlaması\n- Belediye süreçleri.\nHangi sektöre girmeyi düşünüyorsun?"
     else:
-        if assistant_type == "student": return "As your Student Advisor, I can help you navigate university registration, resident IDs (Ikamet), and student life in Turkey. What specific student task are you working on today?"
-        elif assistant_type == "lawyer": return "As your Legal Advisor, I can assist you with contract reviews, company formation, and legal disputes. Please provide more details about your legal query so I can guide you."
-        else: return "As your Permit Advisor, I specialize in helping you with business licenses (Cafe, Retail, etc.), required documents, and costs. What specific business are you planning to start?"
+        if assistant_type == "student": return "Hey there! 👋 I'd love to help you sort out your student life in Turkey. We can jump right into things like:\n- Getting or renewing your student ID (Ikamet)\n- University registration & diploma equivalency\n- Finding a dorm or getting your transport card.\nWhat's the first thing on your list?"
+        elif assistant_type == "lawyer": return "Hello! ⚖️ I'm here to walk you through your legal path in Turkey. I can help you with:\n- Carefully reviewing your contracts\n- Employment disputes or court cases\n- Company formation and legal residency.\nTell me a bit more about your situation so I can give you the best guidance."
+        else: return "Hi! 👋 Let's get your business up and running together. I can guide you through:\n- Opening your shop, cafe, or office\n- Figuring out the costs and required docs\n- Navigating the local municipality rules.\nWhat kind of business are you dreaming of starting?"

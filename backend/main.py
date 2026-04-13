@@ -243,40 +243,40 @@ async def _run_local_fallback(query: str, assistant_type: str, language: str, us
                 return result[0]
             return result
             
-        # Hardcoded local fallbacks if even smart router fails
+        # Humanized local fallbacks if even smart router fails
         if assistant_type == "student":
             fallbacks = {
-                "en": "As your Student Advisor, I can help you with university registration, resident IDs (Ikamet), and student life in Turkey. What specific student task are you working on?",
-                "tr": "Öğrenci Danışmanınız olarak üniversite kaydı, İkamet ve Türkiye'deki öğrenci yaşamı hakkında yardımcı olabilirim. Hangi işlemde takıldınız?",
-                "ar": "بصفتي مستشارك الطلابي، يمكنني مساعدتك في التسجيل الجامعي، إقامة الطالب والحياة الطلابية. ما هو الإجراء الذي تود الاستفسار عنه؟"
+                "en": "Hey! \ud83c\udf93 I'm all set to help you with your student journey in Turkey. Whether it's university registration, your residence permit (Ikamet), or finding housing \u2014 just tell me what you need and we'll figure it out together!",
+                "tr": "Selam! \ud83c\udf93 T\u00fcrkiye'deki \u00f6\u011frencilik maceranda sana yard\u0131m etmeye haz\u0131r\u0131m. \u00dcniversite kay\u0131t, ikamet izni veya yurt bulma \u2014 ne laz\u0131msa s\u00f6yle, beraber \u00e7\u00f6zelim!",
+                "ar": "\u0623\u0647\u0644\u0627\u064b! \ud83c\udf93 \u0623\u0646\u0627 \u062c\u0627\u0647\u0632 \u0644\u0645\u0633\u0627\u0639\u062f\u062a\u0643 \u0641\u064a \u0631\u062d\u0644\u062a\u0643 \u0627\u0644\u062f\u0631\u0627\u0633\u064a\u0629 \u0641\u064a \u062a\u0631\u0643\u064a\u0627. \u0633\u0648\u0627\u0621 \u0643\u0627\u0646 \u0627\u0644\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062c\u0627\u0645\u0639\u064a \u0623\u0648 \u0627\u0644\u0625\u0642\u0627\u0645\u0629 \u0623\u0648 \u0627\u0644\u0633\u0643\u0646 \u2014 \u0642\u0644\u0644\u064a \u0634\u0648 \u062a\u062d\u062a\u0627\u062c \u0648\u0628\u0646\u0631\u062a\u0628\u0647\u0627 \u0633\u0648\u0627!"
             }
         elif assistant_type == "lawyer":
             fallbacks = {
-                "en": "As your Legal Advisor, I can assist with contracts, company formation, and legal disputes. Please provide more details about your legal query.",
-                "tr": "Hukuk Danışmanınız olarak sözleşmeler, şirket kuruluşu ve hukuki ihtilaflar konusunda yardımcı olabilirim. Lütfen sorunuzu detaylandırın.",
-                "ar": "بصفتي مستشاراً قانونياً، يمكنني مساعدتك في العقود وتأسيس الشركات والنزاعات القانونية. يرجى تزويدي بمزيد من التفاصيل."
+                "en": "Hi there! \u2696\ufe0f I'm ready to help you navigate Turkish law. Whether it's contracts, company formation, or a legal dispute \u2014 share the details and I'll point you in the right direction.",
+                "tr": "Merhaba! \u2696\ufe0f T\u00fcrk hukuki s\u00fcre\u00e7lerinde sana yard\u0131mc\u0131 olmaya haz\u0131r\u0131m. S\u00f6zle\u015fme, \u015firket kurulu\u015fu veya hukuki bir mesele \u2014 detaylar\u0131 payla\u015f\u0131rsan en iyi y\u00f6n\u00fc birlikte bulal\u0131m.",
+                "ar": "\u0623\u0647\u0644\u0627\u064b! \u2696\ufe0f \u0623\u0646\u0627 \u062c\u0627\u0647\u0632 \u0644\u0645\u0633\u0627\u0639\u062f\u062a\u0643 \u0641\u064a \u0627\u0644\u0634\u0624\u0648\u0646 \u0627\u0644\u0642\u0627\u0646\u0648\u0646\u064a\u0629 \u0641\u064a \u062a\u0631\u0643\u064a\u0627. \u0633\u0648\u0627\u0621 \u0643\u0627\u0646\u062a \u0639\u0642\u0648\u062f \u0623\u0648 \u062a\u0623\u0633\u064a\u0633 \u0634\u0631\u0643\u0629 \u0623\u0648 \u0646\u0632\u0627\u0639 \u0642\u0627\u0646\u0648\u0646\u064a \u2014 \u0634\u0627\u0631\u0643\u0646\u064a \u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644 \u0648\u0628\u0646\u0644\u0627\u0642\u064a \u0627\u0644\u062d\u0644 \u0627\u0644\u0623\u0646\u0633\u0628."
             }
         else: # permit
             fallbacks = {
-                "en": "For business permits, you generally need to register with your district municipality. What specific business (Cafe, Retail, etc.) are you planning?",
-                "tr": "İşyeri ruhsatları için genellikle bağlı bulunduğunuz ilçe belediyesine başvurmanız gerekir. Hangi tür işletme (Kafe, Mağaza vb.) açmayı planlıyorsunuz?",
-                "ar": "للحصول على تراخيص الأعمال، تحتاج عادةً إلى التسجيل في بلدية منطقتك. ما هو نوع النشاط التجاري الذي تخطط لفتحه؟"
+                "en": "Hey! \ud83d\udc4b Let's get your business started in Turkey! To give you the best guidance, could you tell me what kind of business you're planning (cafe, shop, office, etc.) and which district you're looking at?",
+                "tr": "Merhaba! \ud83d\udc4b Yeni i\u015fini T\u00fcrkiye'de kurmana yard\u0131m edelim! Sana en do\u011fru rehberli\u011fi yapabilmem i\u00e7in, ne t\u00fcr bir i\u015fletme (kafe, d\u00fckkan, ofis vb.) planlad\u0131\u011f\u0131n\u0131 ve hangi il\u00e7ede olaca\u011f\u0131n\u0131 s\u00f6yler misin?",
+                "ar": "\u0623\u0647\u0644\u0627\u064b! \ud83d\udc4b \u062e\u0644\u064a\u0646\u0627 \u0646\u0628\u062f\u0623 \u0645\u0634\u0631\u0648\u0639\u0643 \u0627\u0644\u062c\u062f\u064a\u062f \u0641\u064a \u062a\u0631\u0643\u064a\u0627! \u0639\u0634\u0627\u0646 \u0623\u0633\u0627\u0639\u062f\u0643 \u0628\u0634\u0643\u0644 \u0623\u0641\u0636\u0644\u060c \u0642\u0644\u0644\u064a \u0634\u0648 \u0646\u0648\u0639 \u0627\u0644\u0646\u0634\u0627\u0637 (\u0645\u0642\u0647\u0649\u060c \u0645\u062d\u0644\u060c \u0645\u0643\u062a\u0628) \u0648\u0641\u064a \u0623\u064a \u0645\u0646\u0637\u0642\u0629\u061f"
             }
         return fallbacks.get(language, fallbacks["en"])
     except Exception as e:
         print(f"[_run_local_fallback CRITICAL] {e}")
-        # Assistant-aware high-end fallbacks
+        # Assistant-aware emergency fallbacks
         if assistant_type == "student":
             fallbacks = {
-                "en": "I am currently processing your request using my backup student engine. For university ID (Kimlik) renewals, please visit your faculty's Student Affairs office with your old ID and a photo.",
-                "tr": "İsteğinizi şu anda yedek öğrenci motorumla işliyorum. Öğrenci Kimlik yenileme işlemleri için lütfen eski kimliğiniz ve bir fotoğrafınızla birlikte fakültenizin Öğrenci İşleri bürosuna başvurun.",
-                "ar": "أقوم حالياً بمعالجة طلبك عبر محرك الطلاب الاحتياطي. لتجديد هوية الطالب (Kimlik)، يرجى مراجعة مكتب شؤون الطلاب في كليتك مع هويتك القديمة وصورة شخصية."
+                "en": "I'm working on getting you the best answer! \ud83c\udf93 In the meantime, for student ID renewals, head to your faculty's Student Affairs office with your old ID and a photo.",
+                "tr": "\u015eu anda en iyi cevab\u0131 haz\u0131rl\u0131yorum! \ud83c\udf93 Bu arada, \u00f6\u011frenci kimlik yenileme i\u00e7in eski kimli\u011finiz ve foto\u011frafla Fak\u00fclte \u00d6\u011frenci \u0130\u015fleri'ne ba\u015fvurun.",
+                "ar": "\u0623\u0639\u0645\u0644 \u0639\u0644\u0649 \u0625\u064a\u062c\u0627\u062f \u0623\u0641\u0636\u0644 \u0625\u062c\u0627\u0628\u0629 \u0644\u0643! \ud83c\udf93 \u0628\u0627\u0644\u0646\u0633\u0628\u0629 \u0644\u062a\u062c\u062f\u064a\u062f \u0647\u0648\u064a\u0629 \u0627\u0644\u0637\u0627\u0644\u0628\u060c \u0631\u0627\u062c\u0639 \u0645\u0643\u062a\u0628 \u0634\u0624\u0648\u0646 \u0627\u0644\u0637\u0644\u0627\u0628 \u0645\u0639 \u0647\u0648\u064a\u062a\u0643 \u0627\u0644\u0642\u062f\u064a\u0645\u0629 \u0648\u0635\u0648\u0631\u0629."
             }
         else:
             fallbacks = {
-                "en": "I am currently processing your request using my backup neural engine. For permits, please contact your local municipality directly for the most up-to-date requirements.",
-                "tr": "İsteğinizi şu anda yedek yerel motorumla işliyorum. Ruhsat işlemleri için lütfen en güncel şartlar hakkında doğrudan bağlı bulunduğunuz belediye ile iletişime geçin.",
-                "ar": "أقوم حالياً بمعالجة طلبك عبر المحرك العصبي الاحتياطي. بالنسبة للتصاريح، يرجى التواصل مع البلدية المحلية مباشرة للحصول على أحدث المتطلبات."
+                "en": "I'm putting together the best guidance for you! \ud83d\udc4b For permits, your local municipality office is the best starting point. Tell me what kind of business you're planning!",
+                "tr": "Sizin i\u00e7in en do\u011fru rehberli\u011fi haz\u0131rl\u0131yorum! \ud83d\udc4b Ruhsat i\u015flemleri i\u00e7in ba\u011fl\u0131 oldu\u011funuz il\u00e7e belediyesi en iyi ba\u015flang\u0131\u00e7 noktas\u0131. Hangi t\u00fcr i\u015fletme planlad\u0131\u011f\u0131n\u0131z\u0131 s\u00f6yleyin!",
+                "ar": "\u0623\u062d\u0636\u0631 \u0644\u0643 \u0623\u0641\u0636\u0644 \u0645\u0639\u0644\u0648\u0645\u0627\u062a! \ud83d\udc4b \u0628\u0627\u0644\u0646\u0633\u0628\u0629 \u0644\u0644\u062a\u0631\u0627\u062e\u064a\u0635\u060c \u0627\u0644\u0628\u0644\u062f\u064a\u0629 \u0627\u0644\u0645\u062d\u0644\u064a\u0629 \u0647\u064a \u0623\u0641\u0636\u0644 \u0646\u0642\u0637\u0629 \u0628\u062f\u0627\u064a\u0629. \u0642\u0644\u0644\u064a \u0634\u0648 \u0646\u0648\u0639 \u0627\u0644\u0645\u0634\u0631\u0648\u0639 \u0627\u0644\u0644\u064a \u062a\u062e\u0637\u0637 \u0644\u0647!"
             }
         return fallbacks.get(language, fallbacks["en"])
 
@@ -939,12 +939,12 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
         try:
             fallback_answer = await _run_local_fallback(query_text, assistant_type, language, user.full_name if user else "")
             
-            # Save fallback message
-            assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=f"{fallback_answer}")
+            # Save fallback message with a premium "Local Core" badge
+            assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=f"🛡️ [Backup Core] {fallback_answer}")
             db.add(assistant_msg)
             db.commit()
             
-            return {"role": "assistant", "content": f"{fallback_answer}", "session_title": db_session.title if db_session else None}
+            return {"role": "assistant", "content": f"🛡️ [Backup Core] {fallback_answer}", "session_title": db_session.title if db_session else None}
         except:
             return {"role": "assistant", "content": f"Critical Error: {str(e)}"}
 

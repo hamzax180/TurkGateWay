@@ -117,20 +117,20 @@ export default function Home() {
       <Navbar />
       <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col items-center justify-center transition-colors duration-500 overflow-hidden relative">
         
-        {/* ── Real Turkish Flag Video Background ── */}
-        <div className="absolute inset-x-0 top-0 h-[55vh] md:h-screen pointer-events-none z-0 select-none overflow-hidden">
+        {/* Real Turkish Flag Video Background */}
+        <div className="absolute inset-x-0 top-0 h-[55vh] dark:bg-[#a00000] bg-gradient-to-br from-white via-red-50 to-red-100 pointer-events-none z-0 select-none overflow-hidden">
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 2 }}
-            className="absolute inset-0 md:left-1/2 md:right-0 turkish-flag-mask"
+            className={`absolute inset-0 turkish-flag-mask dark:opacity-100 opacity-30`}
           >
             <video
               autoPlay
               loop
               muted
               playsInline
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover object-[50%_25%] scale-110 dark:brightness-100 brightness-[1.2] grayscale-[0.2]"
             >
               <source src="/turkeyflag.mp4" type="video/mp4" />
             </video>
@@ -140,7 +140,6 @@ export default function Home() {
           </motion.div>
 
           {/* Depth Overlays */}
-          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[var(--bg)] to-transparent z-30" />
           <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[var(--bg)] to-transparent z-30" />
         </div>
 

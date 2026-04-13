@@ -5,12 +5,13 @@ In-memory LRU response cache with optional JSON persistence.
 - Keyed by MD5 of normalized query string
 - TTL: 1 hour
 - Max size: 500 entries (LRU eviction)
-- Persists to cache_store.json on every write
+- Persists to cache_store.json every 10 writes (batched for performance)
 """
 
 import hashlib
 import json
 import os
+import re
 import time
 from collections import OrderedDict
 from typing import Optional
@@ -18,22 +19,27 @@ from typing import Optional
 _CACHE_FILE = os.path.join(os.path.dirname(__file__), "cache_store.json")
 _MAX_SIZE = 500
 _TTL_SECONDS = 3600  # 1 hour
+_WRITE_BATCH_SIZE = 10  # Persist to disk every N writes
 
 # In-memory store: {key: {"response": str, "ts": float}}
 _store: OrderedDict = OrderedDict()
 _loaded = False
+_writes_since_persist = 0
 
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+# Pre-compiled regex for normalization (avoids recompiling on every call)
+_RE_NON_WORD = re.compile(r"[^\w\s]")
+_RE_MULTI_SPACE = re.compile(r"\s+")
+
 def _normalize(query: str) -> str:
     """Lowercase, strip whitespace, remove punctuation for a stable cache key."""
-    import re
     text = query.lower().strip()
-    text = re.sub(r"[^\w\s]", "", text)
-    text = re.sub(r"\s+", " ", text)
+    text = _RE_NON_WORD.sub("", text)
+    text = _RE_MULTI_SPACE.sub(" ", text)
     return text
 
 
@@ -100,9 +106,10 @@ def get(query: str, assistant_type: str = "", language: str = "") -> Optional[st
 
 def set(query: str, response: str, assistant_type: str = "", language: str = "") -> None:
     """
-    Store a response in the cache and persist to disk.
+    Store a response in the cache. Persists to disk every N writes (batched).
     Evicts the oldest entry when max size is reached.
     """
+    global _writes_since_persist
     _load_from_disk()
     key = _make_key(query, assistant_type, language)
 
@@ -115,7 +122,10 @@ def set(query: str, response: str, assistant_type: str = "", language: str = "")
         evicted_key, _ = _store.popitem(last=False)
         print(f"[Cache] Evicted LRU entry: {evicted_key}")
 
-    _save_to_disk()
+    _writes_since_persist += 1
+    if _writes_since_persist >= _WRITE_BATCH_SIZE:
+        _save_to_disk()
+        _writes_since_persist = 0
 
 
 def stats() -> dict:

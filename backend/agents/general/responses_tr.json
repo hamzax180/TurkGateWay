@@ -93,5 +93,20 @@
     "Görüşleriniz bizim için çok değerli. Aradığınızı bulabildiniz mi?",
     "Değerlendirmeniz gelişmemize yardımcı olur. Yanıtlar sizin için açık ve yararlı mıydı?",
     "Her zaman daha iyisi için çalışıyoruz. Gelecekte görmek istediğiniz bir özellik var mı?"
+  ],
+  "smalltalk": [
+    "Çok iyiyim, sorduğun için teşekkürler! 😊 Sen nasılsın?",
+    "Gayet iyi! Sana yardım etmeye hazırım. Günün nasıl geçiyor?",
+    "Harikayım! 👋 İnsanlara yardım etmek beni mutlu ediyor. Sen nasıl hissediyorsun?",
+    "Süper gidiyor! Senin tarafta işler nasıl?"
+  ],
+  "identity": [
+    "Ben TurkGateway AI — Türkiye'de iş, hukuk ve öğrencilik hayatında sana yol gösteren kişisel asistanınım! Beni Türk bürokrasisini bilen bir arkadaşın gibi düşün 😄",
+    "Güzel soru! Üç alanda uzmanlaşmış bir yapay zeka danışmanıyım: işletme ruhsatları, hukuki danışmanlık ve öğrenci hizmetleri.",
+    "Türkiye'deki dijital rehberinim! İster iş kur, ister hukuki süreçleri yönet, ister üniversiteye kayıt ol — her konuda yanındayım."
+  ],
+  "capabilities": [
+    "Birçok konuda yardımcı olabilirim!\n\n🏢 **İşletme Ruhsatları** — Kafe, dükkan, ofis açma süreçleri\n⚖️ **Hukuki Danışmanlık** — Sözleşme inceleme, şirket kuruluşu, iş davaları\n🎓 **Öğrenci Hizmetleri** — Üniversite kayıt, ikamet, burslar\n\nBana neye ihtiyacın olduğunu söyle, hemen başlayalım!",
+    "Kısacası Türkiye'deki her türlü bürokratik işlemi açık ve basit adımlara dönüştüren uzmanınınım. Ruhsat mı, hukuk mu, üniversite mi — adım adım seninleyim."
   ]
 }

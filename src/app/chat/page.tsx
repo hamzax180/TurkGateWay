@@ -132,8 +132,8 @@ export default function ChatPage() {
     const loadHistory = async () => {
       const startTime = Date.now();
       if (!sessionId) {
-        // Even if no session, show loading for 2s for branding
-        await new Promise(r => setTimeout(r, 2000));
+        // Small delay for smooth transition
+        await new Promise(r => setTimeout(r, 500));
         setIsLoaded(true);
         return;
       }
@@ -170,7 +170,7 @@ export default function ChatPage() {
 
       const endTime = Date.now();
       const elapsed = endTime - startTime;
-      const remaining = Math.max(0, 2000 - elapsed);
+      const remaining = Math.max(0, 500 - elapsed);
       if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
 
       setIsLoaded(true);

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Menu, X, FileCheck, Sun, Moon, ShieldCheck } from 'lucide-react';
@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function Navbar({ isAppPage = false, onMobileMenuClick, extraContent }: { isAppPage?: boolean; onMobileMenuClick?: () => void; extraContent?: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, logout, isAuthenticated } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -153,13 +154,13 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
       assistantType={typeof window !== 'undefined' ? (localStorage.getItem('permitops_active_agent') || 'permit') : 'permit'}
       onSessionSelect={(id: string) => {
         localStorage.setItem('permitops_active_session_id', id);
-        window.location.href = '/chat';
+        router.push('/chat');
       }}
-      onNewChat={() => { window.location.href = '/chat'; }}
+      onNewChat={() => { router.push('/chat'); }}
       onDeleteSession={() => {}}
       onSwitchAssistant={(t: any) => {
         localStorage.setItem('permitops_active_agent', t);
-        window.location.href = '/chat';
+        router.push('/chat');
       }}
       token={typeof window !== 'undefined' ? localStorage.getItem('permitops_token') : null}
       mobileOpen={open}

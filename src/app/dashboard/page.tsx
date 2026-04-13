@@ -71,6 +71,7 @@ export default function Dashboard() {
   // Subscription State
   const [iyzicoFormHtml, setIyzicoFormHtml] = useState<string | null>(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(false);
 
   // Progress Increase State
   const [prevProgress, setPrevProgress] = useState(0);
@@ -117,10 +118,10 @@ export default function Dashboard() {
     } catch (e) {
       console.error("Failed to fetch dashboard data", e);
     } finally {
-      // Ensure the loading screen shows for at least 2 seconds for branding/traffic control
+      // Ensure the loading screen shows for a small moment for smooth transition
       const endTime = Date.now();
       const elapsed = endTime - startTime;
-      const remaining = Math.max(0, 2000 - elapsed);
+      const remaining = Math.max(0, 500 - elapsed);
       
       if (remaining > 0) {
         await new Promise(resolve => setTimeout(resolve, remaining));
@@ -219,7 +220,7 @@ export default function Dashboard() {
     } finally {
       const endTime = Date.now();
       const elapsed = endTime - startTime;
-      const remaining = Math.max(0, 2000 - elapsed);
+      const remaining = Math.max(0, 500 - elapsed);
       if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
       setLoading(false);
     }
@@ -367,7 +368,7 @@ export default function Dashboard() {
     } finally {
       const endTime = Date.now();
       const elapsed = endTime - startTime;
-      const remaining = Math.max(0, 2000 - elapsed);
+      const remaining = Math.max(0, 500 - elapsed);
       if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
       
       setUploading(false);
@@ -409,32 +410,43 @@ export default function Dashboard() {
               )}
             </div>
           </div>
-      {/* Video Background with Premium Radial Effects */}
-      <div className="absolute inset-0 z-0 w-full h-full overflow-hidden pointer-events-none">
-        {/* Base Fallback Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--surface-2)] via-[var(--bg)] to-[var(--surface-2)] dark:hidden" />
-        
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          onLoadedData={(e) => {
-            const video = e.currentTarget;
-            video.style.opacity = '1';
-          }}
-          className="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000 grayscale-[0.2] contrast-[1.1] brightness-[0.7]"
-        >
-          <source src="https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-circuit-board-1549-large.mp4" type="video/mp4" />
-        </video>
 
-        {/* Cinematic Radial Overlays for Depth — DARK MODE ONLY to prevent washout in light mode */}
+          {/* Premium Background — Light mode uses a clean soft gradient, dark mode uses the deep mesh/video */}
+          <div className="absolute inset-0 z-0 w-full h-full overflow-hidden pointer-events-none">
+        {/* Light Mode: Ultra-clean mesh-like gradient */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-white via-[#f0f7ff] to-[#f5f3ff] dark:hidden" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(99,102,241,0.03)_0%,transparent_50%)] dark:hidden" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(239,68,68,0.02)_0%,transparent_50%)] dark:hidden" />
+        
+        {/* Dark Mode: Cinematic Video & Overlays */}
+        {videoLoaded && (
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            onLoadedData={() => setVideoLoaded(true)}
+            className="absolute inset-0 w-full h-full object-cover grayscale-[0.2] contrast-[1.1] brightness-[0.7] hidden dark:block transition-opacity duration-1000"
+          >
+            <source src="https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-circuit-board-1549-large.mp4" type="video/mp4" />
+          </video>
+        )}
+        {!videoLoaded && (
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            onLoadedData={() => setVideoLoaded(true)}
+            className="absolute inset-0 w-full h-full object-cover opacity-0 hidden dark:block"
+          >
+            <source src="https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-circuit-board-1549-large.mp4" type="video/mp4" />
+          </video>
+        )}
+
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12)_0%,transparent_70%)] mix-blend-screen dark:block hidden" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(239,68,68,0.08)_0%,transparent_50%)] mix-blend-screen dark:block hidden" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(139,92,246,0.08)_0%,transparent_50%)] mix-blend-screen dark:block hidden" />
-        
-        {/* Soft Vignette — DARK MODE ONLY */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.6)_100%)] dark:block hidden" />
       </div>
 
       <div className="relative z-20 pt-6 md:pt-24 pb-20 px-4 md:px-6">
