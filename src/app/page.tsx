@@ -118,7 +118,7 @@ export default function Home() {
       <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col items-center justify-center transition-colors duration-500 overflow-hidden relative">
         
         {/* Real Turkish Flag Video Background */}
-        <div className="absolute inset-x-0 top-0 h-[55vh] dark:bg-[#a00000] bg-gradient-to-br from-white via-red-50 to-red-100 pointer-events-none z-0 select-none overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-[55vh] md:h-[56vh] dark:bg-[#a00000] bg-gradient-to-br from-white via-red-50 to-red-100 pointer-events-none z-0 select-none overflow-hidden">
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -130,7 +130,7 @@ export default function Home() {
               loop
               muted
               playsInline
-              className="absolute inset-0 w-full h-full object-cover object-[50%_25%] scale-110 dark:brightness-100 brightness-[1.2] grayscale-[0.2]"
+              className="absolute inset-0 w-full h-full object-cover object-[50%_25%] scale-110 md:scale-105 dark:brightness-100 brightness-[1.2] grayscale-[0.2]"
             >
               <source src="/turkeyflag.mp4" type="video/mp4" />
             </video>
@@ -139,8 +139,8 @@ export default function Home() {
             <div className="absolute inset-0 opacity-10 cloth-shimmer" />
           </motion.div>
 
-          {/* Depth Overlays */}
-          <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[var(--bg)] to-transparent z-30" />
+          {/* Depth Overlays — Added -1px bottom to bleed over any sub-pixel gaps */}
+          <div className="absolute inset-x-0 bottom-[-2px] h-64 bg-gradient-to-t from-[var(--bg)] via-[var(--bg)]/80 to-transparent z-30" />
         </div>
 
       {/* ═══════════════ PERMIT ASSISTANT CONTENT ═══════════════ */}

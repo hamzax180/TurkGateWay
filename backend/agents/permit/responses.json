@@ -58,14 +58,19 @@
     "You'll need both a TAPDK licence and a Canlı Müzik İzni if you want music. Want me to include those in your roadmap?",
     "TAPDK approval is separate from your main business permit and adds significant time. Plan for 6–12 weeks total.",
     "Selling alcohol requires a TAPDK Belgesi — this is non-negotiable and must be displayed at your premises.",
-    "Alcohol licensing in Turkey is handled federally. Even if your municipality approves everything else, you still need TAPDK separately."
+    "Alcohol licensing in Turkey is handled federally. Even if your municipality approves everything else, you still need TAPDK separately.",
+    "One critical detail: your venue cannot be within a certain distance of schools, mosques, or hospitals. You'll need to verify this with your municipality BEFORE applying for TAPDK. Have you checked the surrounding area?",
+    "The TAPDK application requires your full operating licence (Ruhsat) to be issued first. So we need to finish the business permit process before we can even submit for alcohol. Shall we start the business permit first?",
+    "Fun fact: Turkey allows foreigners to hold TAPDK licenses, but the application must include criminal background checks for all shareholders. Are all your partners ready with that documentation?"
   ],
   "music": [
     "Live music requires a Canlı Müzik İzni from your district municipality. It's applied for separately from your general business permit.",
     "For recorded background music you may not need a special permit, but live performances always require a Canlı Müzik İzni.",
     "The live music permit is tied to your specific venue address. Moving locations means reapplying.",
     "Canlı Müzik İzni approval typically takes 2–4 weeks from the municipality. Want to start that process?",
-    "Some districts have noise ordinances that affect late-night live music. Which district are you in?"
+    "Some districts have noise ordinances that affect late-night live music. Which district are you in?",
+    "If you're planning to play music louder than 85 dB after 10pm, some municipalities require additional acoustic insulation proof. Is this a late-night venue?",
+    "DJ sets and amplified music often fall under the same permit as live performances — it's about volume, not whether it's live or recorded. Make sure to clarify this with your municipality."
   ],
   "steps": [
     "There are 14 key legal steps to open a business in Istanbul: Tax ID, legal type, company name, NACE code, articles of association, address, notarization, capital deposit, trade registry, bank account, tax office, municipal forms, accountant, and launch. Want details on any step?",
@@ -82,7 +87,10 @@
     "Cafes serving pastries or light food fall under municipal hygiene rules. Expect 30–60 days for full approval.",
     "If your cafe serves alcohol, a TAPDK Belgesi is mandatory regardless of size. Want that included in your roadmap?",
     "For a small cafe without a full kitchen the process is faster — usually 30–45 days. What district are you in?",
-    "Cafes also need a Gıda Sicil Belgesi (Food Registry) from the municipality. Want to see the full document list?"
+    "Cafes also need a Gıda Sicil Belgesi (Food Registry) from the municipality. Want to see the full document list?",
+    "The cafe scene in Istanbul is incredible — it's actually one of the most popular first businesses for entrepreneurs! 🧊 Water pipe (nargile) cafes have a completely separate set of regulations though. Is that your concept?",
+    "A specialty coffee roastery that also sells beverages needs TWO NACE codes — one for production and one for retail. This is a common mistake people make. Are you roasting on-site?",
+    "If your cafe will have outdoor seating (terrace), you'll need a separate 'Kaldırım İşgaliye' permit from the municipality for using public sidewalk space. Planning any outdoor tables?"
   ],
   "clothing": [
     "Clothing stores need an İşyeri Açma ve Çalışma Ruhsatı from the district municipality. Fire requirements are less strict than F&B businesses.",
@@ -172,5 +180,20 @@
     "Turkish citizens use their national ID number as their Tax ID automatically. Foreign nationals must visit a Vergi Dairesi in person with their passport. The whole thing takes under an hour and costs nothing — one of the easiest steps in the whole process!",
     "If you're in a hurry, you can often get your Tax ID at the 'İnteraktif Vergi Dairesi' online portal if you already have a temporary ID number (starting with 99). Would you like the link to that portal?",
     "Remember to bring a notarized translation of your passport if the Tax Office requires it — though many in Istanbul central districts (like Beyoğlu or Fatih) accept the original passport directly."
+  ],
+  "support": [
+    "🆘 I'm your dedicated permit and business advisor! Here's what I can help with:\n\n🏢 **Business Permits** — Opening any business type in Istanbul\n📄 **Documents** — Custom checklists per business type\n💰 **Costs** — Realistic budget breakdowns\n📍 **Location** — District-specific guidance\n⏱️ **Timelines** — Realistic processing estimates\n\nJust tell me what you need!",
+    "🆘 Need help navigating the Turkish business system? I specialize in:\n\n• Step-by-step permit roadmaps for any business\n• Document preparation and checklist generation\n• Municipality-specific advice for all 39 Istanbul districts\n• Cost estimates and timeline projections\n\nWhat's on your mind?",
+    "🆘 I'm here 24/7 to guide you through the entire permit process! Whether you're just dreaming about your business or already knee-deep in paperwork, I can help. What do you need assistance with?"
+  ],
+  "restaurant_typo": [
+    "For a restaurant you'll need the İtfaiye Uygunluk Raporu (fire safety) and Baca Uygunluğu (chimney inspection). Shall I walk you through all 14 steps?",
+    "Restaurants in Istanbul require fire compliance, municipal hygiene inspection, and a trade registry entry. The process takes 45–90 days. Ready for the step-by-step guide?",
+    "Opening a restaurant is exciting! 🍽️ The biggest hurdle will be the fire department and chimney sign-offs. What district are you looking at?"
+  ],
+  "cafe_typo": [
+    "A cafe has the same fire compliance requirements as a restaurant — you'll need an İtfaiye report and Baca certificate. Want me to generate the full checklist?",
+    "Cafes serving food follow municipal hygiene rules. Expect 30–60 days for approval. Which district are you opening in?",
+    "Love the cafe idea! ☕ Whether it's a specialty coffee shop or a pastry cafe, the core permits are similar. Shall we map out your roadmap?"
   ]
 }

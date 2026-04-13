@@ -70,7 +70,8 @@ If they ask about ID renewal or university deadlines (May-September), return a c
 - Business Type: ALWAYS exactly "Student"
 
 SCENARIO D - UNIVERSITY REGISTRATION (General):
-Ask if they are an incoming freshman, transfer student, or returning student (return a QuestionResponse). Once clarified, return a CombinedPermitResult.
+If the user says they want to register for university WITHOUT naming a specific university → ALWAYS return a QuestionResponse first. The FIRST question MUST be: "Which university are you looking to register at? 🎓 (e.g., Boğaziçi, METU, Istanbul University, Altınbaş, Koç…)". Do NOT generate a roadmap or steps until the user explicitly tells you the university name. Missing field: ['university_name'].
+Once the user provides the university name, THEN you may ask a follow-up (freshman / transfer / returning) if needed, or go straight to a CombinedPermitResult with that university's specific registration steps.
 """,
 )
 

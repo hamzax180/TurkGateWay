@@ -64,7 +64,7 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
   return (
     <>
     <header
-      className={`${isAppPage ? 'relative z-[20] w-full shrink-0' : 'fixed inset-x-0 top-0 z-[100]'} transition-all duration-300 ${scrolled 
+      className={`${isAppPage ? 'relative z-[20] w-full shrink-0 bg-[var(--surface)] border-b border-[var(--border)]/50' : 'fixed inset-x-0 top-0 z-[100] transition-all duration-300'} ${(isAppPage || scrolled) 
           ? 'bg-[var(--surface)]/70 backdrop-blur-md border-b border-[var(--border)]/50 shadow-sm' 
           : 'bg-transparent'
         }`}

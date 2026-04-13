@@ -93,6 +93,8 @@ def _n(key, lang):
 
 def _detect_type(business_type: str) -> str:
     bt = business_type.lower()
+    if "register_uni" in bt:
+        return "student_register_uni"
     if any(k in bt for k in ["student", "öğrenci", "university", "kimlik", "degree", "academic", "bachelor", "master", "phd", "college"]):
         return "student"
     # Lawyer sub-types — checked before generic 'lawyer'
@@ -657,12 +659,34 @@ def _steps_student_renew(lang):
               {"en":"Bring your pink folder (Insurance, Contract, Student Cert, Photos, and Receipt) to your university or Göç İdaresi.","tr":"Pembe dosyanızı (Sigorta, Sözleşme, Öğrenci Belgesi, Fotoğraflar ve Dekont) teslim edin.","ar":"أحضر المجلد الوردي (التأمين، العقد، شهادة الطالب، الصور، والإيصال) إلى الجامعة أو إدارة الهجرة."}[lang]),
     ]
 
+def _steps_student_register_uni(lang):
+    """University Registration / Enrollment — 5 professional steps."""
+    return [
+        (1,  {"en":"Obtain High School Equivalency (Denklik)","tr":"Lise Denklik Belgesi Al","ar":"الحصول على معادلة الثانوية (Denklik)"}[lang],
+              {"en":"Agent/Human","tr":"Ajan/İnsan","ar":"وكيل/بشري"}[lang],
+              {"en":"Required for all foreign students. Apply via e-Denklik system (edenklik.meb.gov.tr) and visit the Ministry of Education (MEB) or Embassy with your original diploma and transcripts.","tr":"Tüm yabancı öğrenciler için zorunludur. e-Denklik sisteminden başvurup orijinal diploma/transkript ile MEB'e gidin.","ar":"مطلوب لجميع الطلاب الأجانب. قدم عبر نظام e-Denklik وراجع وزارة التعليم مع الشهادة الأصلية."}[lang]),
+        (2,  {"en":"Prepare Registration Documents","tr":"Kayıt Belgelerini Hazırla","ar":"تجهيز مستندات التسجيل"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Compile your Acceptance Letter, original Passport + translated copy, Biometric Photos, High School Diploma (Apostilled/Translated), and your Equivalency Certificate.","tr":"Kabul Belgesi, Pasaport + Tercüme, Biometrik Fotoğraf, Lise Diploması (Apostilli) ve Denklik belgenizi hazırlayın.","ar":"اجمع خطاب القبول، الجواز الأصلي + نسخة مترجمة، صور بيومترية، الشهادة الأصلية، وشهادة المعادلة."}[lang]),
+        (3,  {"en":"Pay Tuition Fees","tr":"Harç Ücretlerini Yatır","ar":"دفع الرسوم الدراسية"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Transfer the first semester/year tuition fee to the university's official bank account using your Passport Number or Student ID as the reference. Obtain the stamped receipt.","tr":"Dönemlik/yıllık harcı üniversitenin resmi banka hesabına yatırıp dekont alın.","ar":"حوّل رسوم الفصل/السنة الأولى إلى الحساب البنكي للجامعة واحتفظ بالإيصال."}[lang]),
+        (4,  {"en":"Enroll in Person (Student Affairs)","tr":"Öğrenci İşlerine Bizzat Kayıt Ol","ar":"التسجيل شخصياً (شؤون الطلاب)"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Visit the campus Student Affairs Office (Öğrenci İşleri). Submit all physical documents and your tuition payment receipt. You will officially be enrolled in the system.","tr":"Öğrenci İşlerine gidip fiziksel belgelerinizi ve ödeme dekontunu teslim edin. Sisteme kaydınız yapılacaktır.","ar":"راجع مكتب شؤون الطلاب في الحرم الجامعي وسلم المستندات والإيصال ليتم تسجيلك رسمياً."}[lang]),
+        (5,  {"en":"Receive Student ID & Portal Access","tr":"Öğrenci Kimliği ve Sistem Erişimini Al","ar":"استلام البطاقة الجامعية وبوابة الطالب"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Get your physical Student ID card. You'll also receive login credentials for the University Portal (OBS) to choose your classes.","tr":"Öğrenci kimliğinizi alın. Ayrıca ders seçimi için OBS (Öğrenci Bilgi Sistemi) giriş bilgilerinizi alacaksınız.","ar":"استلم البطاقة الجامعية وبيانات الدخول لنظام الجامعة (OBS) لاختيار موادك الدراسية."}[lang]),
+    ]
+
+
 _BUILDERS = {
     "food":              _steps_food,
     "retail":            _steps_retail,
     "service":           _steps_service,
     "general":           _steps_general,
     "student":           _steps_student,
+    "student_register_uni": _steps_student_register_uni,
     "student_renew":     _steps_student_renew,
     "lawyer_contract":   _steps_lawyer_contract,
     "lawyer_company":    _steps_lawyer_company,

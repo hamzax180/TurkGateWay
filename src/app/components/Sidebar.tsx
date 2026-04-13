@@ -446,7 +446,7 @@ const SidebarInner = React.memo(({
               {showLabels && (
                 <span 
                   title={s.title}
-                  className={`text-sm tracking-tight truncate flex-1 pr-6 ${currentSessionId === s.id ? 'font-bold' : 'font-medium opacity-90'}`}
+                  className={`text-sm tracking-tight truncate flex-1 pr-8 ${currentSessionId === s.id ? 'font-bold' : 'font-medium opacity-90'}`}
                 >
                   {getDisplayTitle(s.title)}
                 </span>
@@ -458,7 +458,7 @@ const SidebarInner = React.memo(({
                     onDeleteSession(s.id);
                   }}
                   title={language === 'ar' ? 'حذف الدردشة' : language === 'tr' ? 'Sohbeti Sil' : 'Delete Chat'}
-                  className="absolute right-3 opacity-0 group-hover:opacity-100 p-1.5 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                  className={`absolute right-3 p-1.5 rounded-lg transition-all hover:text-red-500 hover:bg-red-500/10 ${isMobile ? 'opacity-100 text-[var(--muted)]' : 'opacity-0 group-hover:opacity-100'}`}
                 >
                   <Trash2 size={16} />
                 </button>

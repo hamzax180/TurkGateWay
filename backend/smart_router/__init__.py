@@ -125,11 +125,11 @@ _NEW_CONSULTATION_PATTERNS = [
     r"\b(renew|replace).{1,15}(id|kimlik|student id)\b",
 ]
 
-# Meta-questions about the system or process that should ALWAYS go to AI orchestrator
+# Meta-questions about the system or process that should go to AI orchestrator
+# NOTE: These only trigger if NO keyword match is found first.
 _META_QUERY_PATTERNS = [
-    r"\b(information|details|explain|how does|what is|tell me more|help me with|question about|step [0-9]|understand)\b",
+    r"\b(information|details|explain|tell me more|help me with|question about|step [0-9]|understand)\b",
     r"\b(where is the dashboard|how it works)\b",
-    r"\?",
 ]
 
 _ISOLATED_ANSWER_PATTERNS = [
@@ -162,18 +162,18 @@ _ALL_BUSINESS_TYPES = [
 ]
 
 _UNI_MAP = {
-    "boğaziçi": "Boğaziçi University", "bogazici": "Boğaziçi University",
+    "boğaziçi": "Boğaziçi University", "bogazici": "Boğaziçi University", "boğaziçi uni": "Boğaziçi University", "boğaziçi üni": "Boğaziçi University",
     "metu": "METU (ODTÜ)", "odtü": "METU (ODTÜ)", "odtu": "METU (ODTÜ)",
-    "istanbul university": "Istanbul University", "istanbul üniversitesi": "Istanbul University",
-    "itü": "İTÜ (Istanbul Technical)", "itu": "İTÜ (Istanbul Technical)", "istanbul teknik": "İTÜ (Istanbul Technical)",
-    "hacettepe": "Hacettepe University",
-    "koç": "Koç University", "koc": "Koç University",
-    "sabancı": "Sabancı University", "sabanci": "Sabancı University",
-    "bilkent": "Bilkent University",
-    "ankara university": "Ankara University", "ankara üniversitesi": "Ankara University",
-    "ege university": "Ege University", "ege üniversitesi": "Ege University",
-    "altınbaş": "Altınbaş University", "altinbas": "Altınbaş University",
-    "بوغازيتشي": "Boğaziçi University", "الشرق الأوسط": "METU (ODTÜ)", "إسطنبول": "Istanbul University",
+    "istanbul university": "Istanbul University", "istanbul üniversitesi": "Istanbul University", "istanbul uni": "Istanbul University", "istanbul üni": "Istanbul University", "istanbul": "Istanbul University",
+    "itü": "İTÜ (Istanbul Technical)", "itu": "İTÜ (Istanbul Technical)", "istanbul teknik": "İTÜ (Istanbul Technical)", "istanbul technical": "İTÜ (Istanbul Technical)",
+    "hacettepe": "Hacettepe University", "hacettepe uni": "Hacettepe University", "hacettepe üni": "Hacettepe University",
+    "koç": "Koç University", "koc": "Koç University", "koç uni": "Koç University", "koç üni": "Koç University",
+    "sabancı": "Sabancı University", "sabanci": "Sabancı University", "sabancı uni": "Sabancı University", "sabancı üni": "Sabancı University",
+    "bilkent": "Bilkent University", "bilkent uni": "Bilkent University", "bilkent üni": "Bilkent University",
+    "ankara university": "Ankara University", "ankara üniversitesi": "Ankara University", "ankara uni": "Ankara University", "ankara üni": "Ankara University", "ankara": "Ankara University",
+    "ege university": "Ege University", "ege üniversitesi": "Ege University", "ege uni": "Ege University", "ege üni": "Ege University", "ege": "Ege University",
+    "altınbaş": "Altınbaş University", "altinbas": "Altınbaş University", "altınbaş uni": "Altınbaş University", "altınbaş üni": "Altınbaş University",
+    "بوغازيتشي": "Boğaziçi University", "الشرق الأوسط": "METU (ODTÜ)", "إسطنبول": "Istanbul University", "جامعة إسطنبول": "Istanbul University",
     "كوتش": "Koç University", "سابانجي": "Sabancı University", "بيلكنت": "Bilkent University", 
     "أنقرة": "Ankara University", "حاجيتيبه": "Hacettepe University", "ألتن باش": "Altınbaş University"
 }
@@ -276,6 +276,60 @@ async def smart_router_handle(
             await wait_task
             return prompt
 
+    # --- PHASE 0.5b: Contextual University Reply ---
+    # If the bot just asked "which university?" and the user replied with a name,
+    # resolve it and fast-path into the registration roadmap — no AI needed.
+    _was_asking_uni = any(marker in last_assistant_msg for marker in [
+        "which university are you looking to register", "hangi üniversiteye kayıt",
+        "في أي جامعة تريد التسجيل", "which university are you targeting",
+        "type the name", "please type the name"
+    ])
+    if _was_asking_uni and assistant_type == "student":
+        # Try exact match first
+        _reply_uni = None
+        for key, val in _UNI_MAP.items():
+            if key in lower_q:
+                _reply_uni = val
+                break
+        # Fuzzy match as fallback (e.g. "altinbas" → "altınbaş")
+        if not _reply_uni:
+            for key, val in _UNI_MAP.items():
+                if len(key) >= 4 and _fuzzy_match(lower_q.strip(), [key], threshold=0.72):
+                    _reply_uni = val
+                    break
+                # Also try word-by-word for multi-word replies
+                for word in lower_q.split():
+                    if len(word) >= 4 and _fuzzy_match(word, [key], threshold=0.72):
+                        _reply_uni = val
+                        break
+                if _reply_uni:
+                    break
+        if _reply_uni:
+            # Resume the registration roadmap for this university
+            from models.schemas import PermitState, CombinedPermitResult, ExecutionPlan, StepDetail, PermitPlan
+            from utils.protocol import get_localized_steps
+            from datetime import datetime
+            deadline_info = _UNI_DEADLINES.get(_reply_uni, {}).get(language, "August")
+            prompt_summ = {
+                "en": f"Perfect! 🎓 Here's your complete registration roadmap for **{_reply_uni}**! The general registration window is around **{deadline_info}**.",
+                "tr": f"Harika! 🎓 **{_reply_uni}** için kayıt yol haritanı hazırladım! Genel kayıt dönemi yaklaşık **{deadline_info}**.",
+                "ar": f"ممتاز! 🎓 إليك خارطة طريق التسجيل الكاملة لجامعة **{_reply_uni}**! نافذة التسجيل العامة تكون حول **{deadline_info}**."
+            }.get(language, f"Perfect! 🎓 Here's your registration roadmap for **{_reply_uni}**!")
+            _bt = "student.register_uni"
+            step_specs = get_localized_steps(language, _bt)
+            details = [StepDetail(id=id_val, title=title, responsible=resp, status="pending", notes=note) for id_val, title, resp, note in step_specs]
+            steps_list = [title for id_val, title, resp, note in step_specs]
+            labels = {"en": {"ag": "Key Institutions", "dc": "Essential Documents", "st": "Registration Steps"}, "tr": {"ag": "Kurumlar", "dc": "Gerekli Belgeler", "st": "Kayıt Adımları"}, "ar": {"ag": "المؤسسات", "dc": "المستندات المطلوبة", "st": "خطوات التسجيل"}}.get(language, {"ag": "Agencies", "dc": "Docs", "st": "Steps"})
+            agencies = ["University Registrar", "Portal / OBS", "MEB (Denklik)"]
+            docs = ["Admission Letter", "Passport", "Original Diploma", "Apostille", "Photos"]
+            combined = CombinedPermitResult(permits=[f"{_reply_uni} Registration"], agencies=agencies, documents=docs, steps=steps_list, timeline_days=15, summary=prompt_summ, location=_reply_uni, business_type=_bt)
+            state = PermitState(business_profile={"raw_query": query, "language": language, "university": _reply_uni}, combined_result=combined, permit_plan=PermitPlan(permits=[_reply_uni], agencies=agencies, documents=docs), execution_plan=ExecutionPlan(steps=details, assigned_agents=["Student Advisor"]), last_updated=datetime.now())
+            out_str = f"💬 {prompt_summ}\n\n📋 **{labels['ag']}:** {', '.join(agencies)}\n📄 **{labels['dc']}:** {', '.join(docs)}\n✅ **{labels['st']}:**\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps_list))
+            dashboard_dump = state.model_dump()
+            if hasattr(dashboard_dump.get("last_updated"), "isoformat"): dashboard_dump["last_updated"] = dashboard_dump["last_updated"].isoformat()
+            await wait_task
+            return out_str, dashboard_dump
+
     user_blocks = re.findall(r"\[user\]:([\s\S]*?)(?=\[assistant\]:|\[user\]:|-{5,}|$)", history_text.lower())
     user_history_text = " ".join(b.strip() for b in user_blocks)
     combined_context = f"{user_history_text} {query}".lower()
@@ -283,7 +337,8 @@ async def smart_router_handle(
     last_assistant_msg = history_text.lower().split("[assistant]:")[-1] if "[assistant]:" in history_text.lower() else ""
     is_clarifying = any(k in last_assistant_msg for k in [
         "what type of business", "hangi tür işletme", "ما هو نوع العمل",
-        "which district", "hangi ilçesinde", "في أي منطقة"
+        "which district", "hangi ilçesinde", "في أي منطقة",
+        "which university", "hangi üniversite", "في أي جامعة"
     ])
     
     has_relevant_kw = any(w in query.lower() for w in [
@@ -300,17 +355,38 @@ async def smart_router_handle(
         if fuzzy_district_match or fuzzy_business_match:
             has_relevant_kw = True
     
-    # --- PHASE 0: Meta-Query Bypass ---
-    # If the user is asking a complex question about the system or process,
-    # skip the canned response and let the full AI orchestrator handle it.
-    if _META_QUERY_RE.search(query) and len(query.split()) > 3:
-        print(f"[SmartRouter] Meta-query detected ('{query[:20]}...'). Bypassing for AI orchestrator.")
+    # --- PHASE 0: Early Keyword Detection ---
+    # Run keyword detection BEFORE meta-query bypass so that queries with
+    # strong local matches (e.g. "what documents do I need?") get served locally.
+    early_intent_group, early_sub_intent, early_confidence = detect_intent(query, assistant_type)
+    
+    # --- PHASE 0.5b: Meta-Query Bypass (only if NO keyword match) ---
+    # If the user is asking a complex question that has no local keyword match,
+    # let the full AI orchestrator handle it.
+    if early_confidence == 0 and _META_QUERY_RE.search(query) and len(query.split()) > 4:
+        print(f"[SmartRouter] Meta-query detected with no keyword match ('{query[:30]}...'). Bypassing for AI orchestrator.")
         return None
 
     if _NEW_CONSULTATION_RE.search(query) or _ISOLATED_ANSWER_RE.match(query) or (is_clarifying and has_relevant_kw):
         from models.schemas import PermitState, CombinedPermitResult, ExecutionPlan, StepDetail, PermitPlan
         from utils.protocol import get_localized_steps
         from datetime import datetime
+
+        # ── GATE: Topic Shift Protection ──
+        # If the user asks for a new consultation but they already have a full roadmap 
+        # in the current chat, ask them to open a New Chat so they don't overwrite it.
+        # We check last_assistant_msg length because boilerplate (steps/checkmarks) is stripped by backend.
+        has_completed_roadmap = bool(last_assistant_msg and len(last_assistant_msg) > 30 and not is_clarifying)
+        
+        if _NEW_CONSULTATION_RE.search(query) and has_completed_roadmap:
+            msg = {
+                "en": "REDIRECT_NEW_CHAT: ⚠️ It looks like you want to start a new procedure! Opening a **New Chat** automatically to keep your current progress safe...",
+                "tr": "REDIRECT_NEW_CHAT: ⚠️ Görünüşe göre yeni bir işleme başlamak istiyorsun! Mevcut çalışma alanını kaybetmemek için otomatik olarak **Yeni Sohbet** açılıyor...",
+                "ar": "REDIRECT_NEW_CHAT: ⚠️ يبدو أنك تريد بدء إجراء جديد! جاري فتح **دردشة جديدة** تلقائياً للحفاظ على تقدمك الحالي في أمان..."
+            }.get(language, "REDIRECT_NEW_CHAT: Opening a New Chat for this procedure.")
+            await wait_task
+            return msg
+        # ──────────────────────────────────
 
         if assistant_type == "permit":
             _BUSINESS_KEYWORDS = [
@@ -517,11 +593,27 @@ async def smart_router_handle(
             # Check for specific University deadline first
             found_uni = None
             for key, val in _UNI_MAP.items():
-                if key in query.lower():
+                if key in query.lower() or key in user_history_text:
                     found_uni = val
                     break
             
-            if found_uni:
+            # ── GATE: No university named yet → ask which one FIRST ──────────
+            # Only applies to registration-type queries (not ikamet/ID renewal).
+            is_renew_check = any(w in query.lower() for w in ["renew", "replace", "uzat", "تجديد", "ikamet", "kimlik", "residence"])
+            if not found_uni and not is_renew_check:
+                # Check if the intent is clearly about registration / enrolling
+                reg_keywords = ["register", "enroll", "enrol", "registration", "enrollment", "kayıt", "yöks", "تسجيل", "قبول", "i want to register", "before deadline", "deadline"]
+                if any(kw in query.lower() for kw in reg_keywords):
+                    which_uni_msg = {
+                        "en": "🎓 Of course! Before I build your roadmap, could you tell me: **Which university are you looking to register at?**\n\n(e.g., Boğaziçi, METU, Istanbul University, Koç, Altınbaş…)",
+                        "tr": "🎓 Tabii ki! Sana özel bir yol haritası hazırlayabilmem için önce şunu söyler misin: **Hangi üniversiteye kayıt yaptırmak istiyorsun?**\n\n(örn. Boğaziçi, ODTÜ, İstanbul Üniversitesi, Koç, Altınbaş…)",
+                        "ar": "🎓 بكل سرور! قبل أن أعد لك خريطة الطريق، أخبرني: **في أي جامعة تريد التسجيل؟**\n\n(مثلاً: بوغازيتشي، ODTÜ، جامعة إسطنبول، كوتش، ألتن باش…)"
+                    }.get(language, "🎓 Of course! **Which university are you looking to register at?** (e.g., Boğaziçi, METU, Istanbul University…)")
+                    await wait_task
+                    return which_uni_msg
+            # ─────────────────────────────────────────────────────────────────
+
+            if found_uni and not is_renew_check:
                 deadline_info = _UNI_DEADLINES.get(found_uni, {}).get(language, "August")
                 prompt_summ = {
                     "en": f"Found it! 🎓 The deadline for **{found_uni}** is **{deadline_info}**. I've also generated your step-by-step registration roadmap in the dashboard!",
@@ -640,7 +732,8 @@ async def smart_router_handle(
         await wait_task
         return out_str, dashboard_dump
 
-    intent_group, sub_intent, confidence = detect_intent(query, assistant_type)
+    # Re-use the early detection results instead of re-running detect_intent
+    intent_group, sub_intent, confidence = early_intent_group, early_sub_intent, early_confidence
     if confidence > 0:
         if intent_group == "redirect":
             target_agent, target_sub_intent = sub_intent.split(":", 1) if sub_intent and ":" in sub_intent else (sub_intent, None)
@@ -653,6 +746,19 @@ async def smart_router_handle(
             raw_response = f"*( {suffix} )*"
         else:
             raw_response = None
+            # ── GATE: student.register_uni without a named university ─────────
+            if assistant_type == "student" and sub_intent == "register_uni":
+                _found_uni_kw = any(k in query.lower() or k in user_history_text for k in _UNI_MAP)
+                _is_renew_kw = any(w in query.lower() for w in ["renew", "replace", "uzat", "تجديد", "ikamet", "kimlik", "residence"])
+                if not _found_uni_kw and not _is_renew_kw:
+                    which_uni_msg = {
+                        "en": "🎓 Of course! Before I build your roadmap, could you tell me: **Which university are you looking to register at?**\n\n(e.g., Boğaziçi, METU, Istanbul University, Koç, Altınbaş…)",
+                        "tr": "🎓 Tabii ki! Sana özel bir yol haritası hazırlayabilmem için önce şunu söyler misin: **Hangi üniversiteye kayıt yaptırmak istiyorsun?**\n\n(örn. Boğaziçi, ODTÜ, İstanbul Üniversitesi, Koç, Altınbaş…)",
+                        "ar": "🎓 بكل سرور! قبل أن أعد لك خريطة الطريق، أخبرني: **في أي جامعة تريد التسجيل؟**\n\n(مثلاً: بوغازيتشي، ODTÜ، جامعة إسطنبول، كوتش، ألتن باش…)"
+                    }.get(language, "🎓 Of course! **Which university are you looking to register at?** (e.g., Boğaziçi, METU, Istanbul University…)")
+                    await wait_task
+                    return which_uni_msg
+            # ─────────────────────────────────────────────────────────────────
             if _RAG_AVAILABLE and sub_intent:
                 try:
                     import asyncio

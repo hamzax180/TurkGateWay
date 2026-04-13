@@ -343,7 +343,10 @@ export default function ChatPage() {
   if (!isLoaded) return <LoadingScreen />;
 
   return (
-    <div className="flex h-screen overflow-hidden selection:bg-purple-500/30 relative bg-gradient-to-tr from-white via-[#f0f7ff] to-[#f5f3ff] dark:deep-mesh transition-colors duration-500">
+    <div className="flex h-screen overflow-hidden selection:bg-purple-500/30 relative bg-white dark:bg-black transition-colors duration-500">
+      {/* Dynamic Backgrounds */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-white via-[#f0f7ff] to-[#f5f3ff] dark:hidden pointer-events-none transition-colors duration-500" />
+      <div className="absolute inset-0 hidden dark:block dark:deep-mesh pointer-events-none transition-colors duration-500" />
       <Sidebar
         currentSessionId={sessionId}
         assistantType={assistantType}

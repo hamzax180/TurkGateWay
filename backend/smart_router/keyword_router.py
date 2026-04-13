@@ -123,12 +123,12 @@ INTENT_MAP = {
     ],
 
     "permit.how_to_start": [
-        r"\b(how (do i|to) (start|open|begin|register|set up)|starting a business|open a business|open my business)\b",
-        r"\b(i want to (open|start|register|set up)|what business (do i|you) want|obtain a business permit|i want to obtain)\b",
-        r"\b(what business|which business|type of business|hangi i[şs]|ne i[şs]|nasıl başlarım|is kurmak|iş kurmak)\b",
+        r"\b(how (do i|to) (start|open|begin|register|set up)|starting a business|open a business|open my business|new business|open business)\b",
+        r"\b(i want to (open|start|register|set up)|what business (do i|you) want|obtain a business permit|i want to obtain|get permits)\b",
+        r"\b(what business|which business|type of business|hangi i[şs]|ne i[şs]|nasıl başlarım|is kurmak|iş kurmak|işletme aç|izin al)\b",
         r"^(what permit do you want\??)$",
         r"^(what business (you|do you) want to open\??)$",
-        r"(كيف أبدأ|اريد فتح|أريد فتح|كيف افتح|فتح محل|فتح شركة(?! استشارات)|كيف أبدا|تأسيس|أريد تأسيس|انشاء شركة|بدء مشروع|ودي افتح|ما هو التصريح الذي تريده|التصريح الذي تريده|اي تصريح|أي تصريح|وش التصريح|شنو التصريح|نوع التصريح)"
+        r"(كيف أبدأ|اريد فتح|أريد فتح|كيف افتح|فتح محل|فتح شركة(?! استشارات)|كيف أبدا|تأسيس|أريد تأسيس|انشاء شركة|بدء مشروع|ودي افتح|فتح عمل|الحصول على تصريح)"
     ],
     "permit.documents": [
         r"\b(what documents|required docs|document(s)? needed|paperwork|what do i need to bring|belge|what do i need|evrak|gerekli belgeler)\b",
@@ -137,28 +137,28 @@ INTENT_MAP = {
         r"(المستندات|الوثائق|الاوراق|الأوراق المطلوبة|ماذا احتاج|المطلوب|ايش الاوراق|شنو الاوراق|ايش المطلوب|شنو المطلوب)"
     ],
     "permit.cost": [
-        r"\b(how much|cost|price|fee(s)?|payment|expensive|affordable|budget|maliy(et)?|ne kadar|kaç (lira|tl|para)|ücret)\b",
+        r"\b(how much|cost|price|fee(s)?|payment|expensive|affordable|budget|maliy(et)?|maliyetler|ne kadar|kaç (lira|tl|para)|ücret|costs)\b",
         r"\b(does it cost|permit cost|permit fee|registration (fee|cost)|total cost)\b",
         r"^(how much does it cost\??)$",
-        r"(كم التكلفة|كم السعر|الرسوم|التكلفة|كم يكلف|بكم|تكاليف|رسوم الرخصة|كم ادفع)"
+        r"(كم التكلفة|كم السعر|الرسوم|التكلفة|كم يكلف|بكم|تكاليف|رسوم الرخصة|كم ادفع|التكاليف)"
     ],
     "permit.location": [
-        r"\b(where (is|are)|location|district|belediye|which (district|area|municipality)|located in|where do i go|nerede|hangi ilçe)\b",
+        r"\b(where (is|are)|location|district|belediye|which (district|area|municipality)|located in|where do i go|nerede|hangi ilçe|ilçe kuralları)\b",
         r"\b(besiktas|kadikoy|sisli|uskudar|fatih|beyoglu|bakirkoy|zeytinburnu|sariyer|beyo[gğ]lu|be[sş]ikta[sş])\b",
         r"^(where is your business located\??)$",
-        r"(اين|أين|موقع|اي بلدية|أي منطقة|وين|في أي منطقة|مكانكم|وين موجودين)"
+        r"(اين|أين|موقع|اي بلدية|أي منطقة|وين|في أي منطقة|مكانكم|وين موجودين|قواعد المنطقة)"
     ],
     "permit.how_it_works": [
-        r"\b(how does it work|how (does|do) (the )?(process|system|permit|it)|explain|overview|what is|tell me about|nasıl çalışıyor|süreç nedir)\b",
-        r"\b(how it works|what happens|what (is|are) the|process overview|general (info|guide|overview))\b",
+        r"\b(how does it work|how it works|how (does|do) (the )?(process|system|permit|it)|explain|overview|what is|tell me about|nasıl çalışıyor|nasıl çalışır)\b",
+        r"\b(what happens|what (is|are) the|process overview|general (info|guide|overview)|process guide)\b",
         r"^(how does it work\??)$",
         r"(كيف يعمل|اشرح لي|كيف تعمل|كيف تتم العملية|ما هو الإجراء|كيف النظام|طريقة العمل|شلون الطريقة|كيف الإجراء|وش النظام)"
     ],
     "permit.timeline": [
-        r"\b(how long|timeline|time frame|when will|how many days|duration|takes (how|long)|ne kadar s[üu]r|kaç gün)\b",
+        r"\b(how long|timeline|timelines|time frame|when will|how many days|duration|takes (how|long)|ne kadar s[üu]r|kaç gün|süreler)\b",
         r"\bHow long does it take\b",
         r"^(how long does it take\??)$",
-        r"(كم يستغرق|كم يوم|المدة|كم يأخذ وقت|متى يخلص|كم من الوقت|متى بتخلص|متى تجهز|وش كثر تاخذ)"
+        r"(كم يستغرق|كم يوم|المدة|كم يأخذ وقت|متى يخلص|كم من الوقت|متى بتخلص|متى تجهز|الجداول الزمنية)"
     ],
     "permit.alcohol": [
         r"\b(alcohol|tapdk|liquor|wine|beer|bar|spirits|drinks? permit)\b",
