@@ -836,7 +836,7 @@ export default function Dashboard() {
                                   <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}>
                                     <Cpu size={10} className="text-red-500" />
                                   </motion.div>
-                                  <span className="text-[10px] font-black uppercase tracking-widest text-red-500">AGENT</span>
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-red-500">{t('agent_badge')}</span>
                                 </div>
                               ) : (
                                 <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
@@ -1046,9 +1046,12 @@ export default function Dashboard() {
                   </span>
                 </div>
                 <div className="space-y-3">
-                  {(data?.execution_plan?.assigned_agents?.length > 0 ? data.execution_plan.assigned_agents : ['Permit Agent', 'Student Agent', 'Lawyer Agent']).map((name: string, i: number) => {
-                    const isActive = data?.execution_plan?.assigned_agents?.some((a: any) => a.toLowerCase().includes(name.toLowerCase().split(' ')[0]));
-                    const type = name.toLowerCase().includes('student') ? 'student' : (name.toLowerCase().includes('lawyer') || name.toLowerCase().includes('legal') || name.toLowerCase().includes('law')) ? 'lawyer' : 'permit';
+                  {(data?.execution_plan?.assigned_agents?.length > 0 ? data.execution_plan.assigned_agents : ['permit', 'student', 'lawyer']).map((agent_id: string, i: number) => {
+                    // Extract the base type if it comes from the execution plan (e.g., "Permit Agent" -> "permit")
+                    const type = agent_id.toLowerCase().includes('student') ? 'student' : (agent_id.toLowerCase().includes('lawyer') || agent_id.toLowerCase().includes('legal') || agent_id.toLowerCase().includes('law')) ? 'lawyer' : 'permit';
+                    
+                    const isActive = data?.execution_plan?.assigned_agents?.some((a: any) => a.toLowerCase().includes(type));
+                    const displayName = `${t(`assistant_${type}`)} ${t('agent_badge')}`;
                     
                     return (
                       <div 
@@ -1060,15 +1063,15 @@ export default function Dashboard() {
                           <Cpu size={14} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-[14px] font-bold ${isActive ? 'text-[var(--text)]' : 'text-[var(--muted)]'}`}>{name}</p>
+                          <p className={`text-[14px] font-bold ${isActive ? 'text-[var(--text)]' : 'text-[var(--muted)]'}`}>{displayName}</p>
                           <p className="text-[11px] text-[var(--muted)] font-medium truncate">{t('dashboard_agent_status')}</p>
                         </div>
                         <div className="flex flex-col items-end">
                            <span className={`text-[9px] font-black uppercase tracking-widest group-hover:hidden transition-colors ${isActive ? 'text-red-500' : 'text-[var(--muted)] opacity-50'}`}>
-                             {isActive ? t('dashboard_running') : 'STOPPED'}
+                             {isActive ? t('dashboard_running') : t('dashboard_stopped') || 'STOPPED'}
                            </span>
                            <span className={`hidden group-hover:block text-[9px] font-black uppercase tracking-widest text-red-600 animate-pulse`}>
-                             SWITCH →
+                             {t('chat_switch_assistant')} →
                            </span>
                         </div>
                       </div>
