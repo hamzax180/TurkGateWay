@@ -149,10 +149,10 @@ INTENT_MAP = {
         r"(اين|أين|موقع|اي بلدية|أي منطقة|وين|في أي منطقة|مكانكم|وين موجودين|قواعد المنطقة)"
     ],
     "permit.how_it_works": [
-        r"\b(how does it work|how it works|how (does|do) (the )?(process|system|permit|it)|explain|overview|what is|tell me about|nasıl çalışıyor|nasıl çalışır)\b",
-        r"\b(what happens|process overview|general (info|guide|overview)|process guide)\b",
+        r"\b(how does it work|how it works|how (does|do) (the )?(process|system|permit|it) work|explain the process|process overview|nasıl çalışıyor|nasıl çalışır)\b",
+        r"\b(process overview|general (info|guide|overview)|process guide)\b",
         r"^(how does it work\??)$",
-        r"(كيف يعمل|اشرح لي|كيف تعمل|كيف تتم العملية|ما هو الإجراء|كيف النظام|طريقة العمل|شلون الطريقة|كيف الإجراء|وش النظام)"
+        r"(كيف يعمل|اشرح لي العملية|كيف تعمل|كيف تتم العملية|ما هو الإجراء|كيف النظام|طريقة العمل|شلون الطريقة|كيف الإجراء|وش النظام)"
     ],
     "permit.timeline": [
         r"\b(how long|timeline|timelines|time frame|when will|how many days|duration|takes (how|long)|ne kadar s[üu]r|kaç gün|süreler)\b",
