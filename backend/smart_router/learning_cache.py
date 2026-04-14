@@ -81,8 +81,7 @@ def _get_response_file(agent: str, language: str) -> str:
 
 def _get_learned_file(agent: str, language: str) -> str:
     """Return the path to the agent's learned JSON file for a given language."""
-    suffix = f"_{language}" if language != "en" else ""
-    return os.path.join(_AGENTS_DIR, agent, f"learned{suffix}.json")
+    return os.path.join(_AGENTS_DIR, agent, "learned", f"{language}.json")
 
 
 def _load_json(filepath: str) -> dict:

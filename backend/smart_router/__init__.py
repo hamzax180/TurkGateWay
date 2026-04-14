@@ -81,7 +81,7 @@ for lang in ["en", "ar", "tr"]:
 
         # Load learned responses from separate learned.json files
         for agent in ["permit", "student", "lawyer"]:
-            learned_file = os.path.join(_AGENTS_DIR, agent, f"learned{suffix}.json")
+            learned_file = os.path.join(_AGENTS_DIR, agent, "learned", f"{lang}.json")
             if os.path.exists(learned_file):
                 with open(learned_file, "r", encoding="utf-8") as f:
                     learned_data = json.load(f)
