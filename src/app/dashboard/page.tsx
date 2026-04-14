@@ -766,76 +766,96 @@ export default function Dashboard() {
           <div className="grid lg:grid-cols-12 gap-5">
 
             {/* Workflow Steps */}
-            <div className="lg:col-span-8 space-y-2 min-w-0">
-              <div className="flex items-center justify-between px-2 mb-2">
-              <div className="flex flex-col items-center justify-center mb-10 text-center">
-                <h2 className="text-2xl md:text-3xl font-bold tracking-[0.2em] uppercase bg-gradient-to-r from-[var(--text)] via-[var(--text)] to-[var(--muted)] bg-clip-text text-transparent drop-shadow-sm">
-                  {t('dashboard_roadmap') || 'ROADMAP'}
-                </h2>
-                <div className="h-1 w-20 bg-gradient-to-r from-red-500 to-transparent rounded-full mt-2" />
-              </div>
-                <div className="flex items-center gap-4 text-[11px] font-bold uppercase tracking-[0.15em] text-[var(--muted)]">
-                   <div className="flex items-center gap-1.5"><div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" /> DONE</div>
-                   <div className="flex items-center gap-1.5"><div className="h-1.5 w-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" /> ACTIVE</div>
+            <div className="lg:col-span-8 space-y-4 min-w-0">
+              <div className="flex flex-col md:flex-row md:items-end justify-between px-4 mb-6">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.1)]">
+                      <FileText size={20} className="text-red-500" />
+                    </div>
+                    <h2 className="text-xl md:text-2xl font-black tracking-[0.15em] uppercase bg-gradient-to-r from-[var(--text)] via-[var(--text)] to-[var(--muted)] bg-clip-text text-transparent drop-shadow-sm font-[Outfit]">
+                      {t('dashboard_workflow_steps') || 'WORKFLOW STEPS'}
+                    </h2>
+                  </div>
+                  <div className="h-1 w-32 bg-gradient-to-r from-red-500 via-red-500/50 to-transparent rounded-full" />
+                </div>
+                
+                <div className="flex items-center gap-5 mt-4 md:mt-0 p-2.5 px-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-[var(--border)] backdrop-blur-md shadow-inner">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[var(--muted)]">{t('status_completed') || 'DONE'}</span>
+                  </div>
+                  <div className="h-4 w-px bg-[var(--border)]" />
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[var(--muted)]">{t('status_in_progress') || 'ACTIVE'}</span>
+                  </div>
                 </div>
               </div>
-              {(showAllSteps && data?.subscription_status === 'active' ? steps : steps.slice(0, 3)).map((s, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -14 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05, ease: 'easeOut', duration: 0.35 }}
-                  onClick={() => setExpanded(expanded === i ? null : i)}
-                  className={`glow-card bg-[var(--surface)] border border-[var(--border)] rounded-[28px] cursor-pointer group transition-all relative z-10 ${
-                    expanded === i ? 'ring-2 ring-indigo-500/20 bg-[var(--surface-1)] shadow-2xl' : 'hover:bg-[var(--surface-2)] shadow-sm'
-                  } ${
-                    s.status === 'completed'   ? 'step-card-completed' :
-                    s.status === 'in-progress' ? 'step-card-inprogress' :
-                                                 'step-card-pending'
-                  }`}
-                >
-                  <div className="p-5 flex items-start gap-5">
-                    <div className="shrink-0 relative">
-                      <div className={`step-num h-9 w-9 !text-[12px] !font-bold !rounded-xl !bg-[var(--surface-2)] !border-[var(--border)] transition-all ${
-                        s.status === 'completed'   ? 'step-num-completed shadow-lg shadow-emerald-500/20 !bg-emerald-500 !text-white' : 
-                        s.status === 'in-progress' ? 'step-num-inprogress shadow-lg shadow-purple-500/20 !bg-purple-500 !text-white' :
-                        expanded === i ? '!bg-indigo-500 !text-white' : ''
-                      }`}>
-                        {s.status === 'completed' ? <Check size={18} /> : i + 1}
-                      </div>
-                    </div>
 
-                    <div className="flex-1 min-w-0 pt-1">
-                      <div className="flex items-center justify-between mb-1.5 gap-2">
-                        <h3 className={`text-[15px] font-bold tracking-tight truncate pr-4 transition-colors uppercase ${expanded === i ? 'text-indigo-500' : 'text-[var(--text)]'}`}>
-                          {s.title}
-                        </h3>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {(s.responsible.includes('Agent') || s.responsible.includes('Ajan') || s.responsible.includes('وكيل')) ? (
-                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)] group">
-                              <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}>
-                                <Cpu size={10} className="text-red-500" />
-                              </motion.div>
-                              <span className="text-[10px] font-bold uppercase tracking-widest text-red-500">AGENT</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
-                              <User size={10} className="text-blue-500" />
-                              <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500">HUMAN</span>
-                            </div>
-                          )}
-                          <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border shadow-sm backdrop-blur-md transition-all ${
-                            s.status === 'completed'
-                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500 shadow-emerald-500/5'
-                              : 'bg-amber-500/10 border-amber-500/20 text-amber-500 shadow-amber-500/5'
+              <div className="relative space-y-4">
+                {(showAllSteps && data?.subscription_status === 'active' ? steps : steps.slice(0, 3)).map((s, i) => (
+                  <div key={i} className="relative">
+                    {/* Timeline Connector Line */}
+                    {i < ((showAllSteps && data?.subscription_status === 'active' ? steps : steps.slice(0, 3)).length - 1) && (
+                      <div className={`workflow-connector ${s.status === 'completed' ? 'workflow-connector-done' : s.status === 'in-progress' ? 'workflow-connector-active' : ''}`} />
+                    )}
+
+                    <motion.div
+                      initial={{ opacity: 0, x: -14 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05, ease: 'easeOut', duration: 0.35 }}
+                      onClick={() => setExpanded(expanded === i ? null : i)}
+                      className={`glow-card bg-[var(--surface)] border border-[var(--border)] rounded-[28px] cursor-pointer group transition-all relative z-10 ${
+                        expanded === i ? 'ring-2 ring-indigo-500/20 bg-[var(--surface-1)] shadow-2xl' : 'hover:bg-[var(--surface-2)] shadow-sm'
+                      } ${
+                        s.status === 'completed'   ? 'step-card-completed' :
+                        s.status === 'in-progress' ? 'step-card-inprogress' :
+                                                    'step-card-pending'
+                      }`}
+                    >
+                      <div className="p-5 flex items-start gap-6">
+                        <div className="shrink-0 relative z-20">
+                          <div className={`step-num h-10 w-10 !text-[13px] !font-black !rounded-2xl !bg-[var(--surface-2)] !border-[var(--border)] shadow-inner transition-all duration-300 ${
+                            s.status === 'completed'   ? 'step-num-completed shadow-lg shadow-emerald-500/20 !bg-emerald-500 !text-white scale-110' : 
+                            s.status === 'in-progress' ? 'step-num-inprogress shadow-lg shadow-purple-500/20 !bg-purple-500 !text-white animate-pulse scale-110' :
+                            expanded === i ? '!bg-indigo-500 !text-white' : ''
                           }`}>
-                            {s.status === 'completed' ? t('status_completed') : t('status_pending')}
+                            {s.status === 'completed' ? <Check size={20} strokeWidth={3} /> : i + 1}
                           </div>
                         </div>
-                      </div>
-                      <p className={`text-[12px] text-[var(--muted)] leading-relaxed transition-all duration-300 ${expanded === i ? 'line-clamp-none opacity-100' : 'line-clamp-1 opacity-60 group-hover:opacity-100'}`}>
-                        {s.summary}
-                      </p>
+
+                        <div className="flex-1 min-w-0 pt-0.5">
+                          <div className="flex items-center justify-between mb-2 gap-2">
+                            <h3 className={`text-[15px] font-black tracking-tight truncate pr-4 transition-colors uppercase font-[Outfit] ${expanded === i ? 'text-indigo-500' : 'text-[var(--text)]'}`}>
+                              {s.title}
+                            </h3>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {(s.responsible.includes('Agent') || s.responsible.includes('Ajan') || s.responsible.includes('وكيل')) ? (
+                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)] group">
+                                  <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}>
+                                    <Cpu size={10} className="text-red-500" />
+                                  </motion.div>
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-red-500">AGENT</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+                                  <User size={10} className="text-blue-500" />
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-500">HUMAN</span>
+                                </div>
+                              )}
+                              <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm backdrop-blur-md transition-all ${
+                                s.status === 'completed'
+                                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500 shadow-emerald-500/5'
+                                  : 'bg-amber-500/10 border-amber-500/20 text-amber-500 shadow-amber-500/5'
+                              }`}>
+                                {s.status === 'completed' ? t('status_completed') : t('status_pending')}
+                              </div>
+                            </div>
+                          </div>
+                          <p className={`text-[12px] text-[var(--muted)] leading-relaxed transition-all duration-300 font-medium ${expanded === i ? 'line-clamp-none opacity-100' : 'line-clamp-1 opacity-60 group-hover:opacity-100'}`}>
+                            {s.summary}
+                          </p>
                     </div>
 
                     <ChevronDown size={20} className={`shrink-0 text-[var(--muted)] opacity-30 mt-1.5 transition-transform duration-500 ${expanded === i ? 'rotate-180 opacity-100 text-indigo-500' : ''}`} />
@@ -949,8 +969,10 @@ export default function Dashboard() {
                       </motion.div>
                     )}
                   </AnimatePresence>
-                </motion.div>
-              ))}
+                    </motion.div>
+                  </div>
+                ))}
+              </div>
 
               {/* Show More / Less / Upgrade */}
               {steps.length > 3 && (
@@ -1079,14 +1101,13 @@ export default function Dashboard() {
       <Sidebar 
         currentSessionId={dashboardSessionId}
         assistantType={activeAssistantType}
-        showAllTypes
         onSessionSelect={(id, title) => {
           localStorage.setItem('permitops_active_session_id', id);
           fetchState();
         }}
         onNewChat={() => {
           localStorage.removeItem('permitops_active_session_id');
-          fetchState();
+          router.push('/chat');
         }}
         onSwitchAssistant={handleSwitchAssistant}
         onDeleteSession={(id) => {}}
