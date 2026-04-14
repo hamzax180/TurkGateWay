@@ -79,6 +79,20 @@ for lang in ["en", "ar", "tr"]:
                  if k not in ["permit", "student", "lawyer"]:
                      _library[lang][k] = v
 
+        # Load learned responses from separate learned.json files
+        for agent in ["permit", "student", "lawyer"]:
+            learned_file = os.path.join(_AGENTS_DIR, agent, f"learned{suffix}.json")
+            if os.path.exists(learned_file):
+                with open(learned_file, "r", encoding="utf-8") as f:
+                    learned_data = json.load(f)
+                    # Merge learned entries into the agent's in-memory library
+                    if agent in _library[lang] and isinstance(_library[lang][agent], dict):
+                        for k, v in learned_data.items():
+                            if k not in _library[lang][agent]:
+                                _library[lang][agent][k] = v
+                            elif isinstance(v, list):
+                                _library[lang][agent][k].extend(v)
+
         print(f"[SmartRouter] Handlers for '{lang}' loaded successfully.")
     except Exception as e:
         print(f"[SmartRouter] WARNING: Failed to load '{lang}' response libraries: {e}")
