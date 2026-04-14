@@ -43,7 +43,9 @@ _AGENTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agents")
 _MAX_LEARNED_PER_INTENT = 10       # Max learned responses per intent key
 _MAX_LEARNED_PAIRS = 50            # Max query+response pairs in "learned" bucket
 _MIN_RESPONSE_LENGTH = 50          # Ignore tiny/error responses
-_FUZZY_MATCH_THRESHOLD = 0.92      # Very strict to prevent confusing similar entities (e.g., bau vs halic)
+# Fuzzy matching thresholds: must pass both
+_MIN_CHAR_SIMILARITY = 0.80
+_MIN_WORD_SIMILARITY = 0.75
 _LEARNING_LOG = os.path.join(os.path.dirname(__file__), "learning_log.json")
 _file_lock = threading.Lock()
 
@@ -329,14 +331,29 @@ def find_learned_response(
         
         if not stored_query or not stored_response:
             continue
+            
+        q_words = set(normalized.split())
+        s_words = set(stored_query.split())
         
-        score = SequenceMatcher(None, normalized, stored_query).ratio()
+        if not q_words or not s_words:
+            continue
+            
+        # Word overlap (Jaccard)
+        intersection = q_words.intersection(s_words)
+        union = q_words.union(s_words)
+        word_score = len(intersection) / len(union)
         
-        if score > best_score:
-            best_score = score
-            best_match = stored_response
+        # Character overlap
+        char_score = SequenceMatcher(None, normalized, stored_query).ratio()
+        
+        # Must pass both thresholds to prevent proper noun confusion
+        if char_score >= _MIN_CHAR_SIMILARITY and word_score >= _MIN_WORD_SIMILARITY:
+            combined = (char_score + word_score) / 2
+            if combined > best_score:
+                best_score = combined
+                best_match = stored_response
     
-    if best_score >= _FUZZY_MATCH_THRESHOLD and best_match:
+    if best_match:
         print(f"[LearningCache] 🎯 LEARNED HIT (score={best_score:.2f}) for: {query[:60]}")
         return best_match
     
