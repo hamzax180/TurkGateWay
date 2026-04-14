@@ -137,28 +137,28 @@ INTENT_MAP = {
         r"(المستندات|الوثائق|الاوراق|الأوراق المطلوبة|ماذا احتاج|المطلوب|ايش الاوراق|شنو الاوراق|ايش المطلوب|شنو المطلوب)"
     ],
     "permit.cost": [
-        r"\b(how much|cost|price|fee(s)?|payment|expensive|affordable|budget|maliy(et)?|maliyetler|ne kadar|kaç (lira|tl|para)|ücret|costs)\b",
-        r"\b(does it cost|permit cost|permit fee|registration (fee|cost)|total cost)\b",
+        r"\b(permit cost|permit fee|registration (fee|cost)|total cost|business (cost|price)|maliy(et)?|maliyetler|kaç (lira|tl|para))\b",
+        r"\b(how much does the permit cost)\b",
         r"^(how much does it cost\??)$",
-        r"(كم التكلفة|كم السعر|الرسوم|التكلفة|كم يكلف|بكم|تكاليف|رسوم الرخصة|كم ادفع|التكاليف)"
+        r"(تكاليف الرخصة|رسوم الرخصة|كم ادفع للرخصة|كم تكلفة التصريح)"
     ],
     "permit.location": [
-        r"\b(where (is|are)|location|district|belediye|which (district|area|municipality)|located in|where do i go|nerede|hangi ilçe|ilçe kuralları)\b",
+        r"\b(district|belediye|which (district|area|municipality)|hangi ilçe|ilçe kuralları|business location)\b",
         r"\b(where|which|location|district).{0,20}(besiktas|kadikoy|sisli|uskudar|fatih|beyoglu|bakirkoy|zeytinburnu|sariyer|beyo[gğ]lu|be[sş]ikta[sş])\b",
         r"^(where is your business located\??)$",
-        r"(اين|أين|موقع|اي بلدية|أي منطقة|وين|في أي منطقة|مكانكم|وين موجودين|قواعد المنطقة)"
+        r"(اي بلدية|أي منطقة|وين البلدية|في أي منطقة|قواعد المنطقة)"
     ],
     "permit.how_it_works": [
-        r"\b(how does it work|how it works|how (does|do) (the )?(process|system|permit|it) work|explain the process|process overview|nasıl çalışıyor|nasıl çalışır)\b",
-        r"\b(process overview|general (info|guide|overview)|process guide)\b",
-        r"^(how does it work\??)$",
-        r"(كيف يعمل|اشرح لي العملية|كيف تعمل|كيف تتم العملية|ما هو الإجراء|كيف النظام|طريقة العمل|شلون الطريقة|كيف الإجراء|وش النظام)"
+        r"\b(how does the permit work|how it works for business|how (does|do) (the )?(business|permit) work|nasıl çalışıyor)\b",
+        r"\b(permit process overview|general permit guide|business process guide)\b",
+        r"^(how does permit work\??)$",
+        r"(كيف تعمل الرخصة|اشرح لي رخصة العمل|كيف تتم عملية البلدية|كيف الإجراء للمحلات)"
     ],
     "permit.timeline": [
-        r"\b(how long|timeline|timelines|time frame|when will|how many days|duration|takes (how|long)|ne kadar s[üu]r|kaç gün|süreler)\b",
-        r"\bHow long does it take\b",
-        r"^(how long does it take\??)$",
-        r"(كم يستغرق|كم يوم|المدة|كم يأخذ وقت|متى يخلص|كم من الوقت|متى بتخلص|متى تجهز|الجداول الزمنية)"
+        r"\b(permit timeline|permit time frame|when will the permit|how many days for permit|permit duration|ruhsat ne kadar s[üu]r|ruhsat kaç gün)\b",
+        r"\bHow long does the permit take\b",
+        r"^(how long does the permit take\??)$",
+        r"(كم تستغرق الرخصة|مدة الرخصة|كم تأخذ الرخصة وقت|جداول الرخصة الزمنية)"
     ],
     "permit.alcohol": [
         r"\b(alcohol|tapdk|liquor|wine|beer|bar|spirits|drinks? permit)\b",
@@ -169,8 +169,8 @@ INTENT_MAP = {
         r"(موسيقى|حفلات|فرقة|طرب|غناء|دي جي|لايف ميوزك)"
     ],
     "permit.steps": [
-        r"\b(steps|process|procedure|what are the steps|guide me|walk me through|14 steps|know the steps|i want to know|adımlar|süreç)\b",
-        r"(الخطوات|ما هي الخطوات|مراحل|دلني|كيف الخطوات|ماهي خطوات|سير العمل|وش اسوي)"
+        r"\b(permit steps|business process|permit procedure|what are the permit steps|14 steps|ruhsat adımlar|ruhsat süreç)\b",
+        r"(خطوات الرخصة|ما هي خطوات العمل|سير عمل الرخصة)"
     ],
     "permit.nace": [
         r"\b(nace|nace code|business code|sector code|activity code|faaliyet kodu)\b",
