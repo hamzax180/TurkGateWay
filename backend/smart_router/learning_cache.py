@@ -43,7 +43,7 @@ _AGENTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agents")
 _MAX_LEARNED_PER_INTENT = 10       # Max learned responses per intent key
 _MAX_LEARNED_PAIRS = 50            # Max query+response pairs in "learned" bucket
 _MIN_RESPONSE_LENGTH = 50          # Ignore tiny/error responses
-_FUZZY_MATCH_THRESHOLD = 0.75      # Min similarity to return a learned response
+_FUZZY_MATCH_THRESHOLD = 0.92      # Very strict to prevent confusing similar entities (e.g., bau vs halic)
 _LEARNING_LOG = os.path.join(os.path.dirname(__file__), "learning_log.json")
 _file_lock = threading.Lock()
 
