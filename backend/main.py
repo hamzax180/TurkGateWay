@@ -30,7 +30,7 @@ from utils.payment import IyzicoPayment
 # Create tables
 Base.metadata.create_all(bind=engine)
 
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'), override=True)
 
 # --- Load AI Assistant Models ---
 from agents.permit.model import gemini_model, chat_model

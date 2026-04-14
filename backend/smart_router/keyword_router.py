@@ -144,13 +144,13 @@ INTENT_MAP = {
     ],
     "permit.location": [
         r"\b(where (is|are)|location|district|belediye|which (district|area|municipality)|located in|where do i go|nerede|hangi ilçe|ilçe kuralları)\b",
-        r"\b(besiktas|kadikoy|sisli|uskudar|fatih|beyoglu|bakirkoy|zeytinburnu|sariyer|beyo[gğ]lu|be[sş]ikta[sş])\b",
+        r"\b(where|which|location|district).{0,20}(besiktas|kadikoy|sisli|uskudar|fatih|beyoglu|bakirkoy|zeytinburnu|sariyer|beyo[gğ]lu|be[sş]ikta[sş])\b",
         r"^(where is your business located\??)$",
         r"(اين|أين|موقع|اي بلدية|أي منطقة|وين|في أي منطقة|مكانكم|وين موجودين|قواعد المنطقة)"
     ],
     "permit.how_it_works": [
         r"\b(how does it work|how it works|how (does|do) (the )?(process|system|permit|it)|explain|overview|what is|tell me about|nasıl çalışıyor|nasıl çalışır)\b",
-        r"\b(what happens|what (is|are) the|process overview|general (info|guide|overview)|process guide)\b",
+        r"\b(what happens|process overview|general (info|guide|overview)|process guide)\b",
         r"^(how does it work\??)$",
         r"(كيف يعمل|اشرح لي|كيف تعمل|كيف تتم العملية|ما هو الإجراء|كيف النظام|طريقة العمل|شلون الطريقة|كيف الإجراء|وش النظام)"
     ],
@@ -236,7 +236,7 @@ INTENT_MAP = {
         r"(موعد|مواعيد|متى ينتهي|اخر موعد|آخر موعد|متى يغلق|نهاية التسجيل)"
     ],
     "student.visa": [
-        r"\b(visa|student visa|vize|ogrenci vizesi|[o\u0131g]renci vizesi)\b",
+        r"\b(visas?|student visas?|vize|ogrenci vizesi|[o\u0131g]renci vizesi)\b",
         r"(فيزا|تأشيرة|تاشيرة|تأشيرة طالب|فيزا طالب|فيزة)"
     ],
     "student.work_rules": [
@@ -413,6 +413,14 @@ def detect_intent(
     # Pass 2: Fuzzy Logic Typos (Confidence 0.7 - 0.95)
     words = text.split()
     
+    # Ignore common verb/phrase tokens from fuzzy matching to prevent false positives
+    stop_words = {
+        "what", "when", "where", "which", "know", "take", "long", "tell", "need", 
+        "some", "want", "have", "with", "this", "that", "from", "your", "does", "will", 
+        "hows", "about", "like", "make", "work", "just", "time", "sure", "right", 
+        "correct", "true", "accurate", "help", "good", "great", "perfect"
+    }
+    
     for intent_key, _ in sorted_intents:
         original_patterns = INTENT_MAP[intent_key]
         for pattern in original_patterns:
@@ -420,10 +428,18 @@ def detect_intent(
             pattern_words = clean_pattern.split()
             
             for pw in pattern_words:
-                if len(pw) < 4: continue
+                pw_lower = pw.lower()
+                if len(pw_lower) < 4: continue
+                if pw_lower in stop_words: continue
+                
                 for tw in words:
-                    if len(tw) < 4: continue
-                    ratio = SequenceMatcher(None, tw, pw).ratio()
+                    tw_lower = tw.lower()
+                    if len(tw_lower) < 4: continue
+                    if tw_lower in stop_words: continue
+                    
+                    ratio = SequenceMatcher(None, tw_lower, pw_lower).ratio()
+                    
+                    if ratio == 1.0: continue # Exact word match out-of-context, skip it
                     
                     # Tighten threshold for short words to prevent 'nice' matching 'notice' (0.8)
                     min_ratio = 0.85 if len(tw) <= 4 else 0.80

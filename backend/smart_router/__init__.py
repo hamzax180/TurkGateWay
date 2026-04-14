@@ -36,6 +36,7 @@ from .keyword_router import detect_intent
 from .template_engine import render, build_variables
 from . import cache as response_cache
 from .ai_fallback import ai_fallback_response
+from .learning_cache import learn as learn_response, set_live_library as _set_live_library, find_learned_response as _find_learned
 
 # RAG retrieval (DB-backed, falls back gracefully to JSON library if unavailable)
 try:
@@ -80,6 +81,16 @@ for lang in ["en", "ar", "tr"]:
 
         print(f"[SmartRouter] Handlers for '{lang}' loaded successfully.")
     except Exception as e:
+        print(f"[SmartRouter] WARNING: Failed to load '{lang}' response libraries: {e}")
+
+# Share live library with learning cache so learned responses take effect immediately
+_set_live_library(_library)
+
+# Placeholder to avoid duplicate except block below
+_library_loaded = True
+if not _library_loaded:
+    pass
+elif False:
         print(f"[SmartRouter] WARNING: Failed to load '{lang}' response libraries: {e}")
 
 
@@ -162,20 +173,21 @@ _ALL_BUSINESS_TYPES = [
 ]
 
 _UNI_MAP = {
-    "boğaziçi": "Boğaziçi University", "bogazici": "Boğaziçi University", "boğaziçi uni": "Boğaziçi University", "boğaziçi üni": "Boğaziçi University",
-    "metu": "METU (ODTÜ)", "odtü": "METU (ODTÜ)", "odtu": "METU (ODTÜ)",
-    "istanbul university": "Istanbul University", "istanbul üniversitesi": "Istanbul University", "istanbul uni": "Istanbul University", "istanbul üni": "Istanbul University", "istanbul": "Istanbul University",
+    "boğaziçi": "Boğaziçi University", "bogazici": "Boğaziçi University", "boğaziçi uni": "Boğaziçi University", "boğaziçi üni": "Boğaziçi University", "boun": "Boğaziçi University", "boga": "Boğaziçi University", "boğa": "Boğaziçi University", "bogaz": "Boğaziçi University", "boğaz": "Boğaziçi University",
+    "metu": "METU (ODTÜ)", "odtü": "METU (ODTÜ)", "odtu": "METU (ODTÜ)", "met": "METU (ODTÜ)",
+    "istanbul university": "Istanbul University", "istanbul üniversitesi": "Istanbul University", "istanbul uni": "Istanbul University", "istanbul üni": "Istanbul University", "istanbul": "Istanbul University", "iu": "Istanbul University", "iü": "Istanbul University", "ist": "Istanbul University",
     "itü": "İTÜ (Istanbul Technical)", "itu": "İTÜ (Istanbul Technical)", "istanbul teknik": "İTÜ (Istanbul Technical)", "istanbul technical": "İTÜ (Istanbul Technical)",
-    "hacettepe": "Hacettepe University", "hacettepe uni": "Hacettepe University", "hacettepe üni": "Hacettepe University",
-    "koç": "Koç University", "koc": "Koç University", "koç uni": "Koç University", "koç üni": "Koç University",
-    "sabancı": "Sabancı University", "sabanci": "Sabancı University", "sabancı uni": "Sabancı University", "sabancı üni": "Sabancı University",
-    "bilkent": "Bilkent University", "bilkent uni": "Bilkent University", "bilkent üni": "Bilkent University",
-    "ankara university": "Ankara University", "ankara üniversitesi": "Ankara University", "ankara uni": "Ankara University", "ankara üni": "Ankara University", "ankara": "Ankara University",
-    "ege university": "Ege University", "ege üniversitesi": "Ege University", "ege uni": "Ege University", "ege üni": "Ege University", "ege": "Ege University",
-    "altınbaş": "Altınbaş University", "altinbas": "Altınbaş University", "altınbaş uni": "Altınbaş University", "altınbaş üni": "Altınbaş University",
+    "hacettepe": "Hacettepe University", "hacettepe uni": "Hacettepe University", "hacettepe üni": "Hacettepe University", "hacett": "Hacettepe University", "hu": "Hacettepe University",
+    "koç": "Koç University", "koc": "Koç University", "koç uni": "Koç University", "koç üni": "Koç University", "kocu": "Koç University",
+    "sabancı": "Sabancı University", "sabanci": "Sabancı University", "sabancı uni": "Sabancı University", "sabancı üni": "Sabancı University", "su": "Sabancı University",
+    "bilkent": "Bilkent University", "bilkent uni": "Bilkent University", "bilkent üni": "Bilkent University", "bil": "Bilkent University",
+    "ankara university": "Ankara University", "ankara üniversitesi": "Ankara University", "ankara uni": "Ankara University", "ankara üni": "Ankara University", "ankara": "Ankara University", "au": "Ankara University",
+    "ege university": "Ege University", "ege üniversitesi": "Ege University", "ege uni": "Ege University", "ege üni": "Ege University", "ege": "Ege University", "eu": "Ege University",
+    "altınbaş": "Altınbaş University", "altinbas": "Altınbaş University", "altınbaş uni": "Altınbaş University", "altınbaş üni": "Altınbaş University", "altunbas": "Altınbaş University", "altn": "Altınbaş University",
+    "aydin": "Istanbul Aydın University", "aydın": "Istanbul Aydın University", "aydin university": "Istanbul Aydın University", "aydın üniversitesi": "Istanbul Aydın University", "iau": "Istanbul Aydın University",
     "بوغازيتشي": "Boğaziçi University", "الشرق الأوسط": "METU (ODTÜ)", "إسطنبول": "Istanbul University", "جامعة إسطنبول": "Istanbul University",
     "كوتش": "Koç University", "سابانجي": "Sabancı University", "بيلكنت": "Bilkent University", 
-    "أنقرة": "Ankara University", "حاجيتيبه": "Hacettepe University", "ألتن باش": "Altınbaş University"
+    "أنقرة": "Ankara University", "حاجيتيبه": "Hacettepe University", "ألتن باش": "Altınbaş University", "أيدن": "Istanbul Aydın University"
 }
 
 _UNI_DEADLINES = {
@@ -189,19 +201,23 @@ _UNI_DEADLINES = {
     "Bilkent University": {"en": "Mid-July", "tr": "Temmuz Ortası", "ar": "منتصف يوليو"},
     "Ankara University": {"en": "August", "tr": "Ağustos", "ar": "أغسطس"},
     "Ege University": {"en": "Early August", "tr": "Ağustos Başı", "ar": "أوائل أغسطس"},
-    "Altınbaş University": {"en": "Mid-August", "tr": "Ağustos Ortası", "ar": "منتصف أغسطس"}
+    "Altınbaş University": {"en": "Mid-August", "tr": "Ağustos Ortası", "ar": "منتصف أغسطس"},
+    "Istanbul Aydın University": {"en": "Late August", "tr": "Ağustos Sonu", "ar": "أواخر أغسطس"}
 }
 
 def _fuzzy_match(word: str, candidates: list, threshold: float = 0.75) -> str | None:
     """Return the best candidate if similarity >= threshold, else None."""
     word = word.lower().strip()
-    # Skip extremely short words to save massive CPU cycles
-    if len(word) < 4:
+    # Support short abbreviations (like IÜ, ITÜ, AU)
+    if len(word) < 2:
         return None
     best, best_score = None, 0.0
     for c in candidates:
-        if abs(len(c) - len(word)) > 3:
-            continue # Fast length heuristic to skip impossible matches
+        # Heuristic: if it's an abbreviation, it might be much shorter than the full name
+        # but for our _UNI_MAP, the candidates ARE the keys (which include short forms)
+        # So we can keep a loose length check
+        if abs(len(c) - len(word)) > 10:
+            continue
         score = SequenceMatcher(None, word, c).ratio()
         if score > best_score:
             best, best_score = c, score
@@ -277,33 +293,60 @@ async def smart_router_handle(
             return prompt
 
     # --- PHASE 0.5b: Contextual University Reply ---
-    # If the bot just asked "which university?" and the user replied with a name,
+    # If the bot just asked "which university?" or the user types a university name directly,
     # resolve it and fast-path into the registration roadmap — no AI needed.
     _was_asking_uni = any(marker in last_assistant_msg for marker in [
-        "which university are you looking to register", "hangi üniversiteye kayıt",
-        "في أي جامعة تريد التسجيل", "which university are you targeting",
+        "which university", "hangi üniversite", "في أي جامعة",
+        "register at", "kayıt yaptırmak", "التسجيل",
         "type the name", "please type the name"
     ])
-    if _was_asking_uni and assistant_type == "student":
-        # Try exact match first
-        _reply_uni = None
+    
+    # ── GLOBAL UNIVERSITY SHORTCUT (for Students) ──
+    # If a student types a university name anywhere, we assume they want the roadmap.
+    # This bypasses the need for specific intent detection or strict context markers.
+    _reply_uni = None
+    if assistant_type == "student" and len(query.split()) <= 5:
+        # Exact match
         for key, val in _UNI_MAP.items():
-            if key in lower_q:
+            if key == lower_q or (f" {key} " in f" {lower_q} "):
                 _reply_uni = val
                 break
-        # Fuzzy match as fallback (e.g. "altinbas" → "altınbaş")
-        if not _reply_uni:
+        # Fuzzy match (only for single words or very short phrases)
+        if not _reply_uni and len(lower_q) >= 3:
             for key, val in _UNI_MAP.items():
-                if len(key) >= 4 and _fuzzy_match(lower_q.strip(), [key], threshold=0.72):
+                if _fuzzy_match(lower_q, [key], threshold=0.85):
                     _reply_uni = val
                     break
-                # Also try word-by-word for multi-word replies
+
+    if (_was_asking_uni or _reply_uni) and assistant_type == "student":
+        if not _reply_uni:
+            # Try matching within the query if not already found by shortcut
+            for key, val in _UNI_MAP.items():
+                if key in lower_q:
+                    _reply_uni = val
+                    break
+        
+        # Extended fuzzy check if still no match
+        if not _reply_uni:
+            for key, val in _UNI_MAP.items():
+                # Word-by-word fuzzy match
                 for word in lower_q.split():
-                    if len(word) >= 4 and _fuzzy_match(word, [key], threshold=0.72):
+                    if len(word) >= 3 and _fuzzy_match(word, [key], threshold=0.75):
                         _reply_uni = val
                         break
-                if _reply_uni:
-                    break
+                if _reply_uni: break
+            
+            if not _reply_uni and _was_asking_uni:
+                # ONLY show 'not found' if we were explicitly asking. 
+                # Otherwise let it fall through to normal AI.
+                msg = {
+                    "en": "🎓 **UNI NOT FOUND IN OUR DATA.** I currently track the registration calendars for the Top 10 universities in Turkey. Please try one of our supported schools like Boğaziçi, METU, or Altınbaş!",
+                    "tr": "🎓 **BU ÜNİVERSİTE VERİLERİMİZDE BULUNAMADI.** Şu anda Türkiye'deki ilk 10 üniversitenin kayıt takvimlerini takip ediyorum. Lütfen Boğaziçi, ODTÜ veya Altınbaş gibi desteklenen okulları deneyin!",
+                    "ar": "🎓 **هذه الجامعة غير موجودة في بياناتنا.** أتابع حالياً مواعيد التسجيل لأول 10 جامعات في تركيا. يرجى تجربة إحدى الجامعات المدعومة مثل بوغازيتشي، ODTÜ، أو ألتن باش!"
+                }.get(language, "UNI NOT FOUND IN OUR DATA.")
+                await wait_task
+                return msg
+
         if _reply_uni:
             # Resume the registration roadmap for this university
             from models.schemas import PermitState, CombinedPermitResult, ExecutionPlan, StepDetail, PermitPlan
@@ -498,8 +541,9 @@ async def smart_router_handle(
             mun_name_en = "Your District Municipality"
             district_note = ""
 
+            query_lower = query.lower()
             for key, data in _DISTRICT_INFO.items():
-                if key in query.lower() or key in user_history_text:
+                if key in query_lower:
                     dname, mun_en, note_en, mun_tr, note_tr, mun_ar, note_ar = data
                     district_en = dname
                     district_display = dname
@@ -510,6 +554,20 @@ async def smart_router_handle(
                     else:
                         mun_name_en, district_note = mun_en, note_en
                     break
+                    
+            if district_display is None:
+                for key, data in _DISTRICT_INFO.items():
+                    if key in user_history_text:
+                        dname, mun_en, note_en, mun_tr, note_tr, mun_ar, note_ar = data
+                        district_en = dname
+                        district_display = dname
+                        if language == "tr":
+                            mun_name_en, district_note = mun_tr, note_tr
+                        elif language == "ar":
+                            mun_name_en, district_note = mun_ar, note_ar
+                        else:
+                            mun_name_en, district_note = mun_en, note_en
+                        break
             
             if district_display is None and fuzzy_district_match in _DISTRICT_INFO:
                 dname, mun_en, note_en, mun_tr, note_tr, mun_ar, note_ar = _DISTRICT_INFO[fuzzy_district_match]
@@ -639,13 +697,13 @@ async def smart_router_handle(
                 return out_str, dashboard_dump
             
             # Contextual fallback for unlisted universities
-            if last_assistant_msg and any(k in last_assistant_msg for k in ["targeting", "üniversite", "جامعة", "duyurular", "announcements", "major schools"]):
+            if last_assistant_msg and any(k in last_assistant_msg for k in ["targeting", "üniversite", "جامعة", "duyurular", "announcements", "major schools", "register at", "kayıt yaptırmak"]):
                 await wait_task
                 return {
-                    "en": "Sorry, I don't have detailed information about this university yet. 🎓 I currently track the registration calendars for the Top 10 universities in Turkey. Is there anything else I can help you with?",
-                    "tr": "Üzgünüm, henüz bu üniversite hakkında detaylı bilgiye sahip değilim. 🎓 Şu anda Türkiye'deki ilk 10 üniversitenin kayıt takvimlerini takip ediyorum. Başka bir konuda yardımcı olabilir miyim?",
-                    "ar": "عذراً، لا أملك معلومات مفصلة عن هذه الجامعة بعد. 🎓 أتابع حالياً مواعيد التسجيل لأفضل 10 جامعات في تركيا. هل يمكنني مساعدتك في أي شيء آخر؟"
-                }.get(language, "Sorry, I don't have information about this university.")
+                    "en": "🎓 **UNI NOT FOUND IN OUR DATA.** I currently track the registration calendars for the Top 10 universities in Turkey. Please try one of our supported schools!",
+                    "tr": "🎓 **BU ÜNİVERSİTE VERİLERİMİZDE BULUNAMADI.** Şu anda Türkiye'deki ilk 10 üniversitenin kayıt takvimlerini takip ediyorum. Lütfen desteklenen okulları deneyin!",
+                    "ar": "🎓 **هذه الجامعة غير موجودة في بياناتنا.** أتابع حالياً مواعيد التسجيل لأول 10 جامعات في تركيا. يرجى تجربة إحدى الجامعات المدعومة!"
+                }.get(language, "UNI NOT FOUND IN OUR DATA.")
 
             is_renew = "renew" in query.lower() or "replace" in query.lower() or "uzat" in query.lower() or "تجديد" in query.lower()
             business_type = "student_renew" if is_renew else "Student"
@@ -807,10 +865,18 @@ async def smart_router_handle(
                     rag_response = await generate_rag_response(query=query, agent_type=assistant_type, language=language, gemini_model=model_map.get(assistant_type, gemini_model), retrieved_chunks=rag_chunks)
                     if rag_response:
                         response_cache.set(query, rag_response, assistant_type, language)
+                        # Learn: save RAG response permanently
+                        learn_response(query, rag_response, assistant_type, language, intent_hint=sub_intent)
                         await wait_task
                         return rag_response
             except Exception: pass
-        return None
+    # Check if we've previously learned a good AI response for a similar query.
+    # This avoids burning API tokens on questions we've already answered well.
+    learned = _find_learned(query, assistant_type, language)
+    if learned:
+        response_cache.set(query, learned, assistant_type, language)
+        await wait_task
+        return learned
 
     # --- PHASE 2: Deep Local Search & Decision ---
     # We try to find the "Correctest" answer by looking at history and fuzzy patterns.
@@ -821,6 +887,8 @@ async def smart_router_handle(
 
     if ai_response:
         response_cache.set(query, ai_response, assistant_type, language)
+        # Learn: save AI fallback response permanently into the JSON library
+        learn_response(query, ai_response, assistant_type, language, intent_hint=sub_intent)
         return ai_response
 
     # --- PHASE 3: Smart Orchestrator (Last Resort) ---
