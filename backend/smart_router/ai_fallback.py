@@ -87,6 +87,8 @@ async def ai_fallback_response(
         prompt = f"{role_persona}\n\nUser Question: {query}\n\n{_CONCISE_SUFFIX}"
         if language != "en":
             prompt += f"\n\n[CRITICAL: Respond ONLY in {language.upper()} language.]"
+        else:
+            prompt += f"\n\n[CRITICAL: Respond ONLY in ENGLISH language.]"
         max_tokens = 150
 
     try:
