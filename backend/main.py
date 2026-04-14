@@ -26,6 +26,7 @@ from models.schemas import UserCreate, UserLogin, Token, UserQuery
 from utils.auth import get_password_hash, verify_password, create_access_token, decode_access_token
 from utils.protocol import get_localized_steps
 from utils.payment import IyzicoPayment
+from smart_router.learning_cache import learn as learn_response
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -57,8 +58,15 @@ try:
     print("[Startup] Agent pipeline loaded successfully")
 except Exception as e:
     print(f"[Startup] Agent pipeline unavailable: {e}. Using direct Gemini fallback.")
-# Global states for guests (non-persistent across restarts, keyed by session_id)
+# Global in-memory states for guests (non-persistent across restarts)
 guest_dashboard_states = {}
+guest_chat_histories: Dict[str, List[Dict]] = {}
+
+def sanitize_surrogates(text: str) -> str:
+    """Strip surrogate pairs that crash SQLite's utf-8 encoder."""
+    if not isinstance(text, str): return text
+    return "".join(c for c in text if not (0xD800 <= ord(c) <= 0xDFFF))
+
 
 # --- Smart Router (zero/low-token layer) ---
 try:
@@ -143,6 +151,17 @@ async def login(request: Request, user: UserLogin, db: Session = Depends(get_db)
     access_token = create_access_token(data={"sub": db_user.email})
     return {"access_token": access_token, "token_type": "bearer", "email": db_user.email, "full_name": db_user.full_name, "is_admin": db_user.is_admin}
 
+@app.post("/auth/check-email")
+async def check_email(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    email = body.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    db_user = db.query(DBUser).filter(DBUser.email == email).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="Couldn't find your TurkGateway Account")
+    return {"status": "exists"}
+
 @app.get("/auth/me")
 async def get_me(token: str, db: Session = Depends(get_db)):
     user = await get_current_user(token, db)
@@ -184,29 +203,44 @@ async def create_chat_session(request: Request, token: str, assistant_type: str 
     db.add(new_session)
     db.commit()
     return {"id": session_id, "title": "New Chat", "assistant_type": assistant_type}
-
-
-async def _get_history_context(session_id: str, db: Session, limit: int = 10, current_query: Optional[str] = None, strip_boilerplate: bool = False) -> str:
+async def _get_history_context(session_id: str, db: Session, limit: int = 10, current_query: Optional[str] = None, strip_boilerplate: bool = False, user_id: Optional[int] = None) -> str:
     """Fetch recent chat history to provide context for the AI."""
     try:
-        # Fetch more to allow for filtering
+        # 1. Ownership & Guest Check
+        if not user_id:
+            # GUEST MODE: Return in-memory history if available, else empty (block DB leak)
+            guest_history = guest_chat_histories.get(session_id, [])
+            if not guest_history:
+                return ""
+            
+            # Format in-memory list chronologically
+            context = "\n--- GUEST CHAT HISTORY (EPHEMERAL) ---\n"
+            for m in guest_history[-limit:]:
+                role = "User" if m["role"] == "user" else "Assistant"
+                context += f"[{role}]: {m['content']}\n"
+            context += "-------------------------------------\n"
+            return context
+
+        # 2. USER MODE: Strict ownership check for DB entries
+        db_sess = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+        if not db_sess or db_sess.user_id != user_id:
+            return ""
+
+        # Fetch recent messages from DB
         msgs = db.query(ChatMessage).filter(ChatMessage.session_id == session_id)\
                  .order_by(ChatMessage.timestamp.desc()).limit(limit + 1).all()
         if not msgs:
             return ""
         
-        # If the most recent message is the current query, skip it to avoid duplication
+        # If the most recent message is the current query, skip it
         if current_query and msgs and msgs[0].role == "user" and msgs[0].content.strip() == current_query.strip():
             msgs = msgs[1:]
         
-        # Take only the intended limit
         msgs = msgs[:limit]
-        
         if not msgs:
             return ""
 
         context = "\n--- PREVIOUS CONVERSATION HISTORY ---\n"
-        # Reverse to get chronological order
         for m in reversed(msgs):
             role = "User" if m.role == "user" else "Assistant"
             content = m.content
@@ -216,7 +250,7 @@ async def _get_history_context(session_id: str, db: Session, limit: int = 10, cu
                     idx = lower_content.find(marker.lower())
                     if idx != -1:
                         content = content[:idx].strip()
-                        lower_content = content.lower() # update for next iterations
+                        lower_content = content.lower()
             context += f"[{role}]: {content}\n"
         context += "-------------------------------------\n"
         return context
@@ -293,7 +327,7 @@ async def _run_with_agents(query: str, user: Optional[DBUser] = None, db: Sessio
 
     try:
         # Inject history context into the user request
-        history = await _get_history_context(session_id, db)
+        history = await _get_history_context(session_id, db, user_id=user.id if user else None)
         full_query = f"{history}\nCURRENT USER REQUEST: {query}"
         
         # Enforce language in the query for the agent if not English
@@ -344,13 +378,19 @@ async def _run_with_agents(query: str, user: Optional[DBUser] = None, db: Sessio
         # Override combined.steps with localized enforced steps from execution_plan
         steps_list = [s.title for s in state.execution_plan.steps]
         
-        return (
+        final_answer = (
             f"💬 {combined.summary}\n\n"
             f"📋 **Permits (Agencies):** {', '.join(combined.permits)}\n"
             f"📄 **Required Docs:** {', '.join(combined.documents[:6])}...\n"
             f"✅ **Action Steps:**\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps_list)) +
             f"\n\n⏱️ **Timeline:** {combined.timeline_days} days"
         )
+        
+        # Learn for the future
+        if user:
+            learn_response(query, final_answer, "permit", language, dashboard_state=dashboard_data)
+            
+        return final_answer
     raise ValueError("Empty agent result")
 
 async def _run_with_student_agents(query: str, user: Optional[DBUser] = None, db: Session = None, language: str = "en", session_id: str = "default-session") -> str:
@@ -373,7 +413,7 @@ async def _run_with_student_agents(query: str, user: Optional[DBUser] = None, db
     }
 
     try:
-        history = await _get_history_context(session_id, db)
+        history = await _get_history_context(session_id, db, user_id=user.id if user else None)
         full_query = f"{history}\nCURRENT USER REQUEST: {query}"
         
         if language == "ar":
@@ -423,13 +463,19 @@ async def _run_with_student_agents(query: str, user: Optional[DBUser] = None, db
     if combined:
         steps_list = [s.title for s in state.execution_plan.steps]
         
-        return (
+        final_answer = (
             f"💬 {combined.summary}\n\n"
             f"📋 **Institutions/Agencies:** {', '.join(combined.agencies)}\n"
             f"📄 **Required Docs:** {', '.join(combined.documents[:6])}...\n"
             f"✅ **Action Steps:**\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps_list)) +
             f"\n\n⏱️ **Timeline:** {combined.timeline_days} days"
         )
+        
+        # Learn for the future
+        if user:
+            learn_response(query, final_answer, "student", language, dashboard_state=dashboard_data)
+            
+        return final_answer
     raise ValueError("Empty agent result")
 
 async def _run_with_lawyer_agents(query: str, user: Optional[DBUser] = None, db: Session = None, language: str = "en", session_id: str = "default-session") -> str:
@@ -452,7 +498,7 @@ async def _run_with_lawyer_agents(query: str, user: Optional[DBUser] = None, db:
     }
 
     try:
-        history = await _get_history_context(session_id, db)
+        history = await _get_history_context(session_id, db, user_id=user.id if user else None)
         full_query = f"{history}\nCURRENT USER REQUEST: {query}"
         
         if language == "ar":
@@ -502,13 +548,19 @@ async def _run_with_lawyer_agents(query: str, user: Optional[DBUser] = None, db:
     if combined:
         steps_list = [s.title for s in state.execution_plan.steps]
         
-        return (
+        final_answer = (
             f"💬 {combined.summary}\n\n"
             f"📋 **Institutions/Courts:** {', '.join(combined.agencies)}\n"
             f"📄 **Required Docs:** {', '.join(combined.documents[:6])}...\n"
             f"✅ **Action Steps:**\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps_list)) +
             f"\n\n⏱️ **Timeline:** {combined.timeline_days} days"
         )
+        
+        # Learn for the future
+        if user:
+            learn_response(query, final_answer, "lawyer", language, dashboard_state=dashboard_data)
+            
+        return final_answer
     raise ValueError("Empty agent result")
 
 
@@ -517,7 +569,7 @@ async def _run_direct_gemini(query: str, user: Optional[DBUser] = None, db: Opti
     global guest_dashboard_states
     history = ""
     if db:
-        history = await _get_history_context(session_id, db, current_query=query, strip_boilerplate=is_followup)
+        history = await _get_history_context(session_id, db, current_query=query, strip_boilerplate=is_followup, user_id=user.id if user else None)
         
     full_query = f"{history}\nCURRENT USER REQUEST: {query}"
     
@@ -577,14 +629,30 @@ async def _run_direct_gemini(query: str, user: Optional[DBUser] = None, db: Opti
                 "steps": mock_steps,
                 "assigned_agents": ["Planner", "Classifier"]
             },
-            "permit_plan": {
-                "permits": ["İşyeri Açma ve Çalışma Ruhsatı"],
-                "agencies": ["Municipality"],
-                "documents": ["Tax registration", "Lease agreement", "ID copy"]
-            },
             "last_updated": datetime.datetime.now().isoformat(),
             "direct_answer": response.text
         }
+        
+        # Custom labels/permits based on agent type
+        if assistant_type == "student":
+            mock_state["permit_plan"] = {
+                "permits": ["Student Certificate (Öğrenci Belgesi)", "Residence Permit"],
+                "agencies": ["University Student Affairs", "Göç İdaresi"],
+                "documents": ["Passport", "Acceptance Letter", "Health Insurance"]
+            }
+        elif assistant_type == "lawyer":
+            mock_state["permit_plan"] = {
+                "permits": ["Legal Consultation"],
+                "agencies": ["Law Bureau / Notary"],
+                "documents": ["Identity Card", "Relevant Contracts / Evidence"]
+            }
+        else:
+            mock_state["permit_plan"] = {
+                "permits": ["İşyeri Açma ve Çalışma Ruhsatı"],
+                "agencies": ["Municipality"],
+                "documents": ["Tax registration", "Lease agreement", "ID copy"]
+            }
+
         if user and db:
             db_session = db.query(ChatSession).filter(ChatSession.id == session_id, ChatSession.user_id == user.id).first()
             if db_session:
@@ -595,8 +663,12 @@ async def _run_direct_gemini(query: str, user: Optional[DBUser] = None, db: Opti
                 user.latest_dashboard_state = json.dumps(mock_state)
                 db.commit()
         else:
-            print(f"[_run_direct_gemini] Saving to guest_dashboard_states for {session_id}")
+            print(f"[_run_direct_gemini] Updating guest_dashboard_states (in-memory only) for {session_id}")
             guest_dashboard_states[session_id] = json.dumps(mock_state)
+        
+    if user:
+        # Learn for the future (direct calls are often information-rich)
+        learn_response(query, response.text, assistant_type, language, dashboard_state=mock_state if not has_state else None)
         
     return response.text
 
@@ -648,33 +720,39 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
             pass
 
     try:
-        # Get or create session
-        db_session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
-        if not db_session:
-            db_session = ChatSession(id=session_id, user_id=user.id if user else None, title=query_text[:50], assistant_type=assistant_type)
-            db.add(db_session)
-            db.commit()
-        elif user and not db_session.user_id:
-            # Upgrade guest session to user session if they log in
-            db_session.user_id = user.id
-            db.commit()
-        elif db_session and db_session.assistant_type != assistant_type:
-            # Auto-update if missing or they force change via UI
-            db_session.assistant_type = assistant_type
-            db.commit()
-        if db_session and not db_session.title:
-            # Clean up the query for a nice title
-            clean = query_text.split('\n')[-1].strip() # Take last line if file attachment is first
-            clean = clean.rstrip('?.! ')
-            if len(clean) > 35:
-                clean = clean[:32] + "..."
-            db_session.title = clean if clean else "New Consultation"
-            db.commit()
+        # Get or create session — PRIVACY RULE: Only persist to DB if logged in
+        db_session = None
+        if user:
+            db_session = db.query(ChatSession).filter(ChatSession.id == session_id, ChatSession.user_id == user.id).first()
+            if not db_session:
+                db_session = ChatSession(id=session_id, user_id=user.id, title=query_text[:50], assistant_type=assistant_type)
+                db.add(db_session)
+                db.commit()
+            elif db_session and db_session.assistant_type != assistant_type:
+                # Switch detected: update type and RESET title so it gets re-generated for the new agent
+                print(f"[Agent Switch] {db_session.assistant_type} -> {assistant_type}. Resetting title.")
+                db_session.assistant_type = assistant_type
+                db_session.title = None 
+                db.commit()
+
+            if db_session and not db_session.title:
+                # Clean up the query for a nice title
+                clean = query_text.split('\n')[-1].strip() # Take last line if file attachment is first
+                clean = clean.rstrip('?.! ')
+                if len(clean) > 35:
+                    clean = clean[:32] + "..."
+                db_session.title = clean if clean else "New Consultation"
+                db.commit()
         
-        # Save user message
-        user_msg = ChatMessage(session_id=session_id, role="user", content=query_text)
-        db.add(user_msg)
-        db.commit()
+        # Save user message — PRIVACY RULE: No guest chat saving to DB
+        if user:
+            user_msg = ChatMessage(session_id=session_id, role="user", content=query_text)
+            db.add(user_msg)
+            db.commit()
+        else:
+            print(f"[Guest Privacy] Saving user message to in-memory store for {session_id}")
+            if session_id not in guest_chat_histories: guest_chat_histories[session_id] = []
+            guest_chat_histories[session_id].append({"role": "user", "content": query_text})
 
         # ------------------------------------------------------------------
         # Auto-Redirect to correct agent if user is lost
@@ -683,15 +761,17 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
         if assistant_type == "permit":
             if any(k in q_lower for k in ["student", "university", "student id", "dorm", "kimlik", "renew id"]) and not any(k in q_lower for k in ["employee", "staff"]):
                 msg_content = "🎓 It looks like you're asking about a Student task! Please click the **Switch Assistant** dropdown at the top of the page and select **Student Assistant** so I can correctly map out your academic roadmap."
-                assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=msg_content)
-                db.add(assistant_msg)
-                db.commit()
+                if user:
+                    assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=msg_content)
+                    db.add(assistant_msg)
+                    db.commit()
                 return {"role": "assistant", "content": msg_content, "session_title": db_session.title if db_session else None}
             elif any(k in q_lower for k in ["sue ", "court", "lawsuit", "divorce", "criminal", "real estate dispute"]):
                 msg_content = "⚖️ It looks like you need Legal Assistance! Please click the **Switch Assistant** dropdown at the top of the page and select **Lawyer Assistant** so our legal engine can help you."
-                assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=msg_content)
-                db.add(assistant_msg)
-                db.commit()
+                if user:
+                    assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=msg_content)
+                    db.add(assistant_msg)
+                    db.commit()
                 return {"role": "assistant", "content": msg_content, "session_title": db_session.title if db_session else None}
 
         # ------------------------------------------------------------------
@@ -701,30 +781,25 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
             try:
                 # get history for smart router context to detect isolated answers (e.g. "Kadikoy")
                 # Use a larger limit (12) to prevent amnesia if the user makes typos or chats in between questions
-                history_text = await _get_history_context(session_id, db, limit=12, strip_boilerplate=True)
+                history_text = await _get_history_context(session_id, db, limit=12, strip_boilerplate=True, user_id=user.id if user else None)
                 
-                smart_result = await _smart_router_handle(
+                smart_answer, offline_state, smart_source = await _smart_router_handle(
                     query=query_text,
                     assistant_type=assistant_type,
                     user_name=user.full_name if user else "",
-                    language=language,  # passes language for localized offline replies
+                    language=language,
                     gemini_model=gemini_model,
                     student_model=student_model,
                     lawyer_model=lawyer_model,
-                    history_text=history_text
+                    history_text=history_text,
+                    can_learn=True  # Always learn — saves to local files for all future users
                 )
                 
-                smart_answer = None
-                offline_state = None
-                
-                if isinstance(smart_result, tuple):
-                    smart_answer, offline_state = smart_result
-                elif isinstance(smart_result, str):
-                    smart_answer = smart_result
-                
                 if smart_answer is not None:
-                    assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=smart_answer)
-                    db.add(assistant_msg)
+                    if user:
+                        clean_answer = sanitize_surrogates(smart_answer)
+                        assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=clean_answer)
+                        db.add(assistant_msg)
                     
                     if offline_state:
                         # Offline dashboard generation without an AI request
@@ -776,11 +851,14 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
                         print(f"📖 [ZERO-TOKEN LIBRARY MATCH] Predefined text response served")
                         print("="*70 + "\n")
                             
-                    db.commit()
-                    return {"role": "assistant", "content": smart_answer, "session_title": db_session.title if db_session else None}
+                    if user:
+                        db.commit()
+                    return {"role": "assistant", "content": smart_answer, "session_title": db_session.title if db_session else None, "source": smart_source}
             except Exception as sr_err:
                 print(f"[SmartRouter ERROR] {sr_err} — falling through to orchestrator")
-        # ------------------------------------------------------------------
+        
+        # Default source if fallback to AI occurs
+        source = "AI Orchestrator"
 
         if _agents_available:
             try:
@@ -822,22 +900,26 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
                     print("\n" + "="*70)
                     print(f"🤖 [AI DIRECT REPLY] Using Gemini for a follow-up or specific {assistant_type} question")
                     print("="*70 + "\n")
+                    source = f"Direct AI Reply ({assistant_type} agent)"
                     answer = await _run_direct_gemini(query_text, user, db, language, session_id, is_followup=is_followup_prompt, file_obj=file_obj, assistant_type=assistant_type)
                 else:
                     if assistant_type == "student":
                         print("\n" + "="*70)
                         print(f"🧠 [AI ORCHESTRATOR] Routing to STUDENT LangGraph to generate plan")
                         print("="*70 + "\n")
+                        source = "AI Orchestrator (Student Agent)"
                         answer = await _run_with_student_agents(query_text, user, db, language, session_id)
                     elif assistant_type == "lawyer":
                         print("\n" + "="*70)
                         print(f"🧠 [AI ORCHESTRATOR] Routing to LAWYER LangGraph to generate plan")
                         print("="*70 + "\n")
+                        source = "AI Orchestrator (Lawyer Agent)"
                         answer = await _run_with_lawyer_agents(query_text, user, db, language, session_id)
                     else:
                         print("\n" + "="*70)
                         print(f"🧠 [AI ORCHESTRATOR] Routing to PERMIT LangGraph to generate plan")
                         print("="*70 + "\n")
+                        source = "AI Orchestrator (Permit Agent)"
                         answer = await _run_with_agents(query_text, user, db, language, session_id)
             except Exception as agent_err:
                 import traceback
@@ -845,10 +927,12 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
                 traceback.print_exc()
                 # For student queries, always try the student direct model not the permit one
                 answer = await _run_direct_gemini(query_text, user, db, language, session_id, is_followup=False, file_obj=file_obj, assistant_type=assistant_type)
+                source = "AI Direct Reply (Pipeline Recovery)"
         else:
             print("\n" + "="*70)
             print(f"🤖 [AI DIRECT FALLBACK] Agents down or missing, using direct Gemini API")
             print("="*70 + "\n")
+            source = "AI Direct Fallback (Agents Down)"
             answer = await _run_direct_gemini(query_text, user, db, language, session_id, is_followup=True, file_obj=file_obj, assistant_type=assistant_type)
         
         if True: # Always save assistant message now that we have session tracking
@@ -863,10 +947,16 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
                         answer = answer[:idx].strip()
                         lower_answer = answer.lower() # update for next iterations
                         
-            # Save assistant message
-            assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=answer)
-            db.add(assistant_msg)
-            db.commit()
+            # Save assistant message — PRIVACY RULE: Support guest ephemeral chat
+            if user:
+                clean_answer = sanitize_surrogates(answer)
+                assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=clean_answer)
+                db.add(assistant_msg)
+                db.commit()
+            else:
+                print(f"[Guest Privacy] Saving assistant message to in-memory store for {session_id}")
+                if session_id not in guest_chat_histories: guest_chat_histories[session_id] = []
+                guest_chat_histories[session_id].append({"role": "assistant", "content": answer})
 
             # --- Update session title from dashboard state when orchestrator generated one ---
             if db_session and db_session.dashboard_state and not is_direct:
@@ -923,13 +1013,15 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
                     if new_title:
                         if len(new_title) > 35:
                             new_title = new_title[:32] + "..."
-                        db_session.title = new_title
-                        db.commit()
+                        if db_session:
+                            db_session.title = new_title
+                        if user:
+                            db.commit()
                 except Exception as title_err:
                     print(f"[Title Update Error] {title_err}")
 
         print(f"[agent_query] Success. Content length: {len(answer)}")
-        return {"role": "assistant", "content": answer, "session_title": db_session.title if db_session else None}
+        return {"role": "assistant", "content": answer, "session_title": db_session.title if db_session else None, "source": source}
 
     except Exception as e:
         print(f"[AgentQuery CRITICAL ERROR] {e}")

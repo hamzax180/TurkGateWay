@@ -14,8 +14,8 @@
   --surface-2-rgb: 240, 244, 249;
   --border: rgba(0, 0, 0, 0.08);
   --border-2: rgba(0, 0, 0, 0.12);
-  --accent: #1a73e8;
-  --accent-rgb: 26, 115, 232;
+  --accent: #a855f7;
+  --accent-rgb: 168, 85, 247;
   --text: #171a1c;
   --muted: #5f6368;
   --radius: 20px;
@@ -32,8 +32,8 @@
   --surface-2-rgb: 42, 43, 45;
   --border: rgba(255, 255, 255, 0.1);
   --border-2: rgba(255, 255, 255, 0.18);
-  --accent: #8ab4f8;
-  --accent-rgb: 138, 180, 248;
+  --accent: #c084fc;
+  --accent-rgb: 192, 132, 252;
   --text: #e3e3e3;
   --muted: #9aa0a6;
   --nav-bg: rgba(14, 14, 14, 0.8);
@@ -439,6 +439,27 @@ body {
 
 .dark .agent-chip { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171; }
 .dark .human-chip { background: rgba(14,165,233,0.12); border-color: rgba(14,165,233,0.25); color: #7dd3fc; }
+
+/* Workflow Connector Line */
+.workflow-connector {
+  position: absolute;
+  left: 36px;
+  top: 50px;
+  bottom: -40px;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--border), var(--border));
+  z-index: 0;
+  opacity: 0.4;
+}
+.workflow-connector-active {
+  background: linear-gradient(to bottom, #7c3aed, #4f46e5);
+  opacity: 1;
+  box-shadow: 0 0 10px rgba(124, 58, 237, 0.2);
+}
+.workflow-connector-done {
+  background: #10b981;
+  opacity: 1;
+}
 
 /* ─── Mesh Gradients (Gradual UI) ─── */
 .agent-chip {

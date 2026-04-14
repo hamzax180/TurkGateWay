@@ -14,10 +14,15 @@ import { useAuth } from '../context/AuthContext';
 export default function Navbar({ isAppPage = false, onMobileMenuClick, extraContent }: { isAppPage?: boolean; onMobileMenuClick?: () => void; extraContent?: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, token, logout, isAuthenticated } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 16);
@@ -70,6 +75,17 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
         }`}
     >
       <div className="w-full px-4 md:px-12 h-16 flex items-center justify-between">
+        {/* Mobile Menu Toggle */}
+        <button
+          className="md:hidden p-2 text-gray-400 hover:text-white transition-colors"
+          onClick={() => {
+            if (onMobileMenuClick) onMobileMenuClick();
+            else setOpen(!open);
+          }}
+          aria-label="Toggle menu"
+        >
+          {open ? <X size={20} /> : <Menu size={20} />}
+        </button>
 
         {/* Logo removed */}
 
@@ -104,7 +120,6 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
           {extraContent}
         </div>
 
-        {/* Right CTA */}
         <div className="hidden md:flex items-center gap-3 relative z-50">
           <LanguageSwitcher />
           <ThemeToggle />
@@ -134,24 +149,14 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
           )}
         </div>
 
-        {/* Mobile Menu Toggle */}
-        <button
-          className="md:hidden p-2 text-gray-400 hover:text-white transition-colors"
-          onClick={() => {
-            if (onMobileMenuClick) onMobileMenuClick();
-            else setOpen(!open);
-          }}
-          aria-label="Toggle menu"
-        >
-          {open ? <X size={20} /> : <Menu size={20} />}
-        </button>
+
       </div>
     </header>
 
     {/* Mobile Drawer (Universal Sidebar) — rendered OUTSIDE header */}
     <Sidebar
       currentSessionId={null}
-      assistantType={typeof window !== 'undefined' ? (localStorage.getItem('permitops_active_agent') || 'permit') : 'permit'}
+      assistantType={mounted ? (localStorage.getItem('permitops_active_agent') || 'permit') : 'permit'}
       onSessionSelect={(id: string) => {
         localStorage.setItem('permitops_active_session_id', id);
         router.push('/chat');
@@ -162,7 +167,7 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
         localStorage.setItem('permitops_active_agent', t);
         router.push('/chat');
       }}
-      token={typeof window !== 'undefined' ? localStorage.getItem('permitops_token') : null}
+      token={token}
       mobileOpen={open}
       onMobileClose={() => setOpen(false)}
       refreshTrigger={0}

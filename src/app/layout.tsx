@@ -11,8 +11,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
+    <html lang="en" translate="no" className="notranslate" suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
+        <meta name="google" content="notranslate" />
         <script dangerouslySetInnerHTML={{
           __html: `
           (function() {
@@ -25,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           })();
         `}} />
       </head>
-      <body className="antialiased font-gemini">
+      <body className="antialiased font-gemini" suppressHydrationWarning>
         <LanguageProvider>
           <AuthProvider>
             {children}

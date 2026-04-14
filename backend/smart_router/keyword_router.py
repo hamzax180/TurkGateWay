@@ -181,7 +181,7 @@ INTENT_MAP = {
         r"(رقم ضريبي|ضريبة|ضرائب|الرقم الضريبي|دائرة الضرائب)"
     ],
     "permit.support": [
-        r"(🆘|help|support|contact support|customer service|need help)",
+        r"\b(🆘|help|support|contact support|customer service|need help)\b",
         r"(مساعدة|دعم|تواصل|🆘)"
     ],
 
@@ -196,7 +196,7 @@ INTENT_MAP = {
         r"(ضاع|فقدت|ضياع|انسرق|مفقود) (هوية|بطاقة|كيملك|كملك|كارت|كارت الجامعة)"
     ],
     "student.register_uni": [
-        r"\b(how (to|do i) (register|enroll|apply)|university (registration|enrollment|enrolment)|enroll (at|in)|register (at|for) (a |my )?university|yoks[i\u0131]s)\b",
+        r"\b(how (to|do i) (register|enroll|apply)|university (registration|enrollment|enrolment)|academic help|academic support|enroll (at|in)|register (at|for) (a |my )?university|yoks[i\u0131]s)\b",
         r"(تسجيل (جامعة|في الجامعة)|تقديم على (جامعة|الجامعة)|قبول جامعي|كيف اسجل بالجامعة|كيف سجل بالجامعة|كيف اسجل|كيف اسجل في الجامعة|كيف اقدم|قيد جامعة|تسجيل جامعي)"
     ],
     "student.top_universities": [
@@ -248,7 +248,7 @@ INTENT_MAP = {
         r"(تعلم تركي|تومر|كورس تركي|معهد لغات|لغة تركية|دراسة لغة)"
     ],
     "student.shelp": [
-        r"(🆘|student help|help student|help me with student|i need student help)",
+        r"\b(🆘|help|support|student help|help student|help me with student|i need student help)\b",
         r"(مساعدة الطالب|مساعدة|🆘)"
     ],
 
@@ -330,7 +330,7 @@ INTENT_MAP = {
         r"(استشارة قانونية|استشاره|محامي|سؤال قانوني|مشورة|استفسار قانوني|نصيحة قانونية)"
     ],
     "lawyer.support": [
-        r"(🆘|help|support|contact support|customer service|need help)",
+        r"\b(🆘|help|support|contact support|customer service|need help)\b",
         r"(مساعدة|دعم|تواصل|🆘)"
     ],
 }

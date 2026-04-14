@@ -73,15 +73,15 @@ export default function Sidebar({
     fetchSessions();
   }, [token, currentSessionId, refreshTrigger]);
 
-  const getDisplayTitle = (title: string) => {
+  const getDisplayTitle = (title: string, sType?: string) => {
     if (!title) return t('chat_new');
     if (title === 'New Chat') return t('chat_new');
     if (title === 'Document Analysis') return t('chat_suggestion_permit').replace('?', '');
     
     const lowerTitle = title.toLowerCase();
     
-    // Pattern: "[Business] in [District]"
-    const match = lowerTitle.match(/^(.+?)\s+in\s+(.+)$/);
+    // Pattern: "[Business] in [District]" — restricted to permit mode
+    const match = (sType === 'permit' || !sType) ? lowerTitle.match(/^(.+?)\s+in\s+(.+)$/) : null;
     if (match) {
       const businessRaw = match[1].trim();
       const districtRaw = match[2].trim().replace(/\s/g, ''); // normalize for keys
@@ -405,7 +405,7 @@ const SidebarInner = React.memo(({
               className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg flex flex-col items-center justify-center gap-1 transition-all outline-none ${assistantType === tab.id ? 'bg-[var(--surface-1)] shadow-sm text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
             >
               <tab.icon size={14} className={assistantType === tab.id ? tab.color : 'opacity-50'} />
-              {tab.label}
+              {tab.label} {t('agent_badge')}
             </button>
           ))}
         </motion.div>
@@ -448,7 +448,7 @@ const SidebarInner = React.memo(({
                   title={s.title}
                   className={`text-sm tracking-tight truncate flex-1 pr-8 ${currentSessionId === s.id ? 'font-bold' : 'font-medium opacity-90'}`}
                 >
-                  {getDisplayTitle(s.title)}
+                  {getDisplayTitle(s.title, s.assistant_type)}
                 </span>
               )}
               {showLabels && (

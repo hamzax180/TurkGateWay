@@ -7,18 +7,18 @@ response library so they can be served offline on future identical/similar queri
 How it works:
   1. When the AI fallback generates a response, we call `learn()`.
   2. `learn()` normalizes the query, classifies it by agent + intent,
-     and appends the response to the correct JSON response library file.
+     and appends the response to the agent's learned/{lang}.json file.
   3. On the next identical query, the keyword router matches the intent
-     and `_pick_response()` finds the learned response in the library — 
+     and `find_learned_response()` finds the learned response — 
      zero API tokens consumed.
   4. For queries that land in the "learned" bucket (no known intent),
      `find_learned_response()` performs fuzzy matching against previously
      stored query+response pairs — also zero API tokens consumed.
 
 Files modified:
-  - agents/{agent}/responses.json      (English)
-  - agents/{agent}/responses_tr.json   (Turkish)
-  - agents/{agent}/responses_ar.json   (Arabic)
+  - agents/{agent}/learned/en.json   (English)
+  - agents/{agent}/learned/tr.json   (Turkish)
+  - agents/{agent}/learned/ar.json   (Arabic)
 
 Safety:
   - Max 10 learned responses per intent (prevents bloat)
@@ -33,7 +33,7 @@ import os
 import re
 import threading
 from difflib import SequenceMatcher
-from typing import Optional
+from typing import Optional, Tuple
 from datetime import datetime
 
 # ---------------------------------------------------------------------------
@@ -42,7 +42,7 @@ from datetime import datetime
 _AGENTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agents")
 _MAX_LEARNED_PER_INTENT = 10       # Max learned responses per intent key
 _MAX_LEARNED_PAIRS = 50            # Max query+response pairs in "learned" bucket
-_MIN_RESPONSE_LENGTH = 50          # Ignore tiny/error responses
+_MIN_RESPONSE_LENGTH = 10          # Ignore tiny/error responses
 # Fuzzy matching thresholds: must pass both
 _MIN_CHAR_SIMILARITY = 0.80
 _MIN_WORD_SIMILARITY = 0.75
@@ -73,12 +73,6 @@ def _normalize_query(query: str) -> str:
     text = _RE_NON_WORD.sub("", text)
     text = _RE_MULTI_SPACE.sub(" ", text)
     return text
-
-
-def _get_response_file(agent: str, language: str) -> str:
-    """Return the path to the agent's response JSON file for a given language."""
-    suffix = f"_{language}" if language != "en" else ""
-    return os.path.join(_AGENTS_DIR, agent, f"responses{suffix}.json")
 
 
 def _get_learned_file(agent: str, language: str) -> str:
@@ -121,7 +115,7 @@ def _is_duplicate(existing_responses: list, new_response: str) -> bool:
     return False
 
 
-def _classify_intent(query: str, assistant_type: str) -> Optional[str]:
+def _classify_intent(query: str, assistant_type: str) -> str:
     """
     Try to classify the query into a known intent key (sub_intent).
     Uses the keyword_router for detection.
@@ -180,10 +174,14 @@ def learn(
     response: str,
     assistant_type: str,
     language: str = "en",
-    intent_hint: Optional[str] = None
+    intent_hint: Optional[str] = None,
+    dashboard_state: Optional[dict] = None
 ) -> bool:
     """
-    Save an AI-generated response into the permanent response library.
+    Save an AI-generated response into the permanent learned library.
+    
+    ALL AI-generated responses are stored in agents/{agent}/learned/{lang}.json
+    to keep the curated responses.json files clean and hand-maintained.
     
     Args:
         query: The original user query
@@ -191,6 +189,7 @@ def learn(
         assistant_type: 'permit', 'student', or 'lawyer'
         language: 'en', 'tr', or 'ar'
         intent_hint: Optional pre-classified intent (sub_intent)
+        dashboard_state: Optional dictionary containing state/roadmap data
     
     Returns:
         True if the response was saved, False if skipped.
@@ -210,13 +209,8 @@ def learn(
     # --- Classify the intent ---
     intent_key = intent_hint or _classify_intent(query, assistant_type)
     
-    # --- Route to the correct file ---
-    if intent_key == "learned":
-        # Learned entries go to the separate learned.json
-        filepath = _get_learned_file(assistant_type, language)
-    else:
-        # Known-intent entries go to the curated responses.json
-        filepath = _get_response_file(assistant_type, language)
+    # --- ALL learned responses go to learned/{lang}.json ---
+    filepath = _get_learned_file(assistant_type, language)
     
     with _file_lock:
         data = _load_json(filepath)
@@ -233,46 +227,72 @@ def learn(
             return False
         
         if intent_key == "learned":
-            # "learned" bucket uses dict format: {"q": ..., "r": ...}
+            # "learned" bucket uses dict format: {"q": ..., "r": ..., "s": ...}
             if len(existing) >= _MAX_LEARNED_PAIRS:
                 # Evict oldest entry
                 existing.pop(0)
                 print(f"[LearningCache] Evicted oldest learned entry for {assistant_type} ({language})")
             
-            data[intent_key].append({
+            entry = {
                 "q": _normalize_query(query),
-                "r": response.strip()
-            })
+                "r": response.strip(),
+            }
+            if dashboard_state:
+                entry["s"] = dashboard_state # 's' for state
+
+            data[intent_key].append(entry)
         else:
-            # Known intent: use simple string list (compatible with curated library)
+            # Known intent: store with query metadata for fuzzy matching
             if len(existing) >= _MAX_LEARNED_PER_INTENT:
                 print(f"[LearningCache] SKIP — {assistant_type}.{intent_key} already has {len(existing)} responses (max {_MAX_LEARNED_PER_INTENT})")
                 return False
             
-            data[intent_key].append(response.strip())
+            entry = {
+                "q": _normalize_query(query),
+                "r": response.strip(),
+                "intent": intent_key,
+            }
+            if dashboard_state:
+                entry["s"] = dashboard_state
+            
+            data[intent_key].append(entry)
         
         _save_json(filepath, data)
     
     # Update the in-memory library so it takes effect immediately
-    if _live_library:
-        lang_lib = _live_library.get(language, {})
-        agent_data = lang_lib.get(assistant_type, {})
-        if isinstance(agent_data, dict):
-            if intent_key not in agent_data:
-                agent_data[intent_key] = []
-            if intent_key == "learned":
-                agent_data[intent_key].append({
-                    "q": _normalize_query(query),
-                    "r": response.strip()
-                })
-            elif not _is_duplicate(agent_data[intent_key], response):
-                agent_data[intent_key].append(response.strip())
+    _update_live_library(assistant_type, language, intent_key, query, response, dashboard_state)
     
     # Log it
     _log_learning(query, assistant_type, intent_key, language)
     
     print(f"[LearningCache] ✅ LEARNED new response for {assistant_type}.{intent_key} ({language}) — Library now has {len(data[intent_key])} variations")
     return True
+
+
+def _update_live_library(assistant_type: str, language: str, intent_key: str, query: str, response: str, dashboard_state: Optional[dict] = None):
+    """Update the in-memory library so learned responses take effect immediately."""
+    if not _live_library:
+        return
+    
+    lang_lib = _live_library.get(language, {})
+    agent_data = lang_lib.get(assistant_type, {})
+    if not isinstance(agent_data, dict):
+        return
+    
+    if intent_key not in agent_data:
+        agent_data[intent_key] = []
+    
+    entry = {
+        "q": _normalize_query(query),
+        "r": response.strip(),
+    }
+    if intent_key != "learned":
+        entry["intent"] = intent_key
+    if dashboard_state:
+        entry["s"] = dashboard_state
+    
+    if not _is_duplicate(agent_data[intent_key], response):
+        agent_data[intent_key].append(entry)
 
 
 # ---------------------------------------------------------------------------
@@ -283,10 +303,12 @@ def find_learned_response(
     query: str,
     assistant_type: str,
     language: str = "en",
-) -> Optional[str]:
+) -> Optional[Tuple[str, Optional[dict]]]:
     """
-    Search the "learned" bucket for a previously seen query that closely
+    Search ALL learned entries for a previously seen query that closely
     matches the current one. Uses fuzzy matching (SequenceMatcher).
+    
+    Searches across ALL intent buckets in the learned file, not just "learned".
     
     Args:
         query: The current user query
@@ -294,43 +316,59 @@ def find_learned_response(
         language: 'en', 'tr', or 'ar'
     
     Returns:
-        The learned response string if a good match is found, else None.
+        A tuple of (response_text, dashboard_state) if found, else None.
     """
     if assistant_type not in ("permit", "student", "lawyer"):
         return None
 
     normalized = _normalize_query(query)
     
-    # --- Try in-memory library first (faster) ---
-    learned_entries = []
+    # --- Collect ALL learned entries across all intent buckets ---
+    all_entries = []
+    
+    # Try in-memory library first (faster)
     if _live_library:
         lang_lib = _live_library.get(language, {})
         agent_data = lang_lib.get(assistant_type, {})
         if isinstance(agent_data, dict):
-            learned_entries = agent_data.get("learned", [])
+            for bucket_key, bucket_entries in agent_data.items():
+                if not isinstance(bucket_entries, list):
+                    continue
+                for entry in bucket_entries:
+                    if isinstance(entry, dict) and "q" in entry and "r" in entry:
+                        all_entries.append(entry)
     
     # Fallback: load from disk if in-memory is empty
-    if not learned_entries:
+    if not all_entries:
         filepath = _get_learned_file(assistant_type, language)
         data = _load_json(filepath)
-        learned_entries = data.get("learned", [])
+        for bucket_key, bucket_entries in data.items():
+            if not isinstance(bucket_entries, list):
+                continue
+            for entry in bucket_entries:
+                if isinstance(entry, dict) and "q" in entry and "r" in entry:
+                    all_entries.append(entry)
     
-    if not learned_entries:
+    if not all_entries:
         return None
     
     # --- Fuzzy match against stored queries ---
-    best_match = None
+    best_match_text = None
+    best_match_state = None
     best_score = 0.0
     
-    for entry in learned_entries:
-        if not isinstance(entry, dict):
-            continue  # Skip legacy string entries
-        
+    for entry in all_entries:
         stored_query = entry.get("q", "")
         stored_response = entry.get("r", "")
+        stored_state = entry.get("s") # Optional state
         
         if not stored_query or not stored_response:
             continue
+        
+        # Exact match shortcut
+        if normalized == stored_query:
+            print(f"[LearningCache] 🎯 EXACT LEARNED HIT for: {query[:60]}")
+            return stored_response, stored_state
             
         q_words = set(normalized.split())
         s_words = set(stored_query.split())
@@ -351,11 +389,12 @@ def find_learned_response(
             combined = (char_score + word_score) / 2
             if combined > best_score:
                 best_score = combined
-                best_match = stored_response
+                best_match_text = stored_response
+                best_match_state = stored_state
     
-    if best_match:
+    if best_match_text:
         print(f"[LearningCache] 🎯 LEARNED HIT (score={best_score:.2f}) for: {query[:60]}")
-        return best_match
+        return best_match_text, best_match_state
     
     return None
 

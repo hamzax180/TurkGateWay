@@ -181,6 +181,8 @@ const translations: Record<Language, Record<string, string>> = {
     auth_has_account: 'Already have an account?',
     auth_signing_in: 'Signing in...',
     auth_signing_up: 'Creating account...',
+    auth_enter_password: 'Enter your password',
+    auth_email_not_found: "Couldn't find your TurkGateway Account",
     chat_permit_desc: 'Business & Municipal Protocol',
     chat_student_desc: 'Academic Tasks & ID Renewals',
     chat_lawyer_desc: 'Legal Advice & Compliance',
@@ -282,6 +284,24 @@ const translations: Record<Language, Record<string, string>> = {
     biz_clothing: 'Clothing Store', biz_hotel: 'Hotel', biz_clinic: 'Clinic', biz_school: 'School',
     scroll_right: 'Scroll Right',
     click_to_flip: 'Tap to reveal',
+    auth_terms: 'Terms',
+    auth_privacy: 'Privacy',
+    auth_help: 'Help',
+    footer_english: 'English',
+    footer_turkish: 'Turkish',
+    footer_arabic: 'Arabic',
+    auth_login_header: 'Sign in',
+    auth_login_subheader: 'with your TurkGateway Account',
+    auth_forgot_email: 'Forgot email?',
+    auth_guest_notice: 'Not your computer? Use Guest mode to sign in privately.',
+    auth_learn_more: 'Learn more about using Guest mode',
+    auth_next: 'Next',
+    auth_change_email: 'Change email',
+    auth_enter_password: 'Enter your password',
+    auth_signup_header: 'Create account',
+    auth_signup_subheader: 'to continue to TurkGateway',
+    auth_signin_instead: 'Sign in instead',
+    auth_sign_in_as: 'Sign in as',
   },
   tr: {
     navbar_home: 'Ana Sayfa',
@@ -450,6 +470,8 @@ const translations: Record<Language, Record<string, string>> = {
     auth_has_account: 'Zaten hesabınız var mı?',
     auth_signing_in: 'Giriş yapılıyor...',
     auth_signing_up: 'Hesap oluşturuluyor...',
+    auth_enter_password: 'Şifrenizi girin',
+    auth_email_not_found: 'TurkGateway Hesabınız bulunamadı',
     chat_switch_assistant: 'AJAN SEÇİMİ',
     chat_permit_desc: 'İşletme ve Belediye Protokolü',
     chat_student_desc: 'Akademik Görevler ve Kimlik Yenileme',
@@ -552,6 +574,24 @@ const translations: Record<Language, Record<string, string>> = {
     settings_clear_history: 'Geçmişi Temizle',
     scroll_right: 'Sağa Kaydır',
     click_to_flip: 'Görmek için dokun',
+    auth_terms: 'Şartlar',
+    auth_privacy: 'Gizlilik',
+    auth_help: 'Yardım',
+    footer_english: 'İngilizce',
+    footer_turkish: 'Türkçe',
+    footer_arabic: 'Arapça',
+    auth_login_header: 'Oturum açın',
+    auth_login_subheader: 'TurkGateway Hesabınızı kullanın',
+    auth_forgot_email: 'E-postanızı mı unuttunuz?',
+    auth_guest_notice: 'Size ait olmayan bir bilgisayar mı kullanıyorsunuz? Gizli oturum açmak için Misafir modunu kullanın.',
+    auth_learn_more: 'Misafir modunu kullanma hakkında daha fazla bilgi edinin',
+    auth_next: 'Sonraki',
+    auth_change_email: 'E-postayı değiştir',
+    auth_enter_password: 'Şifrenizi girin',
+    auth_signup_header: 'Hesap oluşturun',
+    auth_signup_subheader: 'TurkGateway\'e devam etmek için',
+    auth_signin_instead: 'Bunun yerine oturum açın',
+    auth_sign_in_as: 'Şu kişi olarak oturum aç',
   },
   ar: {
     navbar_home: 'الرئيسية',
@@ -749,6 +789,8 @@ const translations: Record<Language, Record<string, string>> = {
     auth_full_name: 'الاسم الكامل',
     auth_signing_in: 'جاري تسجيل الدخول...',
     auth_signing_up: 'جاري إنشاء الحساب...',
+    auth_enter_password: 'أدخل كلمة المرور',
+    auth_email_not_found: 'لم نتمكن من العثور على حسابك في TurkGateway',
     pricing_billed_as: 'يتم احتساب الفاتورة بقيمة {amount}/سنوياً',
     pricing_billed_monthly: 'يتم احتساب الفاتورة شهرياً',
     pricing_monthly_unit: 'شهر',
@@ -791,25 +833,43 @@ const translations: Record<Language, Record<string, string>> = {
     settings_clear_history: 'مسح السجل',
     scroll_right: 'مرر لليمين',
     click_to_flip: 'انقر للكشف',
-  }
+    auth_terms: 'الشروط',
+    auth_privacy: 'الخصوصية',
+    auth_help: 'المساعدة',
+    footer_english: 'الإنجليزية',
+    footer_turkish: 'التركية',
+    footer_arabic: 'العربية',
+    auth_login_header: 'تسجيل الدخول',
+    auth_login_subheader: 'باستخدام حساب TurkGateway الخاص بك',
+    auth_forgot_email: 'هل نسيت البريد الإلكتروني؟',
+    auth_guest_notice: 'هل تستخدم جهاز كمبيوتر غير خاص بك؟ استخدم وضع الضيف لتسجيل الدخول بخصوصية.',
+    auth_learn_more: 'مزيد من المعلومات حول استخدام وضع الضيف',
+    auth_next: 'التالي',
+    auth_change_email: 'تغيير البريد الإلكتروني',
+    auth_enter_password: 'أدخل كلمة المرور',
+    auth_signup_header: 'إنشاء حساب',
+    auth_signup_subheader: 'للمتابعة إلى TurkGateway',
+    auth_signin_instead: 'تسجيل الدخول بدلاً من ذلك',
+    auth_sign_in_as: 'تسجيل الدخول باسم',
+  },
 };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   // Initialize state from localStorage if available to prevent flash of wrong language
-  const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('language') as Language;
-      if (saved && ['en', 'ar', 'tr'].includes(saved)) {
-        // Sync DOM immediately during initialization
-        document.documentElement.lang = saved;
-        document.documentElement.dir = saved === 'ar' ? 'rtl' : 'ltr';
-        return saved;
-      }
+  const [language, setLanguageState] = useState<Language>('en');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem('language') as Language;
+    if (saved && ['en', 'ar', 'tr'].includes(saved)) {
+      setLanguageState(saved);
+      document.documentElement.lang = saved;
+      document.documentElement.dir = saved === 'ar' ? 'rtl' : 'ltr';
     }
-    return 'en';
-  });
+  }, []);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
@@ -822,14 +882,17 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Also keep the effect for external changes or persistence
-    localStorage.setItem('language', language);
-    document.documentElement.lang = language;
-    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
-  }, [language]);
+    if (mounted) {
+      localStorage.setItem('language', language);
+      document.documentElement.lang = language;
+      document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+    }
+  }, [language, mounted]);
 
   const t = (key: string) => {
-    return translations[language]?.[key] || key;
+    // During hydration, always use English to match server
+    const displayLang = mounted ? language : 'en';
+    return translations[displayLang]?.[key] || key;
   };
 
   const isRTL = language === 'ar';

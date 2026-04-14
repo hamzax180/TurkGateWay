@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Sparkles, User, Mic, Plus, ChevronDown, Building2, FileText, Search, Clock, HelpCircle, Scale, Menu, GraduationCap, Cpu } from 'lucide-react';
@@ -120,7 +121,15 @@ export default function ChatPage() {
           console.error("Failed to fetch sessions", e);
         }
       } else {
-        setSessionId("default-session");
+        // Ephemeral GUEST session — unique per visit but not saved in DB
+        const existingGuestId = localStorage.getItem('permitops_active_session_id');
+        if (existingGuestId && existingGuestId.length > 20) {
+          setSessionId(existingGuestId);
+        } else {
+          const newId = `guest-${Math.random().toString(36).substring(2, 15)}`;
+          setSessionId(newId);
+          localStorage.setItem('permitops_active_session_id', newId);
+        }
       }
     };
     initSession();
@@ -220,6 +229,10 @@ export default function ChatPage() {
         console.error("Failed to create new session", e);
       }
     } else {
+      // Ephemeral GUEST reset
+      const newGuestId = `guest-${Math.random().toString(36).substring(2, 15)}`;
+      setSessionId(newGuestId);
+      localStorage.setItem('permitops_active_session_id', newGuestId);
       clearChat();
     }
   };
@@ -295,6 +308,10 @@ export default function ChatPage() {
       if (!res || !res.ok) throw new Error();
       const data = await res.json();
 
+      if (data.source) {
+        console.log(`%c[Data Source] %c${data.source}`, "color: #ef4444; font-weight: bold;", "color: #3b82f6; font-weight: bold;");
+      }
+
       if (data.session_title && data.session_title !== sessionTitle) {
         setSessionTitle(data.session_title);
         setSidebarRefresh(prev => prev + 1);
@@ -343,10 +360,10 @@ export default function ChatPage() {
   if (!isLoaded) return <LoadingScreen />;
 
   return (
-    <div className="flex h-screen overflow-hidden selection:bg-purple-500/30 relative bg-white dark:bg-black transition-colors duration-500">
+    <div className="flex h-screen overflow-hidden selection:bg-purple-500/30 relative bg-[var(--bg)] transition-colors duration-500">
       {/* Dynamic Backgrounds */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-white via-[#f0f7ff] to-[#f5f3ff] dark:hidden pointer-events-none transition-colors duration-500" />
-      <div className="absolute inset-0 hidden dark:block dark:deep-mesh pointer-events-none transition-colors duration-500" />
+      <div className="absolute inset-0 bg-gradient-to-tr from-white via-[#f0f7ff] to-[#f5f3ff] dark:from-[var(--bg)] dark:to-[var(--bg)] pointer-events-none transition-colors duration-500" />
+      <div className="absolute inset-0 hidden dark:block bg-[var(--bg)] pointer-events-none transition-colors duration-500" />
       <Sidebar
         currentSessionId={sessionId}
         assistantType={assistantType}
@@ -376,14 +393,15 @@ export default function ChatPage() {
                     <div className="absolute inset-0 bg-red-500/30 blur-md rounded-full animate-pulse" />
                   </div>
                   <span className="text-[12px] font-black uppercase tracking-[0.15em] text-red-500 dark:text-red-400">
-                    {assistantType === 'permit' ? t('assistant_permit') : assistantType === 'student' ? t('assistant_student') : t('assistant_lawyer')} Agent
+                    {assistantType === 'permit' ? t('assistant_permit') : assistantType === 'student' ? t('assistant_student') : t('assistant_lawyer')} {t('agent_badge')}
                   </span>
                   <ChevronDown size={12} className={`text-red-400 group-hover:text-red-500 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
                 </div>
 
-                <AnimatePresence>
+                <AnimatePresence mode="wait">
                   {isDropdownOpen && (
                     <motion.div
+                      key="desktop-dropdown"
                       initial={{ opacity: 0, y: -10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -398,21 +416,21 @@ export default function ChatPage() {
                           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${assistantType === 'permit' ? 'bg-red-500/10 text-red-500' : 'hover:bg-white/5 text-[var(--muted)] hover:text-[var(--text)]'}`}
                         >
                           <Building2 size={18} className={assistantType === 'permit' ? 'text-red-500' : ''} />
-                          <span className="text-xs font-black uppercase tracking-wider">{t('assistant_permit')}</span>
+                          <span className="text-xs font-black uppercase tracking-wider">{t('assistant_permit')} {t('agent_badge')}</span>
                         </button>
                         <button
                           onClick={() => switchAssistant('student')}
                           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${assistantType === 'student' ? 'bg-red-500/10 text-red-500' : 'hover:bg-white/5 text-[var(--muted)] hover:text-[var(--text)]'}`}
                         >
                           <GraduationCap size={18} className={assistantType === 'student' ? 'text-red-500' : ''} />
-                          <span className="text-xs font-black uppercase tracking-wider">{t('assistant_student')}</span>
+                          <span className="text-xs font-black uppercase tracking-wider">{t('assistant_student')} {t('agent_badge')}</span>
                         </button>
                         <button
                           onClick={() => switchAssistant('lawyer')}
                           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${assistantType === 'lawyer' ? 'bg-red-500/10 text-red-500' : 'hover:bg-white/5 text-[var(--muted)] hover:text-[var(--text)]'}`}
                         >
                           <Scale size={18} className={assistantType === 'lawyer' ? 'text-red-500' : ''} />
-                          <span className="text-xs font-black uppercase tracking-wider">{t('assistant_lawyer')}</span>
+                          <span className="text-xs font-black uppercase tracking-wider">{t('assistant_lawyer')} {t('agent_badge')}</span>
                         </button>
                       </div>
                     </motion.div>
@@ -423,47 +441,41 @@ export default function ChatPage() {
           />
         </div>
 
-        {/* Mobile Top Bar — Agent selection replaces static title */}
-        <div className="flex md:hidden items-center justify-between px-4 h-20 shrink-0 border-b border-[var(--border)] bg-[var(--bg)] z-30">
+        {/* Mobile Top Bar — Ultra-clean agent selection overlay */}
+        <div className="flex md:hidden items-center justify-between px-5 h-16 shrink-0 bg-[var(--bg)]/80 backdrop-blur-xl border-b border-white/5 z-[60]">
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[var(--surface-2)] text-[var(--text)] transition-colors"
+            className="w-10 h-10 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 text-[var(--text)] active:scale-95 transition-all"
           >
-            <Menu size={22} />
+            <Menu size={20} />
           </button>
-          <div className="flex flex-col items-center justify-center py-2 h-auto">
-            <div
-              className="flex items-center gap-2 cursor-pointer hover:bg-red-500/10 px-4 py-1.5 rounded-full transition-all border border-red-500/20 bg-red-500/5 mb-2"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            >
-              <span className="text-[13px] font-extrabold uppercase tracking-widest text-red-500">
+          
+          <div 
+            className="flex flex-col items-center justify-center cursor-pointer group"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          >
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 active:scale-95 transition-all">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">
                 {assistantType === 'permit' ? t('assistant_permit') : assistantType === 'student' ? t('assistant_student') : t('assistant_lawyer')} {t('agent_badge')}
               </span>
-              <ChevronDown size={11} className={`text-red-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={10} className={`text-red-500 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </div>
-            <span className="text-[16px] font-bold text-[var(--text)] tracking-tight leading-none truncate max-w-[200px]">
-              {(() => {
-                if (!sessionTitle || msgs.length === 0 || sessionTitle === t('chat_new')) return t('chat_new');
-                const match = sessionTitle.toLowerCase().match(/^(.+?)\s+in\s+(.+)$/);
-                if (match) {
-                  const bizKey = `biz_${match[1].trim()}`;
-                  const distKey = `dist_${match[2].trim().replace(/\s/g, '').toLowerCase()}`;
-                  const lb = t(bizKey), ld = t(distKey);
-                  if (lb !== bizKey && ld !== distKey) return `${lb} ${t('connect_in')} ${ld}`;
-                }
-                return sessionTitle;
-              })()}
-            </span>
+            {isEmpty && (
+              <span className="text-[13px] font-bold text-[var(--text)]/40 mt-0.5 tracking-tight">
+                {t('chat_new')}
+              </span>
+            )}
           </div>
+
           <div className="flex items-center gap-2">
             {user ? (
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-[13px] font-bold shadow-md">
+              <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-[13px] font-bold shadow-lg shadow-indigo-500/20">
                 {(user.fullName || user.email || 'U')[0].toUpperCase()}
               </div>
             ) : (
-              <div className="w-9 h-9 rounded-full bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-center">
-                <User size={16} className="text-[var(--muted)]" />
-              </div>
+              <Link href="/login" className="w-9 h-9 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors">
+                <User size={16} className="text-[var(--text)]" />
+              </Link>
             )}
           </div>
         </div>
@@ -488,9 +500,9 @@ export default function ChatPage() {
         </div>
 
         {/* Agent Selection Dropdown — renders on both mobile & desktop */}
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
           {isDropdownOpen && (
-            <>
+            <motion.div key="mobile-dropdown-wrapper">
               {/* Backdrop Blur */}
               <motion.div
                 initial={{ opacity: 0 }}
@@ -518,7 +530,7 @@ export default function ChatPage() {
                       <Building2 size={22} className="text-red-500" />
                     </div>
                     <div className={`flex flex-col ${isRTL ? 'text-right' : 'text-left'} overflow-hidden`}>
-                      <span className="text-[16px] font-bold tracking-tight">{t('assistant_permit')}</span>
+                      <span className="text-[16px] font-bold tracking-tight">{t('assistant_permit')} {t('agent_badge')}</span>
                       <span className="text-[12px] opacity-60 truncate max-w-[220px]">{t('chat_permit_desc')}</span>
                     </div>
                     {assistantType === 'permit' && <div className={`${isRTL ? 'mr-auto' : 'ml-auto'} w-2 h-2 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444]`} />}
@@ -532,7 +544,7 @@ export default function ChatPage() {
                       <GraduationCap size={22} className="text-red-500" />
                     </div>
                     <div className={`flex flex-col ${isRTL ? 'text-right' : 'text-left'} overflow-hidden`}>
-                      <span className="text-[16px] font-bold tracking-tight">{t('assistant_student')}</span>
+                      <span className="text-[16px] font-bold tracking-tight">{t('assistant_student')} {t('agent_badge')}</span>
                       <span className="text-[12px] opacity-60 truncate max-w-[220px]">{t('chat_student_desc')}</span>
                     </div>
                     {assistantType === 'student' && <div className={`${isRTL ? 'mr-auto' : 'ml-auto'} w-2 h-2 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444]`} />}
@@ -546,14 +558,14 @@ export default function ChatPage() {
                       <Scale size={22} className="text-red-500" />
                     </div>
                     <div className={`flex flex-col ${isRTL ? 'text-right' : 'text-left'} overflow-hidden`}>
-                      <span className="text-[16px] font-bold tracking-tight">{t('assistant_lawyer')}</span>
+                      <span className="text-[16px] font-bold tracking-tight">{t('assistant_lawyer')} {t('agent_badge')}</span>
                       <span className="text-[12px] opacity-60 truncate max-w-[220px]">{t('chat_lawyer_desc')}</span>
                     </div>
                     {assistantType === 'lawyer' && <div className={`${isRTL ? 'mr-auto' : 'ml-auto'} w-2 h-2 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444]`} />}
                   </button>
                 </div>
               </motion.div>
-            </>
+            </motion.div>
           )}
         </AnimatePresence>
 
@@ -705,10 +717,10 @@ export default function ChatPage() {
                 </div>
               </motion.div>
 
-              {/* Suggestion Chips — Gemini style: left-aligned simple pills on mobile, fancy chips on desktop */}
+              {/* Suggestion Chips — Premium Grid */}
               <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.3 }}
-                className="grid grid-cols-2 lg:flex lg:flex-row lg:flex-wrap lg:justify-center gap-2 md:gap-2.5 mt-4 md:mt-0 md:mb-8"
+                className="grid grid-cols-2 lg:flex lg:flex-row lg:flex-wrap lg:justify-center gap-3 md:gap-2.5 mt-8 md:mt-0 md:mb-8"
               >
                 {(assistantType === 'student' ? [
                   { emoji: "🪪", label: t('chat_sug_renew'), mesh: 'mesh-red' },
@@ -735,12 +747,12 @@ export default function ChatPage() {
                   <div
                     key={i}
                     onClick={() => send(chip.label)}
-                    className={`lg:glass-mesh lg:${chip.mesh} text-[var(--text)] text-[13px] md:text-[16px] py-2.5 md:py-4 px-4 md:px-6 rounded-2xl md:rounded-[28px] flex items-center gap-2.5 md:gap-4 font-medium md:font-bold select-none md:backdrop-blur-xl transition-all hover:scale-[1.02] md:hover:scale-105 active:scale-95 cursor-pointer border border-[var(--border)] lg:border-white/10 bg-[var(--surface-1)] lg:bg-transparent lg:opacity-95 lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] group w-full lg:w-fit`}
+                    className={`lg:glass-mesh lg:${chip.mesh} text-[var(--text)] text-[13px] md:text-[16px] py-4 px-4 md:px-6 rounded-[24px] md:rounded-[28px] flex items-center gap-3 md:gap-4 font-bold select-none md:backdrop-blur-xl transition-all hover:scale-[1.02] md:hover:scale-105 active:scale-95 cursor-pointer border border-white/5 md:border-white/10 bg-white/5 lg:bg-transparent lg:opacity-95 lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] group w-full lg:w-fit h-[68px] md:h-auto`}
                   >
-                    <div className="w-7 h-7 md:w-12 md:h-12 rounded-full bg-white/5 md:bg-white/10 border border-white/10 md:border-white/20 flex items-center justify-center md:shadow-inner group-hover:bg-white/20 transition-colors shrink-0">
-                      <span className="text-lg md:text-2xl filter drop-shadow-sm">{chip.emoji}</span>
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white/5 md:bg-white/10 border border-white/10 md:border-white/20 flex items-center justify-center shrink-0 group-hover:bg-white/10 transition-colors">
+                      <span className="text-xl md:text-2xl filter drop-shadow-sm">{chip.emoji}</span>
                     </div>
-                    {chip.label}
+                    <span className="leading-tight">{chip.label}</span>
                   </div>
                 ))}
               </motion.div>
@@ -812,7 +824,7 @@ export default function ChatPage() {
               </div>
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto w-full max-w-4xl mx-auto px-4 md:px-8 py-10 space-y-12 pb-44 slim-scroll" dir={isRTL ? 'rtl' : 'ltr'}>
+            <div className={`flex-1 overflow-y-auto w-full max-w-4xl mx-auto px-4 md:px-8 py-10 space-y-12 pb-44 slim-scroll bg-[var(--bg)]/40 rounded-t-[40px]`} dir={isRTL ? 'rtl' : 'ltr'}>
               <AnimatePresence initial={false}>
                 {msgs.map(m => (
                   <motion.div
@@ -827,37 +839,67 @@ export default function ChatPage() {
                       </div>
                     )}
 
-                    <div className={`flex flex-col max-w-[90%] md:max-w-[85%] ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+                    <div className={`flex flex-col max-w-[92%] md:max-w-[85%] ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
                       <div className={`text-[17px] leading-[1.8] whitespace-pre-wrap ${m.role === 'user'
                         ? 'px-6 py-4 rounded-3xl border border-[var(--border)] text-[var(--text)] bg-[var(--surface-1)] shadow-sm'
-                        : `text-[var(--text)] opacity-95 py-2 w-full font-normal`
+                        : `text-[var(--text)] px-6 py-4 rounded-3xl bg-[var(--surface-2)]/60 dark:bg-transparent border border-[var(--border)] dark:border-transparent md:border-none md:bg-transparent w-full font-normal`
                         }`}
                       >
                         {(() => {
                           const contentToRender = translateHistory(m.content);
 
                           if (m.role === 'assistant') {
+                            // Support for custom [CTA: Label | URL] buttons
+                            const parts = contentToRender.split(/(\[CTA: .+? \| .+?\])/g);
+                            
                             return (
                               <div className={`prose dark:prose-invert max-w-none ${isRTL ? 'text-right' : 'text-left'}`} dir={isRTL ? 'rtl' : 'ltr'}>
-                                <ReactMarkdown
-                                  remarkPlugins={[remarkGfm]}
-                                  components={{
-                                    p: ({ node, ...props }) => <p className="mb-6 last:mb-0" {...props} />,
-                                    ul: ({ node, ...props }) => <ul className="list-disc pl-6 mb-6 space-y-2 marker:text-indigo-500" {...props} />,
-                                    ol: ({ node, ...props }) => <ol className="list-decimal pl-6 mb-6 space-y-2 marker:text-indigo-500" {...props} />,
-                                    strong: ({ node, ...props }) => <strong className="font-bold text-[var(--text)]" {...props} />,
-                                    a: ({ node, ...props }) => <a className="text-indigo-400 hover:underline transition-colors" {...props} />,
-                                    code: ({ node, className, children, ...props }) => {
-                                      const match = /language-(\w+)/.exec(className || '');
-                                      const isInline = !match && !className?.includes('language-');
-                                      return isInline
-                                        ? <code className="bg-[var(--surface-2)] text-indigo-300 px-1.5 py-0.5 rounded text-[14px] font-mono" {...props}>{children}</code>
-                                        : <div className="bg-[#0e0e0e] rounded-xl border border-white/10 overflow-hidden my-6"><div className="px-4 py-2 bg-white/5 text-[11px] text-white/40 font-mono uppercase tracking-widest border-b border-white/10">{match?.[1] || 'code'}</div><pre className="p-4 overflow-x-auto text-[14px] text-gray-300 font-mono leading-relaxed"><code {...props}>{children}</code></pre></div>
-                                    }
-                                  }}
-                                >
-                                  {contentToRender}
-                                </ReactMarkdown>
+                                {parts.map((part, idx) => {
+                                  const ctaMatch = part.match(/\[CTA: (.+?) \| (.+?)\]/);
+                                  if (ctaMatch) {
+                                    const [, label, url] = ctaMatch;
+                                    return (
+                                      <motion.div 
+                                        key={idx}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="my-6"
+                                      >
+                                        <Link 
+                                          href={url} 
+                                          target="_blank"
+                                          className="inline-flex items-center gap-2 bg-[var(--surface-2)] hover:bg-[#3c4043] text-[var(--text)] px-8 py-3 rounded-full font-bold transition-all shadow-lg active:scale-95 border border-[var(--border)] group no-underline"
+                                        >
+                                          <span>{label}</span>
+                                          <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                        </Link>
+                                      </motion.div>
+                                    );
+                                  }
+                                  
+                                  return (
+                                    <ReactMarkdown
+                                      key={idx}
+                                      remarkPlugins={[remarkGfm]}
+                                      components={{
+                                        p: ({ node, ...props }) => <p className="mb-6 last:mb-0" {...props} />,
+                                        ul: ({ node, ...props }) => <ul className="list-disc pl-6 mb-6 space-y-2 marker:text-red-500" {...props} />,
+                                        ol: ({ node, ...props }) => <ol className="list-decimal pl-6 mb-6 space-y-2 marker:text-red-500" {...props} />,
+                                        strong: ({ node, ...props }) => <strong className="font-bold text-[var(--text)]" {...props} />,
+                                        a: ({ node, ...props }) => <a className="text-red-400 hover:underline transition-colors" {...props} />,
+                                        code: ({ node, className, children, ...props }) => {
+                                          const match = /language-(\w+)/.exec(className || '');
+                                          const isInline = !match && !className?.includes('language-');
+                                          return isInline
+                                            ? <code className="bg-[var(--surface-2)] text-red-300 px-1.5 py-0.5 rounded text-[14px] font-mono" {...props}>{children}</code>
+                                            : <div className="bg-[#0e0e0e] rounded-xl border border-white/10 overflow-hidden my-6"><div className="px-4 py-2 bg-white/5 text-[11px] text-white/40 font-mono uppercase tracking-widest border-b border-white/10">{match?.[1] || 'code'}</div><pre className="p-4 overflow-x-auto text-[14px] text-gray-300 font-mono leading-relaxed"><code {...props}>{children}</code></pre></div>
+                                        }
+                                      }}
+                                    >
+                                      {part}
+                                    </ReactMarkdown>
+                                  );
+                                })}
                               </div>
                             );
                           }
