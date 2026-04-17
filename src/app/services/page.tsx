@@ -1,0 +1,835 @@
+'use client';
+
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  ArrowRight, Briefcase, GraduationCap, Scale, ChevronDown, CheckCircle2, 
+  X, ShieldCheck, RefreshCw, Cpu, Sparkles, FileText, BarChart3, 
+  Layers, MessageSquare, ListTodo, Lock, Fingerprint, Eye, MousePointer2 
+} from 'lucide-react';
+import Navbar from '../components/Navbar';
+import { useRouter } from 'next/navigation';
+
+// --- Custom Select Component to prevent native OS upwards dropdown behavior ---
+const CustomSelect = ({ 
+  value, 
+  onChange, 
+  options, 
+  placeholder, 
+  maxH = 'max-h-48' 
+}: { 
+  value: string, 
+  onChange: (val: string) => void, 
+  options: {label: string, value: string}[], 
+  placeholder: string, 
+  maxH?: string 
+}) => {
+  const [open, setOpen] = useState(false);
+  const selectedLabel = options.find(o => o.value === value)?.label || placeholder;
+
+  return (
+    <div className="relative">
+       <div 
+         onClick={() => setOpen(!open)} 
+         className="w-full px-4 py-3 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 transition-all outline-none cursor-pointer flex justify-between items-center group shadow-sm"
+       >
+         <span className={!value ? 'text-[var(--muted)]' : 'text-[var(--text)]'}>{selectedLabel}</span>
+         <ChevronDown size={16} className={`text-[var(--muted)] group-hover:text-[var(--text)] transition-transform ${open ? 'rotate-180' : ''}`} />
+       </div>
+       <AnimatePresence>
+         {open && (
+           <>
+             <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+             <motion.div 
+               initial={{opacity:0, y:-10, scale:0.95}} 
+               animate={{opacity:1, y:0, scale:1}} 
+               exit={{opacity:0, y:-10, scale:0.95}} 
+               transition={{ duration: 0.15 }}
+               className={`absolute top-full left-0 right-0 mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-[0_15px_40px_-5px_rgba(0,0,0,0.3)] z-50 overflow-y-auto py-2 ${maxH}`}
+             >
+               {options.map((o, idx) => (
+                 <div 
+                   key={idx} 
+                   onClick={() => { onChange(o.value); setOpen(false); }} 
+                   className={`px-4 py-2.5 text-sm cursor-pointer hover:bg-[var(--surface-2)] transition-colors flex items-center justify-between ${value === o.value ? 'text-blue-500 font-bold bg-blue-500/5' : 'text-[var(--text)]'}`}
+                 >
+                   {o.label}
+                   {value === o.value && <CheckCircle2 size={14} className="text-blue-500" />}
+                 </div>
+               ))}
+             </motion.div>
+           </>
+         )}
+       </AnimatePresence>
+    </div>
+  )
+};
+
+const STUDENT_SERVICES_OPTIONS = [
+  { label: 'University Registration', value: 'University Registration' },
+  { label: 'Student Visa Application', value: 'Student Visa Application' },
+  { label: 'Renew ID (Kimlik)', value: 'Renew ID (Kimlik)' },
+  { label: 'Lost Student ID', value: 'Lost Student ID' },
+  { label: 'Student Istanbul Card', value: 'Student Istanbul Card' },
+];
+
+const PERMIT_SERVICES_OPTIONS = [
+  { label: 'Restaurant', value: 'Restaurant' },
+  { label: 'Cafe', value: 'Cafe' },
+  { label: 'Retail Store', value: 'Retail Store' },
+  { label: 'Pharmacy', value: 'Pharmacy' },
+  { label: 'Office Space', value: 'Office Space' },
+];
+
+const UNIVERSITIES_OPTIONS = [
+  "Istanbul Technical University", "Boğaziçi University", "Istanbul University", 
+  "Marmara University", "Yıldız Technical University", "Koç University", 
+  "Sabancı University", "Galatasaray University", "Bahçeşehir University", 
+  "Bilkent University", "Middle East Technical University (METU)"
+].map(u => ({ label: u, value: u }));
+
+const COUNTRIES_OPTIONS = [
+  "USA", "UK", "Germany", "France", "Russia", "China", "India", "Pakistan", 
+  "Iran", "Iraq", "Egypt", "Morocco", "Syria", "Palestine", "Jordan", 
+  "Lebanon", "Saudi Arabia", "UAE", "Qatar", "Other"
+].map(c => ({ label: c, value: c }));
+
+const DISTRICTS_OPTIONS = [
+  "Adalar", "Arnavutköy", "Ataşehir", "Avcılar", "Bağcılar", "Bahçelievler", 
+  "Bakırköy", "Başakşehir", "Bayrampaşa", "Beşiktaş", "Beykoz", "Beylikdüzü", 
+  "Beyoğlu", "Büyükçekmece", "Çatalca", "Çekmeköy", "Esenler", "Esenyurt", 
+  "Eyüpsultan", "Fatih", "Gaziosmanpaşa", "Güngören", "Kadıköy", "Kağıthane", 
+  "Kartal", "Küçükçekmece", "Maltepe", "Pendik", "Sancaktepe", "Sarıyer", 
+  "Silivri", "Sultanbeyli", "Sultangazi", "Şile", "Şişli", "Tuzla", "Ümraniye", 
+  "Üsküdar", "Zeytinburnu"
+].map(d => ({ label: d, value: d }));
+
+
+export default function ServicesPage() {
+  const router = useRouter();
+  const [selectedAgent, setSelectedAgent] = useState<'permit' | 'student' | 'lawyer' | null>(null);
+  const [isInitializing, setIsInitializing] = useState(false);
+  const [slideshowPaused, setSlideshowPaused] = useState(false);
+  const [lawyerMatterType, setLawyerMatterType] = useState('Contract Review');
+
+  // Form states based on selections
+  const [studentServiceType, setStudentServiceType] = useState('University Registration');
+  const [studentUni, setStudentUni] = useState('');
+  const [studentVisaCountry, setStudentVisaCountry] = useState('');
+
+  const [permitServiceType, setPermitServiceType] = useState('Restaurant');
+  const [permitDistrict, setPermitDistrict] = useState('Fatih');
+
+  const [simulatedText, setSimulatedText] = useState('How can I help you today?');
+  const [isTyping, setIsTyping] = useState(false);
+  const [activeTask, setActiveTask] = useState<string | null>(null);
+  const [showSimulatedChat, setShowSimulatedChat] = useState(false);
+  const [simulatedResponse, setSimulatedResponse] = useState('');
+  const [isAiTyping, setIsAiTyping] = useState(false);
+
+  const handleSimulateTask = async (taskLabel: string) => {
+    if (isTyping || isAiTyping) return; // Prevent spamming
+    if (showSimulatedChat) {
+      setShowSimulatedChat(false);
+      setSimulatedResponse('');
+    }
+    
+    setIsTyping(true);
+    setActiveTask(taskLabel);
+    
+    // Map tasks to realistic prompts
+    const prompts: Record<string, {text: string, agent: string}> = {
+      'Register Company': { text: "I want to open a new LLC in Turkey. What are the legal requirements and steps?", agent: 'lawyer' },
+      'Tax Compliance': { text: "I need to ensure my digital business is fully compliant with Turkish corporate tax.", agent: 'lawyer' },
+      'Get Work Permit': { text: "I want to apply for a work permit for a foreign employee in Istanbul.", agent: 'permit' },
+      'University Enrollment': { text: "I need help registering at Koç University and applying for a student visa.", agent: 'student' },
+      'Kimlik Renewal': { text: "My e-ikamet (residence permit) expires next month, how do I renew it?", agent: 'student' },
+      'Legal Consultation': { text: "I want to review an international trade contract under Turkish commercial law.", agent: 'lawyer' }
+    };
+    
+    const target = prompts[taskLabel];
+    if (!target) {
+        setIsTyping(false);
+        setActiveTask(null);
+        return;
+    }
+    
+    // Typewriter effect user input
+    setSimulatedText('');
+    let currentText = '';
+    for (let i = 0; i < target.text.length; i++) {
+        currentText += target.text[i];
+        setSimulatedText(currentText);
+        await new Promise(r => setTimeout(r, 20)); // ultra fast typewriter
+    }
+    
+    // Brief pause to read user input
+    await new Promise(r => setTimeout(r, 400));
+    setIsTyping(false);
+    
+    // Simulating Chat unfolding
+    setShowSimulatedChat(true);
+    setIsAiTyping(true);
+
+    const responses: Record<string, string> = {
+      'Register Company': "Perfect. I've initialized the Legal Agent. I am connecting to the MERSİS portal to generate your LLC establishment roadmap. Here are the first steps...",
+      'Tax Compliance': "I am retrieving the latest VDK corporate tax checklists and generating an automated audit protocol for your digital business.",
+      'Get Work Permit': "Initiating Permit Agent. Connecting to the Ministry of Labor portal to fetch the current quota exemptions and employer requirements.",
+      'University Enrollment': "Student Agent initialized. Fetching the specific YÖK requirements for Koç University and your residence permit documentation list.",
+      'Kimlik Renewal': "I will guide you through the e-ikamet extension application. Connecting to the GÖÇ Administration API to verify your current permit status...",
+      'Legal Consultation': "Legal Agent checking in. I have accessed the Turkish Commercial Code framework to generate a review standard for your trade contract."
+    };
+
+    const aiRes = responses[taskLabel];
+    setSimulatedResponse('');
+    
+    await new Promise(r => setTimeout(r, 600)); // AI 'thinking' delay
+    setIsAiTyping(false);
+    
+    let currentRes = '';
+    for (let i = 0; i < aiRes.length; i++) {
+        currentRes += aiRes[i];
+        setSimulatedResponse(currentRes);
+        await new Promise(r => setTimeout(r, 15)); 
+    }
+    
+    // The automation is complete. We intentionally DO NOT redirect to the 
+    // dashboard here, as this is purely a visual marketing demonstration of 
+    // how the AI chat interface behaves organically.
+  };
+
+  const services = [
+    {
+      id: 'permit',
+      title: 'Permit Agent',
+      icon: <Briefcase className="w-12 h-12 text-white" />,
+      gradient: 'bg-gradient-to-br from-[#1a73e8] via-[#4285f4] to-[#1967d2]',
+      description: 'Business licenses, retail permits, and industrial compliance setup.',
+      features: [
+        'Retail establishment permits',
+        'Restaurant & Cafe Licensing',
+        'Fire safety compliance',
+        'Municipal protocols',
+      ],
+      status: 'Available',
+    },
+    {
+      id: 'student',
+      title: 'Student Agent',
+      icon: <GraduationCap className="w-12 h-12 text-white" />,
+      gradient: 'bg-gradient-to-br from-[#0f9d58] via-[#34a853] to-[#0d652d]',
+      description: 'University registration, residence permits, and student renewals.',
+      features: [
+        'University registration',
+        'Student visa application',
+        'Getting & renewing ID (Kimlik)',
+        'Getting Nüfus (Address registration)',
+      ],
+      status: 'Available',
+    },
+    {
+      id: 'lawyer',
+      title: 'Legal Agent',
+      icon: <Scale className="w-12 h-12 text-white" />,
+      gradient: 'bg-gradient-to-br from-[#f29900] via-[#fbbc04] to-[#ea8600]',
+      description: 'Professional legal assistance and compliance verifications.',
+      features: [
+        'Contract review',
+        'Company formation',
+        'Legal disputes',
+        'Compliance checks',
+      ],
+      status: 'Coming Soon',
+    },
+  ];
+
+  // Wrapping carousel logic
+  const extendedServices = [...services, ...services]; // 6 items to enable smooth endless sliding
+  const CARD_W = 340;
+  const CARD_GAP = 180;
+  const CARD_STEP = CARD_W + CARD_GAP;
+  const LOOP_WIDTH = 520 * services.length; // 1560px (3 items * 520)
+
+  const handleStartProtocol = (id: string) => {
+    if (id === 'permit' || id === 'student' || id === 'lawyer') {
+      setSelectedAgent(id as 'permit' | 'student' | 'lawyer');
+    }
+  };
+
+  const handleInitializeWorkflow = () => {
+    let prompt = '';
+    
+    if (selectedAgent === 'student') {
+      if (studentServiceType === 'University Registration') {
+        prompt = `I want to register to a university. The university is ${studentUni || 'not specified yet'}. Provide the roadmap.`;
+      } else if (studentServiceType === 'Student Visa Application') {
+        prompt = `I need to get a student visa. I am coming from ${studentVisaCountry || 'my home country'}. What are the steps?`;
+      } else if (studentServiceType === 'Renew ID (Kimlik)') {
+        prompt = `I need to renew my foreign ID (Kimlik). What should I do?`;
+      } else if (studentServiceType === 'Lost Student ID') {
+        prompt = `I lost my student ID card. How do I get a replacement?`;
+      } else {
+        prompt = `I need help with ${studentServiceType}.`;
+      }
+    } else if (selectedAgent === 'permit') {
+      prompt = `I want to open a ${permitServiceType} business in ${permitDistrict} district of Istanbul. Please provide the required permits and roadmap.`;
+    } else if (selectedAgent === 'lawyer') {
+      prompt = `I need legal assistance regarding ${lawyerMatterType}. Please provide the roadmap and requirements under Turkish law.`;
+    }
+
+    setIsInitializing(true);
+    localStorage.setItem('permitops_assistant_type', selectedAgent || 'permit');
+    localStorage.setItem('permitops_ask_step', prompt);
+    // Force a pending session so the dashboard renders a clean slate
+    localStorage.setItem('permitops_active_session_id', 'pending-' + Date.now()); 
+    
+    // Brief delay for cinematic effect before navigation
+    setTimeout(() => {
+      router.push('/dashboard');
+    }, 1200);
+  };
+
+  return (
+    <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] selection:bg-blue-500/30 font-sans transition-colors duration-500">
+      <Navbar />
+      
+      <div className="absolute inset-0 bg-[var(--bg)] -z-10 transition-colors duration-500" />
+
+      {/* Transition Scanning Overlay */}
+      <AnimatePresence>
+        {isInitializing && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm pointer-events-none"
+          >
+            <motion.div
+              animate={{ y: ['-100vh', '100vh'] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-x-0 h-[3px] bg-[#ff0000] shadow-[0_0_50px_#ff0000,0_0_100px_#ff0000]"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="pt-12 pb-20 px-6 overflow-hidden relative">
+        {/* Soft Background Glints */}
+        <div className="absolute top-[5%] left-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[160px] -z-20" />
+        <div className="absolute bottom-[10%] right-[-15%] w-[500px] h-[500px] bg-magenta-500/10 rounded-full blur-[160px] -z-20" />
+
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center max-w-4xl mx-auto mb-10 relative"
+        >
+          <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-[var(--text)] font-[Outfit] mb-6 leading-none transition-colors duration-500">
+            Explore AI Agents
+          </h1>
+          <p className="text-lg md:text-xl text-[var(--muted)] font-medium max-w-2xl mx-auto leading-relaxed transition-colors duration-500">
+            Scale your administrative journey with professional AI support.
+          </p>
+        </motion.div>
+
+        {/* Agent Showroom — Wrapping Carousel */}
+        <div 
+          className="relative max-w-6xl mx-auto overflow-hidden py-4" 
+          style={{ height: '420px' }}
+          onMouseEnter={() => setSlideshowPaused(true)}
+          onMouseLeave={() => setSlideshowPaused(false)}
+        >
+          {/* Fade edges — themed */}
+          <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[var(--bg)] to-transparent z-10 pointer-events-none transition-all duration-500" />
+          <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[var(--bg)] to-transparent z-10 pointer-events-none transition-all duration-500" />
+
+          {/* Smooth Moving Track */}
+          <motion.div 
+            className="flex items-center gap-[180px] w-max"
+            animate={{ 
+              x: slideshowPaused ? undefined : [-1560, 0] 
+            }}
+            transition={{
+              duration: 35, 
+              repeat: Infinity,
+              ease: "linear",
+            }}
+          >
+            {[...services, ...services, ...services].map((service, index) => (
+              <div
+                key={`${service.id}-${index}`}
+                style={{
+                  width: `${CARD_W}px`,
+                  flexShrink: 0
+                }}
+              onClick={() => {
+                setSlideshowPaused(true);
+              }}
+              className={`backdrop-blur-3xl border rounded-[28px] overflow-hidden flex flex-col group cursor-pointer hover:scale-[1.02] transition-all duration-300 relative ${
+                service.status === 'Available' 
+                  ? 'bg-[var(--surface)] border-[var(--border)] shadow-xl' 
+                  : 'bg-[var(--surface)] border-[var(--border)] shadow-lg'
+              }`}
+            >
+              <div className={`h-[150px] w-full relative flex items-center justify-center overflow-hidden transition-all duration-500 ${service.gradient}`}>
+                 {/* Premium scanning streak */}
+                 <motion.div
+                   animate={{ skewX: [-20, -20], x: ['-200%', '200%'] }}
+                   transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full z-0"
+                 />
+                 
+                 <div className="relative z-10 p-5 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-xl group-hover:scale-110 transition-transform duration-500">
+                    {service.icon}
+                 </div>
+                 
+                 {service.status !== 'Available' && (
+                    <div className="absolute top-4 right-4 z-20">
+                       <span className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-[9px] font-black text-white uppercase tracking-widest">
+                          Coming Soon
+                       </span>
+                    </div>
+                 )}
+              </div>
+
+              <div className="p-6 flex flex-col flex-1">
+                <div className="flex items-center justify-between mb-3 text-[var(--text)]">
+                  <h3 className="text-lg font-black font-[Outfit] tracking-tight">{service.title}</h3>
+                  {service.status === 'Available' ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Active</span>
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Waitlist</span>
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-400/40" />
+                    </div>
+                  )}
+                </div>
+                <p className="text-[13px] text-[var(--muted)] font-medium leading-[1.5] mb-6 line-clamp-2">
+                  {service.description}
+                </p>
+
+                {service.status === 'Available' ? (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleStartProtocol(service.id); }} 
+                    className="mt-auto py-3.5 px-6 rounded-[20px] bg-[var(--text)] text-[var(--bg)] font-black uppercase text-[11px] tracking-widest shadow-xl transition-all active:scale-95 hover:bg-red-600 hover:text-white"
+                  >
+                    Launch Agent
+                  </button>
+                ) : (
+                  <button disabled className="mt-auto w-full py-3.5 px-6 rounded-[20px] bg-[var(--text)]/[0.04] text-[var(--text)] opacity-40 font-black uppercase text-[11px] tracking-widest border border-[var(--border)] cursor-not-allowed">
+                    Coming Soon
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+          </motion.div>
+        </div>
+      </div>
+      
+      <AnimatePresence>
+        {selectedAgent && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 30 }}
+              className="bg-[var(--surface)] border border-white/5 rounded-[44px] shadow-[0_50px_100px_rgba(0,0,0,0.8)] w-full max-w-lg relative overflow-hidden backdrop-blur-3xl"
+            >
+              <div className="p-10">
+                <div className="flex justify-between items-start mb-12">
+                  <div className="flex items-center gap-5">
+                    <div className={`w-16 h-16 rounded-[22px] flex items-center justify-center border-2 transition-all duration-500 shadow-xl ${
+                      selectedAgent === 'student' ? 'bg-indigo-500/10 border-indigo-500/30' : 
+                      selectedAgent === 'lawyer' ? 'bg-purple-500/10 border-purple-500/30' : 
+                      'bg-red-500/10 border-red-500/30'
+                    }`}>
+                      {selectedAgent === 'student' ? <GraduationCap size={32} className="text-indigo-500" /> : 
+                       selectedAgent === 'lawyer' ? <Scale size={32} className="text-purple-500" /> : 
+                       <Briefcase size={32} className="text-red-500" />}
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black text-[var(--text)] font-[Outfit] tracking-tight leading-tight mb-1">Setup Agent</h3>
+                      <div className="flex items-center gap-2">
+                         <span className={`text-[10px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full ${
+                           selectedAgent === 'student' ? 'bg-indigo-500/10 text-indigo-500' : 
+                           selectedAgent === 'lawyer' ? 'bg-purple-500/10 text-purple-500' : 
+                           'bg-red-500/10 text-red-500'
+                         }`}>
+                           {selectedAgent === 'student' ? 'Student Protocol' : 
+                            selectedAgent === 'lawyer' ? 'Legal Protocol' : 
+                            'Permit Protocol'}
+                         </span>
+                      </div>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedAgent(null)} 
+                    className="w-10 h-10 flex items-center justify-center text-[var(--muted)] hover:text-[var(--text)] transition-all hover:bg-white/5 rounded-2xl active:scale-90"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="space-y-8 relative">
+                  {selectedAgent === 'student' && (
+                    <div className="space-y-6">
+                      <div className="relative">
+                        <label className="block text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.25em] mb-3 ml-2 opacity-60">Type of Service</label>
+                        <CustomSelect 
+                          value={studentServiceType} 
+                          onChange={setStudentServiceType} 
+                          options={STUDENT_SERVICES_OPTIONS} 
+                          placeholder="Select Service" 
+                        />
+                      </div>
+
+                      <AnimatePresence>
+                        {studentServiceType === 'University Registration' && (
+                          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
+                            <label className="block text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.25em] mb-3 ml-2 opacity-60">Select University</label>
+                            <CustomSelect 
+                              value={studentUni} 
+                              onChange={setStudentUni} 
+                              options={UNIVERSITIES_OPTIONS} 
+                              placeholder="Select a University" 
+                              maxH="max-h-64"
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )}
+
+                  {selectedAgent === 'permit' && (
+                    <div className="space-y-6">
+                      <div className="relative">
+                        <label className="block text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.25em] mb-3 ml-2 opacity-60">Business Sector</label>
+                        <CustomSelect 
+                          value={permitServiceType} 
+                          onChange={setPermitServiceType} 
+                          options={PERMIT_SERVICES_OPTIONS} 
+                          placeholder="Select Sector" 
+                        />
+                      </div>
+
+                      <div className="relative">
+                        <label className="block text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.25em] mb-3 ml-2 opacity-60">Istanbul District</label>
+                        <CustomSelect 
+                          value={permitDistrict} 
+                          onChange={setPermitDistrict} 
+                          options={DISTRICTS_OPTIONS} 
+                          placeholder="Select District" 
+                          maxH="max-h-64"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-14 flex items-center gap-4">
+                  <button
+                    onClick={() => setSelectedAgent(null)}
+                    className="flex-1 py-4 px-6 rounded-[24px] border border-white/10 text-[var(--text)] font-black uppercase text-[11px] tracking-[0.15em] hover:bg-white/5 transition-all active:scale-95"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleInitializeWorkflow}
+                    className="flex-1 py-4 px-6 rounded-[24px] bg-red-600 text-white font-black uppercase text-[11px] tracking-[0.15em] hover:bg-red-500 shadow-[0_15px_40px_rgba(239,68,68,0.25)] active:scale-95 transition-all"
+                  >
+                    Start Agent
+                  </button>
+                </div>
+                
+                <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                  <p className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-widest opacity-40">
+                    Secure 256-bit Encrypted Session
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* --- ADDED SECTIONS FROM CLAUDE DESIGN --- */}
+      
+      <div className="bg-[var(--surface-1)] border-t border-[var(--border)] pt-32 pb-40 transition-colors duration-500">
+        <div className="max-w-[1340px] mx-auto px-6">
+          
+          {/* Describe What You Need Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center mb-48">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <h2 className="text-4xl md:text-5xl font-black text-[var(--text)] font-[Outfit] mb-6 tracking-tighter transition-colors duration-500">
+                Describe what you need
+              </h2>
+              <p className="text-[var(--muted)] text-lg leading-relaxed mb-8 max-w-lg transition-colors duration-500">
+                Tell TurkGateway what you want to achieve. Our agents pick the fastest path: connecting to government portals, municipal APIs, or using advanced OCR to process your documents instantly.
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="bg-[var(--surface-2)] rounded-[32px] p-8 md:p-12 shadow-2xl relative overflow-hidden group border border-[var(--border)] transition-colors duration-500"
+            >
+              {/* Graph Paper Background */}
+              <div className="absolute inset-0 opacity-[0.03] pointer-events-none dark:opacity-[0.05]" 
+                   style={{ backgroundImage: 'radial-gradient(var(--text) 0.5px, transparent 0.5px)', backgroundSize: '24px 24px' }} />
+              
+              <div className="relative z-10 text-[var(--text)]">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className={`relative w-12 h-12 rounded-[16px] flex items-center justify-center transition-all duration-500 overflow-hidden shrink-0 border ${
+                    ['University Enrollment', 'Kimlik Renewal'].includes(activeTask || '') ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-[0_0_25px_rgba(99,102,241,0.6)] border-indigo-400/40' :
+                    ['Register Company', 'Legal Consultation', 'Tax Compliance'].includes(activeTask || '') ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-[0_0_25px_rgba(16,185,129,0.6)] border-emerald-400/40' :
+                    'bg-gradient-to-br from-red-500 to-red-600 shadow-[0_0_25px_rgba(239,68,68,0.6)] border-red-400/40'
+                  }`}>
+                     {/* Scanning light streak to perfectly match exact Chat animation */}
+                     <motion.div
+                       animate={{ skewX: [-20, -20], x: ['-200%', '200%'] }}
+                       transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.5 }}
+                       className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full z-0"
+                     />
+                     <motion.div
+                       animate={{ filter: ['drop-shadow(0 0 4px rgba(255,255,255,0.4))', 'drop-shadow(0 0 10px rgba(255,255,255,0.9))', 'drop-shadow(0 0 4px rgba(255,255,255,0.4))'] }}
+                       transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                       className="relative z-10"
+                     >
+                       <Cpu className="text-white" size={20} />
+                     </motion.div>
+                  </div>
+                  <h3 className="text-2xl font-bold tracking-tight">Let's knock something off your list</h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    { icon: FileText, label: 'Register Company' },
+                    { icon: BarChart3, label: 'Tax Compliance' },
+                    { icon: Layers, label: 'Get Work Permit' },
+                    { icon: GraduationCap, label: 'University Enrollment' },
+                    { icon: ListTodo, label: 'Kimlik Renewal' },
+                    { icon: MessageSquare, label: 'Legal Consultation' }
+                  ].map((task, i) => (
+                    <div 
+                      key={i} 
+                      onClick={() => handleSimulateTask(task.label)}
+                      className={`flex items-center gap-4 p-4 rounded-xl border bg-[var(--surface)] hover:shadow-lg transition-all cursor-pointer group/task ${
+                         activeTask === task.label ? 'border-red-400 shadow-xl scale-[1.02]' : 'border-[var(--border)] hover:border-red-200 opacity-90 hover:opacity-100'
+                      } ${isTyping && activeTask !== task.label ? 'opacity-50 pointer-events-none' : ''}`}
+                    >
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                        activeTask === task.label ? 'bg-red-50 text-red-500' : 'bg-[var(--surface-2)] text-[var(--muted)] group-hover/task:text-red-500'
+                      }`}>
+                        <task.icon size={20} />
+                      </div>
+                      <span className="text-sm font-semibold text-[var(--text)]">{task.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className={`mt-8 p-4 bg-[var(--surface)] border border-[var(--border)] rounded-2xl flex flex-col shadow-sm transition-all duration-500 ${isTyping || showSimulatedChat ? 'ring-2 ring-red-400/30 shadow-md' : ''}`}>
+                   <div className="flex items-center justify-between w-full">
+                     <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="w-6 h-6 rounded-md bg-[var(--surface-2)] flex items-center justify-center shrink-0 transition-colors duration-500">
+                          <FileText size={12} className="text-[var(--muted)]" />
+                        </div>
+                        <span className={`text-xs transition-colors duration-500 ${isTyping || activeTask ? 'text-[var(--text)] font-medium' : 'text-[var(--muted)] font-medium italic'} truncate`}>
+                           {simulatedText}
+                           {isTyping && <span className="animate-pulse inline-block ml-1">|</span>}
+                        </span>
+                     </div>
+                     <div className="flex items-center gap-4 shrink-0 pl-2">
+                        <span className="text-[10px] font-bold text-[var(--muted)] opacity-40 uppercase tracking-widest hidden sm:inline-block">Protocol 4.0</span>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                           activeTask && !isTyping ? 'bg-red-500 text-white shadow-md' : 'bg-red-500/10 text-red-500'
+                        }`}>
+                          <ArrowRight size={16} />
+                        </div>
+                     </div>
+                   </div>
+
+                   {/* Inline Simulated Chat Dropdown */}
+                   <AnimatePresence>
+                     {showSimulatedChat && (
+                        <motion.div 
+                          initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                          animate={{ height: 'auto', opacity: 1, marginTop: 16 }}
+                          exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                          className="border-t border-[var(--border)] pt-4 overflow-hidden flex items-start gap-4 transition-colors duration-500"
+                        >
+                           <div className="w-8 h-8 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0 shadow-inner">
+                              <Cpu size={14} className="text-red-500" />
+                           </div>
+                           <div className="flex-1 min-w-0">
+                              <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-1">TurkGateway AI</p>
+                              {isAiTyping ? (
+                                 <div className="flex items-center gap-1 mt-2 mb-2">
+                                   <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                                   <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                                   <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                                 </div>
+                              ) : (
+                                 <p className="text-sm text-[var(--text)] leading-relaxed transition-colors duration-500">
+                                   {simulatedResponse}
+                                 </p>
+                              )}
+                           </div>
+                        </motion.div>
+                     )}
+                   </AnimatePresence>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* TurkGateway Does the Work Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center mb-48">
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              className="order-2 lg:order-1 bg-gradient-to-br from-[#4f46e5] to-[#3730a3] rounded-[44px] p-12 shadow-2xl relative overflow-hidden border border-white/10"
+            >
+               <div className="bg-[var(--surface)] rounded-3xl p-8 shadow-xl max-w-md mx-auto relative z-10 border border-[var(--border)] transition-colors duration-500">
+                 <div className="flex items-center justify-between mb-8">
+                   <h4 className="text-lg font-bold text-[var(--text)] transition-colors duration-500">Progress</h4>
+                   <ChevronDown size={20} className="text-[var(--muted)]" />
+                 </div>
+
+                 <div className="space-y-6">
+                   {[
+                     { label: 'Connect to e-Devlet Portal', status: 'done' },
+                     { label: 'Verify Criminal Record (Adli Sicil)', status: 'active' },
+                     { label: 'Download digital signatures', status: 'pending' },
+                     { label: 'Submit Work Permit Form', status: 'pending' }
+                   ].map((step, i) => (
+                     <div key={i} className="flex items-center gap-4">
+                        {step.status === 'done' ? (
+                          <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white">
+                            <CheckCircle2 size={14} />
+                          </div>
+                        ) : step.status === 'active' ? (
+                          <div className="w-6 h-6 rounded-full border-2 border-blue-600 flex items-center justify-center text-blue-600 text-[10px] font-bold">
+                            2
+                          </div>
+                        ) : (
+                          <div className="w-6 h-6 rounded-full border-2 border-[var(--border)] flex items-center justify-center text-[var(--muted)] text-[10px] font-bold">
+                            {i+1}
+                          </div>
+                        )}
+                        <span className={`text-sm font-semibold tracking-tight transition-colors duration-500 ${step.status === 'pending' ? 'text-[var(--muted)]' : 'text-[var(--text)]'}`}>
+                          {step.label}
+                        </span>
+                     </div>
+                   ))}
+                 </div>
+
+                 <div className="mt-12 pt-6 border-t border-[var(--border)] flex items-center justify-between">
+                    <span className="text-xs font-bold text-[var(--muted)] uppercase tracking-widest">Target Folder</span>
+                    <div className="flex gap-2">
+                       <FileText size={16} className="text-[var(--muted)] opacity-50" />
+                       <ChevronDown size={16} className="text-[var(--muted)] opacity-50" />
+                    </div>
+                 </div>
+               </div>
+
+               {/* Abstract Background Curve */}
+               <div className="absolute top-0 right-0 w-full h-full opacity-[0.05] pointer-events-none">
+                 <svg viewBox="0 0 400 400" className="w-full h-full">
+                    <path d="M0,200 Q100,100 200,200 T400,200" fill="none" stroke="black" strokeWidth="2" />
+                 </svg>
+               </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="order-1 lg:order-2"
+            >
+              <h2 className="text-4xl md:text-5xl font-black text-[var(--text)] font-[Outfit] mb-6 tracking-tighter transition-colors duration-500">
+                AI does the work
+              </h2>
+              <p className="text-[var(--muted)] text-lg leading-relaxed mb-8 max-w-lg transition-colors duration-500">
+                TurkGateway works through each step, looping you in before anything significant. Watch in real time or walk away. For recurring tasks, tell us once and the agent handles the rest.
+              </p>
+            </motion.div>
+          </div>
+
+          {/* You're in Control Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+            >
+              <h2 className="text-4xl md:text-5xl font-black text-[var(--text)] font-[Outfit] mb-6 tracking-tighter transition-colors duration-500">
+                You're in control
+              </h2>
+              <p className="text-[var(--muted)] text-lg leading-relaxed mb-8 max-w-lg transition-colors duration-500">
+                You choose which portals and databases TurkGateway can access. Before an agent acts, it shows you the plan and waits for your approval. Redirect, refine, or take a different approach at any step.
+              </p>
+              <div className="flex gap-8">
+                 <div className="flex items-center gap-3">
+                   <Lock className="text-blue-500" size={20} />
+                   <span className="text-xs font-bold text-[var(--text)] uppercase tracking-widest transition-colors duration-500">End-to-End Encryption</span>
+                 </div>
+                 <div className="flex items-center gap-3">
+                   <Eye className="text-blue-500" size={20} />
+                   <span className="text-xs font-bold text-[var(--text)] uppercase tracking-widest transition-colors duration-500">Privacy First</span>
+                 </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="bg-gradient-to-br from-[#d48c9b] to-[#c97486] rounded-[44px] p-12 shadow-2xl relative overflow-hidden aspect-[4/3] flex items-center justify-center"
+            >
+               {/* Pattern */}
+               <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at center, #000 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+               
+               <motion.div 
+                 initial={{ y: 20, opacity: 0 }}
+                 whileInView={{ y: 0, opacity: 1 }}
+                 transition={{ delay: 0.2 }}
+                 className="bg-[var(--surface)] rounded-2xl p-8 shadow-2xl max-w-xs relative z-10 text-center border border-[var(--border)] transition-colors duration-500"
+               >
+                  <div className="mb-4 flex flex-col items-center">
+                     <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-4">
+                       <Fingerprint size={28} />
+                     </div>
+                     <h4 className="text-sm font-bold text-[var(--text)] mb-2">Allow Agent to change files?</h4>
+                     <p className="text-[11px] text-[var(--muted)] font-medium leading-relaxed">
+                       This includes municipal forms and e-Devlet downloads. Agent will be able to read, edit, and temporarily store files.
+                     </p>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                     <button className="w-full py-2.5 rounded-xl bg-gray-900 text-white text-[11px] font-bold">Allow Access</button>
+                     <button className="w-full py-2.5 rounded-xl border border-[var(--border)] text-[var(--muted)] text-[11px] font-bold">Always Allow</button>
+                     <button className="w-full py-2.5 rounded-xl text-[var(--muted)] text-[11px] font-bold">Cancel</button>
+                  </div>
+               </motion.div>
+            </motion.div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  );
+}

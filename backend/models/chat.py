@@ -27,3 +27,16 @@ class ChatMessage(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
 
     session = relationship("ChatSession", back_populates="messages")
+
+
+class LearningResponse(Base):
+    __tablename__ = "learning_responses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    query = Column(String, index=True)  # Normalized query
+    response = Column(Text)  # Full AI-generated response
+    assistant_type = Column(String, index=True)  # 'permit', 'student', 'lawyer'
+    intent = Column(String, index=True)  # 'visa', 'renew_id', 'learned', etc.
+    language = Column(String, default="en", index=True)  # 'en', 'tr', 'ar'
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    usage_count = Column(Integer, default=0)  # Track if this learned response is reused

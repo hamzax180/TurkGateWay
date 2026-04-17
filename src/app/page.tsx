@@ -206,7 +206,7 @@ export default function Home() {
             <input
               type="text"
               placeholder={t('chat_placeholder')}
-              className="bg-transparent border-none outline-none text-lg md:text-xl text-[var(--text)] placeholder-[var(--muted)] w-full"
+              className="bg-transparent border-none outline-none text-lg md:text-2xl text-[var(--text)] placeholder-[var(--muted)] w-full text-center font-medium"
             />
             <div className="flex items-center justify-between pt-1 md:pt-2">
               <div className="flex items-center gap-4 text-[var(--muted)]">

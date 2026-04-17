@@ -194,3 +194,57 @@ async def run_edevlet_bot(tckn: str, password: str, docs: list, location: str = 
         err_trace = traceback.format_exc()
         print(f"[e-Devlet Bot] Fatal Error:\n{err_trace}")
         return {"status": "error", "message": f"e-Devlet Automation failed: {str(e)}"}
+
+async def run_health_insurance_bot(passport_no: str = "", dob: str = "", start_date: str = "") -> dict:
+    """
+    Simulates navigating to a health insurance provider and purchasing Yabancı Sağlık Sigortası.
+    """
+    print(f"[Insurance Bot] Starting session for Passport: {passport_no}")
+    try:
+        p = await async_playwright().start()
+        browser = await p.chromium.launch(headless=False, slow_mo=1000)
+        context = await browser.new_context()
+        page = await context.new_page()
+
+        print("[Insurance Bot] Navigating to e-ikametsigorta.com...")
+        await page.goto("https://www.e-ikametsigorta.com/")
+        await asyncio.sleep(3)
+        print(f"[Insurance Bot] Waiting for user info: passport_no={passport_no}, dob={dob}, start={start_date}")
+        # In a real scenario, we would fill the form:
+        # await page.fill('input[name="passport"]', passport_no)
+        # ...
+        await asyncio.sleep(4)
+        return {"status": "success", "message": "Health insurance simulation completed."}
+    except Exception as e:
+        err_trace = traceback.format_exc()
+        print(f"[Insurance Bot] Fatal Error:\n{err_trace}")
+        return {"status": "error", "message": f"Insurance Bot failed: {str(e)}"}
+
+async def run_eikamet_bot(full_name: str, passport_no: str, passport_type: str, ikamet_type: str, dob: str, is_extension: bool) -> dict:
+    """
+    Navigates to e-ikamet.goc.gov.tr to simulate application for residency.
+    """
+    print(f"[e-Ikamet Bot] Starting session for {full_name}")
+    try:
+        p = await async_playwright().start()
+        browser = await p.chromium.launch(headless=False, slow_mo=1000)
+        context = await browser.new_context()
+        page = await context.new_page()
+
+        if is_extension:
+            print(f"[e-Ikamet Bot] Navigating to Extension URL: https://e-ikamet.goc.gov.tr/Ikamet/Basvuru/UzatmaBasvuru")
+            await page.goto("https://e-ikamet.goc.gov.tr/Ikamet/Basvuru/UzatmaBasvuru")
+        else:
+            print(f"[e-Ikamet Bot] Navigating to First Time URL: https://e-ikamet.goc.gov.tr/Ikamet/Basvuru/IlkBasvuru")
+            await page.goto("https://e-ikamet.goc.gov.tr/Ikamet/Basvuru/IlkBasvuru")
+        
+        await asyncio.sleep(2)
+            
+        print(f"[e-Ikamet Bot] Filling Applicant Details: Name={full_name}, Passport={passport_no}, Type={passport_type}, IkametType={ikamet_type}, DOB={dob}")
+        await asyncio.sleep(5)
+        
+        return {"status": "success", "message": "e-Ikamet automation simulation completed."}
+    except Exception as e:
+        err_trace = traceback.format_exc()
+        print(f"[e-Ikamet Bot] Fatal Error:\n{err_trace}")
+        return {"status": "error", "message": f"e-Ikamet Bot failed: {str(e)}"}

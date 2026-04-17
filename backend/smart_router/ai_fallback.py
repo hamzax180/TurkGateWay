@@ -18,8 +18,8 @@ from typing import Optional
 
 # Conciseness constraint appended to every fallback call
 _CONCISE_SUFFIX = (
-    "\n\n[IMPORTANT: Reply in maximum 2 short sentences. "
-    "No bullet lists. No boilerplate. Natural, friendly tone only.]"
+    "\n\n[INSTRUCTION: Provide a helpful, complete answer. End with a follow-up question. "
+    "Keep it natural and friendly, like a helpful advisor.]"
 )
 
 
@@ -31,10 +31,11 @@ async def ai_fallback_response(
     lawyer_model=None,
     rag_context: list = None,
     language: str = "en",
+    history_text: str = "",
 ) -> Optional[str]:
     """
     Call the appropriate Gemini model for a fallback response.
-    If RAG context is available, it's injected into the prompt for grounded answers.
+    Includes history_text for context-aware answers.
     """
     # Select the model matching the active agent
     model_map = {
@@ -69,36 +70,44 @@ async def ai_fallback_response(
     
     lang_instruction = f"\n\n[PROMPT: {role_persona} Respond entirely in {language.upper()}. Use a professional and natural tone. Do not use English.]" if language != "en" else ""
 
-    # Build prompt with optional RAG context
+    # Build prompt with optional RAG context and History
+    history_block = f"\n\nRECENT CONVERSATION:\n{history_text}\n" if history_text else ""
+
     if rag_context:
         context_block = "\n\n".join(
             f"[{c.get('title', 'Source')}]: {c.get('chunk_text', '')}" 
             for c in rag_context[:3]
         )
         prompt = (
+            f"{role_persona}{history_block}\n\n"
             f"Use the following knowledge to answer naturally and conversationally:\n\n"
             f"{context_block}\n\n"
             f"User question: {query}"
             f"{_CONCISE_SUFFIX}"
             f"{lang_instruction}"
         )
-        max_tokens = 200
+        max_tokens = 300
     else:
-        prompt = f"{role_persona}\n\nUser Question: {query}\n\n{_CONCISE_SUFFIX}"
+        prompt = f"{role_persona}{history_block}\n\nUser Question: {query}\n\n{_CONCISE_SUFFIX}"
         if language != "en":
-            prompt += f"\n\n[CRITICAL: Respond ONLY in {language.upper()} language.]"
+            prompt += f"\n\n[CRITICAL: Respond ONLY in {language.upper()} language. No excuses.]"
         else:
-            prompt += f"\n\n[CRITICAL: Respond ONLY in ENGLISH language.]"
-        max_tokens = 150
+            prompt += f"\n\n[CRITICAL: You MUST write the ENTIRE response in ENGLISH. You may say 'Merhaba' at the very start, but every single word after that MUST be English.]"
+        max_tokens = 600
 
     try:
-        print(f"[SmartRouter] AI FALLBACK triggered for assistant_type={assistant_type}, query='{query[:60]}'")
+        print(f"[SmartRouter] AI FALLBACK triggered for assistant_type={assistant_type}, language={language}, query='{query[:60]}'")
         response = await asyncio.to_thread(
             model.generate_content,
             prompt,
-            generation_config={"max_output_tokens": max_tokens},
+            generation_config={"max_output_tokens": 1024},
         )
         text = response.text.strip()
+        
+        # Validation: If the response is extremely short and ends mid-sentence, it might still be cut off
+        if len(text) > 10 and not any(text.endswith(p) for p in [".", "!", "?", "]", ")", "}"]):
+            print(f"[SmartRouter] WARNING: AI Fallback might be cut off: '{text[-20:]}'")
+            
         print(f"[SmartRouter] AI FALLBACK response ({len(text)} chars)")
         return text
     except Exception as e:

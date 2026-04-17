@@ -3,6 +3,120 @@
     {
       "q": "where is bau uni located",
       "r": "Bahçeşehir University (BAU) is primarily located in Beşiktaş, Istanbul, on the European side of the city. It's nestled right along the Bosphorus, offering beautiful views and a vibrant campus atmosphere."
+    },
+    {
+      "q": "where is altinbas located",
+      "r": "Altınbaş University has three main campuses: **Mahmutbey** (Bağcılar) for Engineering and Social Sciences, **Gayrettepe** (Beşiktaş) for Law and Management, and **Bakırköy** for Health Sciences and Medicine. Which one are you heading to?"
+    },
+    {
+      "q": "where is altinbas uni located",
+      "r": "Altınbaş University (Altınbaş Üniversitesi) has campuses in **Mahmutbey** (Bağcılar), **Gayrettepe**, and **Bakırköy**. The Mahmutbey campus is the main hub for most international students."
+    },
+    {
+      "q": "where is istanbul university is located",
+      "r": "Istanbul University has two main branches. The historical main campus (for law, economics, etc.) is located in **Beyazıt, Fatih**, right in the heart of the historical peninsula. The newer **Istanbul University-Cerrahpaşa** campuses are located in **Avcılar** and **Cerrahpaşa**."
+    },
+    {
+      "q": "where is halic located",
+      "r": "Merhaba!\n\nHaliç University (Haliç Üniversitesi) is located in **Istanbul, Turkey**. It has multiple campuses, but its main and most well-known campus is situated in the **Kağıthane district** on the European side of Istanbul, right along the Golden Horn (Haliç in Turkish), which is where it gets its name.\n\nThe specific address for their main campus is:\n**Sütlüce, İmrahor Cd. No:14, 34445 Kağıthane/İstanbul**\n\nIt's known for its beautiful setting by the Golden Horn and is quite accessible within the city.\n\nAre you considering applying to Haliç University, or perhaps looking for directions to visit the campus?"
+    },
+    {
+      "q": "no",
+      "r": "Merhaba!\n\nThank you for letting me know. Since you haven't applied for your student visa yet, we need to focus on getting that process started for you! To give you the most accurate and helpful guidance, could you please tell me which city and country you plan to apply from? For example, \"I'll be applying from the Turkish Consulate in Berlin, Germany.\"\n\nIn the meantime, here's a general overview of what you'll typically need to prepare for your Turkish student visa application. Please remember that specific requirements can vary slightly depending on the consulate and your home country.\n\n🎓 **Institution/Agency:** The Turkish Consulate or Embassy in your home country or country of legal residence.\n\n📄 **Required Documents (General):**\n*   **Application Form:** Duly filled and signed student visa application form.\n*   **Passport:** Valid for at least 6 months beyond your intended stay in Turkey, with at least two blank pages.\n*   **Photographs:** Recent biometric photos (usually 2, specific dimensions might be required).\n*   **Acceptance Letter:** Your official university acceptance letter from a Turkish university, clearly stating your admission for a specific program.\n*   **Financial Proof:** Evidence that you can support yourself financially during your studies in Turkey (e.g., bank statements showing sufficient funds, scholarship letter). The required amount can vary.\n*   **Accommodation Proof:** Evidence of accommodation in Turkey (e.g., dormitory acceptance letter, rental agreement, or temporary hotel reservation).\n*   **Travel Insurance:** Valid health/travel insurance covering your initial period in Turkey.\n*   **Educational Certificates:** Copies of your diplomas, transcripts, etc. (sometimes translated and notarized).\n*   **Flight Reservation:** Proof of flight reservation (not purchased tickets, usually).\n*   **Visa Fee:** Payment receipt for the non-refundable student visa application fee.\n*   **Interview:** Some consulates may require a personal interview.\n\n✅ **Action Steps:**\n1.  **Check Consulate Website:** Once you tell me your location, I can help you find the specific website for the Turkish Embassy or Consulate there. This website will have the most up-to-date and precise list of documents and procedures.\n2.  **Gather Documents:** Start collecting all the necessary documents according to their specific requirements. Pay close attention to any translation or notarization needs.\n3.  **Schedule Appointment:** Most consulates require you to book an appointment online to submit your application. Do this as soon as possible, as slots can fill up quickly.\n4.  **Attend Interview (if required):** Be prepared to answer questions about your study plans, financial situation, and why you chose Turkey.\n\n💬 **Summary:** Getting your student visa is the first big step! Once you provide the consulate location, we can dive into the exact details for your application process.\n\nSo, to help you best, which consulate will you be applying from?"
+    }
+  ],
+  "visa": [
+    {
+      "q": "student visas",
+      "r": "Did you already get your student visa?",
+      "intent": "visa",
+      "s": {
+        "business_profile": {
+          "raw_query": "Student Visas",
+          "session_id": "9736d866-26c1-4a12-8a4c-4da9686ddd78"
+        },
+        "execution_plan": {
+          "steps": [
+            {
+              "id": 1,
+              "title": "Obtain University Acceptance",
+              "responsible": "Human",
+              "status": "pending",
+              "notes": "Receive official acceptance letter or continue enrollment if renewing."
+            },
+            {
+              "id": 2,
+              "title": "Get Turkish Tax Number",
+              "responsible": "Agent/Human",
+              "status": "pending",
+              "notes": "Visit tax office or ivd.gib.gov.tr online with passport. Required for insurance/bank."
+            },
+            {
+              "id": 3,
+              "title": "University Office Enrollment",
+              "responsible": "Human",
+              "status": "pending",
+              "notes": "Complete tuition payments. Receive official 'Öğrenci Belgesi' (Student Certificate)."
+            },
+            {
+              "id": 4,
+              "title": "Purchase Health Insurance (Yabancı Sağlık Sigortası)",
+              "responsible": "Agent/Human",
+              "status": "pending",
+              "notes": "Must cover your 1-2 year stay period completely. SGK or Private accepted."
+            },
+            {
+              "id": 5,
+              "title": "Notarize Lease Agreement / Dormitory Doc",
+              "responsible": "Human",
+              "status": "pending",
+              "notes": "Proof of address required. Owner must be present at notary or dorm letter needed."
+            },
+            {
+              "id": 6,
+              "title": "Apply for Kimlik (e-İkamet system)",
+              "responsible": "Agent",
+              "status": "pending",
+              "notes": "Fill forms at e-ikamet.goc.gov.tr. Reserve your appointment date."
+            },
+            {
+              "id": 7,
+              "title": "Attend Göç İdaresi Appointment",
+              "responsible": "Human",
+              "status": "pending",
+              "notes": "Present pink folder with 4 photos, student cert, insurance, address doc, passport."
+            },
+            {
+              "id": 8,
+              "title": "Receive Student ID (Kimlik)",
+              "responsible": "Human",
+              "status": "pending",
+              "notes": "Card arrives via PTT mail to your registered address in 15-45 days."
+            }
+          ],
+          "assigned_agents": [
+            "Planner",
+            "Classifier"
+          ]
+        },
+        "last_updated": "2026-04-17T02:40:53.310138",
+        "direct_answer": "Did you already get your student visa?",
+        "permit_plan": {
+          "permits": [
+            "Student Certificate (Öğrenci Belgesi)",
+            "Residence Permit"
+          ],
+          "agencies": [
+            "University Student Affairs",
+            "Göç İdaresi"
+          ],
+          "documents": [
+            "Passport",
+            "Acceptance Letter",
+            "Health Insurance"
+          ]
+        }
+      }
     }
   ]
 }

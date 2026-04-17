@@ -783,7 +783,7 @@ export default function ChatPage() {
                       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
                     }}
                     placeholder={t(`chat_placeholder_${assistantType}`)}
-                    className="flex-1 bg-transparent text-[16px] px-4 py-3 min-h-[44px] max-h-[200px] overflow-y-auto text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none resize-none slim-scroll"
+                    className="flex-1 bg-transparent text-[18px] px-8 py-5 min-h-[60px] max-h-[200px] overflow-y-auto text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none resize-none slim-scroll text-center"
                   />
                   <div className="flex items-center justify-between px-2 pb-1">
                     <div className="flex items-center gap-1">

@@ -61,11 +61,32 @@ export default function Dashboard() {
   const [automatedStepId, setAutomatedStepId] = useState<number | null>(null);
   const [dashboardSessionId, setDashboardSessionId] = useState<string | null>(null);
   const [activeAssistantType, setActiveAssistantType] = useState<'permit' | 'student' | 'lawyer'>('permit');
+  const [pendingInitialPrompt, setPendingInitialPrompt] = useState<string | null>(null);
+  
+  // Student/Residency Bot Data
+  const [fullName, setFullName] = useState('');
+  const [passportNo, setPassportNo] = useState('');
+  const [passportType, setPassportType] = useState('Normal');
+  const [ikametType, setIkametType] = useState('Student');
+  const [dob, setDob] = useState('');
+  const [isExtension, setIsExtension] = useState(false);
+  const [generatingWorkflow, setGeneratingWorkflow] = useState(false);
+  const [loadingPhase, setLoadingPhase] = useState(0);
+
+  // Cycle through agents during loading
+  useEffect(() => {
+    if (!generatingWorkflow) return;
+    const interval = setInterval(() => {
+      setLoadingPhase(prev => (prev + 1) % 3);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [generatingWorkflow]);
 
   // Load initial assistant type
   useEffect(() => {
     const stored = localStorage.getItem('permitops_assistant_type') as any;
     if (stored) setActiveAssistantType(stored);
+    setPendingInitialPrompt(localStorage.getItem('permitops_ask_step'));
   }, []);
 
   // Subscription State
@@ -86,14 +107,21 @@ export default function Dashboard() {
   };
 
   const askAiAboutStep = (step: { id: number; title: string; summary: string; detail: string; responsible: string }) => {
+    if (step.id === 0 && pendingInitialPrompt) {
+      // Just route to chat so it consumes the pending prompt automatically
+      router.push('/chat');
+      return;
+    }
     const q = `I need more information about Step ${step.id}: "${step.title}". ${step.detail ? step.detail.slice(0, 300) : step.summary} Can you explain this in more detail, including what exactly I need to do, which documents I need, and any tips?`;
     localStorage.setItem('permitops_ask_step', q);
     // Use the session that THIS dashboard loaded data from — not whatever was last visited in chat
-    if (dashboardSessionId) localStorage.setItem('permitops_ask_step_session', dashboardSessionId);
+    if (dashboardSessionId && !dashboardSessionId.startsWith('pending-')) {
+       localStorage.setItem('permitops_ask_step_session', dashboardSessionId);
+    }
     router.push('/chat');
   };
 
-  const fetchState = useCallback(async () => {
+  const fetchState = useCallback(async (retryCount = 0) => {
     const startTime = Date.now();
     try {
       setLoading(true);
@@ -101,37 +129,104 @@ export default function Dashboard() {
       const sid = localStorage.getItem('permitops_active_session_id');
       const params = new URLSearchParams();
       if (token) params.append('token', token);
-      if (sid) params.append('session_id', sid);
+      if (sid) {
+        if (sid.startsWith('pending-')) return false;
+        params.append('session_id', sid);
+      }
       const query = params.toString() ? `?${params.toString()}` : '';
 
       const res = await apiFetch(`/workflow/latest${query}`);
       if (res?.ok) {
         const json = await res.json();
-        setData(json);
-        // _session_id is the authoritative session this data belongs to
-        const resolvedSession = json._session_id || sid;
-        if (resolvedSession) setDashboardSessionId(resolvedSession);
+        const steps = json?.execution_plan?.steps || [];
         
-        // Update active type if session has one
-        if (json.assistant_type) setActiveAssistantType(json.assistant_type);
+        if (steps.length > 0) {
+          setData(json);
+          const resolvedSession = json._session_id || sid;
+          if (resolvedSession) setDashboardSessionId(resolvedSession);
+          if (json.assistant_type) setActiveAssistantType(json.assistant_type);
+          return true;
+        } else if (retryCount < 5 && sid && !sid.startsWith('pending-')) {
+          console.log(`[Dashboard] No steps found yet. Retry ${retryCount + 1}/5...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          return await fetchState(retryCount + 1);
+        }
       }
+      return false;
     } catch (e) {
       console.error("Failed to fetch dashboard data", e);
+      return false;
     } finally {
-      // Ensure the loading screen shows for a small moment for smooth transition
-      const endTime = Date.now();
-      const elapsed = endTime - startTime;
-      const remaining = Math.max(0, 500 - elapsed);
-      
-      if (remaining > 0) {
-        await new Promise(resolve => setTimeout(resolve, remaining));
-      }
+      const remaining = Math.max(0, 500 - (Date.now() - startTime));
+      if (remaining > 0) await new Promise(resolve => setTimeout(resolve, remaining));
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchState();
+    const autoGenerate = async () => {
+      const pendingPrompt = localStorage.getItem('permitops_ask_step');
+      const sid = localStorage.getItem('permitops_active_session_id');
+      
+      if (pendingPrompt && sid && sid.startsWith('pending-')) {
+        setGeneratingWorkflow(true);
+        localStorage.removeItem('permitops_ask_step');
+        setPendingInitialPrompt(null);
+        
+        try {
+          let realSessionId = sid;
+          const token = localStorage.getItem('permitops_token');
+          const typeToUse = localStorage.getItem('permitops_assistant_type') || 'permit';
+          
+          if (token) {
+            const res = await apiFetch(`/chat/sessions?token=${token}&assistant_type=${typeToUse}`, { method: 'POST' });
+            if (res?.ok) {
+              const data = await res.json();
+              realSessionId = data.id;
+              localStorage.setItem('permitops_active_session_id', realSessionId);
+            }
+          } else {
+             realSessionId = `guest-${Math.random().toString(36).substring(2, 15)}`;
+             localStorage.setItem('permitops_active_session_id', realSessionId);
+          }
+          
+          const headers = { 'Content-Type': 'application/json' };
+          const body = JSON.stringify({ 
+             query: pendingPrompt, 
+             language: language,
+             context: { session_id: realSessionId },
+             assistant_type: typeToUse 
+          });
+
+          console.log('[Dashboard] Auto-generating workflow for session:', realSessionId);
+          await apiFetch(`/agent/query${token ? `?token=${token}` : ''}`, {
+            method: 'POST',
+            headers,
+            body,
+          });
+
+          // Wait 1.5s for initial backend processing, then start polling
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          console.log('[Dashboard] Polling for state after generation...');
+          const success = await fetchState();
+          if (!success) {
+            console.warn('[Dashboard] Generation finished but no roadmap found after retries.');
+          }
+          window.dispatchEvent(new StorageEvent('storage', { key: 'permitops_workflow_update' }));
+          
+        } catch (e) {
+             console.error('[Dashboard] Failed to auto-generate workflow:', e);
+             await fetchState();
+        } finally {
+          setGeneratingWorkflow(false);
+        }
+      } else {
+        fetchState();
+      }
+    };
+    
+    autoGenerate();
 
     // handle payment redirects
     const params = new URLSearchParams(window.location.search);
@@ -261,12 +356,12 @@ export default function Dashboard() {
   ] : [
     {
       id: 0,
-      title: t('dashboard_init_title'),
-      responsible: 'Agent',
+      title: pendingInitialPrompt ? 'Manual Workflow Initialization' : t('dashboard_init_title'),
+      responsible: pendingInitialPrompt ? 'You' : 'Agent',
       status: 'pending' as Status,
-      date: 'N/A',
-      summary: t('dashboard_init_summary'),
-      detail: t('dashboard_init_detail'),
+      date: 'Pending',
+      summary: pendingInitialPrompt ? `Topic: ${pendingInitialPrompt}` : t('dashboard_init_summary'),
+      detail: pendingInitialPrompt ? 'Click "Ask Agent" below to generate your complete roadmap based on the gathered details.' : t('dashboard_init_detail'),
       docs: [],
     }
   ];
@@ -293,16 +388,18 @@ export default function Dashboard() {
   }, [loading, progress, showIncrease]);
 
   const currentAutomatedStep = automatedStepId ? steps.find(s => s.id === automatedStepId) : null;
-  const isMersis = currentAutomatedStep && (
-    [3, 4, 5].includes(currentAutomatedStep.id) ||
-    (
-      (currentAutomatedStep.title || "") + 
-      (currentAutomatedStep.detail || "") + 
-      (currentAutomatedStep.summary || "")
-    ).toLowerCase().includes("mersis")
-  );
-  const portalName = isMersis ? "MERSİS" : "e-Devlet";
-  const portalUrl = isMersis ? "https://mersis.ticaret.gov.tr/Portal/KullaniciIslemleri/GirisIslemleri" : "https://giris.turkiye.gov.tr/Giris/";
+  const automatedText = (
+    (currentAutomatedStep?.title || "") + " " +
+    (currentAutomatedStep?.detail || "") + " " +
+    (currentAutomatedStep?.summary || "")
+  ).toLowerCase();
+  
+  const isMersis = /mersis|ticaret\.gov|company|nace|articles/.test(automatedText);
+  const isIkamet = /ikamet|kimlik|residency|residence|permit|visa|goc\.gov|appointment/.test(automatedText);
+  const isInsurance = /sigorta|insurance|e-ikametsigorta/.test(automatedText);
+  
+  const portalName = isMersis ? "MERSİS" : isIkamet ? "e-İkamet" : isInsurance ? "Sigorta" : "e-Devlet";
+  const portalUrl = isMersis ? "https://mersis.ticaret.gov.tr/" : isIkamet ? "https://e-ikamet.goc.gov.tr/" : isInsurance ? "https://www.e-ikametsigorta.com/" : "https://giris.turkiye.gov.tr/Giris/";
 
   const handleUploadClick = () => {
     setShowModal(true);
@@ -325,7 +422,18 @@ export default function Dashboard() {
       const res = await apiFetch(`/api/submit-edevlet${query}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tckn, password, portal_url: portalUrl, step_id: automatedStepId })
+        body: JSON.stringify({ 
+          tckn, 
+          password, 
+          portal_url: portalUrl, 
+          step_id: automatedStepId,
+          full_name: fullName,
+          passport_no: passportNo,
+          passport_type: passportType,
+          ikamet_type: ikametType,
+          dob: dob,
+          is_extension: isExtension
+        })
       });
 
       if (!res) throw new Error('Backend offline');
@@ -340,14 +448,21 @@ export default function Dashboard() {
         // Use the pre-opened window
         if (portalWin && automatedStepId) {
           const step = steps.find(s => s.id === automatedStepId);
-          const isMersis = step && (
-            (step.title || "") + 
-            (step.detail || "") + 
-            (step.summary || "")
-          ).toLowerCase().includes("mersis");
+          const t = automatedText;
           
           let targetUrl = "https://www.turkiye.gov.tr";
-          if (isMersis) targetUrl = "https://mersis.gtb.gov.tr";
+          
+          if (isMersis) {
+            targetUrl = "https://mersis.gtb.gov.tr";
+          } else if (isIkamet) {
+            if (isExtension) {
+               targetUrl = "https://e-ikamet.goc.gov.tr/Ikamet/Basvuru/UzatmaBasvuru";
+            } else {
+               targetUrl = "https://e-ikamet.goc.gov.tr/Ikamet/Basvuru/IlkBasvuru";
+            }
+          } else if (isInsurance) {
+            targetUrl = "https://www.e-ikametsigorta.com/";
+          }
           
           portalWin.location.href = targetUrl;
           setAutomatedStepId(null);
@@ -378,12 +493,127 @@ export default function Dashboard() {
   };
 
   const renderContent = () => {
-    if (loading) {
+    if (loading && !generatingWorkflow) {
       return <LoadingScreen />;
     }
 
     return (
-      <main className="flex-1 min-w-0 relative overflow-y-auto overflow-x-hidden slim-scroll bg-[var(--bg)] dark:deep-mesh transition-colors duration-500">
+      <main className="flex-1 min-w-0 relative overflow-y-auto overflow-x-hidden slim-scroll bg-[var(--bg)] text-[var(--text)] transition-colors duration-500">
+          <AnimatePresence>
+            {generatingWorkflow && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[var(--bg)] overflow-hidden transition-colors duration-700"
+              >
+                {/* Ambient Glow — synced to agent color */}
+                <div className="absolute inset-0 pointer-events-none transition-all duration-1000">
+                   <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-[200px] opacity-[0.1] dark:opacity-[0.06] transition-colors duration-1000 ${
+                     loadingPhase === 0 ? 'bg-red-600' : loadingPhase === 1 ? 'bg-blue-500' : 'bg-emerald-500'
+                   }`} />
+                </div>
+
+                <div className="relative z-20 flex flex-col items-center">
+                  {/* The Chip: Color-Shifting Processor */}
+                  <div className="relative mb-20 flex items-center justify-center">
+                    {/* Outer glow ring */}
+                    <motion.div
+                      animate={{ scale: [1, 1.08, 1], opacity: [0.15, 0.35, 0.15] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                      className={`absolute inset-[-30px] rounded-[36px] blur-[50px] transition-colors duration-1000 ${
+                        loadingPhase === 0 ? 'bg-red-600/30' : loadingPhase === 1 ? 'bg-blue-500/30' : 'bg-emerald-500/30'
+                      }`}
+                    />
+
+                    {/* The Chip */}
+                    <div className={`relative h-28 w-28 rounded-[28px] border transition-all duration-1000 shadow-2xl flex items-center justify-center overflow-hidden animate-pulse ${
+                      loadingPhase === 0 
+                        ? 'bg-gradient-to-br from-red-600 via-red-700 to-red-950 border-red-400/30 shadow-red-600/30' 
+                        : loadingPhase === 1 
+                        ? 'bg-gradient-to-br from-blue-500 via-blue-600 to-blue-950 border-blue-400/30 shadow-blue-500/30' 
+                        : 'bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-950 border-emerald-400/30 shadow-emerald-500/30'
+                    }`}>
+                      {/* Circuit texture */}
+                      <div className="absolute inset-0 opacity-30 bg-[linear-gradient(45deg,transparent_45%,#ffffff_48%,#ffffff_52%,transparent_55%)] bg-[length:8px_8px] mix-blend-overlay" />
+                      
+                      {/* Scan beam */}
+                      <motion.div
+                        animate={{ y: ['-120%', '120%'] }}
+                        transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute inset-x-0 h-[2px] bg-white/40 shadow-[0_0_12px_rgba(255,255,255,0.4)] z-20"
+                      />
+
+                      <Cpu size={44} className="text-white relative z-10 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]" />
+                    </div>
+                  </div>
+
+                  {/* Agent Cycling Text */}
+                  <div className="text-center min-h-[220px] flex flex-col items-center">
+                    {/* Phase label */}
+                    <div className="mb-6">
+                      <span className={`text-[11px] font-bold uppercase tracking-[0.6em] transition-colors duration-1000 ${
+                        loadingPhase === 0 ? 'text-red-500/80' : loadingPhase === 1 ? 'text-blue-500/80' : 'text-emerald-500/80'
+                      }`}>
+                        {loadingPhase === 0 ? 'Deploying Permit Agent' : loadingPhase === 1 ? 'Deploying Student Agent' : 'Deploying Legal Agent'}
+                      </span>
+                    </div>
+
+                    {/* Agent name */}
+                    <AnimatePresence mode="wait">
+                      <motion.h3
+                        key={loadingPhase}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        transition={{ duration: 0.5, ease: 'easeOut' }}
+                        className="text-4xl md:text-6xl font-black text-[var(--text)] tracking-[0.4em] mb-6 uppercase leading-none font-[Outfit]"
+                      >
+                        {loadingPhase === 0 ? 'PERMIT' : loadingPhase === 1 ? 'STUDENT' : 'LEGAL'}
+                      </motion.h3>
+                    </AnimatePresence>
+
+                    {/* Agent description */}
+                    <AnimatePresence mode="wait">
+                      <motion.p
+                        key={`desc-${loadingPhase}`}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.4, delay: 0.15 }}
+                        className="text-[15px] md:text-[17px] text-[var(--muted)] max-w-lg leading-relaxed mb-10 font-medium italic"
+                      >
+                        {loadingPhase === 0 
+                          ? 'Mapping work permit regulations, residence applications, and e-Devlet authentication pathways across Turkish municipal systems.'
+                          : loadingPhase === 1 
+                          ? 'Analyzing university enrollment pipelines, ÖYS registration systems, and student visa compliance requirements.'
+                          : 'Indexing Turkish commercial law articles, contract frameworks, and legal precedent databases for consultation.'}
+                      </motion.p>
+                    </AnimatePresence>
+
+                    {/* Progress bar */}
+                    <div className="w-80 h-[2px] bg-[var(--border)] relative overflow-hidden mb-6 rounded-full">
+                      <motion.div 
+                        animate={{ x: ['-100%', '100%'] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                        className={`absolute inset-0 bg-gradient-to-r from-transparent to-transparent transition-all duration-1000 ${
+                          loadingPhase === 0 ? 'via-red-600' : loadingPhase === 1 ? 'via-blue-500' : 'via-emerald-500'
+                        }`}
+                      />
+                    </div>
+
+                    {/* Micro status */}
+                    <div className="flex items-center gap-3 text-[10px] font-bold text-[var(--muted)] tracking-[0.3em] uppercase">
+                       <RefreshCw size={10} className={`animate-spin transition-colors duration-1000 ${
+                         loadingPhase === 0 ? 'text-red-500' : loadingPhase === 1 ? 'text-blue-500' : 'text-emerald-500'
+                       }`} />
+                       <span>Initializing Neural Systems</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           {/* Desktop Navbar */}
           <div className="hidden md:block">
             <Navbar isAppPage />
@@ -411,42 +641,9 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Premium Background — Light mode uses a clean soft gradient, dark mode uses the deep mesh/video */}
-          <div className="absolute inset-0 z-0 w-full h-full overflow-hidden pointer-events-none">
-        {/* Light Mode: Ultra-clean mesh-like gradient */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-white via-[#f0f7ff] to-[#f5f3ff] dark:hidden" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(99,102,241,0.03)_0%,transparent_50%)] dark:hidden" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(239,68,68,0.02)_0%,transparent_50%)] dark:hidden" />
-        
-        {/* Dark Mode: Cinematic Video & Overlays */}
-        {videoLoaded && (
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            onLoadedData={() => setVideoLoaded(true)}
-            className="absolute inset-0 w-full h-full object-cover grayscale-[0.2] contrast-[1.1] brightness-[0.7] hidden dark:block transition-opacity duration-1000"
-          >
-            <source src="https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-circuit-board-1549-large.mp4" type="video/mp4" />
-          </video>
-        )}
-        {!videoLoaded && (
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            onLoadedData={() => setVideoLoaded(true)}
-            className="absolute inset-0 w-full h-full object-cover opacity-0 hidden dark:block"
-          >
-            <source src="https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-circuit-board-1549-large.mp4" type="video/mp4" />
-          </video>
-        )}
-
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.12)_0%,transparent_70%)] mix-blend-screen dark:block hidden" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(239,68,68,0.08)_0%,transparent_50%)] mix-blend-screen dark:block hidden" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(139,92,246,0.08)_0%,transparent_50%)] mix-blend-screen dark:block hidden" />
+          {/* Premium Background — Adapts perfectly to system theme */}
+      <div className="absolute inset-0 z-0 w-full h-full overflow-hidden pointer-events-none bg-[var(--bg)] transition-colors duration-500">
+        <div className="absolute inset-0 opacity-[0.4] bg-[radial-gradient(circle_at_20%_20%,rgba(26,115,232,0.05),transparent_50%),radial-gradient(circle_at_80%_80%,rgba(161,68,239,0.03),transparent_50%)]" />
       </div>
 
       <div className="relative z-20 pt-6 md:pt-24 pb-20 px-4 md:px-6">
@@ -558,13 +755,129 @@ export default function Dashboard() {
                   <div className="mt-8">
                     <button
                       onClick={submitEDevlet}
-                      disabled={true}
-                      className="w-full py-3 px-4 bg-red-600 cursor-not-allowed opacity-70 text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-inner border border-red-400/20"
+                      disabled={uploading}
+                      className="w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-inner border border-red-400/20"
                     >
-                      <ShieldCheck size={18} />
-                      <span className="uppercase tracking-tight">{t('dashboard_disabled_law')}</span>
+                      {uploading ? <RefreshCw size={18} className="animate-spin" /> : <ShieldCheck size={18} />}
+                      <span className="uppercase tracking-tight">{uploading ? t('dashboard_starting') : t('dashboard_trigger')}</span>
                     </button>
                     <p className="text-[10px] text-center text-gray-400 mt-3 font-medium">{t('dashboard_privacy_notice')}</p>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* Student/Residency Automation Modal */}
+          {showModal && currentAutomatedStep && (isIkamet || isInsurance) && (
+            <motion.div
+              key="student-modal"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                className="bg-[var(--surface)] rounded-2xl shadow-2xl w-full max-w-md border border-[var(--border)] overflow-hidden"
+              >
+                <div className="p-6">
+                  <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
+                        <Sparkles size={20} className="text-purple-500" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-[var(--text)]">Automation Data</h3>
+                        <p className="text-[var(--muted)] text-sm italic">Gathering info for the bot</p>
+                      </div>
+                    </div>
+                    <button onClick={() => setShowModal(false)} className="text-[var(--muted)] hover:text-[var(--text)] transition-colors">
+                      <X size={20} />
+                    </button>
+                  </div>
+
+                  <div className="space-y-4 max-h-[60vh] overflow-y-auto px-1 slim-scroll">
+                    <div>
+                      <label className="block text-xs font-bold text-[var(--muted)] uppercase tracking-widest mb-1.5 ml-0.5">Full Name</label>
+                      <input
+                        type="text"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] focus:ring-2 focus:ring-purple-500 transition-all outline-none"
+                        placeholder="e.g. John Doe"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-[var(--muted)] uppercase tracking-widest mb-1.5 ml-0.5">Passport No</label>
+                        <input
+                          type="text"
+                          value={passportNo}
+                          onChange={(e) => setPassportNo(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] focus:ring-2 focus:ring-purple-500 transition-all outline-none"
+                          placeholder="A1234567"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-[var(--muted)] uppercase tracking-widest mb-1.5 ml-0.5">Date of Birth</label>
+                        <input
+                          type="date"
+                          value={dob}
+                          onChange={(e) => setDob(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] focus:ring-2 focus:ring-purple-500 transition-all outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-[var(--muted)] uppercase tracking-widest mb-1.5 ml-0.5">Passport Type</label>
+                      <select
+                        value={passportType}
+                        onChange={(e) => setPassportType(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] focus:ring-2 focus:ring-purple-500 transition-all outline-none"
+                      >
+                        <option>Normal</option>
+                        <option>Diplomatic</option>
+                        <option>Service</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-[var(--muted)] uppercase tracking-widest mb-1.5 ml-0.5">Ikamet Type</label>
+                      <select
+                        value={ikametType}
+                        onChange={(e) => setIkametType(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] focus:ring-2 focus:ring-purple-500 transition-all outline-none"
+                      >
+                        <option>Student</option>
+                        <option>Short Term</option>
+                        <option>Family</option>
+                        <option>Work</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-purple-500/5 border border-purple-500/10 rounded-xl">
+                      <input
+                        type="checkbox"
+                        id="is_extension"
+                        checked={isExtension}
+                        onChange={(e) => setIsExtension(e.target.checked)}
+                        className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                      />
+                      <label htmlFor="is_extension" className="text-sm font-semibold text-[var(--text)]">This is an Extension Application</label>
+                    </div>
+                  </div>
+
+                  <div className="mt-8">
+                    <button
+                      onClick={submitEDevlet}
+                      disabled={uploading}
+                      className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-inner border border-purple-400/20"
+                    >
+                      {uploading ? <RefreshCw size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                      <span className="uppercase tracking-tight">{uploading ? "Launching Bot..." : "Trigger Automation"}</span>
+                    </button>
+                    <p className="text-[10px] text-center text-gray-400 mt-3 font-medium">Data is encrypted and used only for this simulation session.</p>
                   </div>
                 </div>
               </motion.div>
@@ -583,15 +896,14 @@ export default function Dashboard() {
           >
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <span className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.15)] backdrop-blur-md">
-                  <div className="live-dot-red" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">
-                    {t('dashboard_live_session')} · #{data?.combined_result?.location && !data.combined_result.location.includes('_') ? `IST-${data.combined_result.location.substring(0,3).toUpperCase().replace(/İ/g, 'I')}-4221` : 'IST-TR-4221'}
-                  </span>
-                </span>
+                <div className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 shadow-sm">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                  {t('dashboard_live_session')} - TRACKING ACTIVE
+                </div>
               </div>
-              <h1 className="text-4xl md:text-6xl font-black text-gradient-premium tracking-tighter py-2 font-[Outfit] leading-tight">
+              <h1 className="text-4xl md:text-5xl font-extrabold text-[var(--text)] tracking-tight py-1 font-inter">
                 {(() => {
+                  if (pendingInitialPrompt && !hasSteps) return 'New Application';
                   if (activeAssistantType === 'student') return t('dashboard_student_title');
                   if (activeAssistantType === 'lawyer') return t('dashboard_legal_title');
                   const loc = data?.combined_result?.location || '';
@@ -677,40 +989,35 @@ export default function Dashboard() {
 
           {/* ── Stats ── */}
           <motion.div
-            initial={{ opacity: 0, y: 14 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ ease: 'easeOut', duration: 0.4, delay: 0.07 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-3"
+            transition={{ ease: 'easeOut', duration: 0.4, delay: 0.05 }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-4"
           >
             {([
-              { label: t('dashboard_compliance_score'), value: `${progress > 0 ? progress : '0'}%`,  from: '#34d399', to: '#10b981', icon: ShieldCheck,  iconColor: '#34d399', bg: 'rgba(16,185,129,0.12)',  border: 'rgba(16,185,129,0.25)', mesh: 'mesh-emerald' },
-              { label: t('dashboard_steps_complete'),   value: `${done}/${steps.length}`,            from: '#c084fc', to: '#a855f7', icon: CheckCircle2, iconColor: '#c084fc', bg: 'rgba(168,85,247,0.12)', border: 'rgba(168,85,247,0.25)', mesh: 'mesh-purple' },
-              { label: t('dashboard_est_days'),         value: `${Math.max(0, steps.length*2 - done*2)}d`, from: '#fcd34d', to: '#f59e0b', icon: Clock,    iconColor: '#fcd34d', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.25)', mesh: 'mesh-amber'  },
-              { label: t('dashboard_active_agents'),    value: `${data?.execution_plan?.assigned_agents?.length || 0}`, from: '#f87171', to: '#ef4444', icon: Cpu, iconColor: '#f87171', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.25)', mesh: 'mesh-amber' },
+              { label: t('dashboard_compliance_score'), value: `${progress > 0 ? progress : '0'}%`,  icon: ShieldCheck,  color: '#ff4d4d', glow: 'rgba(255,77,77,0.7)' },
+              { label: t('dashboard_steps_complete'),   value: `${done}/${steps.length}`,            icon: CheckCircle2, color: '#ff00ff', glow: 'rgba(255,0,255,0.7)' },
+              { label: t('dashboard_est_days'),         value: `${Math.max(0, steps.length*2 - done*2)}d`, icon: Clock,    color: '#ffaa00', glow: 'rgba(255,170,0,0.7)' },
+              { label: t('dashboard_active_agents'),    value: `${data?.execution_plan?.assigned_agents?.length || 0}`, icon: Cpu, color: '#00ccff', glow: 'rgba(0,204,255,0.7)' },
             ] as const).map((s, i) => (
               <motion.div 
                 key={i} 
-                initial={{ opacity: 0, y: 30, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                whileHover={{ y: -6, scale: 1.02, transition: { duration: 0.2 } }}
-                transition={{ 
-                  delay: 0.15 + (i * 0.1),
-                  type: 'spring',
-                  stiffness: 100,
-                  damping: 15
-                }}
-                className={`glow-card bg-[var(--surface)] p-6 flex flex-col gap-4 group cursor-default shadow-lg overflow-hidden border border-[var(--border)]`}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                whileHover={{ y: -8, scale: 1.02 }}
+                transition={{ delay: 0.1 + (i * 0.05) }}
+                className="bg-[var(--surface)] border border-[var(--border)] rounded-[28px] p-6 flex flex-col gap-6 hover:border-[var(--border-2)] transition-all group shadow-[0_15px_40px_rgba(0,0,0,0.05)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.9)] relative overflow-hidden"
               >
-                <div className={`absolute inset-0 ${s.mesh} opacity-30 group-hover:opacity-50 transition-opacity`} />
-                <div className="flex items-center justify-between relative z-10 w-full">
-                  <div style={{ background: s.bg, border: `1px solid ${s.border}` }} className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
-                    <s.icon size={18} style={{ color: s.iconColor }} />
+                <div className="absolute inset-0 bg-gradient-to-br from-[var(--text)]/[0.04] to-transparent pointer-events-none" />
+                <div className="flex items-center justify-between relative z-10">
+                  <div style={{ color: s.color, backgroundColor: `${s.color}15`, borderColor: `${s.color}30` }} className="p-4 rounded-[20px] transition-all group-hover:bg-[var(--surface-2)] shadow-2xl border">
+                    <s.icon size={28} style={{ filter: `drop-shadow(0 0 12px ${s.glow})` }} />
                   </div>
-                  <div className="h-2 w-2 rounded-full animate-pulse" style={{ background: s.iconColor }} />
+                  <div className="w-2.5 h-2.5 rounded-full animate-pulse" style={{ backgroundColor: s.color, boxShadow: `0 0 20px ${s.glow}` }} />
                 </div>
                 <div className="relative z-10">
-                  <p className="text-[10px] text-[var(--muted)] font-bold uppercase tracking-[0.15em] mb-1.5">{s.label}</p>
-                  <p className="text-3xl font-bold leading-tight tracking-tight" style={{ background: `linear-gradient(135deg, ${s.from}, ${s.to})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{s.value}</p>
+                  <p className="text-[12px] text-[var(--muted)] font-bold uppercase tracking-[0.25em] mb-2 leading-none opacity-90 group-hover:opacity-100 transition-opacity">{s.label}</p>
+                  <p className="text-3xl font-black text-[var(--text)] tracking-tighter leading-none transition-colors duration-500" style={{ textShadow: `0 10px 40px ${s.glow}44` }}>{s.value}</p>
                 </div>
               </motion.div>
             ))}
@@ -718,46 +1025,40 @@ export default function Dashboard() {
 
           {/* ── Progress Bar ── */}
           <motion.div 
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.35, duration: 0.5 }}
-            className="glass-card p-5 flex items-center gap-6 shadow-2xl relative overflow-hidden"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+            className="bg-[var(--surface-1)] border border-[var(--border)] p-7 rounded-[32px] flex flex-col md:flex-row items-center gap-10 shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.9)] relative overflow-hidden"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 via-transparent to-purple-500/10 pointer-events-none" />
             <div className="flex flex-col shrink-0 relative z-10">
-              <span className="text-[11px] text-[var(--muted)] font-bold uppercase tracking-[0.2em]">{t('dashboard_overall_progress')}</span>
-              <div className="flex items-baseline gap-1 mt-0.5">
-                <span className="text-3xl font-bold text-[var(--text)]">{progress}%</span>
-                <AnimatePresence>
-                  {showIncrease && (
-                    <motion.span
-                      initial={{ opacity: 0, scale: 0.5, y: 5 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.5, y: -5 }}
-                      className="text-xs font-bold text-emerald-500"
-                    >
-                      +{increaseAmount}%
-                    </motion.span>
-                  )}
-                </AnimatePresence>
+              <span className="text-[12px] text-[var(--muted)] font-bold uppercase tracking-[0.3em] mb-4 opacity-50">Global Application Velocity</span>
+              <div className="flex items-baseline gap-3">
+                <span className="text-5xl font-black text-[var(--text)] tracking-tighter transition-colors duration-500" style={{ textShadow: '0 0 50px rgba(255,77,77,0.2)' }}>{progress}%</span>
+                {showIncrease && (
+                  <motion.span
+                    initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }}
+                    className="text-xl font-black text-emerald-400"
+                  >
+                    +{increaseAmount}%
+                  </motion.span>
+                )}
               </div>
             </div>
-            <div className="flex-1 h-3.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden border border-[var(--border)] shadow-inner relative z-10">
+            <div className="flex-1 w-full h-5 bg-[var(--surface-2)] rounded-full overflow-hidden border border-[var(--border)] relative z-10 shadow-inner">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
-                transition={{ duration: 1.6, ease: [0.34, 1.56, 0.64, 1], delay: 0.5 }}
-                className="h-full rounded-full relative overflow-hidden"
-                style={{ background: 'linear-gradient(90deg, #4f46e5, #7c3aed, #a855f7, #c084fc)' }}
-              >
-                <div className="absolute inset-0 bg-[length:200%_100%] animate-[shimmer-sweep_2s_linear_infinite]" style={{ background: 'linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.3) 50%, transparent 75%)', backgroundSize: '200% 100%' }} />
-              </motion.div>
+                transition={{ duration: 1.5, ease: 'easeOut', delay: 0.5 }}
+                className="h-full bg-gradient-to-r from-[#ff4d4d] via-[#ff00ff] to-[#4285f4] rounded-full shadow-[0_0_30px_rgba(255,77,77,0.4)]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-30" />
             </div>
-            <div className="text-right shrink-0 relative z-10">
-              <span className="text-[11px] text-[var(--muted)] font-bold uppercase tracking-[0.2em] block">Status</span>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                <span className="text-sm font-bold text-[var(--text)] tracking-wider">{done} / {steps.length}</span>
+            <div className="flex flex-col items-end shrink-0 relative z-10 border-l border-[var(--border)] pl-8">
+              <span className="text-[12px] text-[var(--muted)] font-black uppercase tracking-[0.3em] mb-4">Protocols</span>
+              <div className="flex items-center gap-4">
+                <div className="h-3 w-3 rounded-full bg-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.8)] animate-pulse" />
+                <span className="text-3xl font-black text-[var(--text)] tracking-[0.1em] transition-colors duration-500">{done} / {steps.length}</span>
               </div>
             </div>
           </motion.div>
@@ -767,37 +1068,34 @@ export default function Dashboard() {
 
             {/* Workflow Steps */}
             <div className="lg:col-span-8 space-y-4 min-w-0">
-              <div className="flex flex-col md:flex-row md:items-end justify-between px-4 mb-6">
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.1)]">
-                      <FileText size={20} className="text-red-500" />
-                    </div>
-                    <h2 className="text-xl md:text-2xl font-black tracking-[0.15em] uppercase bg-gradient-to-r from-[var(--text)] via-[var(--text)] to-[var(--muted)] bg-clip-text text-transparent drop-shadow-sm font-[Outfit]">
-                      {t('dashboard_workflow_steps') || 'WORKFLOW STEPS'}
-                    </h2>
+              <div className="flex flex-col md:flex-row md:items-center justify-between px-2 mb-6 gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                    <FileText size={20} className="text-blue-400" />
                   </div>
-                  <div className="h-1 w-32 bg-gradient-to-r from-red-500 via-red-500/50 to-transparent rounded-full" />
+                  <h2 className="text-xl md:text-2xl font-bold text-[var(--text)] tracking-tight font-inter transition-colors duration-500">
+                    My Application Guide
+                  </h2>
                 </div>
                 
-                <div className="flex items-center gap-5 mt-4 md:mt-0 p-2.5 px-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-[var(--border)] backdrop-blur-md shadow-inner">
+                <div className="flex items-center gap-5 p-2 px-4 rounded-full bg-[var(--surface-2)] border border-[var(--border)] transition-colors duration-500">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[var(--muted)]">{t('status_completed') || 'DONE'}</span>
+                    <div className="h-2 w-2 rounded-full bg-emerald-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Complete</span>
                   </div>
                   <div className="h-4 w-px bg-[var(--border)]" />
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[var(--muted)]">{t('status_in_progress') || 'ACTIVE'}</span>
+                    <div className="h-2 w-2 rounded-full bg-blue-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Current</span>
                   </div>
                 </div>
               </div>
 
               <div className="relative space-y-4">
-                {(showAllSteps && data?.subscription_status === 'active' ? steps : steps.slice(0, 3)).map((s, i) => (
+                {(showAllSteps ? steps : steps.slice(0, 3)).map((s, i) => (
                   <div key={i} className="relative">
                     {/* Timeline Connector Line */}
-                    {i < ((showAllSteps && data?.subscription_status === 'active' ? steps : steps.slice(0, 3)).length - 1) && (
+                    {i < ((showAllSteps ? steps : steps.slice(0, 3)).length - 1) && (
                       <div className={`workflow-connector ${s.status === 'completed' ? 'workflow-connector-done' : s.status === 'in-progress' ? 'workflow-connector-active' : ''}`} />
                     )}
 
@@ -827,7 +1125,7 @@ export default function Dashboard() {
 
                         <div className="flex-1 min-w-0 pt-0.5">
                           <div className="flex items-center justify-between mb-2 gap-2">
-                            <h3 className={`text-[15px] font-black tracking-tight truncate pr-4 transition-colors uppercase font-[Outfit] ${expanded === i ? 'text-indigo-500' : 'text-[var(--text)]'}`}>
+                            <h3 className={`text-[14px] font-bold tracking-normal truncate pr-4 transition-colors uppercase font-inter ${expanded === i ? 'text-indigo-500' : 'text-[var(--text)]'}`}>
                               {s.title}
                             </h3>
                             <div className="flex items-center gap-2 shrink-0">
@@ -836,24 +1134,24 @@ export default function Dashboard() {
                                   <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}>
                                     <Cpu size={10} className="text-red-500" />
                                   </motion.div>
-                                  <span className="text-[10px] font-black uppercase tracking-widest text-red-500">{t('agent_badge')}</span>
+                                  <span className="text-[10px] font-bold uppercase tracking-widest font-inter text-red-500">{t('agent_badge')}</span>
                                 </div>
                               ) : (
                                 <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
                                   <User size={10} className="text-blue-500" />
-                                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-500">HUMAN</span>
+                                  <span className="text-[10px] font-bold uppercase tracking-widest font-inter text-blue-500">HUMAN</span>
                                 </div>
                               )}
-                              <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm backdrop-blur-md transition-all ${
+                              <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest font-inter border shadow-xl backdrop-blur-md transition-all ${
                                 s.status === 'completed'
-                                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500 shadow-emerald-500/5'
-                                  : 'bg-amber-500/10 border-amber-500/20 text-amber-500 shadow-amber-500/5'
+                                  ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-500 shadow-emerald-500/10'
+                                  : 'bg-amber-500/20 border-amber-500/30 text-amber-500 shadow-amber-500/10'
                               }`}>
                                 {s.status === 'completed' ? t('status_completed') : t('status_pending')}
                               </div>
                             </div>
                           </div>
-                          <p className={`text-[12px] text-[var(--muted)] leading-relaxed transition-all duration-300 font-medium ${expanded === i ? 'line-clamp-none opacity-100' : 'line-clamp-1 opacity-60 group-hover:opacity-100'}`}>
+                          <p className={`text-[12px] text-[var(--muted)] leading-relaxed transition-all duration-300 font-inter font-bold ${expanded === i ? 'line-clamp-none opacity-100' : 'line-clamp-1 opacity-90 group-hover:opacity-100'}`}>
                             {s.summary}
                           </p>
                     </div>
@@ -873,13 +1171,13 @@ export default function Dashboard() {
                         <div className="px-4 pb-4 pt-3 border-t border-[var(--border)] space-y-4">
                           {/* Manual instructions box */}
                           <div className="rounded-xl bg-[var(--surface-2)] border border-[var(--border)] p-3">
-                            <p className="text-[13px] text-[var(--text)] opacity-80 leading-relaxed font-medium">{s.detail}</p>
+                            <p className="text-[13px] text-[var(--text)] opacity-80 leading-relaxed font-inter font-medium">{s.detail}</p>
                           </div>
 
                           {s.docs.length > 0 && (
                             <div className="flex flex-wrap gap-2">
                               {s.docs.map((doc: string) => (
-                                <div key={doc} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-[var(--muted)] hover:text-[var(--text)] transition-colors cursor-pointer bg-[var(--surface-2)] border border-[var(--border)]">
+                                <div key={doc} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-inter font-bold text-[var(--muted)] hover:text-[var(--text)] transition-colors cursor-pointer bg-[var(--surface-2)] border border-[var(--border)]">
                                   <FileText size={11} className="text-purple-400 shrink-0" />
                                   {doc}
                                   <ExternalLink size={9} className="text-[var(--muted)] opacity-70" />
@@ -976,31 +1274,13 @@ export default function Dashboard() {
 
               {/* Show More / Less / Upgrade */}
               {steps.length > 3 && (
-                data?.subscription_status === 'active' ? (
-                  <button
-                    onClick={() => setShowAllSteps(!showAllSteps)}
-                    className="w-full py-3 rounded-2xl border border-[var(--border)] text-[var(--muted)] hover:text-[var(--text)] hover:border-[var(--border-2)] hover:bg-[var(--surface-2)] transition-all text-sm font-semibold flex items-center justify-center gap-2"
-                  >
-                    <ChevronDown size={16} className={`transition-transform duration-300 ${showAllSteps ? 'rotate-180' : ''}`} />
-                    {showAllSteps ? `Show less` : `Show ${steps.length - 3} more steps`}
-                  </button>
-                ) : (
-                  <Link href="/pricing" className="block">
-                    <div className="w-full py-6 rounded-[28px] border-2 border-dashed border-indigo-500/30 bg-indigo-500/5 hover:bg-indigo-500/10 transition-all flex flex-col items-center justify-center gap-2 group cursor-pointer relative overflow-hidden">
-                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none" />
-                       <div className="flex items-center gap-2 text-indigo-600">
-                          <Lock size={16} />
-                          <span className="text-sm font-black uppercase tracking-widest">Premium Content</span>
-                       </div>
-                       <p className="text-xs text-[var(--muted)] font-bold text-center px-6">
-                         Unlock {steps.length - 3} more specialized workflow steps and municipal protocols.
-                       </p>
-                       <div className="mt-2 text-xs font-black text-white bg-indigo-600 px-4 py-1.5 rounded-full shadow-lg group-hover:scale-105 transition-transform">
-                          Upgrade to Premium
-                       </div>
-                    </div>
-                  </Link>
-                )
+                <button
+                  onClick={() => setShowAllSteps(!showAllSteps)}
+                  className="w-full py-3 rounded-2xl border border-[var(--border)] text-[var(--muted)] hover:text-[var(--text)] hover:border-[var(--border-2)] hover:bg-[var(--surface-2)] transition-all text-sm font-semibold flex items-center justify-center gap-2"
+                >
+                  <ChevronDown size={16} className={`transition-transform duration-300 ${showAllSteps ? 'rotate-180' : ''}`} />
+                  {showAllSteps ? `Show less` : `Show ${steps.length - 3} more steps`}
+                </button>
               )}
             </div>
 
@@ -1100,7 +1380,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden selection:bg-purple-500/30 relative bg-[var(--bg)] dark:deep-mesh transition-colors duration-500">
+    <div className="flex h-screen overflow-hidden selection:bg-purple-500/30 relative bg-[var(--bg)] transition-colors duration-500">
       <Sidebar 
         currentSessionId={dashboardSessionId}
         assistantType={activeAssistantType}

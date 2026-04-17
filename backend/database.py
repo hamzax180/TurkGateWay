@@ -8,8 +8,9 @@ from dotenv import load_dotenv
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-# Fallback to local SQLite if a production URL is not found
-default_sqlite = f"sqlite:///{os.path.join(BASE_DIR, 'permitops.db')}"
+# Point to the data directory in the project root
+ROOT_DIR = os.path.dirname(BASE_DIR)
+default_sqlite = f"sqlite:///{os.path.join(ROOT_DIR, 'data', 'permitops.db')}"
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", default_sqlite)
 
 # Only add check_same_thread=False for SQLite databases

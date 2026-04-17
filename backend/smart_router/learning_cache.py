@@ -44,9 +44,11 @@ _MAX_LEARNED_PER_INTENT = 10       # Max learned responses per intent key
 _MAX_LEARNED_PAIRS = 50            # Max query+response pairs in "learned" bucket
 _MIN_RESPONSE_LENGTH = 10          # Ignore tiny/error responses
 # Fuzzy matching thresholds: must pass both
-_MIN_CHAR_SIMILARITY = 0.80
-_MIN_WORD_SIMILARITY = 0.75
-_LEARNING_LOG = os.path.join(os.path.dirname(__file__), "learning_log.json")
+_MIN_CHAR_SIMILARITY = 0.85
+_MIN_WORD_SIMILARITY = 0.80
+# Point to the data directory in the project root
+_ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+_LEARNING_LOG = os.path.join(_ROOT_DIR, "data", "learning_log.json")
 _file_lock = threading.Lock()
 
 # Pre-compiled regex for normalization
@@ -55,6 +57,15 @@ _RE_MULTI_SPACE = re.compile(r"\s+")
 
 # In-memory reference to the live library (set by __init__.py on load)
 _live_library: dict = {}
+
+# Database session factory (will be set if database is available)
+_SessionLocal = None
+
+
+def set_database_session_factory(session_factory):
+    """Called by main.py to provide database access for learning cache."""
+    global _SessionLocal
+    _SessionLocal = session_factory
 
 
 def set_live_library(lib: dict):
@@ -102,16 +113,23 @@ def _save_json(filepath: str, data: dict):
         print(f"[LearningCache] Failed to write {filepath}: {e}")
 
 
-def _is_duplicate(existing_responses: list, new_response: str) -> bool:
-    """Check if the response (or something very similar) already exists."""
+def _is_duplicate(existing_responses: list, new_response: str, normalized_query: Optional[str] = None) -> bool:
+    """Check if the response (or current query) already exists in this bucket."""
     for r in existing_responses:
+        # 1. Check for Response Duplicate
         # Handle both string entries (curated) and dict entries (learned pairs)
         text = r if isinstance(r, str) else r.get("r", "")
         if text == new_response:
             return True
-        # Fuzzy: if first 80 chars match
+        # Fuzzy response match: if first 80 chars match exactly
         if text[:80].lower().strip() == new_response[:80].lower().strip():
             return True
+            
+        # 2. Check for Query Duplicate (if normalized_query provided)
+        if normalized_query and isinstance(r, dict):
+            stored_q = r.get("q")
+            if stored_q == normalized_query:
+                return True
     return False
 
 
@@ -166,6 +184,52 @@ def _log_learning(query: str, agent: str, intent: str, language: str):
 
 
 # ---------------------------------------------------------------------------
+# Database Persistence (saves learned responses to the database)
+# ---------------------------------------------------------------------------
+
+def _save_to_database(query: str, response: str, assistant_type: str, intent: str, language: str):
+    """Save a learned response to the database for persistence and analytics."""
+    if not _SessionLocal:
+        # Database not available or not initialized yet
+        return
+    
+    try:
+        from models.chat import LearningResponse
+        db = _SessionLocal()
+        
+        # Check if this exact query+response already exists in DB
+        existing = db.query(LearningResponse).filter(
+            LearningResponse.query == _normalize_query(query),
+            LearningResponse.assistant_type == assistant_type,
+            LearningResponse.intent == intent,
+            LearningResponse.language == language
+        ).first()
+        
+        if existing:
+            # Increment usage count instead of creating duplicate
+            existing.usage_count += 1
+            db.commit()
+            print(f"[LearningDB] Updated usage count for {assistant_type}.{intent}")
+        else:
+            # Create new learning response record
+            learning_record = LearningResponse(
+                query=_normalize_query(query)[:255],  # Limit to 255 chars for indexing
+                response=response,
+                assistant_type=assistant_type,
+                intent=intent,
+                language=language,
+                usage_count=1
+            )
+            db.add(learning_record)
+            db.commit()
+            print(f"[LearningDB] ✅ Saved learned response to database: {assistant_type}.{intent}")
+        
+        db.close()
+    except Exception as e:
+        print(f"[LearningDB] Error saving to database: {e}")
+
+
+# ---------------------------------------------------------------------------
 # Public API: Learn
 # ---------------------------------------------------------------------------
 
@@ -205,7 +269,14 @@ def learn(
     skip_markers = ["REDIRECT_NEW_CHAT", "Critical Error", "switch to", "mode using the selector"]
     if any(m.lower() in response.lower() for m in skip_markers):
         return False
-    
+    # Don't learn cut-off responses (must end with punctuation or specific markers)
+    _stripped = response.strip()
+    if not any(_stripped.endswith(p) for p in [".", "!", "?", "]", ")", "}", "🎓", "🚀", "💬", "👍", "👋", "📌", "✅", "📍", "💼"]):
+        # If it doesn't end in punctuation, it might just be a conversational end or short phrase without a period
+        if len(_stripped) > 500 and _stripped[-1].isalnum():
+            print(f"[LearningCache] SKIP — Response VERY long and ends without punctuation (likely cut off)")
+            return False
+        # Otherwise, allow it (could be a short sentence without period)
     # --- Classify the intent ---
     intent_key = intent_hint or _classify_intent(query, assistant_type)
     
@@ -222,8 +293,9 @@ def learn(
         existing = data[intent_key]
         
         # --- Safety checks ---
-        if _is_duplicate(existing, response):
-            print(f"[LearningCache] SKIP duplicate for {assistant_type}.{intent_key}")
+        norm_q = _normalize_query(query)
+        if _is_duplicate(existing, response, normalized_query=norm_q):
+            print(f"[LearningCache] SKIP duplicate or existing query match for {assistant_type}.{intent_key} (query: '{norm_q}')")
             return False
         
         if intent_key == "learned":
@@ -259,6 +331,9 @@ def learn(
         
         _save_json(filepath, data)
     
+    # Save to database as well (if available)
+    _save_to_database(query, response, assistant_type, intent_key, language)
+    
     # Update the in-memory library so it takes effect immediately
     _update_live_library(assistant_type, language, intent_key, query, response, dashboard_state)
     
@@ -291,7 +366,7 @@ def _update_live_library(assistant_type: str, language: str, intent_key: str, qu
     if dashboard_state:
         entry["s"] = dashboard_state
     
-    if not _is_duplicate(agent_data[intent_key], response):
+    if not _is_duplicate(agent_data[intent_key], response, normalized_query=entry["q"]):
         agent_data[intent_key].append(entry)
 
 
@@ -303,16 +378,9 @@ def find_learned_response(
     query: str,
     assistant_type: str,
     language: str = "en",
+    context_text: Optional[str] = None
 ) -> Optional[Tuple[str, Optional[dict]]]:
     """
-    Search ALL learned entries for a previously seen query that closely
-    matches the current one. Uses fuzzy matching (SequenceMatcher).
-    
-    Searches across ALL intent buckets in the learned file, not just "learned".
-    
-    Args:
-        query: The current user query
-        assistant_type: 'permit', 'student', or 'lawyer'
         language: 'en', 'tr', or 'ar'
     
     Returns:
@@ -323,7 +391,42 @@ def find_learned_response(
 
     normalized = _normalize_query(query)
     
-    # --- Collect ALL learned entries across all intent buckets ---
+    # Context Augmentation: If query is short, boost it with context clues
+    # Covers ALL agent topics for better fuzzy matching
+    if context_text and len(normalized.split()) < 8:
+        context_lower = context_text.lower()
+        clues = []
+        # --- Student topics ---
+        if any(w in context_lower for w in ["consulate", "embassy", "visa", "vize", "appointment"]): clues.append("visa")
+        if any(w in context_lower for w in ["ikamet", "residence permit", "residence", "goc idaresi", "migration"]): clues.append("residence permit")
+        if any(w in context_lower for w in ["roadmap", "register", "enroll", "university", "admission", "obs"]): clues.append("register university")
+        if any(w in context_lower for w in ["insurance", "sigorta", "sgk", "health insurance", "medical"]): clues.append("insurance")
+        if any(w in context_lower for w in ["dormitory", "dorm", "yurt", "kyk", "housing", "accommodation"]): clues.append("dormitory housing")
+        if any(w in context_lower for w in ["equivalency", "denklik", "apostille", "diploma recognition"]): clues.append("equivalency denklik")
+        if any(w in context_lower for w in ["istanbulkart", "transport", "metro", "bus card"]): clues.append("transport card")
+        if any(w in context_lower for w in ["scholarship", "burs", "turkiye burslari", "financial aid"]): clues.append("scholarship")
+        if any(w in context_lower for w in ["deadline", "son basvuru", "last day", "registration close"]): clues.append("deadline")
+        # --- Permit topics ---
+        if any(w in context_lower for w in ["permit", "ruhsat", "license", "workplace", "business opening"]): clues.append("business permit")
+        if any(w in context_lower for w in ["tax", "vergi", "tax office", "vergi dairesi", "vergi numarasi"]): clues.append("tax registration")
+        if any(w in context_lower for w in ["nace", "activity code", "faaliyet kodu", "sector code"]): clues.append("nace code")
+        if any(w in context_lower for w in ["fire", "itfaiye", "fire safety", "chimney", "baca"]): clues.append("fire safety")
+        if any(w in context_lower for w in ["sign", "signage", "tabela", "frontage", "facade"]): clues.append("signage")
+        if any(w in context_lower for w in ["alcohol", "tapdk", "liquor", "bar license"]): clues.append("alcohol license")
+        if any(w in context_lower for w in ["music", "live music", "canli muzik", "entertainment"]): clues.append("music license")
+        # --- Lawyer topics ---
+        if any(w in context_lower for w in ["company", "şirket", "ltd", "mersis", "trade registry", "formation"]): clues.append("company formation")
+        if any(w in context_lower for w in ["contract", "sözleşme", "nda", "agreement", "clause"]): clues.append("contract review")
+        if any(w in context_lower for w in ["fired", "dismissed", "severance", "employment", "kıdem", "labour"]): clues.append("employment law")
+        if any(w in context_lower for w in ["property", "apartment", "rent", "lease", "tapu", "eviction"]): clues.append("real estate")
+        if any(w in context_lower for w in ["criminal", "police", "arrest", "charge", "jail"]): clues.append("criminal law")
+        if any(w in context_lower for w in ["debt", "unpaid", "icra", "haciz", "collection"]): clues.append("debt collection")
+        if any(w in context_lower for w in ["work permit", "çalışma izni", "legal to work"]): clues.append("work permit")
+        if any(w in context_lower for w in ["dispute", "lawsuit", "court", "mediation", "sue"]): clues.append("legal dispute")
+        
+        if clues:
+            normalized = f"{' '.join(clues)} {normalized}"
+            print(f"[LearningCache] Contextualized Search: '{normalized}'")
     all_entries = []
     
     # Try in-memory library first (faster)
@@ -335,19 +438,25 @@ def find_learned_response(
                 if not isinstance(bucket_entries, list):
                     continue
                 for entry in bucket_entries:
+                    # Entries can be strings (curated) or dicts (learned)
                     if isinstance(entry, dict) and "q" in entry and "r" in entry:
                         all_entries.append(entry)
+                    elif isinstance(entry, str):
+                        # Optionally index curated responses too for fallback matching
+                        all_entries.append({"q": _normalize_query(bucket_key.split('.')[-1].replace('_',' ')), "r": entry})
     
-    # Fallback: load from disk if in-memory is empty
-    if not all_entries:
-        filepath = _get_learned_file(assistant_type, language)
+    # Always load from disk as well to ensure we're not using stale in-memory data
+    filepath = _get_learned_file(assistant_type, language)
+    if os.path.exists(filepath):
         data = _load_json(filepath)
         for bucket_key, bucket_entries in data.items():
             if not isinstance(bucket_entries, list):
                 continue
             for entry in bucket_entries:
                 if isinstance(entry, dict) and "q" in entry and "r" in entry:
-                    all_entries.append(entry)
+                    # Prevent duplicates if they were already in-memory
+                    if not any(e.get("q") == entry["q"] for e in all_entries):
+                        all_entries.append(entry)
     
     if not all_entries:
         return None

@@ -37,6 +37,7 @@ from .template_engine import render, build_variables
 from . import cache as response_cache
 from .ai_fallback import ai_fallback_response
 from .learning_cache import learn as learn_response, set_live_library as _set_live_library, find_learned_response as _find_learned
+from .context_engine import handle_with_context, get_augmented_query
 
 # RAG retrieval (DB-backed, falls back gracefully to JSON library if unavailable)
 try:
@@ -141,6 +142,8 @@ _NEW_CONSULTATION_PATTERNS = [
     r"\b(cafe|kafe|restaurant|restoran|retail|office|ofis|pharmacy|eczane|bakery|f[\u0131i]r[\u0131i]n|barber|berber|gym|spor|shop|store|company|ma[\u011fg]aza|d[\u00fcu]kkan) (in|at) \b",
     # ID Renewal / Replacement
     r"\b(renew|replace).{1,15}(id|kimlik|student id)\b",
+    # Student chip buttons
+    r"^(student id renewal|university registration|student visas|öğrenci ikameti|üniversite kaydı)$"
 ]
 
 # Meta-questions about the system or process that should go to AI orchestrator
@@ -180,36 +183,74 @@ _ALL_BUSINESS_TYPES = [
 ]
 
 _UNI_MAP = {
-    "bo\u011fazi\u00e7i": "Bo\u011fazi\u00e7i University", "bogazici": "Bo\u011fazi\u00e7i University", "bo\u011fazi\u00e7i uni": "Bo\u011fazi\u00e7i University", "bo\u011fazi\u00e7i \u00fcni": "Bo\u011fazi\u00e7i University", "boun": "Bo\u011fazi\u00e7i University", "boga": "Bo\u011fazi\u00e7i University", "bo\u011fa": "Bo\u011fazi\u00e7i University", "bogaz": "Bo\u011fazi\u00e7i University", "bo\u011faz": "Bo\u011fazi\u00e7i University",
-    "metu": "METU (ODT\u00dc)", "odt\u00fc": "METU (ODT\u00dc)", "odtu": "METU (ODT\u00dc)", "met": "METU (ODT\u00dc)",
-    "istanbul university": "Istanbul University", "istanbul \u00fcniversitesi": "Istanbul University", "istanbul uni": "Istanbul University", "istanbul \u00fcni": "Istanbul University", "istanbul": "Istanbul University", "iu": "Istanbul University", "i\u00fc": "Istanbul University", "ist": "Istanbul University",
-    "it\u00fc": "\u0130T\u00dc (Istanbul Technical)", "itu": "\u0130T\u00dc (Istanbul Technical)", "istanbul teknik": "\u0130T\u00dc (Istanbul Technical)", "istanbul technical": "\u0130T\u00dc (Istanbul Technical)",
-    "hacettepe": "Hacettepe University", "hacettepe uni": "Hacettepe University", "hacettepe \u00fcni": "Hacettepe University", "hacett": "Hacettepe University", "hu": "Hacettepe University",
-    "ko\u00e7": "Ko\u00e7 University", "koc": "Ko\u00e7 University", "ko\u00e7 uni": "Ko\u00e7 University", "ko\u00e7 \u00fcni": "Ko\u00e7 University", "kocu": "Ko\u00e7 University",
-    "sabanc\u0131": "Sabanc\u0131 University", "sabanci": "Sabanc\u0131 University", "sabanc\u0131 uni": "Sabanc\u0131 University", "sabanc\u0131 \u00fcni": "Sabanc\u0131 University", "su": "Sabanc\u0131 University",
-    "bilkent": "Bilkent University", "bilkent uni": "Bilkent University", "bilkent \u00fcni": "Bilkent University", "bil": "Bilkent University",
-    "ankara university": "Ankara University", "ankara \u00fcniversitesi": "Ankara University", "ankara uni": "Ankara University", "ankara \u00fcni": "Ankara University", "ankara": "Ankara University", "au": "Ankara University",
-    "ege university": "Ege University", "ege \u00fcniversitesi": "Ege University", "ege uni": "Ege University", "ege \u00fcni": "Ege University", "ege": "Ege University", "eu": "Ege University",
-    "alt\u0131nba\u015f": "Alt\u0131nba\u015f University", "altinbas": "Alt\u0131nba\u015f University", "alt\u0131nba\u015f uni": "Alt\u0131nba\u015f University", "alt\u0131nba\u015f \u00fcni": "Alt\u0131nba\u015f University", "altunbas": "Alt\u0131nba\u015f University", "altn": "Alt\u0131nba\u015f University",
-    "aydin": "Istanbul Ayd\u0131n University", "ayd\u0131n": "Istanbul Ayd\u0131n University", "aydin university": "Istanbul Ayd\u0131n University", "ayd\u0131n \u00fcniversitesi": "Istanbul Ayd\u0131n University", "iau": "Istanbul Ayd\u0131n University",
-    "\u0628\u0648\u063a\u0627\u0632\u064a\u062a\u0634\u064a": "Bo\u011fazi\u00e7i University", "\u0627\u0644\u0634\u0631\u0642 \u0627\u0644\u0623\u0648\u0633\u0637": "METU (ODT\u00dc)", "\u0625\u0633\u0637\u0646\u0628\u0648\u0644": "Istanbul University", "\u062c\u0627\u0645\u0639\u0629 \u0625\u0633\u0637\u0646\u0628\u0648\u0644": "Istanbul University",
-    "\u0643\u0648\u062a\u0634": "Ko\u00e7 University", "\u0633\u0627\u0628\u0627\u0646\u062c\u064a": "Sabanc\u0131 University", "\u0628\u064a\u0644\u0643\u0646\u062a": "Bilkent University", 
-    "\u0623\u0646\u0642\u0631\u0629": "Ankara University", "\u062d\u0627\u062c\u064a\u062a\u064a\u0628\u064a": "Hacettepe University", "\u0623\u0644\u062a\u0646 \u0628\u0627\u0634": "Alt\u0131nba\u015f University", "\u0623\u064a\u062f\u0646": "Istanbul Ayd\u0131n University"
+    "boğaziçi": "Boğaziçi University", "bogazici": "Boğaziçi University", "boğaziçi uni": "Boğaziçi University", "boğaziçi üni": "Boğaziçi University", "boun": "Boğaziçi University", "boga": "Boğaziçi University", "boğa": "Boğaziçi University", "bogaz": "Boğaziçi University", "boğaz": "Boğaziçi University",
+    "metu": "METU (ODTÜ)", "odtü": "METU (ODTÜ)", "odtu": "METU (ODTÜ)", "met": "METU (ODTÜ)",
+    "istanbul university": "Istanbul University", "istanbul üniversitesi": "Istanbul University", "istanbul uni": "Istanbul University", "istanbul üni": "Istanbul University", "istanbul": "Istanbul University", "iu": "Istanbul University", "iü": "Istanbul University",
+    "itü": "İTÜ (Istanbul Technical)", "itu": "İTÜ (Istanbul Technical)", "istanbul teknik": "İTÜ (Istanbul Technical)", "istanbul technical": "İTÜ (Istanbul Technical)",
+    "hacettepe": "Hacettepe University", "hacettepe uni": "Hacettepe University", "hacettepe üni": "Hacettepe University", "hacett": "Hacettepe University", "hu": "Hacettepe University",
+    "koç": "Koç University", "koc": "Koç University", "koç uni": "Koç University", "koç üni": "Koç University", "kocu": "Koç University",
+    "sabancı": "Sabancı University", "sabanci": "Sabancı University", "sabancı uni": "Sabancı University", "sabancı üni": "Sabancı University", "su": "Sabancı University",
+    "bilkent": "Bilkent University", "bilkent uni": "Bilkent University", "bilkent üni": "Bilkent University", "bil": "Bilkent University",
+    "ankara university": "Ankara University", "ankara üniversitesi": "Ankara University", "ankara uni": "Ankara University", "ankara üni": "Ankara University", "ankara": "Ankara University", "au": "Ankara University",
+    "ege university": "Ege University", "ege üniversitesi": "Ege University", "ege uni": "Ege University", "ege üni": "Ege University", "ege": "Ege University", "eu": "Ege University",
+    "altınbaş": "Altınbaş University", "altinbas": "Altınbaş University", "altınbaş uni": "Altınbaş University", "altınbaş üni": "Altınbaş University", "altunbas": "Altınbaş University", "altn": "Altınbaş University",
+    "aydin": "Istanbul Aydın University", "aydın": "Istanbul Aydın University", "aydin university": "Istanbul Aydın University", "aydın üniversitesi": "Istanbul Aydın University", "iau": "Istanbul Aydın University",
+    "بوغازيتشي": "Boğaziçi University", "الشرق الأوسط": "METU (ODTÜ)", "إسطنبول": "Istanbul University", "جامعة إسطنبول": "Istanbul University",
+    "كوتش": "Koç University", "سابانجي": "Sabancı University", "بيلكنت": "Bilkent University", 
+    "أنقرة": "Ankara University", "حاجيتييبي": "Hacettepe University", "ألتن باش": "Altınbaş University", "أيدن": "Istanbul Aydın University"
 }
 
 _UNI_DEADLINES = {
-    "Bo\u011fazi\u00e7i University": {"en": "Mid-July", "tr": "Temmuz Ortas\u0131", "ar": "\u0645\u0646\u062a\u0635\u0641 \u064a\u0648\u0644\u064a\u0648"},
-    "METU (ODT\u00dc)": {"en": "Early July", "tr": "Temmuz Ba\u015f\u0131", "ar": "\u0623\u0648\u0627\u0626\u0644 \u064a\u0648\u0644\u064a\u0648"},
-    "Istanbul University": {"en": "August", "tr": "A\u011fustos", "ar": "\u0623\u063a\u0633\u0637\u0633"},
-    "\u0130T\u00dc (Istanbul Technical)": {"en": "Early August", "tr": "A\u011fustos Ba\u015f\u0131", "ar": "\u0623\u0628\u0648\u0627\u0626\u0644 \u0623\u063a\u0633\u0637\u0633"},
-    "Hacettepe University": {"en": "Mid-July", "tr": "Temmuz Ortas\u0131", "ar": "\u0645\u0646\u062a\u0635\u0641 \u064a\u0648\u0644\u064a\u0648"},
-    "Ko\u00e7 University": {"en": "Early July", "tr": "Temmuz Ba\u015f\u0131", "ar": "\u0623\u0628\u0648\u0627\u0626\u0644 \u064a\u0648\u0644\u064a\u0648"},
-    "Sabanc\u0131 University": {"en": "Mid-August", "tr": "A\u011fustos Ortas\u0131", "ar": "\u0645\u0646\u062a\u0635\u0641 \u0623\u063a\u0633\u0637\u0633"},
-    "Bilkent University": {"en": "Mid-July", "tr": "Temmuz Ortas\u0131", "ar": "\u0645\u0646\u062a\u0635\u0641 \u064a\u0648\u0644\u064a\u0648"},
-    "Ankara University": {"en": "August", "tr": "A\u011fustos", "ar": "\u0623\u063a\u0633\u0637\u0633"},
-    "Ege University": {"en": "Early August", "tr": "A\u011fustos Ba\u015f\u0131", "ar": "\u0623\u0628\u0648\u0627\u0626\u0644 \u0623\u063a\u0633\u0637\u0633"},
-    "Alt\u0131nba\u015f University": {"en": "Mid-August", "tr": "A\u011fustos Ortas\u0131", "ar": "\u0645\u0646\u062a\u0635\u0641 \u0623\u063a\u0633\u0637\u0633"},
-    "Istanbul Ayd\u0131n University": {"en": "Late August", "tr": "A\u011fustos Sonu", "ar": "\u0623\u0648\u0627\u062e\u0631 \u0623\u063a\u0633\u0637\u0633"}
+    "Boğaziçi University": {"en": "Mid-July", "tr": "Temmuz Ortası", "ar": "منتصف يوليو"},
+    "METU (ODTÜ)": {"en": "Early July", "tr": "Temmuz Başı", "ar": "أوائل يوليو"},
+    "Istanbul University": {"en": "August", "tr": "Ağustos", "ar": "أغسطس"},
+    "İTÜ (Istanbul Technical)": {"en": "Early August", "tr": "Ağustos Başı", "ar": "أوائل أغسطس"},
+    "Hacettepe University": {"en": "Mid-July", "tr": "Temmuz Ortası", "ar": "منتصف يوليو"},
+    "Koç University": {"en": "Early July", "tr": "Temmuz Başı", "ar": "أوائل يوليو"},
+    "Sabancı University": {"en": "Mid-August", "tr": "Ağustos Ortası", "ar": "منتصف أغسطس"},
+    "Bilkent University": {"en": "Mid-July", "tr": "Temmuz Ortası", "ar": "منتصف يوليو"},
+    "Ankara University": {"en": "August", "tr": "Ağustos", "ar": "أغسطس"},
+    "Ege University": {"en": "Early August", "tr": "Ağustos Başı", "ar": "أوائل أغسطس"},
+    "Altınbaş University": {"en": "Mid-August", "tr": "Ağustos Ortası", "ar": "منتصف أغسطس"},
+    "Istanbul Aydın University": {"en": "Late August", "tr": "Ağustos Sonu", "ar": "أواخر أغسطس"}
+}
+
+_UNI_LOCATIONS = {
+    "Boğaziçi University": {
+        "en": "The main campuses are in **Bebek/Rumelihisarı**, Beşiktaş. (European Side)",
+        "tr": "Ana kampüsler **Bebek/Rumelihisarı**, Beşiktaş'tadır. (Avrupa Yakası)",
+        "ar": "الحرم الجامعي الرئيسي يقع في **بيبيك/روملي حصار**، بشكتاش. (الجانب الأوروبي)"
+    },
+    "METU (ODTÜ)": {
+        "en": "The main campus is in **Çankaya**, Ankara.",
+        "tr": "Ana kampüs **Çankaya**, Ankara'dadır.",
+        "ar": "الحرم الجامعي الرئيسي يقع في **تشانكايا**، أنقرة."
+    },
+    "Istanbul University": {
+        "en": "The main historical campus is in **Beyazıt Square, Fatih**.",
+        "tr": "Tarihi ana kampüs **Beyazıt Meydanı, Fatih**'tedir.",
+        "ar": "الحرم الجامعي التاريخي الرئيسي يقع في **ميدان بيازيد، فاتح**."
+    },
+    "İTÜ (Istanbul Technical)": {
+        "en": "The primary campus (Ayazaga) is in **Maslak**, Sariyer.",
+        "tr": "Ana kampüs (Ayazağa) **Maslak**, Sarıyer'dedir.",
+        "ar": "الحرم الجامعي الرئيسي (أيازاغا) يقع في **مسلك**، ساريير."
+    },
+    "Koç University": {
+        "en": "The main campus is in **Rumelifeneri**, Sariyer.",
+        "tr": "Ana kampüs **Rumelifeneri**, Sarıyer'dedir.",
+        "ar": "الحرم الجامعي الرئيسي يقع في **روملي فنار**، ساريير."
+    },
+    "Altınbaş University": {
+        "en": "Main campus (Mahmutbey) is in **Bağcılar**. Medical is in **Bakırköy**. Management is in **Gayrettepe**.",
+        "tr": "Ana kampüs (Mahmutbey) **Bağcılar**'dadır. Tıp **Bakırköy**'de, İşletme **Gayrettepe**'dedir.",
+        "ar": "الحرم الجامعي الرئيسي (محمود بيه) يقع في **باغجلار**. الطب في **بكر كوي**. الإدارة في **غيريت تبه**."
+    },
+    "Istanbul Aydın University": {
+        "en": "The main campus is located in **Florya**, Küçükçekmece.",
+        "tr": "Ana kampüs **Florya**, Küçükçekmece'de yer almaktadır.",
+        "ar": "الحرم الجامعي الرئيسي يقع في **فلوريا**، كوتشوك تشيكميجة."
+    }
 }
 
 def _fuzzy_match(word: str, candidates: list, threshold: float = 0.75) -> str | None:
@@ -276,27 +317,60 @@ async def smart_router_handle(
     wait_task = asyncio.create_task(asyncio.sleep(3.0))
     
     query = query.strip()
+    
+    # Pre-compute last_assistant_msg early so all phases can use it
+    last_assistant_msg = history_text.lower().split("[assistant]:")[-1].strip() if "[assistant]:" in history_text.lower() else ""
+    # Pre-detect if the assistant is currently asking a clarifying question
+    # (district, business type, university). If so, short answers like "retail"
+    # or "sisli" must skip the caches and go straight to roadmap builder.
+    _is_clarifying_for_roadmap = False
+    if last_assistant_msg:
+        _clarify_markers = [
+            "what type of business", "hangi tür işletme", "ما هو نوع العمل",
+            "which district", "hangi ilçesinde", "في أي منطقة",
+            "which university", "hangi üniversite", "في أي جامعة",
+            "type the name", "planning to open", "açacaksın", "ستفتح",
+            "what type", "which type"
+        ]
+        _is_clarifying_for_roadmap = any(k in last_assistant_msg for k in _clarify_markers)
+
     cached = response_cache.get(query, assistant_type, language)
-    if cached:
+    if cached and not _is_clarifying_for_roadmap:
         await wait_task
-        print(f"\n[Smart Router] \ud83d\ude80 Response served from IN-MEMORY EXACT CACHE")
+        print(f"\n[Smart Router] 🚀 Response served from IN-MEMORY EXACT CACHE")
         return cached, None, "In-Memory Exact Cache"
 
+    # --- PHASE 0.1: Context Engine Local Resolution (0 tokens) ---
+    # Handles follow-up questions like "apply from riyadh" by understanding conversation state
+    # SKIP when clarifying — let roadmap builder handle short answers
+    if history_text and not _is_clarifying_for_roadmap:
+        context_answer = handle_with_context(query, history_text, assistant_type, language)
+        if context_answer:
+            print(f"\n[Smart Router] 🧩 Response served from LOCAL CONTEXT ENGINE")
+            response_cache.set(query, context_answer, assistant_type, language)
+            await wait_task
+            return context_answer, None, "Local Context Engine"
+
     # --- PHASE 0.2: Learning Cache Check ---
-    learned = _find_learned(query, assistant_type, language)
+    # SKIP when clarifying — "retail", "sisli" etc. must reach the roadmap builder
+    if not _is_clarifying_for_roadmap:
+        learned = _find_learned(query, assistant_type, language, context_text=last_assistant_msg)
+    else:
+        learned = None
+        print(f"[SmartRouter] Skipping cache/learning — clarifying for roadmap (query: '{query}')")
+
     if learned:
         learned_text = learned[0] if isinstance(learned, tuple) else learned
         learned_state = learned[1] if isinstance(learned, tuple) else None
         
         response_cache.set(query, learned_text, assistant_type, language)
-        print(f"\n[Smart Router] \ud83e\udde0 Response served from LEARNING CACHE (backend/agents/{assistant_type}/learned/{language}.json)")
+        print(f"\n[Smart Router] 🧠 Response served from LEARNING CACHE (backend/agents/{assistant_type}/learned/{language}.json)")
         await wait_task
         return learned_text, learned_state, "Learning Cache (Learned Database)"
 
     # --- PHASE 0.5: Contextual Affirmative Check (Handle 'yes' to deadlines) ---
     lower_q = query.lower().strip().replace("?", "").replace(".", "").replace("!", "")
-    last_assistant_msg = history_text.lower().split("[assistant]:")[-1] if "[assistant]:" in history_text.lower() else ""
-    
+
     affirmative = ["yes", "yeah", "yep", "sure", "ok", "okay", "evet", "tamam", "olur", "\u0646\u0639\u0645", "\u0627\u064a\u0648\u0647", "\u0623\u062c\u0644", "\u0637\u0628\u0631\u0627", "\u0637\u0628\u0631\u0627\u064b", "\u0645\u0627\u0634\u064a"]
     if lower_q in affirmative and last_assistant_msg:
         if any(marker in last_assistant_msg for marker in ["check the current registration calendar", "registration calendar", "university deadline", "kay\u0131t takvimi", "moaud", "\u0645\u0648\u0639\u062f", "announcements", "duyurular", "major schools"]):
@@ -342,14 +416,6 @@ async def smart_router_handle(
                         break
                 if _reply_uni: break
             
-            if not _reply_uni and _was_asking_uni:
-                msg = {
-                    "en": "\ud83c\udf93 **UNI NOT FOUND IN OUR DATA.** I currently track the registration calendars for the Top 10 universities in Turkey. Please try one of our supported schools like Bo\u011fazi\u00e7i, METU, or Alt\u0131nba\u015f!",
-                    "tr": "\ud83c\udf93 **BU \u00dcN\u0130VERS\u0130TE VER\u0130LER\u0130M\u0130ZDE BULUNAMADI.** \u015eu anda T\u00fcrkiye'deki ilk 10 \u00fcniversitenin kay\u0131t takvimlerini takip ediyorum. L\u00fctfen Bo\u011fazi\u00e7i, ODT\u00dc veya Alt\u0131nba\u015f gibi desteklenen okullar\u0131 deneyin!",
-                    "ar": "\ud83c\udf93 **\u0647\u0630\u0647 \u0627\u0644\u062c\u0627\u0645\u0639\u0629 \u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f\u0629 \u0641\u064a \u0628\u064a\u0627\u0646\u0627\u062a\u0646\u0627.** \u0623\u062a\u0627\u0628\u0639 \u062d\u0627\u0644\u064a\u0627\u064b \u0645\u0648\u0627\u0639\u064a\u062f \u0627\u0644\u062a\u0633\u062c\u064a\u0644 \u0644\u0623\u0648\u0644 10 \u062c\u0627\u0645\u0639\u0627\u062a \u0641\u064a \u062a\u0631\u0643\u064a\u0627. \u064a\u0631\u062c\u0649 \u062a\u062c\u0631\u0628\u0629 \u0625\u062d\u062f\u0649 \u0627\u0644\u062c\u0627\u0645\u0639\u0627\u062a \u0627\u0644\u0645\u062f\u0639\u0648\u0645\u0629 \u0645\u062b\u0644 \u0628\u0648\u063a\u0627\u0632\u064a\u062a\u0634\u064a\u060b ODT\u00dc\u060b \u0623\u0648 \u0623\u0644\u062a\u0646 \u0628\u0627\u0634!"
-                }.get(language, "UNI NOT FOUND IN OUR DATA.")
-                await wait_task
-                return msg, None, "Smart Router (UNI Not Found)"
 
         if _reply_uni:
             from models.schemas import PermitState, CombinedPermitResult, ExecutionPlan, StepDetail, PermitPlan
@@ -370,7 +436,9 @@ async def smart_router_handle(
             docs = ["Admission Letter", "Passport", "Original Diploma", "Apostille", "Photos"]
             combined = CombinedPermitResult(permits=[f"{_reply_uni} Registration"], agencies=agencies, documents=docs, steps=steps_list, timeline_days=15, summary=prompt_summ, location=_reply_uni, business_type=_bt)
             state = PermitState(business_profile={"raw_query": query, "language": language, "university": _reply_uni}, combined_result=combined, permit_plan=PermitPlan(permits=[_reply_uni], agencies=agencies, documents=docs), execution_plan=ExecutionPlan(steps=details, assigned_agents=["Student Advisor"]), last_updated=datetime.now())
-            out_str = f"\ud83d\udcac {prompt_summ}\n\n\ud83d\udccb **{labels['ag']}:** {', '.join(agencies)}\n\ud83d\udcc4 **{labels['dc']}:** {', '.join(docs)}\n\u2705 **{labels['st']}:**\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps_list))
+            loc_data = _UNI_LOCATIONS.get(_reply_uni, {}).get(language, "")
+            loc_block = f"📍 **Location:** {loc_data}\n\n" if loc_data else ""
+            out_str = f"{loc_block}💬 {prompt_summ}\n\n📋 **{labels['ag']}:** {', '.join(agencies)}\n📄 **{labels['dc']}:** {', '.join(docs)}\n✅ **{labels['st']}:**\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps_list))
             dashboard_dump = state.model_dump()
             if hasattr(dashboard_dump.get("last_updated"), "isoformat"): dashboard_dump["last_updated"] = dashboard_dump["last_updated"].isoformat()
             await wait_task
@@ -401,7 +469,69 @@ async def smart_router_handle(
         if fuzzy_district_match or fuzzy_business_match:
             has_relevant_kw = True
     
-    early_intent_group, early_sub_intent, early_confidence = detect_intent(query, assistant_type)
+    early_intent_group, early_sub_intent, early_confidence = detect_intent(query, assistant_type, context_text=last_assistant_msg)
+    
+    # --- SMART VISA CLARIFICATION (Student-only, runs before keyword matching) ---
+    if assistant_type == "student" and early_intent_group == "student" and early_sub_intent == "visa":
+        from .context_engine import parse_context, ConversationState
+        
+        print(f"[SmartRouter DEBUG] Visa query detected: '{query}'")
+        print(f"[SmartRouter DEBUG] History available: {bool(history_text)}")
+        
+        context_state = parse_context(history_text) if history_text else ConversationState()
+        
+        print(f"[SmartRouter DEBUG] visa_asked_clarify={context_state.visa_asked_clarify}, visa_status={context_state.visa_status}")
+        
+        # First mention of visa in this conversation → ask clarifying question
+        if not context_state.visa_asked_clarify:
+            visa_clarify_response = _library.get(language, {}).get("student", {}).get("visa_clarify")
+            print(f"[SmartRouter DEBUG] Fetching visa_clarify: {visa_clarify_response is not None}")
+            if visa_clarify_response:
+                clarify_choice = random.choice(visa_clarify_response) if isinstance(visa_clarify_response, list) else visa_clarify_response
+                response_cache.set(query, clarify_choice, assistant_type, language)
+                await wait_task
+                print(f"\n[Smart Router] 🎓 VISA CLARIFICATION: Asking status before providing info")
+                return clarify_choice, None, "Visa Status Clarification"
+        
+        # User already answered clarifying question → detect their answer
+        lower_q = query.lower().strip()
+        
+        # Check if they said YES (already have visa)
+        if any(word in lower_q for word in ["yes", "yeah", "yep", "already have", "got it", "i have", "obtained", "approved", "evet", "aldım", "var", "نعم", "حصلت", "عندي"]):
+            next_steps = _library.get(language, {}).get("student", {}).get("visa_already_have")
+            if next_steps:
+                response = random.choice(next_steps) if isinstance(next_steps, list) else next_steps
+                response_cache.set(query, response, assistant_type, language)
+                await wait_task
+                print(f"\n[Smart Router] 🎓 USER HAS VISA: Guiding to residence permit next steps")
+                return response, None, "Visa – Already Approved"
+        
+        # Check if they said NO (haven't applied yet)
+        elif any(word in lower_q for word in ["no", "not yet", "haven't", "need to apply", "not applied", "still applying", "hayır", "almadım", "yok", "لا", "لم", "ما عندي"]):
+            not_applied = _library.get(language, {}).get("student", {}).get("visa_not_applied")
+            if not_applied:
+                response = random.choice(not_applied) if isinstance(not_applied, list) else not_applied
+                response_cache.set(query, response, assistant_type, language)
+                await wait_task
+                print(f"\n[Smart Router] 🎓 USER NEEDS VISA: Asking which consulate")
+                return response, None, "Visa – Not Applied"
+        
+        # Check if they mentioned a specific consulate location
+        from .context_engine import _CITY_ALIASES
+        for city, canonical in _CITY_ALIASES.items():
+            if city in lower_q and any(word in lower_q for word in ["apply", "from", "consulate", "embassy"]):
+                # Build the consulate response key (e.g., "visa_consulate_riyadh")
+                city_key = city.replace(" ", "_").replace(",", "").lower()
+                consulate_key = f"visa_consulate_{city_key.split()[0]}"
+                
+                consulate_response = _library.get(language, {}).get("student", {}).get(consulate_key)
+                if consulate_response:
+                    response = random.choice(consulate_response) if isinstance(consulate_response, list) else consulate_response
+                    response_cache.set(query, response, assistant_type, language)
+                    await wait_task
+                    print(f"\n[Smart Router] 🎓 CONSULATE DETECTED: {canonical}")
+                    return response, None, f"Visa – {canonical} Consulate Info"
+                break
     
     if early_confidence == 0 and _META_QUERY_RE.search(query) and len(query.split()) > 4:
         print(f"[SmartRouter] Meta-query detected with no keyword match ('{query[:30]}...'). Bypassing for AI orchestrator.")
@@ -468,13 +598,62 @@ async def smart_router_handle(
                         break
 
             _DISTRICT_INFO = {
-                "adalar":     ("Adalar", "Adalar Municipality", "Permits in the Princes' Islands involve strict environmental and coastal regulations.", "Adalar Belediyesi", "Prens Adalar\u0131'ndaki izinler s\u0131k\u0131 \u00e7evresel ve k\u0131y\u0131 d\u00fczenlemeleri i\u00e7erir.", "\u0628\u0644\u062f\u064a\u0629 \u0623\u062f\u0627\u0644\u0627\u0631", "\u062a\u062a\u0636\u0645\u0646 \u0627\u0644\u062a\u0635\u0627\u0631\u064a\u062d \u0641\u064a \u062c\u0632\u0631 \u0627\u0644\u0623\u0645\u064a\u0631\u0627\u062a \u0644\u0648\u0627\u0626\u062d \u0628\u064a\u0626\u064a\u0629 \u0648\u0633\u0627\u062d\u0644\u064a\u0629 \u0635\u0627\u0631\u0645\u0629."),
-                "arnavutkoy": ("Arnavutk\u00f6y", "Arnavutk\u00f6y Municipality", "New airport area growth district.", "Arnavutk\u00f6y Belediyesi", "Yeni havaliman\u0131 b\u00f6lgesinde b\u00fcy\u00fck il\u00e7e.", "\u0628\u0644\u062f\u064a\u0629 \u0623\u0631\u0646\u0627\u0648\u0648\u0637 \u0643\u064a", "\u0645\u0646\u0637\u0642\u0629 \u0646\u0645\u0648 \u0628\u062c\u0648\u0627\u0631 \u0627\u0644\u0645\u0637\u0627\u0631 \u0627\u0644\u062c\u062f\u064a\u062f."),
-                "besiktas":   ("Be\u015fikta\u015f", "Be\u015fikta\u015f Municipality", "Strict signage & frontage rules.", "Be\u015fikta\u015f Belediyesi", "S\u0131k\u0131 tabela ve cephe kurallar\u0131.", "\u0628\u0644\u062f\u064a\u0629 \u0628\u0634\u0643\u062a\u0627\u0634", "\u0644\u0648\u0627\u0626\u062d \u0635\u0627\u0631\u0645\u0629 \u0644\u0644\u0627\u0641\u062a\u0627\u062a \u0648\u0627\u0644\u0648\u0627\u062c\u0647\u0627\u062a."),
-                "fatih":      ("Fatih", "Fatih Municipality", "Strict sit site protocols.", "Fatih Belediyesi", "S\u0131k\u0131 sit alan\u0131 protokolleri.", "\u0628\u0644\u062f\u064a\u0629 \u0641\u0627\u062a\u062d", "\u0628\u0631\u0648\u062a\u0648\u0643\u0648\u0644\u0627\u062a \u0645\u0646\u0627\u0637\u0642 \u0627\u0644\u0645\u0648\u0627\u0642\u0639 \u0627\u0644\u0623\u062b\u0631\u064a\u0629."),
-                "kadikoy":    ("Kad\u0131k\u00f6y", "Kad\u0131k\u00f6y Municipality", "Foreigner investment support.", "Kad\u0131k\u00f6y Belediyesi", "Yabanc\u0131 yat\u0131r\u0131mc\u0131 deste\u011fi.", "\u0628\u0644\u062f\u064a\u0629 \u0643\u0627\u062f\u064a\u0643\u0648\u064a", "\u062f\u0631\u0645 \u0627\u0644\u0645\u0633\u062a\u062b\u0645\u0631\u064a\u0646 \u0627\u0644\u0623\u062c\u0627\u0646\u0628."),
-                # Add others similarly...
+                "adalar":      ("Adalar",      "Adalar Municipality",      "Permits in the Princes' Islands involve strict environmental and coastal regulations.",  "Adalar Belediyesi",      "Prens Adalar\u0131'ndaki izinler s\u0131k\u0131 \u00e7evresel ve k\u0131y\u0131 d\u00fczenlemeleri i\u00e7erir.",   "\u0628\u0644\u062f\u064a\u0629 \u0623\u062f\u0627\u0644\u0627\u0631",          "\u062a\u062a\u0636\u0645\u0646 \u0627\u0644\u062a\u0635\u0627\u0631\u064a\u062d \u0641\u064a \u062c\u0632\u0631 \u0627\u0644\u0623\u0645\u064a\u0631\u0627\u062a \u0644\u0648\u0627\u0626\u062d \u0628\u064a\u0626\u064a\u0629 \u0648\u0633\u0627\u062d\u0644\u064a\u0629 \u0635\u0627\u0631\u0645\u0629."),
+                "arnavutkoy":  ("Arnavutk\u00f6y",  "Arnavutk\u00f6y Municipality",  "New airport area growth district.",                                                     "Arnavutk\u00f6y Belediyesi",  "Yeni havaliman\u0131 b\u00f6lgesinde b\u00fcy\u00fck il\u00e7e.",                                        "\u0628\u0644\u062f\u064a\u0629 \u0623\u0631\u0646\u0627\u0648\u0648\u0637 \u0643\u064a",    "\u0645\u0646\u0637\u0642\u0629 \u0646\u0645\u0648 \u0628\u062c\u0648\u0627\u0631 \u0627\u0644\u0645\u0637\u0627\u0631 \u0627\u0644\u062c\u062f\u064a\u062f."),
+                "atasehir":    ("Ata\u015fehir",    "Ata\u015fehir Municipality",    "Modern business district, fast permit processing.",                                    "Ata\u015fehir Belediyesi",    "Modern i\u015f b\u00f6lgesi, h\u0131zl\u0131 ruhsat i\u015flemleri.",                                    "\u0628\u0644\u062f\u064a\u0629 \u0623\u062a\u0627\u0634\u0647\u064a\u0631",      "\u0645\u0646\u0637\u0642\u0629 \u0623\u0639\u0645\u0627\u0644 \u062d\u062f\u064a\u062b\u0629\u060c \u0645\u0639\u0627\u0645\u0644\u0627\u062a \u0633\u0631\u064a\u0639\u0629."),
+                "avcilar":     ("Avc\u0131lar",     "Avc\u0131lar Municipality",     "University area, affordable rents.",                                                    "Avc\u0131lar Belediyesi",     "\u00dcniversite b\u00f6lgesi, uygun kiralar.",                                                "\u0628\u0644\u062f\u064a\u0629 \u0623\u0641\u062c\u0644\u0627\u0631",       "\u0645\u0646\u0637\u0642\u0629 \u062c\u0627\u0645\u0639\u064a\u0629\u060c \u0625\u064a\u062c\u0627\u0631\u0627\u062a \u0645\u0639\u0642\u0648\u0644\u0629."),
+                "bagcilar":    ("Ba\u011fc\u0131lar",    "Ba\u011fc\u0131lar Municipality",    "Textile hub, busy commercial area.",                                                    "Ba\u011fc\u0131lar Belediyesi",    "Tekstil merkezi, yo\u011fun ticari alan.",                                              "\u0628\u0644\u062f\u064a\u0629 \u0628\u0627\u063a\u062c\u0644\u0627\u0631",      "\u0645\u0631\u0643\u0632 \u0627\u0644\u0646\u0633\u064a\u062c\u060c \u0645\u0646\u0637\u0642\u0629 \u062a\u062c\u0627\u0631\u064a\u0629 \u0645\u0632\u062f\u062d\u0645\u0629."),
+                "bahcelievler":("Bah\u00e7elievler", "Bah\u00e7elievler Municipality", "Residential area, growing commercial scene.",                                           "Bah\u00e7elievler Belediyesi", "Konut alan\u0131, b\u00fcy\u00fcyen ticaret.",                                                    "\u0628\u0644\u062f\u064a\u0629 \u0628\u0647\u062c\u0644\u064a \u0627\u064a\u0641\u0644\u0631",  "\u0645\u0646\u0637\u0642\u0629 \u0633\u0643\u0646\u064a\u0629\u060c \u0646\u0634\u0627\u0637 \u062a\u062c\u0627\u0631\u064a \u0645\u062a\u0646\u0627\u0645\u064a."),
+                "bakirkoy":    ("Bak\u0131rk\u00f6y",    "Bak\u0131rk\u00f6y Municipality",    "Premium commercial district, strict regulations.",                                     "Bak\u0131rk\u00f6y Belediyesi",    "Premium ticari b\u00f6lge, s\u0131k\u0131 d\u00fczenlemeler.",                                        "\u0628\u0644\u062f\u064a\u0629 \u0628\u0643\u0631\u0643\u0648\u064a",       "\u0645\u0646\u0637\u0642\u0629 \u062a\u062c\u0627\u0631\u064a\u0629 \u0645\u0645\u062a\u0627\u0632\u0629\u060c \u0644\u0648\u0627\u0626\u062d \u0635\u0627\u0631\u0645\u0629."),
+                "basaksehir":  ("Ba\u015fak\u015fehir",  "Ba\u015fak\u015fehir Municipality",  "Modern suburban district, new hospital area.",                                         "Ba\u015fak\u015fehir Belediyesi",  "Modern yerle\u015fim, yeni hastane b\u00f6lgesi.",                                           "\u0628\u0644\u062f\u064a\u0629 \u0628\u0627\u0634\u0627\u0643 \u0634\u0647\u064a\u0631",   "\u0645\u0646\u0637\u0642\u0629 \u0636\u0648\u0627\u062d\u064a \u062d\u062f\u064a\u062b\u0629\u060c \u0645\u0646\u0637\u0642\u0629 \u0627\u0644\u0645\u0633\u062a\u0634\u0641\u0649 \u0627\u0644\u062c\u062f\u064a\u062f."),
+                "besiktas":    ("Be\u015fikta\u015f",    "Be\u015fikta\u015f Municipality",    "Strict signage & frontage rules.",                                                     "Be\u015fikta\u015f Belediyesi",    "S\u0131k\u0131 tabela ve cephe kurallar\u0131.",                                                  "\u0628\u0644\u062f\u064a\u0629 \u0628\u0634\u0643\u062a\u0627\u0634",       "\u0644\u0648\u0627\u0626\u062d \u0635\u0627\u0631\u0645\u0629 \u0644\u0644\u0627\u0641\u062a\u0627\u062a \u0648\u0627\u0644\u0648\u0627\u062c\u0647\u0627\u062a."),
+                "beykoz":      ("Beykoz",      "Beykoz Municipality",      "Green area, environmental permits required.",                                           "Beykoz Belediyesi",      "Ye\u015fil alan, \u00e7evre izinleri gerekli.",                                                "\u0628\u0644\u062f\u064a\u0629 \u0628\u064a\u0643\u0648\u0632",         "\u0645\u0646\u0637\u0642\u0629 \u062e\u0636\u0631\u0627\u0621\u060c \u062a\u0635\u0627\u0631\u064a\u062d \u0628\u064a\u0626\u064a\u0629 \u0645\u0637\u0644\u0648\u0628\u0629."),
+                "beylikduzu":  ("Beylikd\u00fcz\u00fc",  "Beylikd\u00fcz\u00fc Municipality",  "Affordable, fast-growing commercial zone.",                                            "Beylikd\u00fcz\u00fc Belediyesi",  "Uygun fiyatl\u0131, h\u0131zla b\u00fcy\u00fcyen ticari b\u00f6lge.",                                        "\u0628\u0644\u062f\u064a\u0629 \u0628\u064a\u0644\u064a\u0643 \u062f\u0648\u0632\u0648",  "\u0645\u0646\u0637\u0642\u0629 \u062a\u062c\u0627\u0631\u064a\u0629 \u0628\u0623\u0633\u0639\u0627\u0631 \u0645\u0639\u0642\u0648\u0644\u0629."),
+                "beyoglu":     ("Beyo\u011flu",     "Beyo\u011flu Municipality",     "Taksim/Istiklal area, tourism-focused permits.",                                       "Beyo\u011flu Belediyesi",     "Taksim/\u0130stiklal b\u00f6lgesi, turizm odakl\u0131 ruhsatlar.",                                "\u0628\u0644\u062f\u064a\u0629 \u0628\u064a\u0648\u063a\u0644\u0648",       "\u0645\u0646\u0637\u0642\u0629 \u062a\u0642\u0633\u064a\u0645/\u0627\u0633\u062a\u0642\u0644\u0627\u0644\u060c \u062a\u0631\u0627\u062e\u064a\u0635 \u0633\u064a\u0627\u062d\u064a\u0629."),
+                "catalca":     ("\u00c7atalca",     "\u00c7atalca Municipality",     "Rural area, agricultural permits.",                                                     "\u00c7atalca Belediyesi",     "K\u0131rsal alan, tar\u0131msal izinler.",                                                     "\u0628\u0644\u062f\u064a\u0629 \u062a\u0634\u0627\u062a\u0627\u0644\u062c\u0627",     "\u0645\u0646\u0637\u0642\u0629 \u0631\u064a\u0641\u064a\u0629\u060c \u062a\u0635\u0627\u0631\u064a\u062d \u0632\u0631\u0627\u0639\u064a\u0629."),
+                "esenler":     ("Esenler",     "Esenler Municipality",     "Bus terminal area, wholesale business hub.",                                            "Esenler Belediyesi",     "Otogar b\u00f6lgesi, toptan ticaret merkezi.",                                            "\u0628\u0644\u062f\u064a\u0629 \u0627\u0633\u0646\u0644\u0631",        "\u0645\u0646\u0637\u0642\u0629 \u0645\u062d\u0637\u0629 \u0627\u0644\u062d\u0627\u0641\u0644\u0627\u062a\u060c \u0645\u0631\u0643\u0632 \u062a\u062c\u0627\u0631\u0629 \u062c\u0645\u0644\u0629."),
+                "esenyurt":    ("Esenyurt",    "Esenyurt Municipality",    "Largest population, competitive rents, busy permit office.",                            "Esenyurt Belediyesi",    "En kalabal\u0131k il\u00e7e, rekabet\u00e7i kiralar.",                                            "\u0628\u0644\u062f\u064a\u0629 \u0627\u0633\u0646\u064a\u0648\u0631\u062a",      "\u0623\u0643\u0628\u0631 \u0639\u062f\u062f \u0633\u0643\u0627\u0646\u060c \u0625\u064a\u062c\u0627\u0631\u0627\u062a \u062a\u0646\u0627\u0641\u0633\u064a\u0629."),
+                "eyup":        ("Ey\u00fcp",        "Ey\u00fcp Municipality",        "Historical area, heritage permit requirements.",                                       "Ey\u00fcp Belediyesi",        "Tarihi alan, miras izin gereksinimleri.",                                           "\u0628\u0644\u062f\u064a\u0629 \u0623\u064a\u0648\u0628",          "\u0645\u0646\u0637\u0642\u0629 \u062a\u0627\u0631\u064a\u062e\u064a\u0629\u060c \u0645\u062a\u0637\u0644\u0628\u0627\u062a \u062a\u0631\u0627\u062e\u064a\u0635 \u062a\u0631\u0627\u062b\u064a\u0629."),
+                "fatih":       ("Fatih",       "Fatih Municipality",       "Strict sit site protocols.",                                                            "Fatih Belediyesi",       "S\u0131k\u0131 sit alan\u0131 protokolleri.",                                                        "\u0628\u0644\u062f\u064a\u0629 \u0641\u0627\u062a\u062d",          "\u0628\u0631\u0648\u062a\u0648\u0643\u0648\u0644\u0627\u062a \u0645\u0646\u0627\u0637\u0642 \u0627\u0644\u0645\u0648\u0627\u0642\u0639 \u0627\u0644\u0623\u062b\u0631\u064a\u0629."),
+                "gaziosmanpasa":("Gaziosmanpa\u015fa","Gaziosmanpa\u015fa Municipality","Residential-commercial mix.",                                                         "Gaziosmanpa\u015fa Belediyesi","Konut-ticaret kar\u0131\u015f\u0131m\u0131.",                                                           "\u0628\u0644\u062f\u064a\u0629 \u063a\u0627\u0632\u064a \u0639\u062b\u0645\u0627\u0646 \u0628\u0627\u0634\u0627","\u0645\u0632\u064a\u062c \u0633\u0643\u0646\u064a-\u062a\u062c\u0627\u0631\u064a."),
+                "gungoren":    ("G\u00fcng\u00f6ren",    "G\u00fcng\u00f6ren Municipality",    "Textile and small business hub.",                                                       "G\u00fcng\u00f6ren Belediyesi",    "Tekstil ve k\u00fc\u00e7\u00fck i\u015fletme merkezi.",                                                  "\u0628\u0644\u062f\u064a\u0629 \u063a\u0648\u0646\u063a\u0648\u0631\u0646",      "\u0645\u0631\u0643\u0632 \u0627\u0644\u0646\u0633\u064a\u062c \u0648\u0627\u0644\u0623\u0639\u0645\u0627\u0644 \u0627\u0644\u0635\u063a\u064a\u0631\u0629."),
+                "kadikoy":     ("Kad\u0131k\u00f6y",     "Kad\u0131k\u00f6y Municipality",     "Foreigner investment support, vibrant area.",                                          "Kad\u0131k\u00f6y Belediyesi",     "Yabanc\u0131 yat\u0131r\u0131mc\u0131 deste\u011fi, canl\u0131 b\u00f6lge.",                                          "\u0628\u0644\u062f\u064a\u0629 \u0643\u0627\u062f\u064a\u0643\u0648\u064a",      "\u062f\u0639\u0645 \u0627\u0644\u0645\u0633\u062a\u062b\u0645\u0631\u064a\u0646 \u0627\u0644\u0623\u062c\u0627\u0646\u0628\u060c \u0645\u0646\u0637\u0642\u0629 \u0646\u0627\u0628\u0636\u0629 \u0628\u0627\u0644\u062d\u064a\u0627\u0629."),
+                "kagithane":   ("Ka\u011f\u0131thane",   "Ka\u011f\u0131thane Municipality",   "Rapidly developing, modern business centers.",                                         "Ka\u011f\u0131thane Belediyesi",   "H\u0131zla geli\u015fen, modern i\u015f merkezleri.",                                               "\u0628\u0644\u062f\u064a\u0629 \u0643\u0627\u063a\u062a\u0647\u0627\u0646\u0629",    "\u062a\u0637\u0648\u0631 \u0633\u0631\u064a\u0639\u060c \u0645\u0631\u0627\u0643\u0632 \u0623\u0639\u0645\u0627\u0644 \u062d\u062f\u064a\u062b\u0629."),
+                "kartal":      ("Kartal",      "Kartal Municipality",      "Asian side hub, good transport links.",                                                 "Kartal Belediyesi",      "Anadolu yakas\u0131 merkezi, iyi ula\u015f\u0131m.",                                             "\u0628\u0644\u062f\u064a\u0629 \u0643\u0627\u0631\u062a\u0627\u0644",       "\u0645\u0631\u0643\u0632 \u0627\u0644\u062c\u0627\u0646\u0628 \u0627\u0644\u0622\u0633\u064a\u0648\u064a\u060c \u0631\u0648\u0627\u0628\u0637 \u0646\u0642\u0644 \u062c\u064a\u062f\u0629."),
+                "kucukcekmece":("K\u00fc\u00e7\u00fck\u00e7ekmece","K\u00fc\u00e7\u00fck\u00e7ekmece Municipality","Lakeside commercial area.",                                                             "K\u00fc\u00e7\u00fck\u00e7ekmece Belediyesi","G\u00f6l kenar\u0131 ticari alan.",                                                            "\u0628\u0644\u062f\u064a\u0629 \u0643\u0648\u062a\u0634\u0648\u0643 \u062a\u0634\u0643\u0645\u062c\u0629","\u0645\u0646\u0637\u0642\u0629 \u062a\u062c\u0627\u0631\u064a\u0629 \u0639\u0644\u0649 \u0627\u0644\u0628\u062d\u064a\u0631\u0629."),
+                "maltepe":     ("Maltepe",     "Maltepe Municipality",     "Asian side, growing business area.",                                                    "Maltepe Belediyesi",     "Anadolu yakas\u0131, b\u00fcy\u00fcyen i\u015f alan\u0131.",                                                "\u0628\u0644\u062f\u064a\u0629 \u0645\u0627\u0644\u062a\u0628\u0629",       "\u0627\u0644\u062c\u0627\u0646\u0628 \u0627\u0644\u0622\u0633\u064a\u0648\u064a\u060c \u0645\u0646\u0637\u0642\u0629 \u0623\u0639\u0645\u0627\u0644 \u0645\u062a\u0646\u0627\u0645\u064a\u0629."),
+                "pendik":      ("Pendik",      "Pendik Municipality",      "Sabiha G\u00f6k\u00e7en airport area, logistics hub.",                                                "Pendik Belediyesi",      "Sabiha G\u00f6k\u00e7en havaliman\u0131 b\u00f6lgesi, lojistik merkezi.",                                "\u0628\u0644\u062f\u064a\u0629 \u0628\u0646\u062f\u064a\u0643",        "\u0645\u0646\u0637\u0642\u0629 \u0645\u0637\u0627\u0631 \u0635\u0628\u064a\u062d\u0629 \u063a\u0648\u0643\u062a\u0634\u0646\u060c \u0645\u0631\u0643\u0632 \u0644\u0648\u062c\u0633\u062a\u064a."),
+                "sancaktepe":  ("Sancaktepe",  "Sancaktepe Municipality",  "New development area, affordable.",                                                     "Sancaktepe Belediyesi",  "Yeni geli\u015fim alan\u0131, uygun fiyatl\u0131.",                                                "\u0628\u0644\u062f\u064a\u0629 \u0633\u0646\u062c\u0627\u0642 \u062a\u0628\u0647",   "\u0645\u0646\u0637\u0642\u0629 \u062a\u0637\u0648\u064a\u0631 \u062c\u062f\u064a\u062f\u0629\u060c \u0623\u0633\u0639\u0627\u0631 \u0645\u0639\u0642\u0648\u0644\u0629."),
+                "sariyer":     ("Sar\u0131yer",     "Sar\u0131yer Municipality",     "Bosphorus area, environmental restrictions.",                                           "Sar\u0131yer Belediyesi",     "Bo\u011faz b\u00f6lgesi, \u00e7evresel k\u0131s\u0131tlamalar.",                                               "\u0628\u0644\u062f\u064a\u0629 \u0633\u0627\u0631\u064a\u064a\u0631",       "\u0645\u0646\u0637\u0642\u0629 \u0627\u0644\u0628\u0648\u0633\u0641\u0648\u0631\u060c \u0642\u064a\u0648\u062f \u0628\u064a\u0626\u064a\u0629."),
+                "silivri":     ("Silivri",     "Silivri Municipality",     "Rural-suburban, agricultural and tourism.",                                             "Silivri Belediyesi",     "K\u0131rsal-varos, tar\u0131m ve turizm.",                                                    "\u0628\u0644\u062f\u064a\u0629 \u0633\u064a\u0644\u064a\u0641\u0631\u064a",      "\u0631\u064a\u0641\u064a-\u0636\u0627\u062d\u0648\u064a\u060c \u0632\u0631\u0627\u0639\u0629 \u0648\u0633\u064a\u0627\u062d\u0629."),
+                "sisli":       ("\u015ei\u015fli",       "\u015ei\u015fli Municipality",       "Major business center, Mecidiyek\u00f6y/Levent office hubs.",                                   "\u015ei\u015fli Belediyesi",       "B\u00fcy\u00fck i\u015f merkezi, Mecidiyek\u00f6y/Levent ofis b\u00f6lgeleri.",                                 "\u0628\u0644\u062f\u064a\u0629 \u0634\u064a\u0634\u0644\u064a",         "\u0645\u0631\u0643\u0632 \u0623\u0639\u0645\u0627\u0644 \u0631\u0626\u064a\u0633\u064a\u060c \u0645\u062c\u064a\u062f\u064a\u0629 \u0643\u0648\u064a/\u0644\u064a\u0641\u0646\u062a."),
+                "sultanbeyli": ("Sultanbeyli", "Sultanbeyli Municipality", "Affordable area, growing commercial zone.",                                             "Sultanbeyli Belediyesi", "Uygun fiyatl\u0131, geli\u015fen ticari b\u00f6lge.",                                               "\u0628\u0644\u062f\u064a\u0629 \u0633\u0644\u0637\u0627\u0646 \u0628\u064a\u0644\u064a",   "\u0645\u0646\u0637\u0642\u0629 \u0628\u0623\u0633\u0639\u0627\u0631 \u0645\u0639\u0642\u0648\u0644\u0629\u060c \u0646\u0645\u0648 \u062a\u062c\u0627\u0631\u064a."),
+                "sultangazi":  ("Sultangazi",  "Sultangazi Municipality",  "Residential with growing retail.",                                                      "Sultangazi Belediyesi",  "Konut alan\u0131, b\u00fcy\u00fcyen perakende.",                                                   "\u0628\u0644\u062f\u064a\u0629 \u0633\u0644\u0637\u0627\u0646 \u063a\u0627\u0632\u064a",   "\u0645\u0646\u0637\u0642\u0629 \u0633\u0643\u0646\u064a\u0629 \u0645\u0639 \u0646\u0645\u0648 \u0641\u064a \u0627\u0644\u062a\u062c\u0632\u0626\u0629."),
+                "tuzla":       ("Tuzla",       "Tuzla Municipality",       "Industrial zone, shipyard area.",                                                       "Tuzla Belediyesi",       "End\u00fcstri b\u00f6lgesi, tersane alan\u0131.",                                                    "\u0628\u0644\u062f\u064a\u0629 \u062a\u0648\u0632\u0644\u0627",         "\u0645\u0646\u0637\u0642\u0629 \u0635\u0646\u0627\u0639\u064a\u0629\u060c \u0645\u0646\u0637\u0642\u0629 \u0623\u062d\u0648\u0627\u0636."),
+                "umraniye":    ("\u00dcmraniye",    "\u00dcmraniye Municipality",    "Growing Asian side tech hub.",                                                          "\u00dcmraniye Belediyesi",    "B\u00fcy\u00fcyen Anadolu yakas\u0131 teknoloji merkezi.",                                          "\u0628\u0644\u062f\u064a\u0629 \u0623\u0648\u0645\u0631\u0627\u0646\u064a\u0629",     "\u0645\u0631\u0643\u0632 \u062a\u0643\u0646\u0648\u0644\u0648\u062c\u064a\u0627 \u0645\u062a\u0646\u0627\u0645\u064a \u0641\u064a \u0627\u0644\u062c\u0627\u0646\u0628 \u0627\u0644\u0622\u0633\u064a\u0648\u064a."),
+                "uskudar":     ("\u00dcsk\u00fcdar",     "\u00dcsk\u00fcdar Municipality",     "Historical Asian side, heritage area rules.",                                          "\u00dcsk\u00fcdar Belediyesi",     "Tarihi Anadolu yakas\u0131, miras alan\u0131 kurallar\u0131.",                                     "\u0628\u0644\u062f\u064a\u0629 \u0623\u0633\u0643\u0648\u062f\u0627\u0631",      "\u0627\u0644\u062c\u0627\u0646\u0628 \u0627\u0644\u0622\u0633\u064a\u0648\u064a \u0627\u0644\u062a\u0627\u0631\u064a\u062e\u064a\u060c \u0642\u0648\u0627\u0639\u062f \u0627\u0644\u062a\u0631\u0627\u062b."),
+                "zeytinburnu": ("Zeytinburnu", "Zeytinburnu Municipality", "Leather and textile district, busy commercial area.",                                   "Zeytinburnu Belediyesi", "Deri ve tekstil bölgesi, yoğun ticaret alanı.",                                      "بلدية زيتون بورنو",  "منطقة الجلود والنسيج، منطقة تجارية مزدحمة."),
             }
+            # Neighborhood to District Mapping
+            _NB_MAP = {
+                "kayasehir": "basaksehir", "kayashier": "basaksehir", "kayaşehir": "basaksehir",
+                "yenibosna": "bahcelievler", "sirinevler": "bahcelievler",
+                "taksim": "beyoglu", "istiklal": "beyoglu",
+                "florya": "bakirkoy", "yesilkoy": "bakirkoy",
+                "maslak": "sariyer", "tarabya": "sariyer",
+                "etiler": "besiktas", "levent": "besiktas", "bebek": "besiktas"
+            }
+
+            # Dynamic fallback: detect district from query even if not in _DISTRICT_INFO
+            _ALL_DISTRICT_NAMES = [
+                "adalar", "arnavutkoy", "atasehir", "avcilar", "bagcilar", "bahcelievler",
+                "bakirkoy", "basaksehir", "bayrampasa", "besiktas", "beykoz", "beylikduzu",
+                "beyoglu", "buyukcekmece", "catalca", "cekmekoy", "esenler", "esenyurt",
+                "eyup", "fatih", "gaziosmanpasa", "gungoren", "kadikoy", "kagithane",
+                "kartal", "kucukcekmece", "maltepe", "pendik", "sancaktepe", "sariyer",
+                "silivri", "sisli", "sultanbeyli", "sultangazi", "sile", "tuzla",
+                "umraniye", "uskudar", "zeytinburnu"
+            ]
 
             district_en = "Istanbul"
             district_display = None
@@ -482,8 +661,22 @@ async def smart_router_handle(
             district_note = ""
 
             query_lower = query.lower()
+            # Strip common prefixes like "in", "i said", "it is", "it's"
+            _stripped = re.sub(r"^(i said |it is |it's |its |in |at |from |the )", "", query_lower).strip()
+            
             for key, data in _DISTRICT_INFO.items():
-                if key in query_lower:
+                # Check direct district keys OR mapped neighborhood keys
+                _matched_key = None
+                if key in query_lower or key in _stripped:
+                    _matched_key = key
+                else:
+                    # Check if any neighborhood maps to this district
+                    for nb_key, dist_target in _NB_MAP.items():
+                        if dist_target == key and (nb_key in query_lower or nb_key in _stripped):
+                            _matched_key = key
+                            break
+                
+                if _matched_key:
                     dname, mun_en, note_en, mun_tr, note_tr, mun_ar, note_ar = data
                     district_en = dname
                     district_display = dname
@@ -492,6 +685,7 @@ async def smart_router_handle(
                     else: mun_name_en, district_note = mun_en, note_en
                     break
                     
+            # Fallback: check entire history for district mentions
             if district_display is None:
                 for key, data in _DISTRICT_INFO.items():
                     if key in user_history_text:
@@ -503,31 +697,79 @@ async def smart_router_handle(
                         else: mun_name_en, district_note = mun_en, note_en
                         break
 
+            # Semt / Neighborhood fallback
+            if district_display is None:
+                _NEIGHBORHOODS = {
+                    "yenibosna": "bahcelievler", "sirinevler": "bahcelievler", "\u015firinevler": "bahcelievler",
+                    "maslak": "sariyer", "levent": "besiktas", "etiler": "besiktas", "bebek": "besiktas",
+                    "mecidiyekoy": "sisli", "mecidiyek\u00f6y": "sisli", "nisantasi": "sisli", "ni\u015fanta\u015f\u0131": "sisli",
+                    "taksim": "beyoglu", "karakoy": "beyoglu", "karak\u00f6y": "beyoglu", "galata": "beyoglu", "cihangir": "beyoglu",
+                    "florya": "bakirkoy", "yesilkoy": "bakirkoy", "ye\u015filk\u00f6y": "bakirkoy",
+                    "moda": "kadikoy", "suadiye": "kadikoy", "caddebostan": "kadikoy", "bostanci": "kadikoy",
+                    "eminonu": "fatih", "emin\u00f6n\u00fc": "fatih", "sultanahmet": "fatih", "balat": "fatih"
+                }
+                combined_text = f"{query_lower} {_stripped} {user_history_text}"
+                for hood, parent_id in _NEIGHBORHOODS.items():
+                    is_match = hood in combined_text
+                    if not is_match:
+                        for word in query_lower.split():
+                            if len(word) >= 5 and _fuzzy_match(word, [hood], threshold=0.8):
+                                is_match = True
+                                break
+                    if is_match:
+                        if parent_id in _DISTRICT_INFO:
+                            data = _DISTRICT_INFO[parent_id]
+                            dname, mun_en, note_en, mun_tr, note_tr, mun_ar, note_ar = data
+                            district_en = dname
+                            district_display = dname
+                            if language == "tr": mun_name_en, district_note = mun_tr, note_tr
+                            elif language == "ar": mun_name_en, district_note = mun_ar, note_ar
+                            else: mun_name_en, district_note = mun_en, note_en
+                            break
+
+            # Last-resort fallback: if a district name appears but has no detailed data
+            if district_display is None:
+                combined_text = f"{query_lower} {_stripped} {user_history_text}"
+                for d in _ALL_DISTRICT_NAMES:
+                    if d in combined_text:
+                        district_display = d.title()
+                        district_en = d.title()
+                        mun_name_en = f"{d.title()} Municipality"
+                        district_note = ""
+                        break
+
             no_district = district_display is None
             missing_items = []
             if business_type == "Business": missing_items.append("business")
             if no_district: missing_items.append("district")
 
             if missing_items:
+                import random
                 ack_business = business_type if business_type != "Business" else None
                 ack_district = district_display if not no_district else None
+
+                vars_en_b = random.choice(["Great choice \u2014", "Awesome \u2014", "Excellent \u2014"])
+                vars_en_d = random.choice(["Got it \u2014", "Perfect \u2014", "Understood \u2014"])
+                vars_tr_b = random.choice(["Harika,", "Mükemmel,", "Çok iyi,"])
+                vars_tr_d = random.choice(["Tamam,", "Anlaşıldı,", "Harika,"])
+
                 if language == "tr":
-                    if ack_business and "district" in missing_items: msg = f"Harika, **{ack_business}** iyi bir se\u00e7im! \ud83d\udc4d \u015eimdi tam yol haritan\u0131 olu\u015fturabilmem i\u00e7in: **\u0130stanbul'un hangi il\u00e7esinde** a\u00e7acaks\u0131n?"
-                    elif ack_district and "business" in missing_items: msg = f"Tamam, **{ack_district}** b\u00f6lgesini not ald\u0131m! \ud83d\udccd \u015eimdi: **Hangi t\u00fcr i\u015fletme** (Kafe, Ma\u011faza vb.) a\u00e7acaks\u0131n?"
+                    if ack_business and "district" in missing_items: msg = f"{vars_tr_b} **{ack_business}** iyi bir seçim! 👍 Şimdi tam yol haritanı oluşturabilmem için: **İstanbul'un hangi ilçesinde** açacaksın?"
+                    elif ack_district and "business" in missing_items: msg = f"{vars_tr_d} **{ack_district}** bölgesini not aldım! 📍 Şimdi: **Hangi tür işletme** (Kafe, Mağaza vb.) açacaksın?"
                     else:
-                        msg = "Sana tam ve do\u011fru bir yol haritas\u0131 \u00e7izebilmem i\u00e7in l\u00fctfen \u015funlar\u0131 belirt: "
-                        if "business" in missing_items: msg += "**Hangi t\u00fcr i\u015fletme** (Kafe, Ma\u011faza vb.) a\u00e7acaks\u0131n? "
-                        if "district" in missing_items: msg += "**\u0130stanbul'un hangi il\u00e7esinde** a\u00e7acaks\u0131n?"
+                        msg = "Sana tam ve doğru bir yol haritası çizebilmem için lütfen şunları belirt: "
+                        if "business" in missing_items: msg += "**Hangi tür işletme** (Kafe, Mağaza vb.) açacaksın? "
+                        if "district" in missing_items: msg += "**İstanbul'un hangi ilçesinde** açacaksın?"
                 elif language == "ar":
-                    if ack_business and "district" in missing_items: msg = f"**{ack_business}**\u060b \u062e\u064a\u0627\u0631 \u0645\u0648\u0641\u0642 \u0644\u0644\u0628\u062f\u0621 \u0641\u064a \u0639\u0627\u0644\u0645 \u0627\u0644\u0623\u0639\u0645\u0627\u0644! \ud83d\udc4d \u0627\u0644\u0622\u0646 \u0644\u0643\u064a \u0623\u0631\u0633\u0645 \u0644\u0643 \u062e\u0631\u064a\u0637\u0629 \u0637\u0631\u064a\u0642 \u0645\u0647\u0646\u064a\u0629: **\u0641\u064a \u0623\u064a \u0645\u0646\u0637\u0642\u0629 (\u0628\u0644\u062f\u064a\u0629) \u0641\u064a \u0625\u0633\u0637\u0646\u0628\u0648\u0644** \u062a\u062e\u0637\u0637 \u0644\u0644\u0627\u0641\u062a\u062a\u0627\u062d\u061f"
-                    elif ack_district and "business" in missing_items: msg = f"\u0631\u0627\u0626\u0639\u060b \u0644\u0642\u062f \u0633\u062c\u0644\u062a \u0645\u0646\u0637\u0642\u0629 **{ack_district}**! \ud83d\udccd \u0627\u0644\u0622\u0646 \u0633\u0624\u0627\u0644\u064a: **\u0645\u0627 \u0647\u0648 \u0627\u0644\u0646\u0634\u0627\u0637 \u0627\u0644\u062a\u062c\u0627\u0631\u064a** (\u0645\u0642\u0647\u0649\u060b \u0645\u062a\u062c\u0631\u060b \u0625\u0644\u062e) \u0627\u0644\u0630\u064a \u062a\u0648\u062f \u0645\u0645\u0627\u0631\u0633\u062a\u0647\u061f"
+                    if ack_business and "district" in missing_items: msg = f"**{ack_business}**، خيار موفق للبدء في عالم الأعمال! 👍 الآن لكي أرسم لك خريطة طريق مهنية: **في أي منطقة (بلدية) في إسطنبول** تخطط للافتتاح؟"
+                    elif ack_district and "business" in missing_items: msg = f"رائع، لقد سجلت منطقة **{ack_district}**! 📍 الآن سؤالي: **ما هو النشاط التجاري** (مقهى، متجر، إلخ) الذي تود ممارسته؟"
                     else:
-                        msg = "\u0644\u0643\u064a \u0623\u062a\u0645\u0643\u0646 \u0645\u0646 \u0631\u0633\u0645 \u062e\u0631\u064a\u0637\u0629 \u0637\u0631\u064a\u0642 \u062f\u0641\u064a\u0642\u0629 \u0644\u0639\u0645\u0644\u0643\u060b \u064a\u0631\u062c\u0649 \u062a\u0632\u0648\u064a\u062f\u064a \u0628\u0627\u0644\u0622\u062a\u064a: "
-                        if "business" in missing_items: msg += "**\u0645\u0627 \u0647\u0648 \u0646\u0648\u0639 \u0627\u0644\u0646\u0634\u0627\u0637 \u0627\u0644\u062a\u062c\u0627\u0631\u064a**\u061f "
-                        if "district" in missing_items: msg += "**\u0641\u064a \u0623\u064a \u0645\u0646\u0637\u0642\u0629 \u0641\u064a \u0625\u0633\u0637\u0646\u0628\u0648\u0644** \u0633\u062a\u0641\u062a\u062d\u061f"
+                        msg = "لكي أتمكن من رسم خريطة طريق دقيقة لعملك، يرجى تزويدي بالآتي: "
+                        if "business" in missing_items: msg += "**ما هو نوع النشاط التجاري**؟ "
+                        if "district" in missing_items: msg += "**في أي منطقة في إسطنبول** ستفتح؟"
                 else:
-                    if ack_business and "district" in missing_items: msg = f"Great choice \u2014 **{ack_business}**! \ud83d\udc4d Now, to build your full roadmap: **Which district of Istanbul** are you opening in?"
-                    elif ack_district and "business" in missing_items: msg = f"Got it \u2014 **{ack_district}** noted! \ud83d\udccd Now: **What type of business** are you planning to open (e.g., Cafe, Retail, Restaurant)?"
+                    if ack_business and "district" in missing_items: msg = f"{vars_en_b} **{ack_business}**! 👍 Now, to build your full roadmap: **Which district of Istanbul** are you opening in?"
+                    elif ack_district and "business" in missing_items: msg = f"{vars_en_d} **{ack_district}** noted! 📍 Now: **What type of business** are you planning to open (e.g., Cafe, Retail, Restaurant)?"
                     else:
                         msg = "To map out your exact roadmap, could you please tell me: "
                         if "district" in missing_items: msg += "**Which district of Istanbul** are you opening in?"
@@ -556,7 +798,8 @@ async def smart_router_handle(
 
         elif assistant_type == "student":
             found_uni = None
-            for key, val in _UNI_MAP.items():
+            # Sort by longest key first so 'altinbas' matches before 'ist' or 'al'
+            for key, val in sorted(_UNI_MAP.items(), key=lambda x: len(x[0]), reverse=True):
                 if key in query.lower() or key in user_history_text:
                     found_uni = val
                     break
@@ -580,13 +823,6 @@ async def smart_router_handle(
                 await wait_task
                 return out_str, dashboard_dump, "Smart Router (Registration Roadmap)"
             
-            if last_assistant_msg and any(k in last_assistant_msg for k in ["targeting", "\u00fcniversite", "\u062c\u0627\u0645\u0639\u0629", "duyurular", "announcements", "major schools", "register at", "kay\u0131t yapt\u0131rmak"]):
-                await wait_task
-                return {
-                    "en": "\ud83c\udf93 **UNI NOT FOUND IN OUR DATA.** I currently track the registration calendars for the Top 10 universities in Turkey. Please try one of our supported schools!",
-                    "tr": "\ud83c\udf93 **BU \u00dcN\u0130VERS\u0130TE VER\u0130LER\u0130M\u0130ZDE BULUNAMADI.** \u015eu anda T\u00fcrkiye'deki ilk 10 \u00fcniversitenin kay\u0131t takvimlerini takip ediyorum. L\u00fctfen desteklenen okullar\u0131 deneyin!",
-                    "ar": "\ud83c\udf93 **\u0647\u0630\u0647 \u0627\u0644\u062c\u0627\u0645\u0639\u0629 \u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f\u0629 \u0641\u064a \u0628\u064a\u0627\u0646\u0627\u062a\u0646\u0627.** \u0623\u062a\u0627\u0628\u0639 \u062d\u0627\u0644\u064a\u0627\u064b \u0645\u0648\u0627\u0639\u064a\u062f \u0627\u0644\u062a\u0633\u062c\u064a\u0644 \u0644\u0623\u0648\u0644 10 \u062c\u0627\u0645\u0639\u0627\u062a \u0641\u064a \u062a\u0631\u0643\u064a\u0627. \u064a\u0631\u062c\u0649 \u062a\u062c\u0631\u0628\u0629 \u0625\u062d\u062f\u0649 \u0627\u0644\u062c\u0627\u0645\u0639\u0627\u062a \u0627\u0644\u0645\u062f\u0639\u0648\u0645\u0629!"
-                }.get(language, "UNI NOT FOUND IN OUR DATA."), None, "Smart Router (Uni Not Found)"
 
             is_renew = "renew" in query.lower() or "replace" in query.lower() or "uzat" in query.lower() or "\u062a\u062c\u062f\u064a\u062f" in query.lower(); business_type, district, timeline = ("student_renew" if is_renew else "Student"), "Istanbul", (10 if is_renew else 30)
             if language == "tr": permits, agencies, docs, summ = (["\u00d6\u011frenci \u0130kamet \u0130zni Uzatmas\u0131"], ["G\u00f6\u00e7 \u0130daresi", "Noter", "Sigorta \u015eirketi"], ["Sa\u011fl\u0131k Sigortas\u0131", "Noter Onayl\u0131 Kira S\u00f6zle\u015fmesi", "\u00d6\u011frenci Belgesi", "Biyometrik Foto\u011fraf"], "Sorun de\u011fil, hemen organize edelim! \ud83c\udf93 \u0130kamet yenileme s\u00fcreci birka\u00e7 ad\u0131mdan olu\u015fuyor.") if is_renew else (["\u00d6\u011frenci Kayd\u0131", "\u00d6\u011frenci \u0130kamet \u0130zni"], ["\u00d6\u011frenci \u0130\u015fleri", "G\u00f6\u00e7 \u0130daresi", "SGK"], ["Pasaport", "Kabul Mektubu", "Sa\u011fl\u0131k Sigortas\u0131"], "T\u00fcrkiye'de \u00f6\u011frenci olmak heyecan verici \u2014 tebrikler! \ud83c\udf93"); labels = {"ag":"Kurumlar", "dc":"Belgeler", "st":"Ad\u0111mlar", "tm":"Tahmini S\u00fcre", "dy":"g\u00fcn"}
@@ -661,13 +897,24 @@ async def smart_router_handle(
                 model = gemini_model if assistant_type == "permit" else (student_model if assistant_type == "student" else lawyer_model)
                 rag_response = await generate_rag_response(query=query, agent_type=assistant_type, language=language, gemini_model=model, retrieved_chunks=rag_chunks)
                 if rag_response:
+                    # Append transparent citations
+                    sources = []
+                    for c in rag_chunks:
+                        title = c.get("title", "").strip()
+                        if title and title not in sources:
+                            sources.append(title)
+                    
+                    if sources:
+                        lbl = {"en": "Sources", "tr": "Kaynaklar", "ar": "المصادر"}.get(language, "Sources")
+                        rag_response += f"\n\n*_{lbl}: {', '.join(sources)} _*"
+
                     response_cache.set(query, rag_response, assistant_type, language)
                     if can_learn: learn_response(query, rag_response, assistant_type, language, intent_hint=sub_intent)
                     await wait_task
                     return rag_response, None, "Smart Router (RAG Knowledge)"
         except Exception: pass
 
-    ai_response = await ai_fallback_response(query=query, assistant_type=assistant_type, gemini_model=gemini_model, student_model=student_model, lawyer_model=lawyer_model, rag_context=[], language=language)
+    ai_response = await ai_fallback_response(query=query, assistant_type=assistant_type, gemini_model=gemini_model, student_model=student_model, lawyer_model=lawyer_model, rag_context=[], language=language, history_text=history_text)
     await wait_task
     if ai_response:
         # Cache the AI response so repeat queries get instant hits

@@ -196,8 +196,8 @@ INTENT_MAP = {
         r"(ضاع|فقدت|ضياع|انسرق|مفقود) (هوية|بطاقة|كيملك|كملك|كارت|كارت الجامعة)"
     ],
     "student.register_uni": [
-        r"\b(how (to|do i) (register|enroll|apply)|university (registration|enrollment|enrolment)|academic help|academic support|enroll (at|in)|register (at|for) (a |my )?university|yoks[i\u0131]s)\b",
-        r"(تسجيل (جامعة|في الجامعة)|تقديم على (جامعة|الجامعة)|قبول جامعي|كيف اسجل بالجامعة|كيف سجل بالجامعة|كيف اسجل|كيف اسجل في الجامعة|كيف اقدم|قيد جامعة|تسجيل جامعي)"
+        r"\b(how (to|do i) (register|enroll|apply)|university (registration|enrollment|enrolment)|academic help|academic support|enroll (at|in)|register (at|for) (a |my )?university|yoks[i\u0131]s|roadmap|registration process|uni registration|how to enroll)\b",
+        r"(تسجيل (جامعة|في الجامعة)|تقديم على (جامعة|الجامعة)|قبول جامعي|كيف اسجل بالجامعة|كيف سجل بالجامعة|كيف اسجل|كيف اسجل في الجامعة|كيف اقدم|قيد جامعة|تسجيل جامعي|خارطة طريق|خريطة طريق)"
     ],
     "student.top_universities": [
         r"\b(top (10|ten|universities)|best university|best universities|which university|university (list|ranking)|ranked universities)\b",
@@ -349,10 +349,30 @@ COMPILED_INTENT_MAP = {
 def detect_intent(
     message: str,
     assistant_type: str = "permit",
+    context_text: Optional[str] = None,
 ) -> Tuple[Optional[str], Optional[str], float]:
     """
     Scan the message for keyword matches.
+    If context_text is provided, it's weighted to help resolve ambiguous queries (e.g. "from riyadh" + context "visa").
     """
+    text = message.lower().strip()
+    
+    # Context Augmentation: If query is short, boost it with context clues
+    if context_text and len(text.split()) < 10:
+        # Extract potential domain keywords from context (assistant output)
+        # We only take the most relevant markers to avoid pollution
+        context_lower = context_text.lower()
+        clues = []
+        if "consulate" in context_lower or "embassy" in context_lower or "visa" in context_lower: clues.append("visa")
+        if "roadmap" in context_lower or "register" in context_lower: clues.append("register")
+        if "insurance" in context_lower or "sigorta" in context_lower: clues.append("insurance")
+        if "ikamet" in context_lower or "permit" in context_lower: clues.append("residence permit")
+        
+        if clues:
+            augmented_text = f"{' '.join(clues)} {text}"
+            print(f"[KeywordRouter] Context Clues: {clues} -> Augmented: '{augmented_text}'")
+            text = augmented_text
+
     # Phonetic/Shorthand Normalization
     normalization_map = {
         r"\bu\b": "you",

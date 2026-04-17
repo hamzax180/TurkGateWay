@@ -3,6 +3,7 @@ import io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
+# Adaptive Learning Engine - Heartbeat Force Reload
 import os
 import asyncio
 import datetime
@@ -19,17 +20,20 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 import json
 
-from database import engine, Base, get_db
+from database import engine, Base, get_db, SessionLocal
 from models.user import User as DBUser
 from models.chat import ChatSession, ChatMessage
 from models.schemas import UserCreate, UserLogin, Token, UserQuery
 from utils.auth import get_password_hash, verify_password, create_access_token, decode_access_token
 from utils.protocol import get_localized_steps
 from utils.payment import IyzicoPayment
-from smart_router.learning_cache import learn as learn_response
+from smart_router.learning_cache import learn as learn_response, set_database_session_factory
 
 # Create tables
 Base.metadata.create_all(bind=engine)
+
+# Set up database access for the learning cache
+set_database_session_factory(SessionLocal)
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'), override=True)
 
@@ -84,10 +88,17 @@ except Exception as _sr_err:
 user_credentials_store: dict = {}
 
 class UserCredentials(BaseModel):
-    tckn: str
-    password: str
+    tckn: Optional[str] = None
+    password: Optional[str] = None
     portal_url: Optional[str] = None
     step_id: Optional[int] = None
+    # For Student/Residency bots
+    full_name: Optional[str] = None
+    passport_no: Optional[str] = None
+    passport_type: Optional[str] = None
+    ikamet_type: Optional[str] = None
+    dob: Optional[str] = None
+    is_extension: Optional[bool] = False
 
 # --- Auth Dependency ---
 async def get_current_user(token: str, db: Session = Depends(get_db)):
@@ -203,7 +214,8 @@ async def create_chat_session(request: Request, token: str, assistant_type: str 
     db.add(new_session)
     db.commit()
     return {"id": session_id, "title": "New Chat", "assistant_type": assistant_type}
-async def _get_history_context(session_id: str, db: Session, limit: int = 10, current_query: Optional[str] = None, strip_boilerplate: bool = False, user_id: Optional[int] = None) -> str:
+
+async def _get_history_context(session_id: str, db: Session, limit: int = 10, current_query: Optional[str] = None, strip_boilerplate: bool = False, user_id: Optional[int] = None) -> str:
     """Fetch recent chat history to provide context for the AI."""
     try:
         # 1. Ownership & Guest Check
@@ -693,6 +705,12 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
         upload_file = form.get("file")
         assistant_type = form.get("assistant_type", "permit")
         
+        # --- DEBUG TRACER ---
+        import smart_router
+        with open("data/location_check.txt", "w") as f:
+            f.write(f"BRAIN_PATH: {smart_router.__file__}")
+        print(f"🚀 [BRAIN LOCATION]: {smart_router.__file__}")
+        
         if upload_file and upload_file.filename:
             import tempfile
             with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(upload_file.filename)[1]) as tmp:
@@ -710,6 +728,16 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
         assistant_type = body.get("assistant_type", "permit")
         print(f"\n[AI Advisor] New Request: '{query_text[:40]}...' (Type: {assistant_type}, Lang: {language})")
     
+    # --- Dynamic Agent Correction (Safety Layer) ---
+    _q_low = query_text.lower()
+    if assistant_type == "permit":
+        if any(w in _q_low for w in ["university", "campus", "study", "student id", "dorm", "scholarship", "istanbul university", "bau ", "metu", "itü", "boğaziçi"]):
+            print(f"[SmartRouter] Dynamic Routing: Detected STUDENT topic. Overriding assistant_type.")
+            assistant_type = "student"
+        elif any(w in _q_low for w in ["lawsuit", "court", "sue ", "divorce", "legal dispute", "criminal", "arrest"]):
+            print(f"[SmartRouter] Dynamic Routing: Detected LAWYER topic. Overriding assistant_type.")
+            assistant_type = "lawyer"
+
     if request.query_params.get("token"):
         token = request.query_params.get("token")
     user = None
@@ -773,6 +801,20 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
                     db.add(assistant_msg)
                     db.commit()
                 return {"role": "assistant", "content": msg_content, "session_title": db_session.title if db_session else None}
+        
+        elif assistant_type in ("student", "lawyer"):
+            # Redirect to Permit Agent for business queries
+            if any(k in q_lower for k in ["business", "company", "cafe", "restaurant", "permit", "shop", "open a", "start a", "license", "startup"]):
+                msg_content = "💼 It looks like you're planning to start a business! Please click the **Switch Assistant** dropdown at the top of the page and select **Permit Agent** so I can help you with your licensing roadmap and district-specific requirements."
+                if user:
+                    assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=msg_content)
+                    db.add(assistant_msg)
+                    db.commit()
+                else:
+                    if session_id not in guest_chat_histories: guest_chat_histories[session_id] = []
+                    guest_chat_histories[session_id].append({"role": "assistant", "content": msg_content})
+
+                return {"role": "assistant", "content": msg_content, "session_title": db_session.title if db_session else None}
 
         # ------------------------------------------------------------------
         # Smart Router — attempt zero/low-token response before any AI call
@@ -796,9 +838,9 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
                 )
                 
                 if smart_answer is not None:
+                    smart_answer = sanitize_surrogates(smart_answer)
                     if user:
-                        clean_answer = sanitize_surrogates(smart_answer)
-                        assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=clean_answer)
+                        assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=smart_answer)
                         db.add(assistant_msg)
                     
                     if offline_state:
@@ -850,7 +892,17 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
                         print("\n" + "="*70)
                         print(f"📖 [ZERO-TOKEN LIBRARY MATCH] Predefined text response served")
                         print("="*70 + "\n")
-                            
+                    
+                    # Update session title if visa content detected
+                    if db_session and assistant_type == "student":
+                        smart_answer_lower = (smart_answer or "").lower()
+                        current_title_lower = (db_session.title or "").lower()
+                        
+                        if any(kw in smart_answer_lower for kw in ["visa", "consulate", "vize"]):
+                            if "visa" not in current_title_lower:
+                                db_session.title = "Student Visa Application"
+                                print(f"[Title Updated] Changed to: Student Visa Application")
+                    
                     if user:
                         db.commit()
                     return {"role": "assistant", "content": smart_answer, "session_title": db_session.title if db_session else None, "source": smart_source}
@@ -947,16 +999,39 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
                         answer = answer[:idx].strip()
                         lower_answer = answer.lower() # update for next iterations
                         
+            answer = sanitize_surrogates(answer)
             # Save assistant message — PRIVACY RULE: Support guest ephemeral chat
             if user:
-                clean_answer = sanitize_surrogates(answer)
-                assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=clean_answer)
+                assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=answer)
                 db.add(assistant_msg)
                 db.commit()
             else:
-                print(f"[Guest Privacy] Saving assistant message to in-memory store for {session_id}")
                 if session_id not in guest_chat_histories: guest_chat_histories[session_id] = []
                 guest_chat_histories[session_id].append({"role": "assistant", "content": answer})
+
+            # --- Adaptive Learning: Capture the high-quality orchestrator output for future reuse ---
+            # We only learn if it came from an AI source and wasn't already served by the Smart Router
+            if "AI" in source and _smart_router_available:
+                try:
+                    from smart_router.learning_cache import learn as learn_response
+                    # Determine intent hint from business type if available
+                    intent_hint = None
+                    ds_state = None
+                    if db_session and db_session.dashboard_state:
+                         ds_state = json.loads(db_session.dashboard_state)
+                         if ds_state.get("combined_result"):
+                             intent_hint = ds_state["combined_result"].get("business_type")
+                    
+                    learn_response(
+                        query=query_text, 
+                        response=answer, 
+                        assistant_type=assistant_type, 
+                        language=language, 
+                        intent_hint=intent_hint,
+                        dashboard_state=ds_state
+                    )
+                except Exception as l_err:
+                    print(f"[Adaptive LEARNING ERROR] {l_err}")
 
             # --- Update session title from dashboard state when orchestrator generated one ---
             if db_session and db_session.dashboard_state and not is_direct:
@@ -1194,10 +1269,17 @@ async def complete_step(step_id: int, token: Optional[str] = None, session_id: O
 async def automate_step(step_id: int, token: Optional[str] = None, session_id: Optional[str] = None, db: Session = Depends(get_db)):
     try:
         # Mark step as in-progress
-        await _get_and_update_state(step_id, token, session_id, db, "in-progress")
+        state_dict = await _get_and_update_state(step_id, token, session_id, db, "in-progress")
 
-        # Steps 3, 4, 5 → MERSİS automation using stored credentials
-        if step_id in (3, 4, 5):
+        steps = state_dict.get("execution_plan", {}).get("steps", [])
+        step_title = ""
+        for step in steps:
+            if step.get("id") == step_id:
+                step_title = step.get("title", "")
+                break
+
+        # Check which automation to run based on title
+        if any(kw in step_title for kw in ["MERSİS", "Company", "NACE", "Articles"]):
             store_key = token or session_id
             creds = user_credentials_store.get(store_key)
             if not creds:
@@ -1215,6 +1297,42 @@ async def automate_step(step_id: int, token: Optional[str] = None, session_id: O
                 )
             )
 
+            if result["status"] == "success":
+                await _get_and_update_state(step_id, token, session_id, db, "completed")
+                return {"status": "success", "message": result["message"]}
+            else:
+                await _get_and_update_state(step_id, token, session_id, db, "pending")
+                return {"status": "error", "message": result["message"]}
+        
+        elif "Health Insurance" in step_title or "Sigorta" in step_title:
+            from bot import run_health_insurance_bot
+            store_key = token or session_id
+            creds = user_credentials_store.get(store_key, {})
+            
+            result = await asyncio.to_thread(asyncio.run, run_health_insurance_bot(
+                passport_no=creds.get("passport_no", ""),
+                dob=creds.get("dob", ""),
+            ))
+            if result["status"] == "success":
+                await _get_and_update_state(step_id, token, session_id, db, "completed")
+                return {"status": "success", "message": result["message"]}
+            else:
+                await _get_and_update_state(step_id, token, session_id, db, "pending")
+                return {"status": "error", "message": result["message"]}
+
+        elif "Kimlik" in step_title or "İkamet" in step_title:
+            from bot import run_eikamet_bot
+            store_key = token or session_id
+            creds = user_credentials_store.get(store_key, {})
+
+            result = await asyncio.to_thread(asyncio.run, run_eikamet_bot(
+                full_name=creds.get("full_name", "Mock Student"),
+                passport_no=creds.get("passport_no", "A1234567"),
+                passport_type=creds.get("passport_type", "Normal"),
+                ikamet_type=creds.get("ikamet_type", "Student"),
+                dob=creds.get("dob", "2000-01-01"),
+                is_extension=creds.get("is_extension", False)
+            ))
             if result["status"] == "success":
                 await _get_and_update_state(step_id, token, session_id, db, "completed")
                 return {"status": "success", "message": result["message"]}
@@ -1256,9 +1374,18 @@ async def submit_edevlet(creds: UserCredentials, token: Optional[str] = None, se
             except Exception:
                 pass
 
-        # Persist credentials so automate_step can reuse them for steps 3/4/5
+        # Persist credentials so automate_step can reuse them
         store_key = token or session_id or "default"
-        user_credentials_store[store_key] = {"tckn": creds.tckn, "password": creds.password}
+        user_credentials_store[store_key] = {
+            "tckn": creds.tckn, 
+            "password": creds.password,
+            "full_name": creds.full_name,
+            "passport_no": creds.passport_no,
+            "passport_type": creds.passport_type,
+            "ikamet_type": creds.ikamet_type,
+            "dob": creds.dob,
+            "is_extension": creds.is_extension
+        }
         print(f"[Credentials] Stored for key={store_key}")
 
         use_mersis = creds.portal_url and "mersis" in creds.portal_url.lower()

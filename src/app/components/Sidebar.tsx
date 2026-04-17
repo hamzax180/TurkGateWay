@@ -433,7 +433,7 @@ const SidebarInner = React.memo(({
               variants={itemVariants}
               className={`group relative flex items-center gap-3 p-3.5 rounded-xl transition-all cursor-pointer ${currentSessionId === s.id
                   ? 'bg-[var(--surface-1)] border border-[var(--border)] text-[var(--text)] shadow-sm'
-                  : 'hover:bg-[var(--surface-2)]/50 text-[var(--text)] opacity-80 hover:opacity-100'
+                  : 'hover:bg-[var(--surface-2)]/50 text-[var(--text)] opacity-100'
                 }`}
               onClick={() => {
                 onSessionSelect(s.id, s.title);
@@ -446,7 +446,7 @@ const SidebarInner = React.memo(({
               {showLabels && (
                 <span 
                   title={s.title}
-                  className={`text-sm tracking-tight truncate flex-1 pr-8 ${currentSessionId === s.id ? 'font-bold' : 'font-medium opacity-90'}`}
+                  className={`text-sm tracking-tight truncate flex-1 pr-8 ${currentSessionId === s.id ? 'font-bold' : 'font-semibold text-[var(--text)]'}`}
                 >
                   {getDisplayTitle(s.title, s.assistant_type)}
                 </span>
@@ -499,9 +499,9 @@ const SidebarInner = React.memo(({
         {/* Settings & help */}
         <Link href="/settings" className="block" onClick={isMobile ? onMobileClose : undefined}>
           <div className="group flex items-center gap-3 p-3 rounded-full hover:bg-[var(--surface-2)] cursor-pointer transition-all" title={t('sidebar_settings')}>
-            <Settings size={18} className="text-[var(--muted)] group-hover:text-[var(--text)] transition-colors shrink-0" />
+            <Settings size={18} className="text-[var(--text)] group-hover:scale-110 transition-all shrink-0" />
             {showLabels && (
-              <span className="text-sm font-medium text-[var(--text)] opacity-70 group-hover:opacity-100">{t('settings_title')}</span>
+              <span className="text-sm font-semibold text-[var(--text)]">{t('settings_title')}</span>
             )}
           </div>
         </Link>
