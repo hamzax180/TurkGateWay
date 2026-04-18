@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   ArrowRight, CheckCircle, Bot, Globe, Database,
   Clock, Building2, FileText, ShieldCheck,
-  ChevronDown, Search, Sparkles
+  ChevronDown, Search, Sparkles, Plus, Mic, Send
 } from 'lucide-react';
 import type { Variants } from 'framer-motion';
 import { useLanguage } from './context/LanguageContext';
@@ -187,54 +187,46 @@ export default function Home() {
           </motion.p>
         </motion.div>
 
-        {/* Minimalist Input Bar */}
+        {/* Minimalist Pill Input Bar (Matched to Chat) */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 1.8, duration: 0.5 }}
-          className="w-full max-w-2xl relative group"
+          className="w-full max-w-2xl relative group px-4"
         >
-          <div className="absolute inset-0 bg-[var(--accent)]/5 rounded-2xl blur-xl group-hover:bg-[var(--accent)]/10 transition-all duration-300 -z-10" />
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-4 md:p-6 flex flex-col gap-4 text-left shadow-xl dark:shadow-2xl">
+          <div className="absolute inset-0 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-all duration-300 -z-10" />
+          <div className="relative flex items-center gap-2 rounded-full p-1.5 border border-[var(--border)] bg-[var(--surface-1)] shadow-lg focus-within:shadow-xl transition-all">
+            <button className="p-2.5 text-[var(--muted)] hover:text-[var(--text)] transition-colors shrink-0">
+              <Plus size={22} />
+            </button>
+            
             <input
               type="text"
-              placeholder={t('chat_placeholder')}
-              className="bg-transparent border-none outline-none text-lg md:text-2xl text-[var(--text)] placeholder-[var(--muted)] w-full text-center font-medium"
+              placeholder={t('chat_placeholder') || "Ask TurkGateway AI agents..."}
+              className="flex-1 bg-transparent py-3 px-1 text-[16px] md:text-[18px] text-[var(--text)] placeholder:text-[var(--muted)]/50 focus:outline-none"
             />
-            <div className="flex items-center justify-between pt-1 md:pt-2">
-              <div className="flex items-center gap-4 text-[var(--muted)]">
-                <FileText size={18} className="hover:text-[var(--text)] cursor-pointer transition-colors" />
-                <Bot size={18} className="hover:text-[var(--text)] cursor-pointer transition-colors" />
-              </div>
-              <div className="flex items-center gap-2 md:gap-3">
-                <span className="text-[10px] md:text-xs text-[var(--muted)] font-medium">Fast v2.5</span>
-                <Link href="/chat">
-                  <button className="bg-[var(--surface-2)] hover:bg-[var(--border-2)] p-1.5 md:p-2 rounded-full transition-colors border border-[var(--border)]">
-                    <ArrowRight size={18} className="text-blue-500" />
-                  </button>
-                </Link>
-              </div>
+
+            <div className="flex items-center gap-1.5 pr-1">
+              <Link href="/chat">
+                <button className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-all shrink-0">
+                  <div className="flex items-center gap-0.5">
+                    <div className="w-0.5 h-3 bg-current rounded-full animate-pulse" />
+                    <div className="w-0.5 h-2 bg-current rounded-full" />
+                    <div className="w-0.5 h-3.5 bg-current rounded-full animate-pulse" />
+                  </div>
+                  <span className="text-[13px] font-bold tracking-tight">{t('chat_voice') || "Voice"}</span>
+                </button>
+              </Link>
+              
+              <Link href="/chat">
+                <button className="h-10 w-10 flex items-center justify-center rounded-full bg-[var(--text)] text-[var(--bg)] hover:opacity-90 transition-all shrink-0 shadow-sm">
+                  <ArrowRight size={20} />
+                </button>
+              </Link>
             </div>
           </div>
         </motion.div>
 
-        {/* Category Pills - More tightly clustered under chat */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2.2, duration: 1 }}
-          className="flex flex-wrap items-center justify-center gap-2 md:gap-3 pt-1 pb-1"
-        >
-          {categories.map((item, i) => (
-            <button
-              key={i}
-              className="flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-full bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--border-2)] hover:bg-[var(--surface-2)] transition-all text-xs md:text-sm font-medium text-[var(--text)] shadow-sm"
-            >
-              <item.icon size={14} className={item.color} />
-              {item.label}
-            </button>
-          ))}
-        </motion.div>
 
         {/* Scroll Down Arrow - Moved further up for better vertical alignment */}
         <motion.div

@@ -383,39 +383,34 @@ export default function ChatPage() {
             isAppPage
             extraContent={
               <div className="relative" ref={dropdownRef}>
-                  <div
-                    className={`flex items-center gap-2.5 cursor-pointer px-4 py-2 rounded-full transition-all border glass-mesh shadow-lg group hover:scale-[1.02] active:scale-95 ${
-                      assistantType === 'student' ? 'border-emerald-500/20 mesh-green shadow-emerald-500/10' : 
-                      assistantType === 'lawyer' ? 'border-amber-500/20 mesh-amber shadow-amber-500/10' : 
+                <div
+                  className={`flex items-center gap-2.5 cursor-pointer px-4 py-2 rounded-full transition-all border glass-mesh shadow-lg group hover:scale-[1.02] active:scale-95 ${assistantType === 'student' ? 'border-emerald-500/20 mesh-green shadow-emerald-500/10' :
+                    assistantType === 'lawyer' ? 'border-amber-500/20 mesh-amber shadow-amber-500/10' :
                       'border-blue-500/20 mesh-blue shadow-blue-500/10'
                     }`}
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  >
-                    <div className="relative flex items-center justify-center">
-                      <Cpu size={15} className={`animate-[pulse_1.5s_easeInOut_infinite] relative z-10 ${
-                        assistantType === 'student' ? 'text-emerald-500' : 
-                        assistantType === 'lawyer' ? 'text-amber-500' : 
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                >
+                  <div className="relative flex items-center justify-center">
+                    <Cpu size={15} className={`animate-[pulse_1.5s_easeInOut_infinite] relative z-10 ${assistantType === 'student' ? 'text-emerald-500' :
+                      assistantType === 'lawyer' ? 'text-amber-500' :
                         'text-blue-500'
                       }`} />
-                      <div className={`absolute inset-0 blur-md rounded-full animate-pulse ${
-                        assistantType === 'student' ? 'bg-emerald-500/30' : 
-                        assistantType === 'lawyer' ? 'bg-amber-500/30' : 
+                    <div className={`absolute inset-0 blur-md rounded-full animate-pulse ${assistantType === 'student' ? 'bg-emerald-500/30' :
+                      assistantType === 'lawyer' ? 'bg-amber-500/30' :
                         'bg-blue-500/30'
                       }`} />
-                    </div>
-                    <span className={`text-[12px] font-black uppercase tracking-[0.15em] ${
-                      assistantType === 'student' ? 'text-emerald-500' : 
-                      assistantType === 'lawyer' ? 'text-amber-500' : 
+                  </div>
+                  <span className={`text-[12px] font-black uppercase tracking-[0.15em] ${assistantType === 'student' ? 'text-emerald-500' :
+                    assistantType === 'lawyer' ? 'text-amber-500' :
                       'text-blue-500'
                     }`}>
-                      {assistantType === 'permit' ? t('assistant_permit') : assistantType === 'student' ? t('assistant_student') : t('assistant_lawyer')} {t('agent_badge')}
-                    </span>
-                    <ChevronDown size={12} className={`transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''} ${
-                      assistantType === 'student' ? 'text-emerald-400 group-hover:text-emerald-500' : 
-                      assistantType === 'lawyer' ? 'text-amber-400 group-hover:text-amber-500' : 
+                    {assistantType === 'permit' ? t('assistant_permit') : assistantType === 'student' ? t('assistant_student') : t('assistant_lawyer')} {t('agent_badge')}
+                  </span>
+                  <ChevronDown size={12} className={`transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''} ${assistantType === 'student' ? 'text-emerald-400 group-hover:text-emerald-500' :
+                    assistantType === 'lawyer' ? 'text-amber-400 group-hover:text-amber-500' :
                       'text-blue-400 group-hover:text-blue-500'
                     }`} />
-                  </div>
+                </div>
 
                 <AnimatePresence mode="wait">
                   {isDropdownOpen && (
@@ -434,9 +429,8 @@ export default function ChatPage() {
                           onClick={() => switchAssistant('permit')}
                           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${assistantType === 'permit' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' : 'hover:bg-white/5 text-[var(--muted)] hover:text-[var(--text)] border border-transparent'}`}
                         >
-                          <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 overflow-hidden border ${
-                            assistantType === 'permit' ? 'bg-blue-500 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.4)]' : 'bg-blue-500/10 border-blue-500/20'
-                          }`}>
+                          <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 overflow-hidden border ${assistantType === 'permit' ? 'bg-blue-500 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.4)]' : 'bg-blue-500/10 border-blue-500/20'
+                            }`}>
                             <Cpu size={16} className={`relative z-10 ${assistantType === 'permit' ? 'text-white' : 'text-blue-500'}`} />
                             {assistantType === 'permit' && <div className="absolute inset-0 bg-blue-400 opacity-40 blur-md animate-pulse" />}
                           </div>
@@ -446,9 +440,8 @@ export default function ChatPage() {
                           onClick={() => switchAssistant('student')}
                           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${assistantType === 'student' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'hover:bg-white/5 text-[var(--muted)] hover:text-[var(--text)] border border-transparent'}`}
                         >
-                          <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 overflow-hidden border ${
-                            assistantType === 'student' ? 'bg-emerald-500 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-emerald-500/10 border-emerald-500/20'
-                          }`}>
+                          <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 overflow-hidden border ${assistantType === 'student' ? 'bg-emerald-500 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-emerald-500/10 border-emerald-500/20'
+                            }`}>
                             <Cpu size={16} className={`relative z-10 ${assistantType === 'student' ? 'text-white' : 'text-emerald-500'}`} />
                             {assistantType === 'student' && <div className="absolute inset-0 bg-emerald-400 opacity-40 blur-md animate-pulse" />}
                           </div>
@@ -458,9 +451,8 @@ export default function ChatPage() {
                           onClick={() => switchAssistant('lawyer')}
                           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${assistantType === 'lawyer' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'hover:bg-white/5 text-[var(--muted)] hover:text-[var(--text)] border border-transparent'}`}
                         >
-                          <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 overflow-hidden border ${
-                            assistantType === 'lawyer' ? 'bg-amber-500 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-amber-500/10 border-amber-500/20'
-                          }`}>
+                          <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 overflow-hidden border ${assistantType === 'lawyer' ? 'bg-amber-500 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-amber-500/10 border-amber-500/20'
+                            }`}>
                             <Cpu size={16} className={`relative z-10 ${assistantType === 'lawyer' ? 'text-white' : 'text-amber-500'}`} />
                             {assistantType === 'lawyer' && <div className="absolute inset-0 bg-amber-400 opacity-40 blur-md animate-pulse" />}
                           </div>
@@ -483,16 +475,15 @@ export default function ChatPage() {
           >
             <Menu size={20} />
           </button>
-          
-          <div 
+
+          <div
             className="flex flex-col items-center justify-center cursor-pointer group"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border active:scale-95 transition-all ${
-              assistantType === 'student' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 
-              assistantType === 'lawyer' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 
-              'bg-blue-500/10 border-blue-500/20 text-blue-500'
-            }`}>
+            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border active:scale-95 transition-all ${assistantType === 'student' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' :
+              assistantType === 'lawyer' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' :
+                'bg-blue-500/10 border-blue-500/20 text-blue-500'
+              }`}>
               <span className="text-[10px] font-black uppercase tracking-[0.2em]">
                 {assistantType === 'permit' ? t('assistant_permit') : assistantType === 'student' ? t('assistant_student') : t('assistant_lawyer')} {t('agent_badge')}
               </span>
@@ -564,9 +555,8 @@ export default function ChatPage() {
                     onClick={() => switchAssistant('permit')}
                     className={`flex items-center gap-4 p-4 w-full rounded-2xl transition-all duration-300 group ${assistantType === 'permit' ? 'bg-blue-500/10 border border-blue-500/30 shadow-[0_8px_30px_rgba(59,130,246,0.15)] scale-[1.02]' : 'bg-[var(--surface-2)] border border-[var(--border)] hover:border-blue-400 opacity-90 hover:opacity-100 shadow-sm'}`}
                   >
-                    <div className={`relative w-11 h-11 rounded-[14px] flex items-center justify-center transition-all duration-500 overflow-hidden shrink-0 border ${
-                      assistantType === 'permit' ? 'bg-blue-500 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.4)]' : 'bg-blue-500/10 border-blue-500/20 group-hover:bg-blue-500 group-hover:border-blue-400'
-                    }`}>
+                    <div className={`relative w-11 h-11 rounded-[14px] flex items-center justify-center transition-all duration-500 overflow-hidden shrink-0 border ${assistantType === 'permit' ? 'bg-blue-500 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.4)]' : 'bg-blue-500/10 border-blue-500/20 group-hover:bg-blue-500 group-hover:border-blue-400'
+                      }`}>
                       <Cpu size={22} className={`relative z-10 transition-colors duration-300 ${assistantType === 'permit' ? 'text-white' : 'text-blue-500 group-hover:text-white'}`} />
                       {(assistantType === 'permit' || true) && <div className={`absolute inset-0 opacity-40 blur-xl animate-pulse transition-opacity duration-500 ${assistantType === 'permit' ? 'bg-blue-400' : 'bg-blue-400 opacity-0 group-hover:opacity-40'}`} />}
                     </div>
@@ -581,9 +571,8 @@ export default function ChatPage() {
                     onClick={() => switchAssistant('student')}
                     className={`flex items-center gap-4 p-4 w-full rounded-2xl transition-all duration-300 group ${assistantType === 'student' ? 'bg-emerald-500/10 border border-emerald-500/30 shadow-[0_8px_30px_rgba(16,185,129,0.15)] scale-[1.02]' : 'bg-[var(--surface-2)] border border-[var(--border)] hover:border-emerald-400 opacity-90 hover:opacity-100 shadow-sm'}`}
                   >
-                    <div className={`relative w-11 h-11 rounded-[14px] flex items-center justify-center transition-all duration-500 overflow-hidden shrink-0 border ${
-                      assistantType === 'student' ? 'bg-emerald-500 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500 group-hover:border-emerald-400'
-                    }`}>
+                    <div className={`relative w-11 h-11 rounded-[14px] flex items-center justify-center transition-all duration-500 overflow-hidden shrink-0 border ${assistantType === 'student' ? 'bg-emerald-500 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500 group-hover:border-emerald-400'
+                      }`}>
                       <Cpu size={22} className={`relative z-10 transition-colors duration-300 ${assistantType === 'student' ? 'text-white' : 'text-emerald-500 group-hover:text-white'}`} />
                       {(assistantType === 'student' || true) && <div className={`absolute inset-0 opacity-40 blur-xl animate-pulse transition-opacity duration-500 ${assistantType === 'student' ? 'bg-emerald-400' : 'bg-emerald-400 opacity-0 group-hover:opacity-40'}`} />}
                     </div>
@@ -598,9 +587,8 @@ export default function ChatPage() {
                     onClick={() => switchAssistant('lawyer')}
                     className={`flex items-center gap-4 p-4 w-full rounded-2xl transition-all duration-300 group ${assistantType === 'lawyer' ? 'bg-amber-500/10 border border-amber-500/30 shadow-[0_8px_30px_rgba(245,158,11,0.15)] scale-[1.02]' : 'bg-[var(--surface-2)] border border-[var(--border)] hover:border-amber-400 opacity-90 hover:opacity-100 shadow-sm'}`}
                   >
-                    <div className={`relative w-11 h-11 rounded-[14px] flex items-center justify-center transition-all duration-500 overflow-hidden shrink-0 border ${
-                      assistantType === 'lawyer' ? 'bg-amber-500 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.4)]' : 'bg-amber-500/10 border-amber-500/20 group-hover:bg-amber-500 group-hover:border-amber-400'
-                    }`}>
+                    <div className={`relative w-11 h-11 rounded-[14px] flex items-center justify-center transition-all duration-500 overflow-hidden shrink-0 border ${assistantType === 'lawyer' ? 'bg-amber-500 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.4)]' : 'bg-amber-500/10 border-amber-500/20 group-hover:bg-amber-500 group-hover:border-amber-400'
+                      }`}>
                       <Cpu size={22} className={`relative z-10 transition-colors duration-300 ${assistantType === 'lawyer' ? 'text-white' : 'text-amber-500 group-hover:text-white'}`} />
                       {(assistantType === 'lawyer' || true) && <div className={`absolute inset-0 opacity-40 blur-xl animate-pulse transition-opacity duration-500 ${assistantType === 'lawyer' ? 'bg-amber-400' : 'bg-amber-400 opacity-0 group-hover:opacity-40'}`} />}
                     </div>
@@ -631,13 +619,12 @@ export default function ChatPage() {
                 <div className="relative mb-12 md:mb-20">
                   {/* Holographic scanning grid area */}
                   <div className="absolute inset-[-60px] rounded-full overflow-hidden pointer-events-none opacity-20">
-                    <div className="absolute inset-0" style={{ 
-                      backgroundImage: `radial-gradient(circle, ${
-                        assistantType === 'student' ? 'rgba(16,185,129,0.4)' :
+                    <div className="absolute inset-0" style={{
+                      backgroundImage: `radial-gradient(circle, ${assistantType === 'student' ? 'rgba(16,185,129,0.4)' :
                         assistantType === 'lawyer' ? 'rgba(245,158,11,0.4)' :
-                        'rgba(59,130,246,0.4)'
-                      } 1px, transparent 1px)`, 
-                      backgroundSize: '16px 16px' 
+                          'rgba(59,130,246,0.4)'
+                        } 1px, transparent 1px)`,
+                      backgroundSize: '16px 16px'
                     }} />
                   </div>
 
@@ -673,15 +660,15 @@ export default function ChatPage() {
                       key={i}
                       animate={{
                         x: [
-                          Math.cos(i * 30) * 50, 
-                          Math.cos(i * 30 + 120) * 70, 
-                          Math.cos(i * 30 + 240) * 50, 
+                          Math.cos(i * 30) * 50,
+                          Math.cos(i * 30 + 120) * 70,
+                          Math.cos(i * 30 + 240) * 50,
                           Math.cos(i * 30) * 50
                         ],
                         y: [
-                          Math.sin(i * 30) * 50, 
-                          Math.sin(i * 30 + 120) * 70, 
-                          Math.sin(i * 30 + 240) * 50, 
+                          Math.sin(i * 30) * 50,
+                          Math.sin(i * 30 + 120) * 70,
+                          Math.sin(i * 30 + 240) * 50,
                           Math.sin(i * 30) * 50
                         ],
                         opacity: [0, 0.7, 0.3, 0.7, 0],
@@ -692,12 +679,11 @@ export default function ChatPage() {
                         repeat: Infinity,
                         ease: "easeInOut"
                       }}
-                      className={`absolute rounded-full blur-[0.4px] pointer-events-none ${
-                        i % 4 === 0 ? 'bg-white w-0.5 h-0.5' : 
+                      className={`absolute rounded-full blur-[0.4px] pointer-events-none ${i % 4 === 0 ? 'bg-white w-0.5 h-0.5' :
                         assistantType === 'student' ? 'bg-emerald-400/60 w-1 h-1 shadow-[0_0_5px_rgba(16,185,129,0.5)]' :
-                        assistantType === 'lawyer' ? 'bg-amber-400/60 w-1 h-1 shadow-[0_0_5px_rgba(245,158,11,0.5)]' :
-                        'bg-blue-400/60 w-1 h-1 shadow-[0_0_5px_rgba(59,130,246,0.5)]'
-                      }`}
+                          assistantType === 'lawyer' ? 'bg-amber-400/60 w-1 h-1 shadow-[0_0_5px_rgba(245,158,11,0.5)]' :
+                            'bg-blue-400/60 w-1 h-1 shadow-[0_0_5px_rgba(59,130,246,0.5)]'
+                        }`}
                     />
                   ))}
 
@@ -708,47 +694,123 @@ export default function ChatPage() {
                       opacity: [0.3, 0.6, 0.3]
                     }}
                     transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                    className={`absolute inset-[-60px] rounded-full blur-[80px] ${
-                      assistantType === 'student' ? 'bg-emerald-600/10' :
+                    className={`absolute inset-[-60px] rounded-full blur-[80px] ${assistantType === 'student' ? 'bg-emerald-600/10' :
                       assistantType === 'lawyer' ? 'bg-amber-600/10' :
-                      'bg-blue-600/10'
-                    }`}
+                        'bg-blue-600/10'
+                      }`}
                   />
-                    {/* Chat Welcome Title */}
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-center mb-10"
-              >
-                <h2 className="text-4xl md:text-5xl font-black text-[var(--text)] tracking-tight mb-2">
-                  {t('chat_welcome_title')}
-                </h2>
+
+
+
+                  {/* The Chip Unit */}
+                  <motion.div
+                    whileHover={{
+                      scale: 1.05,
+                      rotateY: 10,
+                      rotateX: -10,
+                      shadow: assistantType === 'student' ? '0 0 70px rgba(16,185,129,0.7)' :
+                        assistantType === 'lawyer' ? '0 0 70px rgba(245,158,11,0.7)' :
+                          '0 0 70px rgba(59,130,246,0.7)'
+                    }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                    className={`relative h-20 w-20 md:h-28 md:w-28 rounded-2xl md:rounded-3xl flex items-center justify-center overflow-hidden border ${assistantType === 'student' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-[0_0_50px_rgba(16,185,129,0.5)] border-emerald-400/40' :
+                      assistantType === 'lawyer' ? 'bg-gradient-to-br from-amber-500 to-amber-600 shadow-[0_0_50px_rgba(245,158,11,0.5)] border-amber-400/40' :
+                        'bg-gradient-to-br from-blue-500 to-blue-600 shadow-[0_0_50px_rgba(59,130,246,0.5)] border-blue-400/40'
+                      }`}
+                    style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}
+                  >
+                    {/* Active Interior Scanning Bar */}
+                    <motion.div
+                      animate={{ y: ['-140%', '140%'] }}
+                      transition={{ duration: 1.8, repeat: Infinity, ease: "linear" }}
+                      className="absolute inset-x-0 h-[3px] bg-white/30 blur-[1px] shadow-[0_0_15px_white] z-20"
+                    />
+
+                    <motion.div
+                      animate={{
+                        filter: ['drop-shadow(0 0 8px rgba(255,255,255,0.4))', 'drop-shadow(0 0 20px rgba(255,255,255,0.9))', 'drop-shadow(0 0 8px rgba(255,255,255,0.4))']
+                      }}
+                      style={{ transform: 'translateZ(20px)' }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <Cpu size={isMobile ? 32 : 48} className="text-white" />
+                    </motion.div>
+
+                    {/* Scanning light streak */}
+                    <motion.div
+                      animate={{ skewX: [-20, -20], x: ['-200%', '200%'] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.5 }}
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-24"
+                    />
+                  </motion.div>
+                </div>
+
+                <div className="flex flex-col items-center gap-2 mb-4">
+                  <motion.span
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.4, duration: 0.5 }}
+                    className="text-3xl md:text-7xl font-bold text-gradient-premium tracking-tighter py-1 md:py-2"
+                  >
+                    {t('chat_greeting').replace('{name}', user?.fullName || (user?.email ? user.email.split('@')[0] : 'there'))}
+                  </motion.span>
+                  <motion.h1
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.5, duration: 0.5 }}
+                    className="text-2xl md:text-5xl font-bold tracking-tight text-[var(--muted)] opacity-50"
+                  >
+                    {t('chat_begin')}
+                  </motion.h1>
+                </div>
               </motion.div>
 
-              {/* Chat Input Pill (empty state) */}
-              <div className="w-full max-w-3xl mx-auto mb-12 relative">
-                {/* File Preview Chip - Floating above */}
-                <AnimatePresence>
-                  {file && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="absolute -top-14 left-4 flex items-center z-50"
-                    >
-                      <div className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-full pl-3 pr-2 py-1.5 text-[13px] text-[var(--text)] shadow-lg backdrop-blur-xl">
-                        <FileText size={14} className="text-indigo-400" />
-                        <span className="truncate max-w-[200px] font-medium">{file.name}</span>
-                        <button onClick={() => setFile(null)} className="ml-1 w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-500/10 text-[var(--muted)] hover:text-red-500 transition-colors">
-                          <Plus size={14} className="rotate-45" />
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+              {/* Suggestion Chips — Premium Grid */}
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.3 }}
+                className="grid grid-cols-2 lg:flex lg:flex-row lg:flex-wrap lg:justify-center gap-3 md:gap-2.5 mt-8 md:mt-0 md:mb-8"
+              >
+                {(assistantType === 'student' ? [
+                  { emoji: "🪪", label: t('chat_sug_renew'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                  { emoji: "🏛️", label: t('chat_sug_uni'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                  { emoji: "🗺️", label: t('chat_sug_roadmap'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                  { emoji: "📅", label: t('chat_sug_deadlines'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                  { emoji: "🛂", label: t('chat_sug_visas'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                  { emoji: "🆘", label: t('chat_sug_shelp'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' }
+                ] : assistantType === 'lawyer' ? [
+                  { emoji: "📑", label: t('chat_sug_contract'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                  { emoji: "🏗️", label: t('chat_sug_formation'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                  { emoji: "🤝", label: t('chat_sug_employ'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                  { emoji: "📊", label: t('chat_sug_times'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                  { emoji: "🏠", label: t('chat_sug_resid'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                  { emoji: "⚖️", label: t('chat_sug_dispute'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' }
+                ] : [
+                  { emoji: "🏢", label: t('chat_suggestion_business'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                  { emoji: "📜", label: t('chat_suggestion_permit'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                  { emoji: "📍", label: t('chat_suggestion_location'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                  { emoji: "⏳", label: t('chat_suggestion_duration'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                  { emoji: "💰", label: t('chat_suggestion_cost'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                  { emoji: "❓", label: t('chat_suggestion_help'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' }
+                ]).map((chip, i) => (
+                  <div
+                    key={i}
+                    onClick={() => send(chip.label)}
+                    className={`lg:glass-mesh lg:${chip.mesh} text-[var(--text)] text-[13px] md:text-[16px] py-4 px-4 md:px-6 rounded-[24px] md:rounded-[28px] flex items-center gap-3 md:gap-4 font-bold select-none md:backdrop-blur-xl transition-all hover:scale-[1.02] md:hover:scale-105 active:scale-95 cursor-pointer border border-[var(--border)] bg-[var(--surface-2)] lg:bg-[var(--surface)] lg:opacity-95 lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] group w-full lg:w-fit h-[68px] md:h-auto ${chip.border}`}
+                  >
+                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-center shrink-0 group-hover:bg-[var(--surface)] transition-colors ${chip.color.replace('text', 'bg')}/10`}>
+                      <span className="text-xl md:text-2xl filter drop-shadow-sm">{chip.emoji}</span>
+                    </div>
+                    <span className="leading-tight">{chip.label}</span>
+                  </div>
+                ))}
+              </motion.div>
 
-                <div className={`relative flex items-center gap-2 rounded-full p-2 border border-[var(--border)] transition-all duration-300 bg-[var(--surface-1)] shadow-[0_15px_50px_rgba(0,0,0,0.1)] ${isRTL ? 'flex-row-reverse pl-2 pr-4' : 'pl-4 pr-2'} ${busy ? 'opacity-70' : 'hover:border-indigo-500/50 focus-within:border-indigo-500/50 focus-within:shadow-[0_8px_36px_rgba(0,0,0,0.15)]'}`}>
+              {/* Spacer on mobile to push input down */}
+              <div className="flex-1 md:hidden" />
+
+              {/* Chat Input Pill (empty state) */}
+              <div className="w-full max-w-3xl mx-auto mb-10 mt-auto px-4">
+                <div className="relative flex items-center gap-2 rounded-full p-1.5 border border-[var(--border)] bg-[var(--surface-1)] shadow-sm focus-within:shadow-md transition-all">
                   <input
                     type="file"
                     ref={fileInputRef}
@@ -760,61 +822,61 @@ export default function ChatPage() {
                   />
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="shrink-0 p-2 text-[var(--muted)] hover:text-indigo-400 hover:bg-indigo-500/10 rounded-full transition-all"
-                    title="Upload Document"
+                    className="p-2 text-[var(--muted)] hover:text-[var(--text)] transition-colors shrink-0"
                   >
                     <Plus size={22} />
                   </button>
-
+                  
                   <textarea
                     ref={inputRef}
                     value={input}
                     onChange={e => {
                       setInput(e.target.value);
                       e.target.style.height = 'auto';
-                      e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+                      e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
                     }}
                     onKeyDown={e => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        send();
-                        if (inputRef.current) inputRef.current.style.height = 'auto';
-                      }
+                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); if (inputRef.current) inputRef.current.style.height = 'auto'; }
                     }}
-                    disabled={busy}
-                    placeholder={t(`chat_placeholder_${assistantType}`) || "Ask anything..."}
-                    className={`flex-1 max-h-[200px] min-h-[44px] py-2.5 bg-transparent text-[16px] text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none resize-none overflow-y-auto slim-scroll leading-relaxed ${isRTL ? 'text-right' : 'text-left'}`}
+                    placeholder={t(`chat_placeholder_${assistantType}`) || "Ask anything"}
+                    className="flex-1 bg-transparent py-2.5 px-1 text-[16px] focus:outline-none resize-none overflow-y-auto min-h-[40px] max-h-[120px] slim-scroll"
                     rows={1}
                   />
 
-                  <div className={`flex items-center gap-1 shrink-0 ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
-                    <button className="p-2.5 rounded-full text-[var(--muted)] hover:text-indigo-400 hover:bg-indigo-500/10 transition-all">
-                      <Mic size={20} />
-                    </button>
-                    
+                  <div className="flex items-center gap-1.5 pr-1">
                     {input.trim() ? (
-                      <button
-                        onClick={() => {
-                          send();
-                          if (inputRef.current) inputRef.current.style.height = 'auto';
-                        }}
-                        disabled={busy}
-                        className="shrink-0 h-10 w-10 flex items-center justify-center rounded-full bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg transition-all active:scale-95"
+                      <button 
+                        onClick={() => send()} 
+                        className="h-9 w-9 flex items-center justify-center rounded-full bg-[var(--text)] text-[var(--bg)] hover:opacity-90 transition-all shrink-0"
                       >
                         <Send size={18} />
                       </button>
                     ) : (
-                      <div className={`flex items-center gap-1.5 p-1 bg-[var(--surface-2)] rounded-full border border-[var(--border)] px-2.5 cursor-pointer hover:bg-[var(--surface)] transition-all ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
-                         <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
-                         <span className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-tight">{t('chat_speed_fast')}</span>
-                         <ChevronDown size={10} className="text-[var(--muted)]" />
-                      </div>
+                      <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-all shrink-0">
+                        <div className="flex items-center gap-0.5">
+                          <div className="w-0.5 h-3 bg-current rounded-full animate-pulse" />
+                          <div className="w-0.5 h-2 bg-current rounded-full" />
+                          <div className="w-0.5 h-3.5 bg-current rounded-full animate-pulse" />
+                        </div>
+                        <span className="text-[13px] font-bold tracking-tight">{t('chat_voice') || "Voice"}</span>
+                      </button>
                     )}
                   </div>
+
+                  {file && (
+                    <div className="absolute -top-12 left-4">
+                      <div className="flex items-center gap-2 bg-[var(--surface-2)] border border-[var(--border)] rounded-full px-3 py-1.5 text-[12px] text-[var(--text)] shadow-sm">
+                        <FileText size={12} className="text-indigo-400" />
+                        <span className="truncate max-w-[120px]">{file.name}</span>
+                        <button onClick={() => setFile(null)} className="ml-1 text-[var(--muted)] hover:text-red-400 transition-colors">
+                          <Plus size={12} className="rotate-45" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-
           ) : (
             <div className={`flex-1 overflow-y-auto w-full max-w-4xl mx-auto px-4 md:px-8 py-10 space-y-12 pb-44 slim-scroll bg-[var(--bg)]/40 rounded-t-[40px]`} dir={isRTL ? 'rtl' : 'ltr'}>
               <AnimatePresence initial={false}>
@@ -826,11 +888,10 @@ export default function ChatPage() {
                     className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     {m.role === 'assistant' && (
-                      <div className={`h-9 w-9 rounded-xl bg-gradient-to-br flex items-center justify-center text-white shrink-0 mt-1 shadow-md border ${
-                        assistantType === 'student' ? 'from-emerald-500 to-emerald-600 shadow-emerald-500/30 border-emerald-400/30' :
+                      <div className={`h-9 w-9 rounded-xl bg-gradient-to-br flex items-center justify-center text-white shrink-0 mt-1 shadow-md border ${assistantType === 'student' ? 'from-emerald-500 to-emerald-600 shadow-emerald-500/30 border-emerald-400/30' :
                         assistantType === 'lawyer' ? 'from-amber-500 to-amber-600 shadow-amber-500/30 border-amber-400/30' :
-                        'from-blue-500 to-blue-600 shadow-blue-500/30 border-blue-400/30'
-                      } ${isRTL ? 'ml-4' : 'mr-4'}`}>
+                          'from-blue-500 to-blue-600 shadow-blue-500/30 border-blue-400/30'
+                        } ${isRTL ? 'ml-4' : 'mr-4'}`}>
                         <Cpu size={18} />
                       </div>
                     )}
@@ -847,7 +908,7 @@ export default function ChatPage() {
                           if (m.role === 'assistant') {
                             // Support for custom [CTA: Label | URL] buttons
                             const parts = contentToRender.split(/(\[CTA: .+? \| .+?\])/g);
-                            
+
                             return (
                               <div className={`prose dark:prose-invert max-w-none ${isRTL ? 'text-right' : 'text-left'}`} dir={isRTL ? 'rtl' : 'ltr'}>
                                 {parts.map((part, idx) => {
@@ -855,14 +916,14 @@ export default function ChatPage() {
                                   if (ctaMatch) {
                                     const [, label, url] = ctaMatch;
                                     return (
-                                      <motion.div 
+                                      <motion.div
                                         key={idx}
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         className="my-6"
                                       >
-                                        <Link 
-                                          href={url} 
+                                        <Link
+                                          href={url}
                                           target="_blank"
                                           className="inline-flex items-center gap-2 bg-[var(--surface-2)] hover:bg-[#3c4043] text-[var(--text)] px-8 py-3 rounded-full font-bold transition-all shadow-lg active:scale-95 border border-[var(--border)] group no-underline"
                                         >
@@ -872,7 +933,7 @@ export default function ChatPage() {
                                       </motion.div>
                                     );
                                   }
-                                  
+
                                   return (
                                     <ReactMarkdown
                                       key={idx}
@@ -915,43 +976,38 @@ export default function ChatPage() {
                 >
                   <div className={`relative h-10 w-10 flex items-center justify-center shrink-0 ${isRTL ? 'ml-4' : 'mr-4'}`}>
                     {/* Glowing status ring */}
-                    <div className={`absolute inset-0 rounded-xl border backdrop-blur-sm ${
-                      assistantType === 'student' ? 'border-emerald-500/20 bg-emerald-500/5' :
+                    <div className={`absolute inset-0 rounded-xl border backdrop-blur-sm ${assistantType === 'student' ? 'border-emerald-500/20 bg-emerald-500/5' :
                       assistantType === 'lawyer' ? 'border-amber-500/20 bg-amber-500/5' :
-                      'border-blue-500/20 bg-blue-500/5'
-                    }`} />
+                        'border-blue-500/20 bg-blue-500/5'
+                      }`} />
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                      className={`absolute inset-[-2px] rounded-xl border-t ${
-                        assistantType === 'student' ? 'border-emerald-500/60' :
+                      className={`absolute inset-[-2px] rounded-xl border-t ${assistantType === 'student' ? 'border-emerald-500/60' :
                         assistantType === 'lawyer' ? 'border-amber-500/60' :
-                        'border-blue-500/60'
-                      }`}
+                          'border-blue-500/60'
+                        }`}
                     />
-                    <Cpu size={18} className={`${
-                      assistantType === 'student' ? 'text-emerald-500' :
+                    <Cpu size={18} className={`${assistantType === 'student' ? 'text-emerald-500' :
                       assistantType === 'lawyer' ? 'text-amber-500' :
-                      'text-blue-500'
-                    } animate-pulse relative z-10`} />
+                        'text-blue-500'
+                      } animate-pulse relative z-10`} />
 
                     {/* Live processing blip */}
                     <motion.div
                       animate={{ opacity: [0, 1, 0] }}
                       transition={{ duration: 1, repeat: Infinity }}
-                      className={`absolute -top-0.5 ${isRTL ? '-left-0.5' : '-right-0.5'} w-1.5 h-1.5 rounded-full z-20 ${
-                        assistantType === 'student' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,1)]' :
+                      className={`absolute -top-0.5 ${isRTL ? '-left-0.5' : '-right-0.5'} w-1.5 h-1.5 rounded-full z-20 ${assistantType === 'student' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,1)]' :
                         assistantType === 'lawyer' ? 'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,1)]' :
-                        'bg-blue-400 shadow-[0_0_8px_rgba(59,130,246,1)]'
-                      }`}
+                          'bg-blue-400 shadow-[0_0_8px_rgba(59,130,246,1)]'
+                        }`}
                     />
                   </div>
                   <div className={`flex flex-col ${isRTL ? 'text-right' : 'text-left'}`}>
-                    <span className={`text-[14px] font-medium animate-pulse ${
-                      assistantType === 'student' ? 'text-emerald-500/80' :
+                    <span className={`text-[14px] font-medium animate-pulse ${assistantType === 'student' ? 'text-emerald-500/80' :
                       assistantType === 'lawyer' ? 'text-amber-500/80' :
-                      'text-blue-500/80'
-                    }`}>
+                        'text-blue-500/80'
+                      }`}>
                       {t('agent_thinking')}
                     </span>
                   </div>
@@ -964,92 +1020,62 @@ export default function ChatPage() {
           {/* Sticky Input Bar - Floating Gemini Pill */}
           {!isEmpty && (
             <div className="absolute bottom-0 left-0 w-full pt-16 pb-8 px-4 flex justify-center bg-gradient-to-t from-[var(--bg)] via-[var(--bg)]/90 to-transparent z-40">
-              <div className="w-full max-w-4xl relative">
-                <div className={`relative flex flex-col transition-all duration-300 z-40`}>
-                  {/* File Preview Chip - Floating above */}
-                  <AnimatePresence>
-                    {file && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        className="absolute -top-14 left-4 flex items-center"
+              <div className="w-full max-w-3xl relative">
+                <div className={`relative flex items-center gap-2 rounded-full p-1.5 border border-[var(--border)] transition-all duration-300 bg-[var(--surface-1)] shadow-sm ${busy ? 'opacity-70' : 'focus-within:shadow-md'}`}>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2 text-[var(--muted)] hover:text-indigo-400 transition-all shrink-0"
+                  >
+                    <Plus size={22} />
+                  </button>
+                  <textarea
+                    ref={inputRef}
+                    value={input}
+                    onChange={e => {
+                      setInput(e.target.value);
+                      e.target.style.height = 'auto';
+                      e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); if (inputRef.current) inputRef.current.style.height = 'auto'; }
+                    }}
+                    disabled={busy}
+                    placeholder={t(`chat_placeholder_${assistantType}`) || "Ask anything..."}
+                    className="flex-1 bg-transparent py-2.5 px-1 text-[16px] text-[var(--text)] placeholder:text-[var(--muted)]/50 focus:outline-none resize-none overflow-y-auto min-h-[40px] max-h-[120px] slim-scroll"
+                    rows={1}
+                  />
+                  <div className="flex items-center gap-1.5 pr-1">
+                    {input.trim() ? (
+                      <button
+                        onClick={() => { send(); if (inputRef.current) inputRef.current.style.height = 'auto'; }}
+                        disabled={busy}
+                        className="h-9 w-9 flex items-center justify-center rounded-full bg-[var(--text)] text-[var(--bg)] shadow-sm hover:opacity-90 transition-all shrink-0"
                       >
-                        <div className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-full pl-3 pr-2 py-1.5 text-[13px] text-[var(--text)] shadow-lg backdrop-blur-xl">
-                          <FileText size={14} className="text-indigo-400" />
-                          <span className="truncate max-w-[200px] font-medium">{file.name}</span>
-                          <button onClick={() => setFile(null)} className="ml-1 w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-500/10 text-[var(--muted)] hover:text-red-500 transition-colors">
-                            <Plus size={14} className="rotate-45" />
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <div className={`relative flex items-center gap-2 rounded-full p-2 border border-[var(--border)] transition-all duration-300 bg-[var(--surface-1)] shadow-[0_8px_32px_rgba(0,0,0,0.15)] ${isRTL ? 'flex-row-reverse pl-2 pr-4' : 'pl-4 pr-2'} ${busy ? 'opacity-70' : 'hover:border-indigo-500/50 focus-within:border-indigo-500/50 focus-within:shadow-[0_8px_36px_rgba(0,0,0,0.2)]'}`}>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={(e) => {
-                        if (e.target.files?.[0]) setFile(e.target.files[0]);
-                        e.target.value = '';
-                      }}
-                      className="hidden"
-                    />
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="shrink-0 p-2 text-[var(--muted)] hover:text-indigo-400 hover:bg-indigo-500/10 rounded-full transition-all"
-                      title="Upload Document"
-                    >
-                      <Plus size={22} />
-                    </button>
-
-                    <textarea
-                      ref={inputRef}
-                      value={input}
-                      onChange={e => {
-                        setInput(e.target.value);
-                        e.target.style.height = 'auto';
-                        e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
-                      }}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          send();
-                          if (inputRef.current) inputRef.current.style.height = 'auto';
-                        }
-                      }}
-                      disabled={busy}
-                      placeholder={t(`chat_placeholder_${assistantType}`) || "Ask anything..."}
-                      className={`flex-1 max-h-[200px] min-h-[44px] py-2.5 bg-transparent text-[16px] text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none resize-none overflow-y-auto slim-scroll leading-relaxed ${isRTL ? 'text-right' : 'text-left'}`}
-                      rows={1}
-                    />
-
-                    <div className={`flex items-center gap-1 shrink-0 ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
-                      <button className="p-2.5 rounded-full text-[var(--muted)] hover:text-indigo-400 hover:bg-indigo-500/10 transition-all">
-                        <Mic size={20} />
+                        <Send size={18} />
                       </button>
-                      
-                      {input.trim() ? (
-                        <button
-                          onClick={() => {
-                            send();
-                            if (inputRef.current) inputRef.current.style.height = 'auto';
-                          }}
-                          disabled={busy}
-                          className="shrink-0 h-10 w-10 flex items-center justify-center rounded-full bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg transition-all active:scale-95"
-                        >
-                          <Send size={18} />
-                        </button>
-                      ) : (
-                        <div className={`flex items-center gap-1.5 p-1 bg-[var(--surface-2)] rounded-full border border-[var(--border)] px-2.5 cursor-pointer hover:bg-[var(--surface)] transition-all ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
-                           <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
-                           <span className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-tight">{t('chat_speed_fast')}</span>
-                           <ChevronDown size={10} className="text-[var(--muted)]" />
+                    ) : (
+                      <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-all shrink-0">
+                        <div className="flex items-center gap-0.5">
+                          <div className="w-0.5 h-3 bg-current rounded-full animate-pulse" />
+                          <div className="w-0.5 h-2 bg-current rounded-full" />
+                          <div className="w-0.5 h-3.5 bg-current rounded-full animate-pulse" />
                         </div>
-                      )}
-                    </div>
+                        <span className="text-[13px] font-bold tracking-tight">{t('chat_voice') || "Voice"}</span>
+                      </button>
+                    )}
                   </div>
+
+                  {file && (
+                    <div className="absolute -top-12 left-4">
+                      <div className="flex items-center gap-2 bg-[var(--surface-2)] border border-[var(--border)] rounded-full px-3 py-1.5 text-[12px] text-[var(--text)] shadow-sm">
+                        <FileText size={12} className="text-indigo-400" />
+                        <span className="truncate max-w-[120px]">{file.name}</span>
+                        <button onClick={() => setFile(null)} className="ml-1 text-[var(--muted)] hover:text-red-400 transition-colors">
+                          <Plus size={12} className="rotate-45" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <p className="text-center text-[11px] text-[var(--muted)] mt-5 font-normal tracking-wide opacity-50">
                   {t('agent_name')} • {t('footer_version')}
