@@ -122,7 +122,7 @@ export default function ServicesPage() {
   const [permitServiceType, setPermitServiceType] = useState('Restaurant');
   const [permitDistrict, setPermitDistrict] = useState('Fatih');
 
-  const [simulatedText, setSimulatedText] = useState('How can I help you today?');
+  const [simulatedText, setSimulatedText] = useState(t('services_chat_greeting'));
   const [isTyping, setIsTyping] = useState(false);
   const [activeTask, setActiveTask] = useState<string | null>(null);
   const [showSimulatedChat, setShowSimulatedChat] = useState(false);
@@ -403,7 +403,7 @@ export default function ServicesPage() {
                     onClick={(e) => { e.stopPropagation(); handleStartProtocol(service.id); }} 
                     className="mt-auto py-3.5 px-6 rounded-[20px] bg-[var(--text)] text-[var(--bg)] font-black uppercase text-[11px] tracking-widest shadow-xl transition-all active:scale-95 hover:bg-red-600 hover:text-white"
                   >
-                    Launch Agent
+                    {t('services_launch_agent')}
                   </button>
                 ) : (
                   <button disabled className="mt-auto w-full py-3.5 px-6 rounded-[20px] bg-[var(--text)]/[0.04] text-[var(--text)] opacity-40 font-black uppercase text-[11px] tracking-widest border border-[var(--border)] cursor-not-allowed">
@@ -444,7 +444,7 @@ export default function ServicesPage() {
                        <Briefcase size={32} className="text-[#1a73e8]" />}
                     </div>
                     <div>
-                      <h3 className="text-2xl font-black text-[var(--text)] font-[Outfit] tracking-tight leading-tight mb-1">Setup Agent</h3>
+                      <h3 className="text-2xl font-black text-[var(--text)] font-[Outfit] tracking-tight leading-tight mb-1">{t('services_setup_agent')}</h3>
                     </div>
                   </div>
                   <button 
@@ -459,24 +459,24 @@ export default function ServicesPage() {
                   {selectedAgent === 'student' && (
                     <div className="space-y-6">
                       <div className="relative">
-                        <label className="block text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.25em] mb-3 ml-2 opacity-60">Type of Service</label>
+                        <label className="block text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.25em] mb-3 ml-2 opacity-60">{t('services_type_service')}</label>
                         <CustomSelect 
                           value={studentServiceType} 
                           onChange={setStudentServiceType} 
                           options={STUDENT_SERVICES_OPTIONS} 
-                          placeholder="Select Service" 
+                          placeholder={t('services_select_service')} 
                         />
                       </div>
 
                       <AnimatePresence>
-                        {studentServiceType === 'University Registration' && (
+                        {studentServiceType === t('services_task_enroll') && (
                           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
-                            <label className="block text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.25em] mb-3 ml-2 opacity-60">Select University</label>
+                            <label className="block text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.25em] mb-3 ml-2 opacity-60">{t('services_select_uni')}</label>
                             <CustomSelect 
                               value={studentUni} 
                               onChange={setStudentUni} 
                               options={UNIVERSITIES_OPTIONS} 
-                              placeholder="Select a University" 
+                              placeholder={t('services_select_uni_placeholder')} 
                               maxH="max-h-64"
                             />
                           </motion.div>
@@ -498,12 +498,12 @@ export default function ServicesPage() {
                       </div>
 
                       <div className="relative">
-                        <label className="block text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.25em] mb-3 ml-2 opacity-60">Istanbul District</label>
+                        <label className="block text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.25em] mb-3 ml-2 opacity-60">{t('services_district')}</label>
                         <CustomSelect 
                           value={permitDistrict} 
                           onChange={setPermitDistrict} 
                           options={DISTRICTS_OPTIONS} 
-                          placeholder="Select District" 
+                          placeholder={t('services_select_district')} 
                           maxH="max-h-64"
                         />
                       </div>
@@ -516,7 +516,7 @@ export default function ServicesPage() {
                     onClick={() => setSelectedAgent(null)}
                     className="flex-1 py-4 px-6 rounded-[24px] border border-white/10 text-[var(--text)] font-black uppercase text-[11px] tracking-[0.15em] hover:bg-white/5 transition-all active:scale-95"
                   >
-                    Cancel
+                    {t('settings_cancel')}
                   </button>
                   <button
                     onClick={handleInitializeWorkflow}
@@ -526,7 +526,7 @@ export default function ServicesPage() {
                       'bg-[#1a73e8] hover:bg-[#1967d2] shadow-[0_15px_40px_rgba(26,115,232,0.25)]'
                     }`}
                   >
-                    Start Agent
+                    {t('services_start_agent')}
                   </button>
                 </div>
                 
@@ -537,7 +537,7 @@ export default function ServicesPage() {
                     'bg-[#1a73e8]'
                   }`} />
                   <p className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-widest opacity-40">
-                    Secure 256-bit Encrypted Session
+                    {t('services_secure_session')}
                   </p>
                 </div>
               </div>
@@ -558,11 +558,11 @@ export default function ServicesPage() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-4xl md:text-5xl font-black text-[var(--text)] font-[Outfit] mb-6 tracking-tighter transition-colors duration-500">
-                Describe what you need
+              <h2 className="text-4xl md:text-6xl font-black text-[var(--text)] font-[Outfit] mb-6 leading-[1.1] tracking-tighter transition-colors duration-500">
+                {t('services_cta_title')}
               </h2>
               <p className="text-[var(--muted)] text-lg leading-relaxed mb-8 max-w-lg transition-colors duration-500">
-                Tell TurkGateway what you want to achieve. Our agents pick the fastest path: connecting to government portals, municipal APIs, or using advanced OCR to process your documents instantly.
+                {t('services_cta_desc')}
               </p>
             </motion.div>
 
@@ -599,21 +599,21 @@ export default function ServicesPage() {
                        <Cpu className="text-white" size={20} />
                      </motion.div>
                   </div>
-                  <h3 className="text-2xl font-bold tracking-tight">Let's knock something off your list</h3>
+                  <h3 className="text-2xl font-bold tracking-tight">{t('services_list_title')}</h3>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
-                    { icon: FileText, label: 'Register Company' },
-                    { icon: BarChart3, label: 'Tax Compliance' },
-                    { icon: Layers, label: 'Get Work Permit' },
-                    { icon: GraduationCap, label: 'University Enrollment' },
-                    { icon: ListTodo, label: 'Kimlik Renewal' },
-                    { icon: MessageSquare, label: 'Legal Consultation' }
+                    { icon: FileText, label: t('services_task_register') },
+                    { icon: BarChart3, label: t('services_task_tax') },
+                    { icon: Layers, label: t('services_task_permit') },
+                    { icon: GraduationCap, label: t('services_task_enroll') },
+                    { icon: ListTodo, label: t('services_task_renewal') },
+                    { icon: MessageSquare, label: t('services_task_legal') }
                   ].map((task, i) => {
-                    const isStudent = ['University Enrollment', 'Kimlik Renewal'].includes(task.label);
-                    const isPermit = ['Register Company', 'Get Work Permit', 'Tax Compliance'].includes(task.label);
-                    const isLawyer = ['Legal Consultation'].includes(task.label);
+                    const isStudent = [t('services_task_enroll'), t('services_task_renewal')].includes(task.label);
+                    const isPermit = [t('services_task_register'), t('services_task_permit'), t('services_task_tax')].includes(task.label);
+                    const isLawyer = [t('services_task_legal')].includes(task.label);
                     
                     const activeColorClass = isStudent ? 'border-emerald-500 shadow-emerald-500/20' : isPermit ? 'border-blue-500 shadow-blue-500/20' : isLawyer ? 'border-amber-500 shadow-amber-500/20' : 'border-red-400 shadow-red-500/20';
                     const hoverColorClass = isStudent ? 'hover:border-emerald-200' : isPermit ? 'hover:border-blue-200' : isLawyer ? 'hover:border-amber-200' : 'hover:border-red-200';
