@@ -141,12 +141,12 @@ export default function ServicesPage() {
     
     // Map tasks to realistic prompts
     const prompts: Record<string, {text: string, agent: string}> = {
-      'Register Company': { text: "I want to open a new LLC in Turkey. What are the legal requirements and steps?", agent: 'lawyer' },
-      'Tax Compliance': { text: "I need to ensure my digital business is fully compliant with Turkish corporate tax.", agent: 'lawyer' },
-      'Get Work Permit': { text: "I want to apply for a work permit for a foreign employee in Istanbul.", agent: 'permit' },
-      'University Enrollment': { text: "I need help registering at Koç University and applying for a student visa.", agent: 'student' },
-      'Kimlik Renewal': { text: "My e-ikamet (residence permit) expires next month, how do I renew it?", agent: 'student' },
-      'Legal Consultation': { text: "I want to review an international trade contract under Turkish commercial law.", agent: 'lawyer' }
+      [t('services_task_register')]: { text: t('services_prompt_register'), agent: 'lawyer' },
+      [t('services_task_tax')]: { text: t('services_prompt_tax'), agent: 'lawyer' },
+      [t('services_task_permit')]: { text: t('services_prompt_permit'), agent: 'permit' },
+      [t('services_task_enroll')]: { text: t('services_prompt_enroll'), agent: 'student' },
+      [t('services_task_renewal')]: { text: t('services_prompt_renewal'), agent: 'student' },
+      [t('services_task_legal')]: { text: t('services_prompt_legal'), agent: 'lawyer' }
     };
     
     const target = prompts[taskLabel];
@@ -174,12 +174,12 @@ export default function ServicesPage() {
     setIsAiTyping(true);
 
     const responses: Record<string, string> = {
-      'Register Company': "Perfect. I've initialized the Legal Agent. I am connecting to the MERSİS portal to generate your LLC establishment roadmap. Here are the first steps...",
-      'Tax Compliance': "I am retrieving the latest VDK corporate tax checklists and generating an automated audit protocol for your digital business.",
-      'Get Work Permit': "Initiating Permit Agent. Connecting to the Ministry of Labor portal to fetch the current quota exemptions and employer requirements.",
-      'University Enrollment': "Student Agent initialized. Fetching the specific YÖK requirements for Koç University and your residence permit documentation list.",
-      'Kimlik Renewal': "I will guide you through the e-ikamet extension application. Connecting to the GÖÇ Administration API to verify your current permit status...",
-      'Legal Consultation': "Legal Agent checking in. I have accessed the Turkish Commercial Code framework to generate a review standard for your trade contract."
+      [t('services_task_register')]: t('services_res_register'),
+      [t('services_task_tax')]: t('services_res_tax'),
+      [t('services_task_permit')]: t('services_res_permit'),
+      [t('services_task_enroll')]: t('services_res_enroll'),
+      [t('services_task_renewal')]: t('services_res_renewal'),
+      [t('services_task_legal')]: t('services_res_legal')
     };
 
     const aiRes = responses[taskLabel];
