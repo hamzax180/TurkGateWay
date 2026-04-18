@@ -817,76 +817,108 @@ export default function ChatPage() {
                       <span className="text-xl md:text-2xl filter drop-shadow-sm">{chip.emoji}</span>
                     </div>
                     <span className="leading-tight">{chip.label}</span>
-                  </div>
-                ))}
               </motion.div>
 
-              {/* Spacer on mobile to push input down */}
-              <div className="flex-1 md:hidden" />
+              {/* Chat Welcome Title */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="text-center mb-10"
+              >
+                <h2 className="text-4xl md:text-5xl font-black text-[var(--text)] tracking-tight mb-2">
+                  {t('chat_welcome_title')}
+                </h2>
+              </motion.div>
 
               {/* Chat Input Pill (empty state) */}
-              <div className="w-full max-w-3xl mx-auto mb-6 mt-auto">
-                <div className="rounded-[28px] p-2 pr-3 min-h-[56px] md:min-h-[120px] flex flex-col glass-mesh mesh-indigo hover:border-[var(--border-2)] transition-all shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none">
-                  {/* File Preview Chip */}
+              <div className="w-full max-w-3xl mx-auto mb-12 relative">
+                {/* File Preview Chip - Floating above */}
+                <AnimatePresence>
                   {file && (
-                    <div className="px-4 pt-2 flex items-center">
-                      <div className="flex items-center gap-2 bg-[var(--surface-1)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-[13px] text-[var(--text)]">
-                        <FileText size={14} className="text-[var(--accent)]" />
-                        <span className="truncate max-w-[200px]">{file.name}</span>
-                        <button onClick={() => setFile(null)} className="ml-1 text-[var(--muted)] hover:text-red-400 transition-colors">
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute -top-14 left-4 flex items-center z-50"
+                    >
+                      <div className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-full pl-3 pr-2 py-1.5 text-[13px] text-[var(--text)] shadow-lg backdrop-blur-xl">
+                        <FileText size={14} className="text-indigo-400" />
+                        <span className="truncate max-w-[200px] font-medium">{file.name}</span>
+                        <button onClick={() => setFile(null)} className="ml-1 w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-500/10 text-[var(--muted)] hover:text-red-500 transition-colors">
                           <Plus size={14} className="rotate-45" />
                         </button>
                       </div>
-                    </div>
+                    </motion.div>
                   )}
+                </AnimatePresence>
+
+                <div className={`relative flex items-center gap-2 rounded-full p-2 border border-[var(--border)] transition-all duration-300 bg-[var(--surface-1)] shadow-[0_15px_50px_rgba(0,0,0,0.1)] ${isRTL ? 'flex-row-reverse pl-2 pr-4' : 'pl-4 pr-2'} ${busy ? 'opacity-70' : 'hover:border-indigo-500/50 focus-within:border-indigo-500/50 focus-within:shadow-[0_8px_36px_rgba(0,0,0,0.15)]'}`}>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) setFile(e.target.files[0]);
+                      e.target.value = '';
+                    }}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="shrink-0 p-2 text-[var(--muted)] hover:text-indigo-400 hover:bg-indigo-500/10 rounded-full transition-all"
+                    title="Upload Document"
+                  >
+                    <Plus size={22} />
+                  </button>
+
                   <textarea
                     ref={inputRef}
                     value={input}
-                    onChange={e => setInput(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+                    onChange={e => {
+                      setInput(e.target.value);
+                      e.target.style.height = 'auto';
+                      e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
                     }}
-                    placeholder={t(`chat_placeholder_${assistantType}`)}
-                    className="flex-1 bg-transparent text-[18px] px-8 py-5 min-h-[60px] max-h-[200px] overflow-y-auto text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none resize-none slim-scroll text-center"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        send();
+                        if (inputRef.current) inputRef.current.style.height = 'auto';
+                      }
+                    }}
+                    disabled={busy}
+                    placeholder={t(`chat_placeholder_${assistantType}`) || "Ask anything..."}
+                    className={`flex-1 max-h-[200px] min-h-[44px] py-2.5 bg-transparent text-[16px] text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none resize-none overflow-y-auto slim-scroll leading-relaxed ${isRTL ? 'text-right' : 'text-left'}`}
+                    rows={1}
                   />
-                  <div className="flex items-center justify-between px-2 pb-1">
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) setFile(e.target.files[0]);
-                          e.target.value = '';
-                        }}
-                        className="hidden"
-                      />
+
+                  <div className={`flex items-center gap-1 shrink-0 ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <button className="p-2.5 rounded-full text-[var(--muted)] hover:text-indigo-400 hover:bg-indigo-500/10 transition-all">
+                      <Mic size={20} />
+                    </button>
+                    
+                    {input.trim() ? (
                       <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="p-2.5 text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] rounded-full transition-all"
-                        title="Upload Document"
+                        onClick={() => {
+                          send();
+                          if (inputRef.current) inputRef.current.style.height = 'auto';
+                        }}
+                        disabled={busy}
+                        className="shrink-0 h-10 w-10 flex items-center justify-center rounded-full bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg transition-all active:scale-95"
                       >
-                        <Plus size={20} />
+                        <Send size={18} />
                       </button>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="hidden md:flex text-xs font-medium text-[var(--muted)]/50 items-center gap-1 cursor-pointer hover:text-[var(--text)] transition-colors mr-2">
-                        Fast <ChevronDown size={14} />
-                      </span>
-                      {input.trim() ? (
-                        <button onClick={() => send()} disabled={busy}
-                          className="shrink-0 h-10 w-10 flex items-center justify-center rounded-full text-purple-600 dark:text-purple-400 hover:bg-[var(--surface-2)] transition-colors">
-                          <Send size={20} />
-                        </button>
-                      ) : (
-                        <button className="p-2.5 text-white/30 hover:text-white hover:bg-white/5 rounded-full transition-all">
-                          <Mic size={20} />
-                        </button>
-                      )}
-                    </div>
+                    ) : (
+                      <div className={`flex items-center gap-1.5 p-1 bg-[var(--surface-2)] rounded-full border border-[var(--border)] px-2.5 cursor-pointer hover:bg-[var(--surface)] transition-all ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
+                         <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+                         <span className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-tight">{t('chat_speed_fast')}</span>
+                         <ChevronDown size={10} className="text-[var(--muted)]" />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-            </div>
+
           ) : (
             <div className={`flex-1 overflow-y-auto w-full max-w-4xl mx-auto px-4 md:px-8 py-10 space-y-12 pb-44 slim-scroll bg-[var(--bg)]/40 rounded-t-[40px]`} dir={isRTL ? 'rtl' : 'ltr'}>
               <AnimatePresence initial={false}>

@@ -369,6 +369,7 @@ const translations: Record<Language, Record<string, string>> = {
     services_prompt_legal: "I want to review an international trade contract under Turkish commercial law.",
     chat_speed_fast: 'Fast',
     chat_speed_precise: 'Precise',
+    chat_welcome_title: 'Where should we begin?',
   },
   tr: {
     navbar_home: 'Ana Sayfa',
@@ -726,6 +727,7 @@ const translations: Record<Language, Record<string, string>> = {
     services_prompt_legal: 'Türk ticaret hukuku kapsamında uluslararası bir ticaret sözleşmesini incelemek istiyorum.',
     chat_speed_fast: 'Hızlı',
     chat_speed_precise: 'Hassas',
+    chat_welcome_title: 'Nereden başlayalım?',
   },
   ar: {
     navbar_home: 'الرئيسية',
@@ -1052,6 +1054,7 @@ const translations: Record<Language, Record<string, string>> = {
     services_prompt_legal: 'أريد مراجعة عقد تجاري دولي بموجب القانون التجاري التركي.',
     chat_speed_fast: 'سريع',
     chat_speed_precise: 'دقيق',
+    chat_welcome_title: 'من أين نبدأ؟',
   },
 };
 
