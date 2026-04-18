@@ -367,6 +367,8 @@ const translations: Record<Language, Record<string, string>> = {
     services_prompt_enroll: "I need help registering at Koç University and applying for a student visa.",
     services_prompt_renewal: "My e-ikamet (residence permit) expires next month, how do I renew it?",
     services_prompt_legal: "I want to review an international trade contract under Turkish commercial law.",
+    chat_speed_fast: 'Fast',
+    chat_speed_precise: 'Precise',
   },
   tr: {
     navbar_home: 'Ana Sayfa',
@@ -722,6 +724,8 @@ const translations: Record<Language, Record<string, string>> = {
     services_prompt_enroll: 'Koç Üniversitesi\'ne kaydolmak ve öğrenci vizesi başvurusu yapmak için yardıma ihtiyacım var.',
     services_prompt_renewal: 'e-ikametim (ikamet iznim) gelecek ay sona eriyor, nasıl yenilerim?',
     services_prompt_legal: 'Türk ticaret hukuku kapsamında uluslararası bir ticaret sözleşmesini incelemek istiyorum.',
+    chat_speed_fast: 'Hızlı',
+    chat_speed_precise: 'Hassas',
   },
   ar: {
     navbar_home: 'الرئيسية',
@@ -1046,6 +1050,8 @@ const translations: Record<Language, Record<string, string>> = {
     services_prompt_enroll: 'أحتاج إلى مساعدة في التسجيل في جامعة كوتش والتقدم بطلب للحصول على تأشيرة طالب.',
     services_prompt_renewal: 'إقامتي الإلكترونية تنتهي الشهر المقبل، كيف يمكنني تجديدها؟',
     services_prompt_legal: 'أريد مراجعة عقد تجاري دولي بموجب القانون التجاري التركي.',
+    chat_speed_fast: 'سريع',
+    chat_speed_precise: 'دقيق',
   },
 };
 

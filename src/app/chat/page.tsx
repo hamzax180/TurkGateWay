@@ -1037,66 +1037,71 @@ export default function ChatPage() {
           {!isEmpty && (
             <div className="absolute bottom-0 left-0 w-full pt-16 pb-8 px-4 flex justify-center bg-gradient-to-t from-[var(--bg)] via-[var(--bg)]/90 to-transparent z-40">
               <div className="w-full max-w-4xl relative">
-                <div className={`relative flex flex-col rounded-[32px] p-2.5 pr-4 border border-[var(--border)] transition-all duration-300 bg-[var(--surface-1)] shadow-[0_8px_32px_rgba(0,0,0,0.15)] ${busy ? 'opacity-70' : 'hover:border-indigo-500/50 focus-within:border-indigo-500/50 focus-within:shadow-[0_8px_36px_rgba(0,0,0,0.2)]'}`}>
-
-                  {/* File Preview Chip */}
-                  {file && (
-                    <div className="px-4 pt-2 -mb-2 flex items-center">
-                      <div className="flex items-center gap-2 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl px-3 py-1.5 text-[13px] text-[var(--text)]">
-                        <FileText size={14} className="text-indigo-400" />
-                        <span className="truncate max-w-[200px] font-medium">{file.name}</span>
-                        <button onClick={() => setFile(null)} className="ml-1 text-[var(--muted)] hover:text-red-400 transition-colors">
-                          <Plus size={14} className="rotate-45" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <textarea
-                    ref={inputRef}
-                    value={input}
-                    onChange={e => {
-                      setInput(e.target.value);
-                      e.target.style.height = 'auto';
-                      e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        send();
-                        if (inputRef.current) inputRef.current.style.height = 'auto';
-                      }
-                    }}
-                    disabled={busy}
-                    placeholder={t(`chat_placeholder_${assistantType}`) || "Ask anything..."}
-                    className="flex-1 max-h-[200px] min-h-[56px] px-5 py-4 bg-transparent text-[17px] text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none resize-none overflow-y-auto slim-scroll"
-                    rows={1}
-                  />
-
-                  <div className="flex items-center justify-between px-3 pb-2">
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) setFile(e.target.files[0]);
-                          e.target.value = '';
-                        }}
-                        className="hidden"
-                      />
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="p-2.5 text-[var(--muted)] hover:text-indigo-400 hover:bg-indigo-500/10 rounded-full transition-all"
-                        title="Upload Document"
+                <div className={`relative flex flex-col transition-all duration-300 z-40`}>
+                  {/* File Preview Chip - Floating above */}
+                  <AnimatePresence>
+                    {file && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="absolute -top-14 left-4 flex items-center"
                       >
-                        <Plus size={22} />
-                      </button>
-                    </div>
+                        <div className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-full pl-3 pr-2 py-1.5 text-[13px] text-[var(--text)] shadow-lg backdrop-blur-xl">
+                          <FileText size={14} className="text-indigo-400" />
+                          <span className="truncate max-w-[200px] font-medium">{file.name}</span>
+                          <button onClick={() => setFile(null)} className="ml-1 w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-500/10 text-[var(--muted)] hover:text-red-500 transition-colors">
+                            <Plus size={14} className="rotate-45" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
-                    <div className="flex items-center gap-2">
+                  <div className={`relative flex items-center gap-2 rounded-full p-2 border border-[var(--border)] transition-all duration-300 bg-[var(--surface-1)] shadow-[0_8px_32px_rgba(0,0,0,0.15)] ${isRTL ? 'flex-row-reverse pl-2 pr-4' : 'pl-4 pr-2'} ${busy ? 'opacity-70' : 'hover:border-indigo-500/50 focus-within:border-indigo-500/50 focus-within:shadow-[0_8px_36px_rgba(0,0,0,0.2)]'}`}>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) setFile(e.target.files[0]);
+                        e.target.value = '';
+                      }}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="shrink-0 p-2 text-[var(--muted)] hover:text-indigo-400 hover:bg-indigo-500/10 rounded-full transition-all"
+                      title="Upload Document"
+                    >
+                      <Plus size={22} />
+                    </button>
+
+                    <textarea
+                      ref={inputRef}
+                      value={input}
+                      onChange={e => {
+                        setInput(e.target.value);
+                        e.target.style.height = 'auto';
+                        e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          send();
+                          if (inputRef.current) inputRef.current.style.height = 'auto';
+                        }
+                      }}
+                      disabled={busy}
+                      placeholder={t(`chat_placeholder_${assistantType}`) || "Ask anything..."}
+                      className={`flex-1 max-h-[200px] min-h-[44px] py-2.5 bg-transparent text-[16px] text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none resize-none overflow-y-auto slim-scroll leading-relaxed ${isRTL ? 'text-right' : 'text-left'}`}
+                      rows={1}
+                    />
+
+                    <div className={`flex items-center gap-1 shrink-0 ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
                       <button className="p-2.5 rounded-full text-[var(--muted)] hover:text-indigo-400 hover:bg-indigo-500/10 transition-all">
-                        <Mic size={22} />
+                        <Mic size={20} />
                       </button>
+                      
                       {input.trim() ? (
                         <button
                           onClick={() => {
@@ -1104,12 +1109,16 @@ export default function ChatPage() {
                             if (inputRef.current) inputRef.current.style.height = 'auto';
                           }}
                           disabled={busy}
-                          className="shrink-0 h-11 w-11 flex items-center justify-center rounded-full bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg transition-all scale-105 active:scale-95"
+                          className="shrink-0 h-10 w-10 flex items-center justify-center rounded-full bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg transition-all active:scale-95"
                         >
-                          <Send size={20} />
+                          <Send size={18} />
                         </button>
                       ) : (
-                        <div className="w-11 h-11" /> /* Spacer if no input */
+                        <div className={`flex items-center gap-1.5 p-1 bg-[var(--surface-2)] rounded-full border border-[var(--border)] px-2.5 cursor-pointer hover:bg-[var(--surface)] transition-all ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
+                           <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+                           <span className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-tight">{t('chat_speed_fast')}</span>
+                           <ChevronDown size={10} className="text-[var(--muted)]" />
+                        </div>
                       )}
                     </div>
                   </div>
