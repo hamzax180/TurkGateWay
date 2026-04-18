@@ -70,6 +70,8 @@ export default function Dashboard() {
   const [ikametType, setIkametType] = useState('Student');
   const [dob, setDob] = useState('');
   const [isExtension, setIsExtension] = useState(false);
+  const [fatherName, setFatherName] = useState('');
+  const [motherName, setMotherName] = useState('');
   const [generatingWorkflow, setGeneratingWorkflow] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState(0);
 
@@ -432,7 +434,9 @@ export default function Dashboard() {
           passport_type: passportType,
           ikamet_type: ikametType,
           dob: dob,
-          is_extension: isExtension
+          is_extension: isExtension,
+          father_name: fatherName,
+          mother_name: motherName
         })
       });
 
@@ -678,7 +682,7 @@ export default function Dashboard() {
 
         {/* e-Devlet Login Modal */}
         <AnimatePresence>
-          {showModal && (
+          {showModal && !(currentAutomatedStep && (isIkamet || isInsurance)) && (
             <motion.div
               key="edevlet-modal"
               initial={{ opacity: 0 }}
@@ -828,6 +832,28 @@ export default function Dashboard() {
                           value={dob}
                           onChange={(e) => setDob(e.target.value)}
                           className="w-full px-4 py-2.5 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] focus:ring-2 focus:ring-purple-500 transition-all outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-[var(--muted)] uppercase tracking-widest mb-1.5 ml-0.5">Father's Name</label>
+                        <input
+                          type="text"
+                          value={fatherName}
+                          onChange={(e) => setFatherName(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] focus:ring-2 focus:ring-purple-500 transition-all outline-none"
+                          placeholder="Father's Name"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-[var(--muted)] uppercase tracking-widest mb-1.5 ml-0.5">Mother's Name</label>
+                        <input
+                          type="text"
+                          value={motherName}
+                          onChange={(e) => setMotherName(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl text-sm text-[var(--text)] focus:ring-2 focus:ring-purple-500 transition-all outline-none"
+                          placeholder="Mother's Name"
                         />
                       </div>
                     </div>
@@ -1213,14 +1239,25 @@ export default function Dashboard() {
                                       </div>
                                     )}
                                   </button>
-                                  <button
-                                    disabled
-                                    className="btn !py-2 !px-3.5 !text-[11px] flex items-center gap-1.5 opacity-40 cursor-not-allowed bg-[var(--surface-2)] border-[var(--border)] text-[var(--muted)] !rounded-lg !whitespace-normal flex-1 sm:flex-none text-left"
-                                    title="Bot automation disabled pending legal approval"
-                                  >
-                                    <Lock size={11} className="shrink-0" />
-                                    {language === 'ar' ? 'معطّل — بانتظار الموافقة' : language === 'tr' ? 'Devre Dışı — Yasal Onay' : 'Disabled — Pending Law Approval'}
-                                  </button>
+                                  {((s.title || '') + (s.summary || '')).toLowerCase().includes('ikamet') || ((s.title || '') + (s.summary || '')).toLowerCase().includes('kimlik') ? (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); automateStep(s.id); }}
+                                      className="btn btn-indigo !py-2 !px-3.5 !text-[11px] flex items-center gap-1.5 shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all !rounded-lg !whitespace-normal flex-1 sm:flex-none text-left"
+                                      title="Launch Registration Bot"
+                                    >
+                                      <Sparkles size={11} className="shrink-0 text-indigo-300 animate-pulse" />
+                                      {language === 'ar' ? 'تشغيل بوت التسجيل' : language === 'tr' ? 'Kayıt Botunu Başlat' : 'Launch Registration Bot'}
+                                    </button>
+                                  ) : (
+                                    <button
+                                      disabled
+                                      className="btn !py-2 !px-3.5 !text-[11px] flex items-center gap-1.5 opacity-40 cursor-not-allowed bg-[var(--surface-2)] border-[var(--border)] text-[var(--muted)] !rounded-lg !whitespace-normal flex-1 sm:flex-none text-left"
+                                      title="Bot automation disabled pending legal approval"
+                                    >
+                                      <Lock size={11} className="shrink-0" />
+                                      {language === 'ar' ? 'معطّل — بانتظار الموافقة' : language === 'tr' ? 'Devre Dışı — Yasal Onay' : 'Disabled — Pending Law Approval'}
+                                    </button>
+                                  )}
                                   <a
                                     href={
                                       ((s.title || '') + (s.summary || '')).toLowerCase().includes('mersis')
@@ -1252,15 +1289,13 @@ export default function Dashboard() {
                           )}
 
                           {/* Ask AI about this step */}
-                          <div className="pt-1 border-t border-white/[0.06]">
+                          <div className="pt-4 border-t border-[var(--border)]">
                             <button
                               onClick={(e) => { e.stopPropagation(); askAiAboutStep(s); }}
-                              className="flex items-center gap-2 text-[12px] font-bold text-purple-400 hover:text-purple-300 transition-colors group/ai"
+                              className="inline-flex items-center gap-2 text-[12px] font-bold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-all group/ai bg-purple-50 dark:bg-purple-500/10 hover:bg-purple-100 dark:hover:bg-purple-500/20 border border-purple-500/20 px-3 py-1.5 rounded-full shadow-sm hover:shadow-md"
                             >
-                              <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-purple-500/15 border border-purple-500/25 group-hover/ai:bg-purple-500/25 transition-colors">
-                                <MessageSquare size={11} />
-                              </span>
-                              {language === 'ar' ? 'اسأل الذكاء الاصطناعي عن هذه الخطوة ←' : language === 'tr' ? 'Bu Adım Hakkında AI\'a Sor →' : 'Ask AI more about this step →'}
+                              <Sparkles size={12} className="text-purple-500 animate-pulse" />
+                              {language === 'ar' ? 'اسأل الذكاء الاصطناعي عن هذه الخطوة' : language === 'tr' ? 'Bu Adım Hakkında AI\'a Sor' : 'Ask AI about this step'}
                             </button>
                           </div>
                         </div>
@@ -1288,33 +1323,41 @@ export default function Dashboard() {
             <div className="lg:col-span-4 space-y-4">
 
               {/* Action Required */}
-              <div className="glass-mesh mesh-amber p-5 space-y-4 shadow-xl overflow-hidden relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent pointer-events-none" />
-                <div className="flex items-start gap-3 relative z-10">
-                  <div className="h-9 w-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-500 shrink-0">
-                    <AlertCircle size={18} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-black text-amber-500 uppercase tracking-widest">{t('dashboard_action_required')}</p>
-                    <p className="text-[15px] font-bold text-[var(--text)] mt-1 leading-tight">
-                      {steps.find(s => s.status !== 'completed' && s.responsible !== 'Agent')?.title || t('dashboard_all_clear')}
+              {(() => {
+                const actionStep = steps.find(s => s.status !== 'completed' && s.responsible !== 'Agent');
+                const isClear = !actionStep;
+                return (
+                  <div className={`glass-mesh p-5 space-y-4 shadow-xl overflow-hidden relative transition-all duration-500 ${isClear ? 'mesh-emerald' : 'mesh-amber'}`}>
+                    <div className={`absolute inset-0 bg-gradient-to-br to-transparent pointer-events-none ${isClear ? 'from-emerald-500/5' : 'from-amber-500/5'}`} />
+                    <div className="flex items-start gap-3 relative z-10">
+                      <div className={`h-9 w-9 rounded-xl border flex items-center justify-center shrink-0 ${isClear ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-500' : 'bg-amber-500/20 border-amber-500/30 text-amber-500'}`}>
+                        {isClear ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                      </div>
+                      <div>
+                        <p className={`text-xs font-black uppercase tracking-widest ${isClear ? 'text-emerald-500' : 'text-amber-500'}`}>
+                          {isClear ? 'No Actions Needed' : t('dashboard_action_required')}
+                        </p>
+                        <p className="text-[15px] font-bold text-[var(--text)] mt-1 leading-tight">
+                          {actionStep?.title || t('dashboard_all_clear')}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-[13px] text-[var(--text)] opacity-70 leading-relaxed font-medium relative z-10">
+                      {actionStep 
+                        ? t('dashboard_action_required_desc').replace('{step}', actionStep.title || '')
+                        : t('dashboard_bot_processing')}
                     </p>
+                    {actionStep && (
+                      <button 
+                        onClick={() => markComplete(actionStep.id)} 
+                        className="btn btn-purple w-full !py-2.5 !text-sm justify-center shadow-lg transform transition-transform hover:scale-[1.02] relative z-10"
+                      >
+                        <CheckCircle2 size={14} /> {t('dashboard_mark_done')}
+                      </button>
+                    )}
                   </div>
-                </div>
-                <p className="text-[13px] text-[var(--text)] opacity-70 leading-relaxed font-medium relative z-10">
-                  {steps.find(s => s.status !== 'completed' && s.responsible !== 'Agent') 
-                    ? t('dashboard_action_required_desc').replace('{step}', steps.find(s => s.status !== 'completed' && s.responsible !== 'Agent')?.title || '')
-                    : t('dashboard_bot_processing')}
-                </p>
-                {steps.find(s => s.status !== 'completed' && s.responsible !== 'Agent') && (
-                  <button 
-                    onClick={() => markComplete(steps.find(s => s.status !== 'completed' && s.responsible !== 'Agent')?.id)} 
-                    className="btn btn-purple w-full !py-2.5 !text-sm justify-center shadow-lg transform transition-transform hover:scale-[1.02] relative z-10"
-                  >
-                    <CheckCircle2 size={14} /> {t('dashboard_mark_done')}
-                  </button>
-                )}
-              </div>
+                );
+              })()}
 
               {/* AI Agents */}
               <div className="glass-card p-5 space-y-5 shadow-xl">
@@ -1333,13 +1376,20 @@ export default function Dashboard() {
                     const isActive = data?.execution_plan?.assigned_agents?.some((a: any) => a.toLowerCase().includes(type));
                     const displayName = `${t(`assistant_${type}`)} ${t('agent_badge')}`;
                     
+                    const activeClasses = {
+                      student: { border: 'border-emerald-500/30', bgActive: 'bg-emerald-500/5', hoverBg: 'hover:bg-emerald-500/10', shadow: 'shadow-[0_0_20px_rgba(16,185,129,0.15)]', text: 'text-emerald-500', textActive: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-500/10 dark:bg-emerald-500/20', iconHover: 'group-hover:bg-emerald-500/30', pulse: 'bg-emerald-500' },
+                      lawyer: { border: 'border-amber-500/30', bgActive: 'bg-amber-500/5', hoverBg: 'hover:bg-amber-500/10', shadow: 'shadow-[0_0_20px_rgba(245,158,11,0.15)]', text: 'text-amber-500', textActive: 'text-amber-600 dark:text-amber-400', iconBg: 'bg-amber-500/10 dark:bg-amber-500/20', iconHover: 'group-hover:bg-amber-500/30', pulse: 'bg-amber-500' },
+                      permit: { border: 'border-blue-500/30', bgActive: 'bg-blue-500/5', hoverBg: 'hover:bg-blue-500/10', shadow: 'shadow-[0_0_20px_rgba(59,130,246,0.15)]', text: 'text-blue-500', textActive: 'text-blue-600 dark:text-blue-400', iconBg: 'bg-blue-500/10 dark:bg-blue-500/20', iconHover: 'group-hover:bg-blue-500/30', pulse: 'bg-blue-500' },
+                    };
+                    const ac = activeClasses[type as keyof typeof activeClasses] || activeClasses.permit;
+                    
                     return (
                       <div 
                         key={i} 
                         onClick={() => handleSwitchAssistant(type)}
-                        className={`group flex items-center gap-3 p-3.5 rounded-2xl transition-all hover:translate-x-1 cursor-pointer glass-mesh ${isActive ? 'mesh-red shadow-[0_0_20px_rgba(239,68,68,0.1)] hover:bg-red-500/5' : 'border-[var(--border)] bg-[var(--surface-1)] hover:bg-[var(--surface-2)]'} shadow-sm`}
+                        className={`group flex items-center gap-3 p-3.5 rounded-2xl transition-all hover:translate-x-1 cursor-pointer glass-mesh ${isActive ? `border ${ac.border} ${ac.bgActive} ${ac.shadow} ${ac.hoverBg}` : 'border border-[var(--border)] bg-[var(--surface-1)] hover:bg-[var(--surface-2)]'} shadow-sm hover:shadow-md`}
                       >
-                        <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${isActive ? 'text-red-600 dark:text-red-400 bg-red-500/10 dark:bg-red-500/20 border-red-500/20 group-hover:bg-red-500/30' : 'text-[var(--muted)] bg-[var(--surface-2)] border-[var(--border)]'} border shadow-sm transition-colors`}>
+                        <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 border shadow-sm transition-colors ${isActive ? `${ac.textActive} ${ac.iconBg} ${ac.border} ${ac.iconHover}` : 'text-[var(--muted)] bg-[var(--surface-2)] border-[var(--border)]'}`}>
                           <Cpu size={14} />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1347,10 +1397,11 @@ export default function Dashboard() {
                           <p className="text-[11px] text-[var(--muted)] font-medium truncate">{t('dashboard_agent_status')}</p>
                         </div>
                         <div className="flex flex-col items-end">
-                           <span className={`text-[9px] font-black uppercase tracking-widest group-hover:hidden transition-colors ${isActive ? 'text-red-500' : 'text-[var(--muted)] opacity-50'}`}>
+                           <span className={`text-[9px] font-black uppercase tracking-widest group-hover:hidden transition-colors flex items-center gap-1.5 ${isActive ? ac.text : 'text-[var(--muted)] opacity-50'}`}>
+                             {isActive && <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${ac.pulse}`} />}
                              {isActive ? t('dashboard_running') : t('dashboard_stopped') || 'STOPPED'}
                            </span>
-                           <span className={`hidden group-hover:block text-[9px] font-black uppercase tracking-widest text-red-600 animate-pulse`}>
+                           <span className={`hidden group-hover:block text-[9px] font-black uppercase tracking-widest ${ac.text} animate-pulse`}>
                              {t('chat_switch_assistant')} →
                            </span>
                         </div>
@@ -1366,8 +1417,8 @@ export default function Dashboard() {
                 <p className="text-[14px] text-[var(--text)] opacity-90 leading-relaxed font-medium">
                   {t('dashboard_next_step_desc')}
                 </p>
-                <Link href="/chat" className="text-sm font-bold text-purple-400 hover:text-purple-300 flex items-center gap-2 transition-all hover:translate-x-1">
-                  {t('dashboard_ask_ai_step')} <ArrowRight size={14} />
+                <Link href="/chat" className="inline-flex items-center gap-2 text-[12px] font-bold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-all group/ai bg-purple-50 dark:bg-purple-500/10 hover:bg-purple-100 dark:hover:bg-purple-500/20 border border-purple-500/20 px-4 py-2.5 rounded-full shadow-sm hover:shadow-md w-max mt-2">
+                  <Sparkles size={14} className="text-purple-500 animate-pulse" /> {t('dashboard_ask_ai_step')} <ArrowRight size={14} className="group-hover/ai:translate-x-1 transition-transform" />
                 </Link>
               </div>
 

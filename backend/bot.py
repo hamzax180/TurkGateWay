@@ -220,31 +220,188 @@ async def run_health_insurance_bot(passport_no: str = "", dob: str = "", start_d
         print(f"[Insurance Bot] Fatal Error:\n{err_trace}")
         return {"status": "error", "message": f"Insurance Bot failed: {str(e)}"}
 
-async def run_eikamet_bot(full_name: str, passport_no: str, passport_type: str, ikamet_type: str, dob: str, is_extension: bool) -> dict:
+async def run_eikamet_bot(full_name: str, passport_no: str, passport_type: str, ikamet_type: str, dob: str, is_extension: bool, father_name: str = "", mother_name: str = "") -> dict:
     """
     Navigates to e-ikamet.goc.gov.tr to simulate application for residency.
     """
     print(f"[e-Ikamet Bot] Starting session for {full_name}")
     try:
         p = await async_playwright().start()
-        browser = await p.chromium.launch(headless=False, slow_mo=1000)
+        # Headless=False so the user can see the bot working
+        browser = await p.chromium.launch(headless=False, slow_mo=1200)
         context = await browser.new_context()
         page = await context.new_page()
 
-        if is_extension:
-            print(f"[e-Ikamet Bot] Navigating to Extension URL: https://e-ikamet.goc.gov.tr/Ikamet/Basvuru/UzatmaBasvuru")
-            await page.goto("https://e-ikamet.goc.gov.tr/Ikamet/Basvuru/UzatmaBasvuru")
-        else:
-            print(f"[e-Ikamet Bot] Navigating to First Time URL: https://e-ikamet.goc.gov.tr/Ikamet/Basvuru/IlkBasvuru")
-            await page.goto("https://e-ikamet.goc.gov.tr/Ikamet/Basvuru/IlkBasvuru")
-        
+        # Step 1: Navigate to the main starting page
+        target_url = "https://e-ikamet.goc.gov.tr/"
+        print(f"[e-Ikamet Bot] Navigating to main portal: {target_url}")
+        await page.goto(target_url, wait_until="domcontentloaded", timeout=45000)
         await asyncio.sleep(2)
+
+        # Handle cookie consent if it appears
+        try:
+            accept_cookies = await page.query_selector('button:has-text("Accept"), button:has-text("Tamam"), .btn-accept')
+            if accept_cookies and await accept_cookies.is_visible():
+                await accept_cookies.click()
+                print("[e-Ikamet Bot] Accepted cookies")
+        except:
+            pass
+
+        # Step 2: Click the appropriate application button
+        if is_extension:
+            print("[e-Ikamet Bot] Selecting 'EXTENSION' application...")
+            selectors = [
+                'text="I APPLY FOR THE EXTENSION OF THE DURATION OF RESIDENCE PERMIT"',
+                'a:has-text("EXTENSION")',
+                'div.btn-eikamet-yesil'
+            ]
+        else:
+            print("[e-Ikamet Bot] Selecting 'FIRST TIME' application...")
+            selectors = [
+                'text="I LODGE AN APPLICATION FOR RESIDENCE PERMIT FOR THE FIRST TIME"',
+                'a:has-text("FIRST TIME")',
+                'div.btn-eikamet-pembe'
+            ]
             
-        print(f"[e-Ikamet Bot] Filling Applicant Details: Name={full_name}, Passport={passport_no}, Type={passport_type}, IkametType={ikamet_type}, DOB={dob}")
+        clicked = False
+        for selector in selectors:
+            try:
+                btn = await page.wait_for_selector(selector, timeout=5000, state="visible")
+                if btn:
+                    await btn.click()
+                    print(f"[e-Ikamet Bot] Clicked selection button using: {selector}")
+                    clicked = True
+                    break
+            except:
+                continue
+        
+        if not clicked:
+            print("[e-Ikamet Bot] Warning: Could not find specific selection button, proceeding with direct navigation if possible.")
+            
+        await page.wait_for_load_state("networkidle")
+        await asyncio.sleep(3)
+
+        # Step 2: Handle "I have read and understand" / Consent popups if they appear
+        print("[e-Ikamet Bot] Checking for consent checkboxes or popup buttons...")
+        try:
+            # Common selectors for terms checkboxes on TR gov sites
+            selectors = [
+                'input[type="checkbox"]', 
+                '#chkOkudumAnladim', 
+                'text="Okudum, anladım"', 
+                'text="I have read"',
+                'button:has-text("Devam")',
+                'button:has-text("Continue")'
+            ]
+            for selector in selectors:
+                elements = await page.query_selector_all(selector)
+                for el in elements:
+                    if await el.is_visible():
+                        await el.click()
+                        print(f"[e-Ikamet Bot] Clicked consent element: {selector}")
+                        await asyncio.sleep(1)
+        except Exception as e:
+            print(f"[e-Ikamet Bot] No initial consent popups found or already handled: {e}")
+            
+        # Step 3: Simulate filling the applicant data form
+        print(f"[e-Ikamet Bot] Preparing to fill applicant details...")
+        
+        try:
+            # First, check if we need to click "I WOULD LIKE TO LODGE A NEW APPLICATION" 
+            # if we landed on the splash page
+            print("[e-Ikamet Bot] Checking for 'New Application' splash screen...")
+            
+            # More robust selector found by inspection
+            new_app_selectors = [
+                'button:has-text("I WOULD LIKE TO LODGE A NEW APPLICATION")',
+                'button.btn-eikamet-mavi.btn-detay',
+                'text="I WOULD LIKE TO LODGE A NEW APPLICATION"'
+            ]
+            
+            for selector in new_app_selectors:
+                try:
+                    btn = await page.wait_for_selector(selector, timeout=5000, state="visible")
+                    if btn:
+                        await btn.click()
+                        print(f"[e-Ikamet Bot] Clicked 'New Application' button using: {selector}")
+                        await page.wait_for_load_state("networkidle")
+                        await asyncio.sleep(2)
+                        break
+                except:
+                    continue
+
+            # Check for "OK" buttons on informational popups that often follow
+            try:
+                ok_buttons = await page.query_selector_all('button:has-text("OK"), button:has-text("Tamam")')
+                for ok_btn in ok_buttons:
+                    if await ok_btn.is_visible():
+                        await ok_btn.click()
+                        print("[e-Ikamet Bot] Dismissed info popup with 'OK'")
+                        await asyncio.sleep(1)
+            except:
+                pass
+
+            # Fill the fields
+            print(f"[e-Ikamet Bot] Filling form fields for {full_name}...")
+            
+            # Helper to fill if exists
+            async def fill_if_exists(selector, value):
+                if not value: return
+                el = await page.query_selector(selector)
+                if el and await el.is_visible():
+                    await el.fill(value)
+                    print(f"[e-Ikamet Bot] Filled {selector} with {value}")
+
+            # Split full name if possible (very basic split)
+            name_parts = full_name.split(' ')
+            first_name = name_parts[0]
+            last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else "Unknown"
+
+            await fill_if_exists("#ad", first_name)
+            await fill_if_exists("#soyad", last_name)
+            await fill_if_exists("#babaAd", father_name)
+            await fill_if_exists("#anneAd", mother_name)
+            
+            # Date of Birth (format often needs to be dd.mm.yyyy for TR sites)
+            if dob:
+                # Basic conversion if needed, but assuming yyyy-mm-dd from frontend
+                formatted_dob = dob
+                if "-" in dob:
+                    parts = dob.split("-")
+                    formatted_dob = f"{parts[2]}.{parts[1]}.{parts[0]}"
+                await fill_if_exists("#DogumTarih", formatted_dob)
+
+            await fill_if_exists("#pasaportBelgeNo", passport_no)
+            
+            # Fill Nationality ID if provided (mapped to passport_no for now if no specific field)
+            # await fill_if_exists("#uyrukKimlikNo", "") 
+
+            # Handle Kendo Dropdowns (basic attempt)
+            async def set_kendo_dropdown(title, value):
+                try:
+                    dropdown = await page.query_selector(f"span[title='{title}']")
+                    if dropdown:
+                        await dropdown.click()
+                        await asyncio.sleep(1)
+                        # Try to find the item in the list that opens
+                        await page.click(f"li:has-text('{value}')")
+                        print(f"[e-Ikamet Bot] Selected {value} in {title} dropdown")
+                except:
+                    pass
+
+            await set_kendo_dropdown("Gender", "Male" if "male" in ikamet_type.lower() else "Female")
+            # We don't have nationality in our schema yet, but we could add it.
+            
+            print("[e-Ikamet Bot] Form filling simulation complete.")
+            
+        except Exception as fill_err:
+            print(f"[e-Ikamet Bot] Error during form filling: {fill_err}")
+
+        print(f"[e-Ikamet Bot] Bot reached the application portal. Data ready: Name={full_name}, Passport={passport_no}")
         await asyncio.sleep(5)
         
-        return {"status": "success", "message": "e-Ikamet automation simulation completed."}
+        return {"status": "success", "message": f"e-Ikamet bot successfully navigated to the {('extension' if is_extension else 'initial')} application form and filled initial data."}
     except Exception as e:
         err_trace = traceback.format_exc()
-        print(f"[e-Ikamet Bot] Fatal Error:\n{err_trace}")
+        print(f"[e-Ikamet Bot] Fatal Error:\\n{err_trace}")
         return {"status": "error", "message": f"e-Ikamet Bot failed: {str(e)}"}

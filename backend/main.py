@@ -99,6 +99,8 @@ class UserCredentials(BaseModel):
     ikamet_type: Optional[str] = None
     dob: Optional[str] = None
     is_extension: Optional[bool] = False
+    father_name: Optional[str] = None
+    mother_name: Optional[str] = None
 
 # --- Auth Dependency ---
 async def get_current_user(token: str, db: Session = Depends(get_db)):
@@ -1384,31 +1386,62 @@ async def submit_edevlet(creds: UserCredentials, token: Optional[str] = None, se
             "passport_type": creds.passport_type,
             "ikamet_type": creds.ikamet_type,
             "dob": creds.dob,
-            "is_extension": creds.is_extension
+            "is_extension": creds.is_extension,
+            "father_name": creds.father_name,
+            "mother_name": creds.mother_name
         }
         print(f"[Credentials] Stored for key={store_key}")
 
         use_mersis = creds.portal_url and "mersis" in creds.portal_url.lower()
+        use_eikamet = creds.portal_url and "e-ikamet" in creds.portal_url.lower()
+        use_insurance = creds.portal_url and "sigorta" in creds.portal_url.lower() or "insurance" in creds.portal_url.lower()
 
         if use_mersis:
+            from bot import run_mersis_bot, MERSIS_URL
             result = await asyncio.to_thread(
                 asyncio.run,
                 run_mersis_bot(creds.tckn, creds.password, creds.portal_url, creds.step_id or 0)
             )
+        elif use_eikamet:
+            from bot import run_eikamet_bot
+            result = await asyncio.to_thread(
+                asyncio.run,
+                run_eikamet_bot(
+                    full_name=creds.full_name or "Applicant",
+                    passport_no=creds.passport_no or "",
+                    passport_type=creds.passport_type or "Normal",
+                    ikamet_type=creds.ikamet_type or "Student",
+                    dob=creds.dob or "",
+                    is_extension=creds.is_extension,
+                    father_name=creds.father_name or "",
+                    mother_name=creds.mother_name or ""
+                )
+            )
+        elif use_insurance:
+            from bot import run_health_insurance_bot
+            result = await asyncio.to_thread(
+                asyncio.run,
+                run_health_insurance_bot(
+                    passport_no=creds.passport_no or "",
+                    dob=creds.dob or ""
+                )
+            )
         else:
+            from bot import run_edevlet_bot
             result = await asyncio.to_thread(
                 asyncio.run,
                 run_edevlet_bot(creds.tckn, creds.password, docs_to_upload, location=location)
             )
 
         if result["status"] == "success":
-            if "execution_plan" in latest_workflow:
-                if len(latest_workflow["execution_plan"]["steps"]) > 1:
-                    latest_workflow["execution_plan"]["steps"][1] = "Completed: " + latest_workflow["execution_plan"]["steps"][1]
-            latest_workflow["last_updated"] = "Just now"
+            # State is already updated via automate_step if called from there, 
+            # otherwise the frontend calls refresh() which gets the latest state.
+            pass
 
         return result
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return {"status": "error", "message": str(e)}
 
 # --- Iyzico Subscription Endpoints ---

@@ -196,7 +196,7 @@ INTENT_MAP = {
         r"(ضاع|فقدت|ضياع|انسرق|مفقود) (هوية|بطاقة|كيملك|كملك|كارت|كارت الجامعة)"
     ],
     "student.register_uni": [
-        r"\b(how (to|do i) (register|enroll|apply)|university (registration|enrollment|enrolment)|academic help|academic support|enroll (at|in)|register (at|for) (a |my )?university|yoks[i\u0131]s|roadmap|registration process|uni registration|how to enroll)\b",
+        r"\b(how (to|do i|can i|should i) (register|enroll|apply)|university (registration|enrollment|enrolment)|academic help|academic support|enroll (at|in)|register (at|for|to|in) (a |my )?(university|uni)|yoks[i\u0131]s|roadmap|registration process|uni registration|how to enroll|register to uni|register at uni|register for uni)\b",
         r"(تسجيل (جامعة|في الجامعة)|تقديم على (جامعة|الجامعة)|قبول جامعي|كيف اسجل بالجامعة|كيف سجل بالجامعة|كيف اسجل|كيف اسجل في الجامعة|كيف اقدم|قيد جامعة|تسجيل جامعي|خارطة طريق|خريطة طريق)"
     ],
     "student.top_universities": [
@@ -358,7 +358,13 @@ def detect_intent(
     text = message.lower().strip()
     
     # Context Augmentation: If query is short, boost it with context clues
-    if context_text and len(text.split()) < 10:
+    # GUARD: Skip context injection when user's raw query clearly signals a NEW topic
+    # to prevent stale context (e.g. visa) from polluting new intents (e.g. registration)
+    _new_topic_signals = ["register", "enroll", "apply to", "university", "uni ", "uni?",
+                          "company", "contract", "formation", "open a", "start a"]
+    _has_new_topic = any(s in text for s in _new_topic_signals)
+    
+    if context_text and len(text.split()) < 10 and not _has_new_topic:
         # Extract potential domain keywords from context (assistant output)
         # We only take the most relevant markers to avoid pollution
         context_lower = context_text.lower()
@@ -391,7 +397,6 @@ def detect_intent(
         r"\bplz\b": "please",
     }
     
-    text = message.lower().strip()
     for pattern, replacement in normalization_map.items():
         text = re.sub(pattern, replacement, text)
 

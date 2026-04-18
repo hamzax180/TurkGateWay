@@ -88,11 +88,6 @@ export default function LoginPage() {
                 <div className="p-8 sm:p-12 space-y-10">
                     {/* Header */}
                     <div className="space-y-4">
-                        <div className="flex justify-start">
-                            <div className="w-10 h-10 bg-gradient-to-tr from-purple-600 to-purple-400 rounded-full flex items-center justify-center shadow-lg shadow-purple-500/20">
-                                <span className="text-white font-black text-xl">T</span>
-                            </div>
-                        </div>
                         <div className="space-y-1">
                             <h1 className="text-2xl sm:text-3xl font-medium text-[var(--text)] tracking-tight">
                                 {step === 1 ? t('auth_login_title') : t('auth_login_title')}

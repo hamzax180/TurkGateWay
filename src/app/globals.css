@@ -795,3 +795,26 @@ body {
     transform: translateX(-50%);
   }
 }
+
+@keyframes carousel-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes carousel-scroll-rtl {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(50%); }
+}
+
+/* Services Page Carousel — pure CSS, hover to pause */
+.carousel-track {
+  animation: carousel-scroll 40s linear infinite;
+}
+
+[dir="rtl"] .carousel-track {
+  animation: carousel-scroll-rtl 40s linear infinite;
+}
+
+.carousel-container:hover .carousel-track {
+  animation-play-state: paused;
+}

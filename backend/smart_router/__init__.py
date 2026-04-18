@@ -119,7 +119,7 @@ _NEW_CONSULTATION_PATTERNS = [
     # "I need a permit for X" — user is asking for a permit for something specific
     r"\b(need|get|apply for|obtain) (a |an )?(permit|ruhsat|lisans|licence|license) (for|to)\b",
     # Student: enroll at / register for university
-    r"\b(enroll|register|apply) (at|for|to|in) (a |the |my )?university\b",
+    r"\b(enroll|register|apply) (at|for|to|in) (a |the |my )?(university|uni)\b",
     # Lawyer: I need legal help for / I need to form a company
     r"\b(form|create|register|incorporate|set up) (a |my |an )?(company|business|firm|ltd|a\u015f)\b",
     r"\b(i need|i have|i got) (a |an )?(legal|contract|lawyer|employment) (problem|issue|dispute|case|question|matter)\b",
@@ -472,7 +472,11 @@ async def smart_router_handle(
     early_intent_group, early_sub_intent, early_confidence = detect_intent(query, assistant_type, context_text=last_assistant_msg)
     
     # --- SMART VISA CLARIFICATION (Student-only, runs before keyword matching) ---
-    if assistant_type == "student" and early_intent_group == "student" and early_sub_intent == "visa":
+    # GUARD: If user's query clearly signals university registration, skip visa flow
+    _registration_signals = ["register", "enroll", "university", "uni ", "uni?", "uni\n", "registration", "how to register", "how can i register"]
+    _is_registration_query = any(s in query.lower() for s in _registration_signals)
+    
+    if assistant_type == "student" and early_intent_group == "student" and early_sub_intent == "visa" and not _is_registration_query:
         from .context_engine import parse_context, ConversationState
         
         print(f"[SmartRouter DEBUG] Visa query detected: '{query}'")

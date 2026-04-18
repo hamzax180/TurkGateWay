@@ -109,7 +109,7 @@ export default function ServicesPage() {
   const router = useRouter();
   const [selectedAgent, setSelectedAgent] = useState<'permit' | 'student' | 'lawyer' | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
-  const [slideshowPaused, setSlideshowPaused] = useState(false);
+
   const [lawyerMatterType, setLawyerMatterType] = useState('Contract Review');
 
   // Form states based on selections
@@ -201,43 +201,43 @@ export default function ServicesPage() {
   const services = [
     {
       id: 'permit',
-      title: 'Permit Agent',
+      title: t('assistant_permit') + ' ' + t('agent_badge'),
       icon: <Briefcase className="w-12 h-12 text-white" />,
       gradient: 'bg-gradient-to-br from-[#1a73e8] via-[#4285f4] to-[#1967d2]',
-      description: 'Business licenses, retail permits, and industrial compliance setup.',
+      description: t('services_permit_desc'),
       features: [
-        'Retail establishment permits',
-        'Restaurant & Cafe Licensing',
-        'Fire safety compliance',
-        'Municipal protocols',
+        t('services_feat_retail'),
+        t('services_feat_restaurant'),
+        t('services_feat_fire'),
+        t('services_feat_municipal'),
       ],
       status: 'Available',
     },
     {
       id: 'student',
-      title: 'Student Agent',
+      title: t('assistant_student') + ' ' + t('agent_badge'),
       icon: <GraduationCap className="w-12 h-12 text-white" />,
       gradient: 'bg-gradient-to-br from-[#0f9d58] via-[#34a853] to-[#0d652d]',
-      description: 'University registration, residence permits, and student renewals.',
+      description: t('services_student_desc'),
       features: [
-        'University registration',
-        'Student visa application',
-        'Getting & renewing ID (Kimlik)',
-        'Getting Nüfus (Address registration)',
+        t('services_feat_uni'),
+        t('services_feat_visa'),
+        t('services_feat_kimlik'),
+        t('services_feat_nufus'),
       ],
       status: 'Available',
     },
     {
       id: 'lawyer',
-      title: 'Legal Agent',
+      title: t('assistant_lawyer') + ' ' + t('agent_badge'),
       icon: <Scale className="w-12 h-12 text-white" />,
       gradient: 'bg-gradient-to-br from-[#f29900] via-[#fbbc04] to-[#ea8600]',
-      description: 'Professional legal assistance and compliance verifications.',
+      description: t('services_lawyer_desc'),
       features: [
-        'Contract review',
-        'Company formation',
-        'Legal disputes',
-        'Compliance checks',
+        t('services_feat_contract'),
+        t('services_feat_formation'),
+        t('services_feat_disputes'),
+        t('services_feat_compliance'),
       ],
       status: 'Coming Soon',
     },
@@ -324,36 +324,24 @@ export default function ServicesPage() {
           className="text-center max-w-4xl mx-auto mb-10 relative"
         >
           <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-[var(--text)] font-[Outfit] mb-6 leading-none transition-colors duration-500">
-            Explore AI Agents
+            {t('services_title')}
           </h1>
           <p className="text-lg md:text-xl text-[var(--muted)] font-medium max-w-2xl mx-auto leading-relaxed transition-colors duration-500">
-            Scale your administrative journey with professional AI support.
+            {t('services_subtitle')}
           </p>
         </motion.div>
 
         {/* Agent Showroom — Wrapping Carousel */}
         <div 
-          className="relative max-w-6xl mx-auto overflow-hidden py-4" 
+          className="carousel-container relative max-w-6xl mx-auto overflow-hidden py-4" 
           style={{ height: '420px' }}
-          onMouseEnter={() => setSlideshowPaused(true)}
-          onMouseLeave={() => setSlideshowPaused(false)}
         >
           {/* Fade edges — themed */}
           <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[var(--bg)] to-transparent z-10 pointer-events-none transition-all duration-500" />
           <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[var(--bg)] to-transparent z-10 pointer-events-none transition-all duration-500" />
 
-          {/* Smooth Moving Track */}
-          <motion.div 
-            className="flex items-center gap-[180px] w-max"
-            animate={{ 
-              x: slideshowPaused ? undefined : [-1560, 0] 
-            }}
-            transition={{
-              duration: 35, 
-              repeat: Infinity,
-              ease: "linear",
-            }}
-          >
+          {/* Smooth Moving Track — pure CSS animation, pauses on hover via CSS */}
+          <div className="carousel-track flex items-center gap-[180px] w-max">
             {[...services, ...services, ...services].map((service, index) => (
               <div
                 key={`${service.id}-${index}`}
@@ -361,9 +349,7 @@ export default function ServicesPage() {
                   width: `${CARD_W}px`,
                   flexShrink: 0
                 }}
-              onClick={() => {
-                setSlideshowPaused(true);
-              }}
+              onClick={() => {}}
               className={`backdrop-blur-3xl border rounded-[28px] overflow-hidden flex flex-col group cursor-pointer hover:scale-[1.02] transition-all duration-300 relative ${
                 service.status === 'Available' 
                   ? 'bg-[var(--surface)] border-[var(--border)] shadow-xl' 
@@ -385,7 +371,7 @@ export default function ServicesPage() {
                  {service.status !== 'Available' && (
                     <div className="absolute top-4 right-4 z-20">
                        <span className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-[9px] font-black text-white uppercase tracking-widest">
-                          Coming Soon
+                          {t('services_status_soon')}
                        </span>
                     </div>
                  )}
@@ -396,12 +382,12 @@ export default function ServicesPage() {
                   <h3 className="text-lg font-black font-[Outfit] tracking-tight">{service.title}</h3>
                   {service.status === 'Available' ? (
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Active</span>
+                      <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">{t('services_status_active')}</span>
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     </div>
                   ) : (
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Waitlist</span>
+                      <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">{t('services_status_waitlist')}</span>
                       <div className="w-1.5 h-1.5 rounded-full bg-indigo-400/40" />
                     </div>
                   )}
@@ -425,7 +411,7 @@ export default function ServicesPage() {
               </div>
             </div>
           ))}
-          </motion.div>
+          </div>
         </div>
       </div>
       
@@ -447,27 +433,16 @@ export default function ServicesPage() {
                 <div className="flex justify-between items-start mb-12">
                   <div className="flex items-center gap-5">
                     <div className={`w-16 h-16 rounded-[22px] flex items-center justify-center border-2 transition-all duration-500 shadow-xl ${
-                      selectedAgent === 'student' ? 'bg-indigo-500/10 border-indigo-500/30' : 
-                      selectedAgent === 'lawyer' ? 'bg-purple-500/10 border-purple-500/30' : 
-                      'bg-red-500/10 border-red-500/30'
+                      selectedAgent === 'student' ? 'bg-[#0f9d58]/10 border-[#0f9d58]/30 shadow-[#0f9d58]/10' : 
+                      selectedAgent === 'lawyer' ? 'bg-[#f29900]/10 border-[#f29900]/30 shadow-[#f29900]/10' : 
+                      'bg-[#1a73e8]/10 border-[#1a73e8]/30 shadow-[#1a73e8]/10'
                     }`}>
-                      {selectedAgent === 'student' ? <GraduationCap size={32} className="text-indigo-500" /> : 
-                       selectedAgent === 'lawyer' ? <Scale size={32} className="text-purple-500" /> : 
-                       <Briefcase size={32} className="text-red-500" />}
+                      {selectedAgent === 'student' ? <GraduationCap size={32} className="text-[#0f9d58]" /> : 
+                       selectedAgent === 'lawyer' ? <Scale size={32} className="text-[#f29900]" /> : 
+                       <Briefcase size={32} className="text-[#1a73e8]" />}
                     </div>
                     <div>
                       <h3 className="text-2xl font-black text-[var(--text)] font-[Outfit] tracking-tight leading-tight mb-1">Setup Agent</h3>
-                      <div className="flex items-center gap-2">
-                         <span className={`text-[10px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full ${
-                           selectedAgent === 'student' ? 'bg-indigo-500/10 text-indigo-500' : 
-                           selectedAgent === 'lawyer' ? 'bg-purple-500/10 text-purple-500' : 
-                           'bg-red-500/10 text-red-500'
-                         }`}>
-                           {selectedAgent === 'student' ? 'Student Protocol' : 
-                            selectedAgent === 'lawyer' ? 'Legal Protocol' : 
-                            'Permit Protocol'}
-                         </span>
-                      </div>
                     </div>
                   </div>
                   <button 
@@ -543,14 +518,22 @@ export default function ServicesPage() {
                   </button>
                   <button
                     onClick={handleInitializeWorkflow}
-                    className="flex-1 py-4 px-6 rounded-[24px] bg-red-600 text-white font-black uppercase text-[11px] tracking-[0.15em] hover:bg-red-500 shadow-[0_15px_40px_rgba(239,68,68,0.25)] active:scale-95 transition-all"
+                    className={`flex-1 py-4 px-6 rounded-[24px] text-white font-black uppercase text-[11px] tracking-[0.15em] active:scale-95 transition-all ${
+                      selectedAgent === 'student' ? 'bg-[#0f9d58] hover:bg-[#0d652d] shadow-[0_15px_40px_rgba(15,157,88,0.25)]' :
+                      selectedAgent === 'lawyer' ? 'bg-[#f29900] hover:bg-[#ea8600] shadow-[0_15px_40px_rgba(242,153,0,0.25)]' :
+                      'bg-[#1a73e8] hover:bg-[#1967d2] shadow-[0_15px_40px_rgba(26,115,232,0.25)]'
+                    }`}
                   >
                     Start Agent
                   </button>
                 </div>
                 
-                <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                <div className="mt-8 pt-6 border-t border-[var(--border)] flex items-center justify-center gap-2">
+                  <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                    selectedAgent === 'student' ? 'bg-[#0f9d58]' :
+                    selectedAgent === 'lawyer' ? 'bg-[#f29900]' :
+                    'bg-[#1a73e8]'
+                  }`} />
                   <p className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-widest opacity-40">
                     Secure 256-bit Encrypted Session
                   </p>
@@ -567,7 +550,7 @@ export default function ServicesPage() {
         <div className="max-w-[1340px] mx-auto px-6">
           
           {/* Describe What You Need Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center mb-48">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-start mb-48">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -586,6 +569,7 @@ export default function ServicesPage() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               className="bg-[var(--surface-2)] rounded-[32px] p-8 md:p-12 shadow-2xl relative overflow-hidden group border border-[var(--border)] transition-colors duration-500"
+              style={{ minHeight: '620px' }}
             >
               {/* Graph Paper Background */}
               <div className="absolute inset-0 opacity-[0.03] pointer-events-none dark:opacity-[0.05]" 
@@ -594,8 +578,9 @@ export default function ServicesPage() {
               <div className="relative z-10 text-[var(--text)]">
                 <div className="flex items-center gap-4 mb-8">
                   <div className={`relative w-12 h-12 rounded-[16px] flex items-center justify-center transition-all duration-500 overflow-hidden shrink-0 border ${
-                    ['University Enrollment', 'Kimlik Renewal'].includes(activeTask || '') ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-[0_0_25px_rgba(99,102,241,0.6)] border-indigo-400/40' :
-                    ['Register Company', 'Legal Consultation', 'Tax Compliance'].includes(activeTask || '') ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-[0_0_25px_rgba(16,185,129,0.6)] border-emerald-400/40' :
+                    ['University Enrollment', 'Kimlik Renewal'].includes(activeTask || '') ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-[0_0_25px_rgba(16,185,129,0.6)] border-emerald-400/40' :
+                    ['Register Company', 'Get Work Permit', 'Tax Compliance'].includes(activeTask || '') ? 'bg-gradient-to-br from-blue-500 to-blue-600 shadow-[0_0_25px_rgba(59,130,246,0.6)] border-blue-400/40' :
+                    ['Legal Consultation'].includes(activeTask || '') ? 'bg-gradient-to-br from-amber-500 to-amber-600 shadow-[0_0_25px_rgba(245,158,11,0.6)] border-amber-400/40' :
                     'bg-gradient-to-br from-red-500 to-red-600 shadow-[0_0_25px_rgba(239,68,68,0.6)] border-red-400/40'
                   }`}>
                      {/* Scanning light streak to perfectly match exact Chat animation */}
@@ -623,22 +608,33 @@ export default function ServicesPage() {
                     { icon: GraduationCap, label: 'University Enrollment' },
                     { icon: ListTodo, label: 'Kimlik Renewal' },
                     { icon: MessageSquare, label: 'Legal Consultation' }
-                  ].map((task, i) => (
-                    <div 
-                      key={i} 
-                      onClick={() => handleSimulateTask(task.label)}
-                      className={`flex items-center gap-4 p-4 rounded-xl border bg-[var(--surface)] hover:shadow-lg transition-all cursor-pointer group/task ${
-                         activeTask === task.label ? 'border-red-400 shadow-xl scale-[1.02]' : 'border-[var(--border)] hover:border-red-200 opacity-90 hover:opacity-100'
-                      } ${isTyping && activeTask !== task.label ? 'opacity-50 pointer-events-none' : ''}`}
-                    >
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                        activeTask === task.label ? 'bg-red-50 text-red-500' : 'bg-[var(--surface-2)] text-[var(--muted)] group-hover/task:text-red-500'
-                      }`}>
-                        <task.icon size={20} />
+                  ].map((task, i) => {
+                    const isStudent = ['University Enrollment', 'Kimlik Renewal'].includes(task.label);
+                    const isPermit = ['Register Company', 'Get Work Permit', 'Tax Compliance'].includes(task.label);
+                    const isLawyer = ['Legal Consultation'].includes(task.label);
+                    
+                    const activeColorClass = isStudent ? 'border-emerald-500 shadow-emerald-500/20' : isPermit ? 'border-blue-500 shadow-blue-500/20' : isLawyer ? 'border-amber-500 shadow-amber-500/20' : 'border-red-400 shadow-red-500/20';
+                    const hoverColorClass = isStudent ? 'hover:border-emerald-200' : isPermit ? 'hover:border-blue-200' : isLawyer ? 'hover:border-amber-200' : 'hover:border-red-200';
+                    const iconColorClass = isStudent ? 'text-emerald-500' : isPermit ? 'text-blue-500' : isLawyer ? 'text-amber-500' : 'text-red-500';
+                    const iconBgClass = isStudent ? 'bg-emerald-500/10' : isPermit ? 'bg-blue-500/10' : isLawyer ? 'bg-amber-500/10' : 'bg-red-500/10';
+
+                    return (
+                      <div 
+                        key={i} 
+                        onClick={() => handleSimulateTask(task.label)}
+                        className={`flex items-center gap-4 p-4 rounded-xl border bg-[var(--surface)] hover:shadow-lg transition-all cursor-pointer group/task ${
+                           activeTask === task.label ? `${activeColorClass} shadow-xl scale-[1.02]` : `border-[var(--border)] ${hoverColorClass} opacity-90 hover:opacity-100`
+                        } ${isTyping && activeTask !== task.label ? 'opacity-50 pointer-events-none' : ''}`}
+                      >
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                          activeTask === task.label ? `${iconBgClass} ${iconColorClass}` : `bg-[var(--surface-2)] text-[var(--muted)] group-hover/task:${iconColorClass}`
+                        }`}>
+                          <task.icon size={20} />
+                        </div>
+                        <span className="text-sm font-semibold text-[var(--text)]">{task.label}</span>
                       </div>
-                      <span className="text-sm font-semibold text-[var(--text)]">{task.label}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className={`mt-8 p-4 bg-[var(--surface)] border border-[var(--border)] rounded-2xl flex flex-col shadow-sm transition-all duration-500 ${isTyping || showSimulatedChat ? 'ring-2 ring-red-400/30 shadow-md' : ''}`}>
@@ -647,13 +643,12 @@ export default function ServicesPage() {
                         <div className="w-6 h-6 rounded-md bg-[var(--surface-2)] flex items-center justify-center shrink-0 transition-colors duration-500">
                           <FileText size={12} className="text-[var(--muted)]" />
                         </div>
-                        <span className={`text-xs transition-colors duration-500 ${isTyping || activeTask ? 'text-[var(--text)] font-medium' : 'text-[var(--muted)] font-medium italic'} truncate`}>
+                        <span className={`text-xs transition-colors duration-500 ${isTyping || activeTask ? 'text-[var(--text)] font-medium' : 'text-[var(--muted)] font-medium italic'}`}>
                            {simulatedText}
                            {isTyping && <span className="animate-pulse inline-block ml-1">|</span>}
                         </span>
                      </div>
                      <div className="flex items-center gap-4 shrink-0 pl-2">
-                        <span className="text-[10px] font-bold text-[var(--muted)] opacity-40 uppercase tracking-widest hidden sm:inline-block">Protocol 4.0</span>
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
                            activeTask && !isTyping ? 'bg-red-500 text-white shadow-md' : 'bg-red-500/10 text-red-500'
                         }`}>

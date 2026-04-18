@@ -361,9 +361,8 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen overflow-hidden selection:bg-purple-500/30 relative bg-[var(--bg)] transition-colors duration-500">
-      {/* Dynamic Backgrounds */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-white via-[#f0f7ff] to-[#f5f3ff] dark:from-[var(--bg)] dark:to-[var(--bg)] pointer-events-none transition-colors duration-500" />
-      <div className="absolute inset-0 hidden dark:block bg-[var(--bg)] pointer-events-none transition-colors duration-500" />
+      {/* Dynamic Background — uses CSS vars so it auto-adapts to dark mode */}
+      <div className="absolute inset-0 bg-[var(--bg)] pointer-events-none transition-colors duration-500" />
       <Sidebar
         currentSessionId={sessionId}
         assistantType={assistantType}
@@ -377,26 +376,46 @@ export default function ChatPage() {
         refreshTrigger={sidebarRefresh}
       />
 
-      <main className="flex-1 flex flex-col min-w-0 transition-colors duration-300 relative">
+      <main className={`flex-1 flex flex-col min-w-0 transition-colors duration-300 relative border-[var(--border)] ${isRTL ? 'border-r' : 'border-l'}`}>
         {/* Desktop Navbar with Agent Selector */}
         <div className="hidden md:block">
           <Navbar
             isAppPage
             extraContent={
               <div className="relative" ref={dropdownRef}>
-                <div
-                  className="flex items-center gap-2.5 cursor-pointer px-4 py-2 rounded-full transition-all border border-red-500/20 glass-mesh mesh-red shadow-[0_4px_15px_rgba(239,68,68,0.1)] group hover:scale-[1.02] active:scale-95"
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                >
-                  <div className="relative flex items-center justify-center">
-                    <Cpu size={15} className="text-red-500 animate-[pulse_1.5s_easeInOut_infinite] relative z-10" />
-                    <div className="absolute inset-0 bg-red-500/30 blur-md rounded-full animate-pulse" />
+                  <div
+                    className={`flex items-center gap-2.5 cursor-pointer px-4 py-2 rounded-full transition-all border glass-mesh shadow-lg group hover:scale-[1.02] active:scale-95 ${
+                      assistantType === 'student' ? 'border-emerald-500/20 mesh-green shadow-emerald-500/10' : 
+                      assistantType === 'lawyer' ? 'border-amber-500/20 mesh-amber shadow-amber-500/10' : 
+                      'border-blue-500/20 mesh-blue shadow-blue-500/10'
+                    }`}
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  >
+                    <div className="relative flex items-center justify-center">
+                      <Cpu size={15} className={`animate-[pulse_1.5s_easeInOut_infinite] relative z-10 ${
+                        assistantType === 'student' ? 'text-emerald-500' : 
+                        assistantType === 'lawyer' ? 'text-amber-500' : 
+                        'text-blue-500'
+                      }`} />
+                      <div className={`absolute inset-0 blur-md rounded-full animate-pulse ${
+                        assistantType === 'student' ? 'bg-emerald-500/30' : 
+                        assistantType === 'lawyer' ? 'bg-amber-500/30' : 
+                        'bg-blue-500/30'
+                      }`} />
+                    </div>
+                    <span className={`text-[12px] font-black uppercase tracking-[0.15em] ${
+                      assistantType === 'student' ? 'text-emerald-500' : 
+                      assistantType === 'lawyer' ? 'text-amber-500' : 
+                      'text-blue-500'
+                    }`}>
+                      {assistantType === 'permit' ? t('assistant_permit') : assistantType === 'student' ? t('assistant_student') : t('assistant_lawyer')} {t('agent_badge')}
+                    </span>
+                    <ChevronDown size={12} className={`transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''} ${
+                      assistantType === 'student' ? 'text-emerald-400 group-hover:text-emerald-500' : 
+                      assistantType === 'lawyer' ? 'text-amber-400 group-hover:text-amber-500' : 
+                      'text-blue-400 group-hover:text-blue-500'
+                    }`} />
                   </div>
-                  <span className="text-[12px] font-black uppercase tracking-[0.15em] text-red-500 dark:text-red-400">
-                    {assistantType === 'permit' ? t('assistant_permit') : assistantType === 'student' ? t('assistant_student') : t('assistant_lawyer')} {t('agent_badge')}
-                  </span>
-                  <ChevronDown size={12} className={`text-red-400 group-hover:text-red-500 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                </div>
 
                 <AnimatePresence mode="wait">
                   {isDropdownOpen && (
@@ -408,29 +427,44 @@ export default function ChatPage() {
                       className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-60 bg-[var(--surface)]/90 border border-white/10 rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.3)] z-[100] overflow-hidden backdrop-blur-2xl"
                     >
                       <div className="p-2 space-y-1">
-                        <div className="px-3 py-1.5 mb-2 text-[10px] font-bold text-red-500/70 uppercase tracking-widest border-b border-white/5">
+                        <div className="px-3 py-1.5 mb-2 text-[10px] font-bold text-[var(--muted)] opacity-50 uppercase tracking-widest border-b border-white/5">
                           Switch Assistant
                         </div>
                         <button
                           onClick={() => switchAssistant('permit')}
-                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${assistantType === 'permit' ? 'bg-red-500/10 text-red-500' : 'hover:bg-white/5 text-[var(--muted)] hover:text-[var(--text)]'}`}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${assistantType === 'permit' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' : 'hover:bg-white/5 text-[var(--muted)] hover:text-[var(--text)] border border-transparent'}`}
                         >
-                          <Building2 size={18} className={assistantType === 'permit' ? 'text-red-500' : ''} />
-                          <span className="text-xs font-black uppercase tracking-wider">{t('assistant_permit')} {t('agent_badge')}</span>
+                          <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 overflow-hidden border ${
+                            assistantType === 'permit' ? 'bg-blue-500 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.4)]' : 'bg-blue-500/10 border-blue-500/20'
+                          }`}>
+                            <Cpu size={16} className={`relative z-10 ${assistantType === 'permit' ? 'text-white' : 'text-blue-500'}`} />
+                            {assistantType === 'permit' && <div className="absolute inset-0 bg-blue-400 opacity-40 blur-md animate-pulse" />}
+                          </div>
+                          <span className="text-[13px] font-bold tracking-tight">{t('assistant_permit')}</span>
                         </button>
                         <button
                           onClick={() => switchAssistant('student')}
-                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${assistantType === 'student' ? 'bg-red-500/10 text-red-500' : 'hover:bg-white/5 text-[var(--muted)] hover:text-[var(--text)]'}`}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${assistantType === 'student' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'hover:bg-white/5 text-[var(--muted)] hover:text-[var(--text)] border border-transparent'}`}
                         >
-                          <GraduationCap size={18} className={assistantType === 'student' ? 'text-red-500' : ''} />
-                          <span className="text-xs font-black uppercase tracking-wider">{t('assistant_student')} {t('agent_badge')}</span>
+                          <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 overflow-hidden border ${
+                            assistantType === 'student' ? 'bg-emerald-500 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-emerald-500/10 border-emerald-500/20'
+                          }`}>
+                            <Cpu size={16} className={`relative z-10 ${assistantType === 'student' ? 'text-white' : 'text-emerald-500'}`} />
+                            {assistantType === 'student' && <div className="absolute inset-0 bg-emerald-400 opacity-40 blur-md animate-pulse" />}
+                          </div>
+                          <span className="text-[13px] font-bold tracking-tight">{t('assistant_student')}</span>
                         </button>
                         <button
                           onClick={() => switchAssistant('lawyer')}
-                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${assistantType === 'lawyer' ? 'bg-red-500/10 text-red-500' : 'hover:bg-white/5 text-[var(--muted)] hover:text-[var(--text)]'}`}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${assistantType === 'lawyer' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'hover:bg-white/5 text-[var(--muted)] hover:text-[var(--text)] border border-transparent'}`}
                         >
-                          <Scale size={18} className={assistantType === 'lawyer' ? 'text-red-500' : ''} />
-                          <span className="text-xs font-black uppercase tracking-wider">{t('assistant_lawyer')} {t('agent_badge')}</span>
+                          <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 overflow-hidden border ${
+                            assistantType === 'lawyer' ? 'bg-amber-500 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-amber-500/10 border-amber-500/20'
+                          }`}>
+                            <Cpu size={16} className={`relative z-10 ${assistantType === 'lawyer' ? 'text-white' : 'text-amber-500'}`} />
+                            {assistantType === 'lawyer' && <div className="absolute inset-0 bg-amber-400 opacity-40 blur-md animate-pulse" />}
+                          </div>
+                          <span className="text-[13px] font-bold tracking-tight">{t('assistant_lawyer')}</span>
                         </button>
                       </div>
                     </motion.div>
@@ -454,11 +488,15 @@ export default function ChatPage() {
             className="flex flex-col items-center justify-center cursor-pointer group"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 active:scale-95 transition-all">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">
+            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border active:scale-95 transition-all ${
+              assistantType === 'student' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 
+              assistantType === 'lawyer' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 
+              'bg-blue-500/10 border-blue-500/20 text-blue-500'
+            }`}>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em]">
                 {assistantType === 'permit' ? t('assistant_permit') : assistantType === 'student' ? t('assistant_student') : t('assistant_lawyer')} {t('agent_badge')}
               </span>
-              <ChevronDown size={10} className={`text-red-500 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={10} className={`transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </div>
             {isEmpty && (
               <span className="text-[13px] font-bold text-[var(--text)]/40 mt-0.5 tracking-tight">
@@ -521,47 +559,56 @@ export default function ChatPage() {
                   {t('chat_switch_assistant')}
                 </div>
 
-                <div className="flex flex-col gap-2.5 md:gap-3">
+                <div className="flex flex-col gap-2.5 md:gap-3 px-2">
                   <button
                     onClick={() => switchAssistant('permit')}
-                    className={`flex items-center gap-4 px-5 py-3.5 w-full rounded-[24px] transition-all duration-300 group ${assistantType === 'permit' ? 'bg-red-500/10 text-[var(--text)] border border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.1)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] border border-transparent'}`}
+                    className={`flex items-center gap-4 p-4 w-full rounded-2xl transition-all duration-300 group ${assistantType === 'permit' ? 'bg-blue-500/10 border border-blue-500/30 shadow-[0_8px_30px_rgba(59,130,246,0.15)] scale-[1.02]' : 'bg-[var(--surface-2)] border border-[var(--border)] hover:border-blue-400 opacity-90 hover:opacity-100 shadow-sm'}`}
                   >
-                    <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
-                      <Building2 size={22} className="text-red-500" />
+                    <div className={`relative w-11 h-11 rounded-[14px] flex items-center justify-center transition-all duration-500 overflow-hidden shrink-0 border ${
+                      assistantType === 'permit' ? 'bg-blue-500 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.4)]' : 'bg-blue-500/10 border-blue-500/20 group-hover:bg-blue-500 group-hover:border-blue-400'
+                    }`}>
+                      <Cpu size={22} className={`relative z-10 transition-colors duration-300 ${assistantType === 'permit' ? 'text-white' : 'text-blue-500 group-hover:text-white'}`} />
+                      {(assistantType === 'permit' || true) && <div className={`absolute inset-0 opacity-40 blur-xl animate-pulse transition-opacity duration-500 ${assistantType === 'permit' ? 'bg-blue-400' : 'bg-blue-400 opacity-0 group-hover:opacity-40'}`} />}
                     </div>
-                    <div className={`flex flex-col ${isRTL ? 'text-right' : 'text-left'} overflow-hidden`}>
-                      <span className="text-[16px] font-bold tracking-tight">{t('assistant_permit')} {t('agent_badge')}</span>
-                      <span className="text-[12px] opacity-60 truncate max-w-[220px]">{t('chat_permit_desc')}</span>
+                    <div className="flex flex-col text-left">
+                      <span className="text-[15px] font-bold tracking-tight text-[var(--text)]">{t('assistant_permit')} {t('agent_badge')}</span>
+                      <span className="text-[11px] font-medium text-[var(--muted)] opacity-60">{t('chat_permit_desc')}</span>
                     </div>
-                    {assistantType === 'permit' && <div className={`${isRTL ? 'mr-auto' : 'ml-auto'} w-2 h-2 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444]`} />}
+                    {assistantType === 'permit' && <div className="ml-auto w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6]" />}
                   </button>
 
                   <button
                     onClick={() => switchAssistant('student')}
-                    className={`flex items-center gap-4 px-5 py-3.5 w-full rounded-[24px] transition-all duration-300 group ${assistantType === 'student' ? 'bg-red-500/10 text-[var(--text)] border border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.1)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] border border-transparent'}`}
+                    className={`flex items-center gap-4 p-4 w-full rounded-2xl transition-all duration-300 group ${assistantType === 'student' ? 'bg-emerald-500/10 border border-emerald-500/30 shadow-[0_8px_30px_rgba(16,185,129,0.15)] scale-[1.02]' : 'bg-[var(--surface-2)] border border-[var(--border)] hover:border-emerald-400 opacity-90 hover:opacity-100 shadow-sm'}`}
                   >
-                    <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
-                      <GraduationCap size={22} className="text-red-500" />
+                    <div className={`relative w-11 h-11 rounded-[14px] flex items-center justify-center transition-all duration-500 overflow-hidden shrink-0 border ${
+                      assistantType === 'student' ? 'bg-emerald-500 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500 group-hover:border-emerald-400'
+                    }`}>
+                      <Cpu size={22} className={`relative z-10 transition-colors duration-300 ${assistantType === 'student' ? 'text-white' : 'text-emerald-500 group-hover:text-white'}`} />
+                      {(assistantType === 'student' || true) && <div className={`absolute inset-0 opacity-40 blur-xl animate-pulse transition-opacity duration-500 ${assistantType === 'student' ? 'bg-emerald-400' : 'bg-emerald-400 opacity-0 group-hover:opacity-40'}`} />}
                     </div>
-                    <div className={`flex flex-col ${isRTL ? 'text-right' : 'text-left'} overflow-hidden`}>
-                      <span className="text-[16px] font-bold tracking-tight">{t('assistant_student')} {t('agent_badge')}</span>
-                      <span className="text-[12px] opacity-60 truncate max-w-[220px]">{t('chat_student_desc')}</span>
+                    <div className="flex flex-col text-left">
+                      <span className="text-[15px] font-bold tracking-tight text-[var(--text)]">{t('assistant_student')} {t('agent_badge')}</span>
+                      <span className="text-[11px] font-medium text-[var(--muted)] opacity-60">{t('chat_student_desc')}</span>
                     </div>
-                    {assistantType === 'student' && <div className={`${isRTL ? 'mr-auto' : 'ml-auto'} w-2 h-2 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444]`} />}
+                    {assistantType === 'student' && <div className="ml-auto w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" />}
                   </button>
 
                   <button
                     onClick={() => switchAssistant('lawyer')}
-                    className={`flex items-center gap-4 px-5 py-3.5 w-full rounded-[24px] transition-all duration-300 group ${assistantType === 'lawyer' ? 'bg-red-500/10 text-[var(--text)] border border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.1)]' : 'text-[var(--muted)] hover:bg-[var(--surface-2)] border border-transparent'}`}
+                    className={`flex items-center gap-4 p-4 w-full rounded-2xl transition-all duration-300 group ${assistantType === 'lawyer' ? 'bg-amber-500/10 border border-amber-500/30 shadow-[0_8px_30px_rgba(245,158,11,0.15)] scale-[1.02]' : 'bg-[var(--surface-2)] border border-[var(--border)] hover:border-amber-400 opacity-90 hover:opacity-100 shadow-sm'}`}
                   >
-                    <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
-                      <Scale size={22} className="text-red-500" />
+                    <div className={`relative w-11 h-11 rounded-[14px] flex items-center justify-center transition-all duration-500 overflow-hidden shrink-0 border ${
+                      assistantType === 'lawyer' ? 'bg-amber-500 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.4)]' : 'bg-amber-500/10 border-amber-500/20 group-hover:bg-amber-500 group-hover:border-amber-400'
+                    }`}>
+                      <Cpu size={22} className={`relative z-10 transition-colors duration-300 ${assistantType === 'lawyer' ? 'text-white' : 'text-amber-500 group-hover:text-white'}`} />
+                      {(assistantType === 'lawyer' || true) && <div className={`absolute inset-0 opacity-40 blur-xl animate-pulse transition-opacity duration-500 ${assistantType === 'lawyer' ? 'bg-amber-400' : 'bg-amber-400 opacity-0 group-hover:opacity-40'}`} />}
                     </div>
-                    <div className={`flex flex-col ${isRTL ? 'text-right' : 'text-left'} overflow-hidden`}>
-                      <span className="text-[16px] font-bold tracking-tight">{t('assistant_lawyer')} {t('agent_badge')}</span>
-                      <span className="text-[12px] opacity-60 truncate max-w-[220px]">{t('chat_lawyer_desc')}</span>
+                    <div className="flex flex-col text-left">
+                      <span className="text-[15px] font-bold tracking-tight text-[var(--text)]">{t('assistant_lawyer')} {t('agent_badge')}</span>
+                      <span className="text-[11px] font-medium text-[var(--muted)] opacity-60">{t('chat_lawyer_desc')}</span>
                     </div>
-                    {assistantType === 'lawyer' && <div className={`${isRTL ? 'mr-auto' : 'ml-auto'} w-2 h-2 rounded-full bg-red-500 shadow-[0_0_10px_#ef4444]`} />}
+                    {assistantType === 'lawyer' && <div className="ml-auto w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_10px_#f59e0b]" />}
                   </button>
                 </div>
               </motion.div>
@@ -579,13 +626,17 @@ export default function ChatPage() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2, duration: 0.8 }}
-                className="flex flex-col items-center justify-center text-center px-4 pt-2 md:pt-8 mb-4 md:mb-6"
+                className="flex flex-col items-center justify-center text-center px-4 pt-8 md:pt-16 mb-8 md:mb-12"
               >
-                <div className="relative mb-6 md:mb-12">
+                <div className="relative mb-12 md:mb-20">
                   {/* Holographic scanning grid area */}
                   <div className="absolute inset-[-60px] rounded-full overflow-hidden pointer-events-none opacity-20">
                     <div className="absolute inset-0" style={{ 
-                      backgroundImage: 'radial-gradient(circle, rgba(239,68,68,0.4) 1px, transparent 1px)', 
+                      backgroundImage: `radial-gradient(circle, ${
+                        assistantType === 'student' ? 'rgba(16,185,129,0.4)' :
+                        assistantType === 'lawyer' ? 'rgba(245,158,11,0.4)' :
+                        'rgba(59,130,246,0.4)'
+                      } 1px, transparent 1px)`, 
                       backgroundSize: '16px 16px' 
                     }} />
                   </div>
@@ -642,7 +693,10 @@ export default function ChatPage() {
                         ease: "easeInOut"
                       }}
                       className={`absolute rounded-full blur-[0.4px] pointer-events-none ${
-                        i % 4 === 0 ? 'bg-white w-0.5 h-0.5' : 'bg-red-400/60 w-1 h-1 shadow-[0_0_5px_rgba(239,68,68,0.5)]'
+                        i % 4 === 0 ? 'bg-white w-0.5 h-0.5' : 
+                        assistantType === 'student' ? 'bg-emerald-400/60 w-1 h-1 shadow-[0_0_5px_rgba(16,185,129,0.5)]' :
+                        assistantType === 'lawyer' ? 'bg-amber-400/60 w-1 h-1 shadow-[0_0_5px_rgba(245,158,11,0.5)]' :
+                        'bg-blue-400/60 w-1 h-1 shadow-[0_0_5px_rgba(59,130,246,0.5)]'
                       }`}
                     />
                   ))}
@@ -654,7 +708,11 @@ export default function ChatPage() {
                       opacity: [0.3, 0.6, 0.3]
                     }}
                     transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute inset-[-60px] rounded-full bg-red-600/10 blur-[80px]"
+                    className={`absolute inset-[-60px] rounded-full blur-[80px] ${
+                      assistantType === 'student' ? 'bg-emerald-600/10' :
+                      assistantType === 'lawyer' ? 'bg-amber-600/10' :
+                      'bg-blue-600/10'
+                    }`}
                   />
 
 
@@ -665,10 +723,16 @@ export default function ChatPage() {
                       scale: 1.05, 
                       rotateY: 10, 
                       rotateX: -10,
-                      shadow: '0 0 70px rgba(239,68,68,0.7)'
+                      shadow: assistantType === 'student' ? '0 0 70px rgba(16,185,129,0.7)' :
+                              assistantType === 'lawyer' ? '0 0 70px rgba(245,158,11,0.7)' :
+                              '0 0 70px rgba(59,130,246,0.7)'
                     }}
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                    className="relative h-20 w-20 md:h-28 md:w-28 rounded-2xl md:rounded-3xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-[0_0_50px_rgba(239,68,68,0.5)] overflow-hidden border border-red-400/40"
+                    className={`relative h-20 w-20 md:h-28 md:w-28 rounded-2xl md:rounded-3xl flex items-center justify-center overflow-hidden border ${
+                      assistantType === 'student' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-[0_0_50px_rgba(16,185,129,0.5)] border-emerald-400/40' :
+                      assistantType === 'lawyer' ? 'bg-gradient-to-br from-amber-500 to-amber-600 shadow-[0_0_50px_rgba(245,158,11,0.5)] border-amber-400/40' :
+                      'bg-gradient-to-br from-blue-500 to-blue-600 shadow-[0_0_50px_rgba(59,130,246,0.5)] border-blue-400/40'
+                    }`}
                     style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}
                   >
                     {/* Active Interior Scanning Bar */}
@@ -723,33 +787,33 @@ export default function ChatPage() {
                 className="grid grid-cols-2 lg:flex lg:flex-row lg:flex-wrap lg:justify-center gap-3 md:gap-2.5 mt-8 md:mt-0 md:mb-8"
               >
                 {(assistantType === 'student' ? [
-                  { emoji: "🪪", label: t('chat_sug_renew'), mesh: 'mesh-red' },
-                  { emoji: "🏛️", label: t('chat_sug_uni'), mesh: 'mesh-red' },
-                  { emoji: "🗺️", label: t('chat_sug_roadmap'), mesh: 'mesh-red' },
-                  { emoji: "📅", label: t('chat_sug_deadlines'), mesh: 'mesh-red' },
-                  { emoji: "🛂", label: t('chat_sug_visas'), mesh: 'mesh-red' },
-                  { emoji: "🆘", label: t('chat_sug_shelp'), mesh: 'mesh-red' }
+                  { emoji: "🪪", label: t('chat_sug_renew'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                  { emoji: "🏛️", label: t('chat_sug_uni'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                  { emoji: "🗺️", label: t('chat_sug_roadmap'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                  { emoji: "📅", label: t('chat_sug_deadlines'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                  { emoji: "🛂", label: t('chat_sug_visas'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                  { emoji: "🆘", label: t('chat_sug_shelp'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' }
                 ] : assistantType === 'lawyer' ? [
-                  { emoji: "📑", label: t('chat_sug_contract'), mesh: 'mesh-red' },
-                  { emoji: "🏗️", label: t('chat_sug_formation'), mesh: 'mesh-red' },
-                  { emoji: "🤝", label: t('chat_sug_employ'), mesh: 'mesh-red' },
-                  { emoji: "📊", label: t('chat_sug_times'), mesh: 'mesh-red' },
-                  { emoji: "🏠", label: t('chat_sug_resid'), mesh: 'mesh-red' },
-                  { emoji: "⚖️", label: t('chat_sug_dispute'), mesh: 'mesh-red' }
+                  { emoji: "📑", label: t('chat_sug_contract'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                  { emoji: "🏗️", label: t('chat_sug_formation'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                  { emoji: "🤝", label: t('chat_sug_employ'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                  { emoji: "📊", label: t('chat_sug_times'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                  { emoji: "🏠", label: t('chat_sug_resid'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                  { emoji: "⚖️", label: t('chat_sug_dispute'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' }
                 ] : [
-                  { emoji: "🏢", label: t('chat_suggestion_business'), mesh: 'mesh-red' },
-                  { emoji: "📜", label: t('chat_suggestion_permit'), mesh: 'mesh-red' },
-                  { emoji: "📍", label: t('chat_suggestion_location'), mesh: 'mesh-red' },
-                  { emoji: "⏳", label: t('chat_suggestion_duration'), mesh: 'mesh-red' },
-                  { emoji: "💰", label: t('chat_suggestion_cost'), mesh: 'mesh-red' },
-                  { emoji: "❓", label: t('chat_suggestion_help'), mesh: 'mesh-red' }
+                  { emoji: "🏢", label: t('chat_suggestion_business'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                  { emoji: "📜", label: t('chat_suggestion_permit'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                  { emoji: "📍", label: t('chat_suggestion_location'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                  { emoji: "⏳", label: t('chat_suggestion_duration'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                  { emoji: "💰", label: t('chat_suggestion_cost'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                  { emoji: "❓", label: t('chat_suggestion_help'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' }
                 ]).map((chip, i) => (
                   <div
                     key={i}
                     onClick={() => send(chip.label)}
-                    className={`lg:glass-mesh lg:${chip.mesh} text-[var(--text)] text-[13px] md:text-[16px] py-4 px-4 md:px-6 rounded-[24px] md:rounded-[28px] flex items-center gap-3 md:gap-4 font-bold select-none md:backdrop-blur-xl transition-all hover:scale-[1.02] md:hover:scale-105 active:scale-95 cursor-pointer border border-white/5 md:border-white/10 bg-white/5 lg:bg-transparent lg:opacity-95 lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] group w-full lg:w-fit h-[68px] md:h-auto`}
+                    className={`lg:glass-mesh lg:${chip.mesh} text-[var(--text)] text-[13px] md:text-[16px] py-4 px-4 md:px-6 rounded-[24px] md:rounded-[28px] flex items-center gap-3 md:gap-4 font-bold select-none md:backdrop-blur-xl transition-all hover:scale-[1.02] md:hover:scale-105 active:scale-95 cursor-pointer border border-[var(--border)] bg-[var(--surface-2)] lg:bg-[var(--surface)] lg:opacity-95 lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] group w-full lg:w-fit h-[68px] md:h-auto ${chip.border}`}
                   >
-                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white/5 md:bg-white/10 border border-white/10 md:border-white/20 flex items-center justify-center shrink-0 group-hover:bg-white/10 transition-colors">
+                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-center shrink-0 group-hover:bg-[var(--surface)] transition-colors ${chip.color.replace('text', 'bg')}/10`}>
                       <span className="text-xl md:text-2xl filter drop-shadow-sm">{chip.emoji}</span>
                     </div>
                     <span className="leading-tight">{chip.label}</span>
@@ -834,7 +898,11 @@ export default function ChatPage() {
                     className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     {m.role === 'assistant' && (
-                      <div className={`h-9 w-9 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white shrink-0 mt-1 shadow-[0_0_15px_rgba(239,68,68,0.3)] border border-red-400/30 ${isRTL ? 'ml-4' : 'mr-4'}`}>
+                      <div className={`h-9 w-9 rounded-xl bg-gradient-to-br flex items-center justify-center text-white shrink-0 mt-1 shadow-md border ${
+                        assistantType === 'student' ? 'from-emerald-500 to-emerald-600 shadow-emerald-500/30 border-emerald-400/30' :
+                        assistantType === 'lawyer' ? 'from-amber-500 to-amber-600 shadow-amber-500/30 border-amber-400/30' :
+                        'from-blue-500 to-blue-600 shadow-blue-500/30 border-blue-400/30'
+                      } ${isRTL ? 'ml-4' : 'mr-4'}`}>
                         <Cpu size={18} />
                       </div>
                     )}
@@ -913,32 +981,49 @@ export default function ChatPage() {
 
               {busy && (
                 <motion.div
-                  initial={{ opacity: 0, x: -10 }}
+                  initial={{ opacity: 0, x: isRTL ? 10 : -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   className={`flex w-full items-center justify-start py-4 ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}
                 >
                   <div className={`relative h-10 w-10 flex items-center justify-center shrink-0 ${isRTL ? 'ml-4' : 'mr-4'}`}>
                     {/* Glowing status ring */}
-                    <div className="absolute inset-0 rounded-xl border border-red-500/20 bg-red-500/5 backdrop-blur-sm" />
+                    <div className={`absolute inset-0 rounded-xl border backdrop-blur-sm ${
+                      assistantType === 'student' ? 'border-emerald-500/20 bg-emerald-500/5' :
+                      assistantType === 'lawyer' ? 'border-amber-500/20 bg-amber-500/5' :
+                      'border-blue-500/20 bg-blue-500/5'
+                    }`} />
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                      className="absolute inset-[-2px] rounded-xl border-t border-red-500/60"
+                      className={`absolute inset-[-2px] rounded-xl border-t ${
+                        assistantType === 'student' ? 'border-emerald-500/60' :
+                        assistantType === 'lawyer' ? 'border-amber-500/60' :
+                        'border-blue-500/60'
+                      }`}
                     />
-                    <Cpu size={18} className="text-red-500 animate-pulse relative z-10" />
+                    <Cpu size={18} className={`${
+                      assistantType === 'student' ? 'text-emerald-500' :
+                      assistantType === 'lawyer' ? 'text-amber-500' :
+                      'text-blue-500'
+                    } animate-pulse relative z-10`} />
 
                     {/* Live processing blip */}
                     <motion.div
                       animate={{ opacity: [0, 1, 0] }}
                       transition={{ duration: 1, repeat: Infinity }}
-                      className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-red-400 shadow-[0_0_8px_rgba(239,68,68,1)] z-20"
+                      className={`absolute -top-0.5 ${isRTL ? '-left-0.5' : '-right-0.5'} w-1.5 h-1.5 rounded-full z-20 ${
+                        assistantType === 'student' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,1)]' :
+                        assistantType === 'lawyer' ? 'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,1)]' :
+                        'bg-blue-400 shadow-[0_0_8px_rgba(59,130,246,1)]'
+                      }`}
                     />
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-red-500/80 mb-0.5 animate-pulse">
-                      Analyzing Protocol...
-                    </span>
-                    <span className="text-[14px] font-medium text-[var(--muted)]/80 italic">
+                  <div className={`flex flex-col ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <span className={`text-[14px] font-medium animate-pulse ${
+                      assistantType === 'student' ? 'text-emerald-500/80' :
+                      assistantType === 'lawyer' ? 'text-amber-500/80' :
+                      'text-blue-500/80'
+                    }`}>
                       {t('agent_thinking')}
                     </span>
                   </div>
