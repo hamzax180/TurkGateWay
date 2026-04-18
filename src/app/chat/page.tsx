@@ -1077,9 +1077,6 @@ export default function ChatPage() {
                     </div>
                   )}
                 </div>
-                <p className="text-center text-[11px] text-[var(--muted)] mt-5 font-normal tracking-wide opacity-50">
-                  {t('agent_name')} • {t('footer_version')}
-                </p>
               </div>
             </div>
           )}
