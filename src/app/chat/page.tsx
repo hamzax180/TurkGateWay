@@ -817,6 +817,8 @@ export default function ChatPage() {
                       <span className="text-xl md:text-2xl filter drop-shadow-sm">{chip.emoji}</span>
                     </div>
                     <span className="leading-tight">{chip.label}</span>
+                  </div>
+                ))}
               </motion.div>
 
               {/* Chat Welcome Title */}
