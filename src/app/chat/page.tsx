@@ -714,8 +714,6 @@ export default function ChatPage() {
                       'bg-blue-600/10'
                     }`}
                   />
-
-
                     {/* Chat Welcome Title */}
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
