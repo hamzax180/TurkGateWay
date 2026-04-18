@@ -715,8 +715,7 @@ export default function ChatPage() {
                     }`}
                   />
 
-                {isEmpty ? (
-                  <div className="flex-1 flex flex-col items-center justify-center w-full max-w-5xl mx-auto px-4 py-20">
+
                     {/* Chat Welcome Title */}
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
