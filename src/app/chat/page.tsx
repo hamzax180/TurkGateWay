@@ -815,6 +815,7 @@ export default function ChatPage() {
                   </div>
                 </div>
               </div>
+            </div>
 
           ) : (
             <div className={`flex-1 overflow-y-auto w-full max-w-4xl mx-auto px-4 md:px-8 py-10 space-y-12 pb-44 slim-scroll bg-[var(--bg)]/40 rounded-t-[40px]`} dir={isRTL ? 'rtl' : 'ltr'}>
