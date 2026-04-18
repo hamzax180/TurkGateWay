@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '../context/LanguageContext';
 
 // --- Custom Select Component to prevent native OS upwards dropdown behavior ---
 const CustomSelect = ({ 
@@ -106,6 +107,7 @@ const DISTRICTS_OPTIONS = [
 
 
 export default function ServicesPage() {
+  const { t, isRTL } = useLanguage();
   const router = useRouter();
   const [selectedAgent, setSelectedAgent] = useState<'permit' | 'student' | 'lawyer' | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -757,10 +759,10 @@ export default function ServicesPage() {
               className="order-1 lg:order-2"
             >
               <h2 className="text-4xl md:text-5xl font-black text-[var(--text)] font-[Outfit] mb-6 tracking-tighter transition-colors duration-500">
-                AI does the work
+                {t('services_ai_does_work')}
               </h2>
               <p className="text-[var(--muted)] text-lg leading-relaxed mb-8 max-w-lg transition-colors duration-500">
-                TurkGateway works through each step, looping you in before anything significant. Watch in real time or walk away. For recurring tasks, tell us once and the agent handles the rest.
+                {t('services_ai_desc')}
               </p>
             </motion.div>
           </div>
@@ -773,19 +775,19 @@ export default function ServicesPage() {
               viewport={{ once: true }}
             >
               <h2 className="text-4xl md:text-5xl font-black text-[var(--text)] font-[Outfit] mb-6 tracking-tighter transition-colors duration-500">
-                You're in control
+                {t('services_control_title')}
               </h2>
               <p className="text-[var(--muted)] text-lg leading-relaxed mb-8 max-w-lg transition-colors duration-500">
-                You choose which portals and databases TurkGateway can access. Before an agent acts, it shows you the plan and waits for your approval. Redirect, refine, or take a different approach at any step.
+                {t('services_control_desc')}
               </p>
               <div className="flex gap-8">
                  <div className="flex items-center gap-3">
                    <Lock className="text-blue-500" size={20} />
-                   <span className="text-xs font-bold text-[var(--text)] uppercase tracking-widest transition-colors duration-500">End-to-End Encryption</span>
+                   <span className="text-xs font-bold text-[var(--text)] uppercase tracking-widest transition-colors duration-500">{t('services_encryption')}</span>
                  </div>
                  <div className="flex items-center gap-3">
                    <Eye className="text-blue-500" size={20} />
-                   <span className="text-xs font-bold text-[var(--text)] uppercase tracking-widest transition-colors duration-500">Privacy First</span>
+                   <span className="text-xs font-bold text-[var(--text)] uppercase tracking-widest transition-colors duration-500">{t('services_privacy')}</span>
                  </div>
               </div>
             </motion.div>
@@ -809,15 +811,15 @@ export default function ServicesPage() {
                      <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-4">
                        <Fingerprint size={28} />
                      </div>
-                     <h4 className="text-sm font-bold text-[var(--text)] mb-2">Allow Agent to change files?</h4>
+                     <h4 className="text-sm font-bold text-[var(--text)] mb-2">{t('services_allow_files')}</h4>
                      <p className="text-[11px] text-[var(--muted)] font-medium leading-relaxed">
-                       This includes municipal forms and e-Devlet downloads. Agent will be able to read, edit, and temporarily store files.
+                        {t('services_allow_desc')}
                      </p>
                   </div>
                   <div className="flex flex-col gap-2">
-                     <button className="w-full py-2.5 rounded-xl bg-gray-900 text-white text-[11px] font-bold">Allow Access</button>
-                     <button className="w-full py-2.5 rounded-xl border border-[var(--border)] text-[var(--muted)] text-[11px] font-bold">Always Allow</button>
-                     <button className="w-full py-2.5 rounded-xl text-[var(--muted)] text-[11px] font-bold">Cancel</button>
+                     <button className="w-full py-2.5 rounded-xl bg-gray-900 text-white text-[11px] font-bold">{t('services_allow_access')}</button>
+                     <button className="w-full py-2.5 rounded-xl border border-[var(--border)] text-[var(--muted)] text-[11px] font-bold">{t('services_always_allow')}</button>
+                     <button className="w-full py-2.5 rounded-xl text-[var(--muted)] text-[11px] font-bold">{t('settings_cancel')}</button>
                   </div>
                </motion.div>
             </motion.div>
