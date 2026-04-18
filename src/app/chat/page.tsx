@@ -822,7 +822,7 @@ export default function ChatPage() {
                   />
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-2 text-[var(--muted)] hover:text-[var(--text)] transition-colors shrink-0"
+                    className="hidden sm:flex p-2 text-[var(--muted)] hover:text-[var(--text)] transition-colors shrink-0"
                   >
                     <Plus size={22} />
                   </button>
@@ -858,7 +858,7 @@ export default function ChatPage() {
                           <div className="w-0.5 h-2 bg-current rounded-full" />
                           <div className="w-0.5 h-3.5 bg-current rounded-full animate-pulse" />
                         </div>
-                        <span className="text-[13px] font-bold tracking-tight">{t('chat_voice') || "Voice"}</span>
+                        <span className="hidden sm:inline text-[13px] font-bold tracking-tight">{t('chat_voice') || "Voice"}</span>
                       </button>
                     )}
                   </div>
@@ -1024,7 +1024,7 @@ export default function ChatPage() {
                 <div className={`relative flex items-center gap-2 rounded-full p-1.5 border border-[var(--border)] transition-all duration-300 bg-[var(--surface-1)] shadow-sm ${busy ? 'opacity-70' : 'focus-within:shadow-md'}`}>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-2 text-[var(--muted)] hover:text-indigo-400 transition-all shrink-0"
+                    className="hidden sm:flex p-2 text-[var(--muted)] hover:text-indigo-400 transition-all shrink-0"
                   >
                     <Plus size={22} />
                   </button>
@@ -1060,7 +1060,7 @@ export default function ChatPage() {
                           <div className="w-0.5 h-2 bg-current rounded-full" />
                           <div className="w-0.5 h-3.5 bg-current rounded-full animate-pulse" />
                         </div>
-                        <span className="text-[13px] font-bold tracking-tight">{t('chat_voice') || "Voice"}</span>
+                        <span className="hidden sm:inline text-[13px] font-bold tracking-tight">{t('chat_voice') || "Voice"}</span>
                       </button>
                     )}
                   </div>

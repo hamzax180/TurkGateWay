@@ -196,25 +196,25 @@ export default function Home() {
         >
           <div className="absolute inset-0 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-all duration-300 -z-10" />
           <div className="relative flex items-center gap-2 rounded-full p-1.5 border border-[var(--border)] bg-[var(--surface-1)] shadow-lg focus-within:shadow-xl transition-all">
-            <button className="p-2.5 text-[var(--muted)] hover:text-[var(--text)] transition-colors shrink-0">
+            <button className="hidden sm:flex p-2.5 text-[var(--muted)] hover:text-[var(--text)] transition-colors shrink-0">
               <Plus size={22} />
             </button>
             
             <input
               type="text"
               placeholder={t('chat_placeholder') || "Ask TurkGateway AI agents..."}
-              className="flex-1 bg-transparent py-3 px-1 text-[16px] md:text-[18px] text-[var(--text)] placeholder:text-[var(--muted)]/50 focus:outline-none"
+              className="flex-1 bg-transparent py-3 px-2 md:px-1 text-[16px] md:text-[18px] text-[var(--text)] placeholder:text-[var(--muted)]/50 focus:outline-none min-w-0"
             />
 
-            <div className="flex items-center gap-1.5 pr-1">
+            <div className="flex items-center gap-1 md:gap-1.5 pr-1 shrink-0">
               <Link href="/chat">
-                <button className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-all shrink-0">
+                <button className="flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-full bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-all shrink-0">
                   <div className="flex items-center gap-0.5">
                     <div className="w-0.5 h-3 bg-current rounded-full animate-pulse" />
                     <div className="w-0.5 h-2 bg-current rounded-full" />
                     <div className="w-0.5 h-3.5 bg-current rounded-full animate-pulse" />
                   </div>
-                  <span className="text-[13px] font-bold tracking-tight">{t('chat_voice') || "Voice"}</span>
+                  <span className="hidden sm:inline text-[13px] font-bold tracking-tight">{t('chat_voice') || "Voice"}</span>
                 </button>
               </Link>
               
