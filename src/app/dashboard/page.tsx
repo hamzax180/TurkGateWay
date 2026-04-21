@@ -127,15 +127,8 @@ export default function Dashboard() {
     const startTime = Date.now();
     try {
       setLoading(true);
-      const token = localStorage.getItem('permitops_token');
       const sid = localStorage.getItem('permitops_active_session_id');
-      const params = new URLSearchParams();
-      if (token) params.append('token', token);
-      if (sid) {
-        if (sid.startsWith('pending-')) return false;
-        params.append('session_id', sid);
-      }
-      const query = params.toString() ? `?${params.toString()}` : '';
+      const query = sid ? `?session_id=${sid}` : '';
 
       const res = await apiFetch(`/workflow/latest${query}`);
       if (res?.ok) {
@@ -181,7 +174,7 @@ export default function Dashboard() {
           const typeToUse = localStorage.getItem('permitops_assistant_type') || 'permit';
           
           if (token) {
-            const res = await apiFetch(`/chat/sessions?token=${token}&assistant_type=${typeToUse}`, { method: 'POST' });
+            const res = await apiFetch(`/chat/sessions?assistant_type=${typeToUse}`, { method: 'POST' });
             if (res?.ok) {
               const data = await res.json();
               realSessionId = data.id;
@@ -201,7 +194,7 @@ export default function Dashboard() {
           });
 
           console.log('[Dashboard] Auto-generating workflow for session:', realSessionId);
-          await apiFetch(`/agent/query${token ? `?token=${token}` : ''}`, {
+          await apiFetch(`/agent/query`, {
             method: 'POST',
             headers,
             body,
@@ -264,7 +257,7 @@ export default function Dashboard() {
         return;
       }
 
-      const res = await apiFetch(`/payment/subscribe?token=${token}`, { method: 'POST' });
+      const res = await apiFetch(`/payment/subscribe`, { method: 'POST' });
       if (res && res.ok) {
         const json = await res.json();
         if (json.status === 'success' && json.checkoutFormContent) {
@@ -301,13 +294,8 @@ export default function Dashboard() {
     const startTime = Date.now();
     try {
       setLoading(true);
-      const token = localStorage.getItem('permitops_token');
       const sid = localStorage.getItem('permitops_active_session_id');
-      const params = new URLSearchParams();
-      if (token) params.append('token', token);
-      if (sid) params.append('session_id', sid);
-      const query = params.toString() ? `?${params.toString()}` : '';
-
+      const query = sid ? `?session_id=${sid}` : '';
       const res = await apiFetch(`/workflow/step/automate/${id}${query}`, { method: 'POST' });
       if (res?.ok) {
         await refresh();
@@ -325,13 +313,8 @@ export default function Dashboard() {
 
   const markComplete = async (id: number) => {
     try {
-      const token = localStorage.getItem('permitops_token');
       const sid = localStorage.getItem('permitops_active_session_id');
-      const params = new URLSearchParams();
-      if (token) params.append('token', token);
-      if (sid) params.append('session_id', sid);
-      const query = params.toString() ? `?${params.toString()}` : '';
-
+      const query = sid ? `?session_id=${sid}` : '';
       const res = await apiFetch(`/workflow/step/complete/${id}${query}`, { method: 'POST' });
       if (res?.ok) {
         await refresh();
@@ -414,13 +397,8 @@ export default function Dashboard() {
     const portalWin = window.open('about:blank', '_blank');
     
     try {
-      const token = localStorage.getItem('permitops_token');
       const sid = localStorage.getItem('permitops_active_session_id');
-      const params = new URLSearchParams();
-      if (token) params.append('token', token);
-      if (sid) params.append('session_id', sid);
-      const query = params.toString() ? `?${params.toString()}` : '';
-
+      const query = sid ? `?session_id=${sid}` : '';
       const res = await apiFetch(`/api/submit-edevlet${query}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

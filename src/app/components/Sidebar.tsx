@@ -57,7 +57,7 @@ export default function Sidebar({
     if (!token) return;
     try {
       setLoading(true);
-      const res = await apiFetch(`/chat/sessions?token=${token}`);
+      const res = await apiFetch(`/chat/sessions`);
       if (res?.ok) {
         const data = await res.json();
         setSessions(data);

@@ -42,13 +42,25 @@ export async function apiFetch(
 
   const key = `${options?.method ?? 'GET'}:${path}`;
 
+  // Auto-inject Authorization header if token exists
+  const token = typeof window !== 'undefined' ? localStorage.getItem('permitops_token') : null;
+  const enhancedHeaders = {
+    ...(options?.headers || {}),
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
+
+  const enhancedOptions = {
+    ...options,
+    headers: enhancedHeaders
+  };
+
   // If a request is already in-flight, return a CLONED response of that promise
   if (!options && inFlight.has(key)) {
     const res = await inFlight.get(key);
     return res ? res.clone() : null;
   }
 
-  const promise = fetch(`${BACKEND_BASE}${path}`, options)
+  const promise = fetch(`${BACKEND_BASE}${path}`, enhancedOptions)
     .then(async (res) => {
       markBackendOnline();
       

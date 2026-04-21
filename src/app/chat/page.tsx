@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Sparkles, User, Mic, Plus, ChevronDown, Building2, FileText, Search, Clock, HelpCircle, Scale, Menu, GraduationCap, Cpu } from 'lucide-react';
+import { Send, Sparkles, User, Mic, Plus, ChevronDown, Building2, FileText, Search, Clock, HelpCircle, Scale, Menu, GraduationCap, Cpu, X, Volume2, VolumeX } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useLanguage } from '../context/LanguageContext';
@@ -62,6 +62,18 @@ export default function ChatPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [spokenWordIndex, setSpokenWordIndex] = useState(-1);
+  const [fullCleanText, setFullCleanText] = useState("");
+  const [voiceTranscript, setVoiceTranscript] = useState("");
+  const [isVoiceMode, setIsVoiceMode] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
+  const [detectedService, setDetectedService] = useState<string | null>(null);
+  const [callEnded, setCallEnded] = useState(false);
+  const callTimerRef = useRef<any>(null);
+  const voiceLoopRef = useRef(false);
   const msgIdRef = useRef(1);
 
   // Load sessions on mount or when auth changes
@@ -76,7 +88,7 @@ export default function ChatPage() {
 
       if (isAuthenticated && token) {
         try {
-          const res = await apiFetch(`/chat/sessions?token=${token}`);
+          const res = await apiFetch(`/chat/sessions`);
           if (res?.ok) {
             const data = await res.json();
             if (!mounted) return;
@@ -149,7 +161,7 @@ export default function ChatPage() {
 
       if (isAuthenticated && token) {
         try {
-          const res = await apiFetch(`/chat/history/${sessionId}?token=${token}`);
+          const res = await apiFetch(`/chat/history/${sessionId}`);
           if (res?.ok) {
             const data = await res.json();
             setMsgs(data);
@@ -218,7 +230,7 @@ export default function ChatPage() {
     const typeToUse = forceType || assistantType;
     if (isAuthenticated && token) {
       try {
-        const res = await apiFetch(`/chat/sessions?token=${token}&assistant_type=${typeToUse}`, { method: 'POST' });
+        const res = await apiFetch(`/chat/sessions?assistant_type=${typeToUse}`, { method: 'POST' });
         if (res?.ok) {
           const data = await res.json();
           setAllSessions(prev => [data, ...prev]);
@@ -251,6 +263,149 @@ export default function ChatPage() {
     }
   };
 
+  // --- Voice Chat Logic ---
+  const toggleVoice = () => {
+    if (isListening || isVoiceMode) {
+      hangUpCall();
+    } else {
+      startCall();
+    }
+  };
+
+  const startCall = () => {
+    setIsVoiceMode(true);
+    setCallEnded(false);
+    setCallDuration(0);
+    setDetectedService(null);
+    setVoiceTranscript('');
+    voiceLoopRef.current = true;
+    // Start call timer
+    callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
+    startListening();
+  };
+
+  const hangUpCall = () => {
+    voiceLoopRef.current = false;
+    if (recognitionRef.current) recognitionRef.current.stop();
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    clearInterval(callTimerRef.current);
+    setIsListening(false);
+    setIsSpeaking(false);
+    setCallEnded(true);
+    // Push to dashboard after 2s then close
+    setTimeout(() => {
+      setIsVoiceMode(false);
+      setCallEnded(false);
+      // Trigger dashboard refresh
+      localStorage.setItem('permitops_workflow_update', Date.now().toString());
+      window.dispatchEvent(new StorageEvent('storage', { key: 'permitops_workflow_update' }));
+    }, 3000);
+  };
+
+  const startListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) { alert('Speech recognition not supported in this browser.'); return; }
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+
+    const rec = new SpeechRecognition();
+    rec.lang = language === 'tr' ? 'tr-TR' : language === 'ar' ? 'ar-SA' : 'en-US';
+    rec.continuous = true;   // Real phone-call: keep listening
+    rec.interimResults = true;
+
+    rec.onstart = () => setIsListening(true);
+
+    rec.onend = () => {
+      setIsListening(false);
+      // Auto-restart recognition if call still active (phone-call loop)
+      if (voiceLoopRef.current && !isSpeaking) {
+        setTimeout(() => { if (voiceLoopRef.current) startListening(); }, 400);
+      }
+    };
+
+    rec.onerror = (e: any) => {
+      if (e.error === 'no-speech' && voiceLoopRef.current) {
+        setTimeout(() => { if (voiceLoopRef.current) startListening(); }, 600);
+      } else {
+        setIsListening(false);
+      }
+    };
+
+    rec.onresult = (event: any) => {
+      const last = event.results[event.results.length - 1];
+      const transcript = last[0].transcript.trim();
+      setVoiceTranscript(transcript);
+
+      // Live service detection from transcript
+      const lower = transcript.toLowerCase();
+      if (/cafe|coffee|restaurant|shop|retail|office|bakery|pharmacy|gym|barber|permit|ruhsat|محل|مطعم|كافيه/.test(lower)) {
+        setDetectedService('permit');
+      } else if (/university|student|visa|scholarship|dorm|ikamet|جامعة|طالب|منحة/.test(lower)) {
+        setDetectedService('student');
+      } else if (/lawyer|contract|company|lawsuit|legal|court|dispute|محامي|عقد|شركة/.test(lower)) {
+        setDetectedService('lawyer');
+      }
+
+      if (last.isFinal && transcript.length > 2) {
+        setVoiceTranscript('');
+        rec.stop(); // Pause recognition while AI responds
+        send(transcript);
+      }
+    };
+
+    recognitionRef.current = rec;
+    try { rec.start(); } catch {}
+  };
+
+  const stopListening = () => {
+    voiceLoopRef.current = false;
+    if (recognitionRef.current) recognitionRef.current.stop();
+    setIsListening(false);
+  };
+
+  const speak = (text: string) => {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    synth.cancel();
+
+    const cleanText = text
+      .replace(/\[CTA: .+? \| .+?\]/g, '')
+      .replace(/[*_#`~>]/g, '')
+      .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+      .slice(0, 600);
+
+    setFullCleanText(cleanText);
+    setSpokenWordIndex(0);
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = language === 'tr' ? 'tr-TR' : language === 'ar' ? 'ar-SA' : 'en-US';
+
+    if (assistantType === 'student') { utterance.pitch = 1.2; utterance.rate = 1.1; }
+    else if (assistantType === 'lawyer') { utterance.pitch = 0.9; utterance.rate = 0.92; }
+    else { utterance.pitch = 1.0; utterance.rate = 1.0; }
+
+    const voices = synth.getVoices();
+    const preferredVoice = voices.find(v => v.lang.startsWith(utterance.lang) && (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Natural')));
+    if (preferredVoice) utterance.voice = preferredVoice;
+
+    utterance.onstart = () => { setIsSpeaking(true); if (recognitionRef.current) try { recognitionRef.current.stop(); } catch {} };
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setSpokenWordIndex(-1);
+      // Resume listening after AI speaks (real phone-call feel)
+      if (voiceLoopRef.current) setTimeout(() => { if (voiceLoopRef.current) startListening(); }, 500);
+    };
+    utterance.onerror = () => { setIsSpeaking(false); setSpokenWordIndex(-1); };
+    utterance.onboundary = (event: any) => {
+      if (event.name === 'word') {
+        const wordCount = cleanText.substring(0, event.charIndex + 2).trim().split(/\s+/).length;
+        setSpokenWordIndex(wordCount);
+      }
+    };
+
+    synth.speak(utterance);
+  };
+
   const handleDeleteSession = async (id: string) => {
     if (!token) return;
     try {
@@ -269,6 +424,8 @@ export default function ChatPage() {
     const q = (text ?? input).trim();
     if ((!q && !file) || busy || !sessionId) return;
     setInput('');
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    setIsSpeaking(false);
 
     const displayQ = file ? `📎 [Attached: ${file.name}]\n${q}` : q;
     const userMsg: Msg = { id: msgIdRef.current++, role: 'user', content: displayQ };
@@ -300,7 +457,7 @@ export default function ChatPage() {
         body = JSON.stringify({ query: q, language, context: { session_id: sessionId }, assistant_type: assistantType });
       }
 
-      const res = await apiFetch(`/agent/query${token ? `?token=${token}` : ''}`, {
+      const res = await apiFetch(`/agent/query`, {
         method: 'POST',
         headers,
         body,
@@ -333,6 +490,12 @@ export default function ChatPage() {
       }
 
       setMsgs(p => [...p, { id: msgIdRef.current++, role: 'assistant', content: rawContent }]);
+
+      // Auto-speak if the message was sent via voice or if we want premium experience
+      if (isVoiceMode || isListening) {
+        speak(rawContent);
+        setVoiceTranscript(""); // Clear transcript after sending
+      }
     } catch {
       setMsgs(p => [...p, { id: msgIdRef.current++, role: 'assistant', content: "⚠️ Backend is currently offline. Please make sure the server is running." }]);
     } finally {
@@ -826,7 +989,7 @@ export default function ChatPage() {
                   >
                     <Plus size={22} />
                   </button>
-                  
+
                   <textarea
                     ref={inputRef}
                     value={input}
@@ -845,20 +1008,52 @@ export default function ChatPage() {
 
                   <div className="flex items-center gap-1.5 pr-1">
                     {input.trim() ? (
-                      <button 
-                        onClick={() => send()} 
+                      <button
+                        onClick={() => send()}
                         className="h-9 w-9 flex items-center justify-center rounded-full bg-[var(--text)] text-[var(--bg)] hover:opacity-90 transition-all shrink-0"
                       >
                         <Send size={18} />
                       </button>
                     ) : (
-                      <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-all shrink-0">
-                        <div className="flex items-center gap-0.5">
-                          <div className="w-0.5 h-3 bg-current rounded-full animate-pulse" />
-                          <div className="w-0.5 h-2 bg-current rounded-full" />
-                          <div className="w-0.5 h-3.5 bg-current rounded-full animate-pulse" />
+                      <button
+                        onClick={toggleVoice}
+                        className={`relative flex items-center gap-2 px-4 py-2 rounded-full transition-all shrink-0 ${isListening
+                            ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]'
+                            : 'bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)]'
+                          }`}
+                      >
+                        {isListening && (
+                          <motion.div
+                            initial={{ scale: 0.8, opacity: 0.5 }}
+                            animate={{ scale: 1.5, opacity: 0 }}
+                            transition={{ repeat: Infinity, duration: 1.5 }}
+                            className="absolute inset-0 bg-red-500 rounded-full z-0"
+                          />
+                        )}
+                        <div className="relative z-10 flex items-center gap-2">
+                          {isListening ? (
+                            <div className="flex items-center gap-1">
+                              {[1, 2, 3].map(i => (
+                                <motion.div
+                                  key={i}
+                                  animate={{ height: [8, 16, 8] }}
+                                  transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.1 }}
+                                  className="w-1 bg-white rounded-full"
+                                />
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-0.5">
+                              <div className="w-0.5 h-3 bg-current rounded-full animate-pulse" />
+                              <div className="w-0.5 h-2 bg-current rounded-full" />
+                              <div className="w-0.5 h-3.5 bg-current rounded-full animate-pulse" />
+                            </div>
+                          )}
+                          <Mic size={18} className={isListening ? 'animate-pulse' : ''} />
+                          <span className="hidden sm:inline text-[13px] font-bold tracking-tight">
+                            {isListening ? (t('chat_listening') || "Listening...") : (t('chat_voice') || "Voice")}
+                          </span>
                         </div>
-                        <span className="hidden sm:inline text-[13px] font-bold tracking-tight">{t('chat_voice') || "Voice"}</span>
                       </button>
                     )}
                   </div>
@@ -1054,13 +1249,45 @@ export default function ChatPage() {
                         <Send size={18} />
                       </button>
                     ) : (
-                      <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-all shrink-0">
-                        <div className="flex items-center gap-0.5">
-                          <div className="w-0.5 h-3 bg-current rounded-full animate-pulse" />
-                          <div className="w-0.5 h-2 bg-current rounded-full" />
-                          <div className="w-0.5 h-3.5 bg-current rounded-full animate-pulse" />
+                      <button
+                        onClick={toggleVoice}
+                        className={`relative flex items-center gap-2 px-4 py-2 rounded-full transition-all shrink-0 ${isListening
+                            ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]'
+                            : 'bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)]'
+                          }`}
+                      >
+                        {isListening && (
+                          <motion.div
+                            initial={{ scale: 0.8, opacity: 0.5 }}
+                            animate={{ scale: 1.5, opacity: 0 }}
+                            transition={{ repeat: Infinity, duration: 1.5 }}
+                            className="absolute inset-0 bg-red-500 rounded-full z-0"
+                          />
+                        )}
+                        <div className="relative z-10 flex items-center gap-2">
+                          {isListening ? (
+                            <div className="flex items-center gap-1">
+                              {[1, 2, 3].map(i => (
+                                <motion.div
+                                  key={i}
+                                  animate={{ height: [8, 16, 8] }}
+                                  transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.1 }}
+                                  className="w-1 bg-white rounded-full"
+                                />
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-0.5">
+                              <div className="w-0.5 h-3 bg-current rounded-full animate-pulse" />
+                              <div className="w-0.5 h-2 bg-current rounded-full" />
+                              <div className="w-0.5 h-3.5 bg-current rounded-full animate-pulse" />
+                            </div>
+                          )}
+                          <Mic size={18} className={isListening ? 'animate-pulse' : ''} />
+                          <span className="hidden sm:inline text-[13px] font-bold tracking-tight">
+                            {isListening ? (t('chat_listening') || "Listening...") : (t('chat_voice') || "Voice")}
+                          </span>
                         </div>
-                        <span className="hidden sm:inline text-[13px] font-bold tracking-tight">{t('chat_voice') || "Voice"}</span>
                       </button>
                     )}
                   </div>
@@ -1082,6 +1309,241 @@ export default function ChatPage() {
           )}
 
         </div>
+
+        {/* ── ChatGPT-Style Voice Call Overlay ── */}
+        <AnimatePresence>
+          {isVoiceMode && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.35 }}
+              className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden"
+              style={{ background: 'radial-gradient(ellipse at 50% 60%, #0a0a14 0%, #05050a 100%)' }}
+            >
+              {/* ── Ambient background glow ── */}
+              <div className="absolute inset-0 pointer-events-none">
+                <motion.div
+                  animate={{ scale: isSpeaking ? [1, 1.3, 1] : [1, 1.08, 1], opacity: isSpeaking ? [0.25, 0.55, 0.25] : [0.12, 0.22, 0.12] }}
+                  transition={{ duration: isSpeaking ? 1.2 : 3, repeat: Infinity, ease: 'easeInOut' }}
+                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full"
+                  style={{
+                    background: assistantType === 'student'
+                      ? 'radial-gradient(circle, rgba(16,185,129,0.4) 0%, transparent 70%)'
+                      : assistantType === 'lawyer'
+                        ? 'radial-gradient(circle, rgba(245,158,11,0.4) 0%, transparent 70%)'
+                        : 'radial-gradient(circle, rgba(96,165,250,0.45) 0%, transparent 70%)'
+                  }}
+                />
+              </div>
+
+              {/* ── Top bar: chip + hang up ── */}
+              <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-8 pt-8 z-10">
+                <div /> {/* Left flex spacer to keep chip centered and X on the right if needed, or chip left */}
+
+                {/* Detected service chip */}
+                <AnimatePresence>
+                  {detectedService && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.8, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      className={`flex items-center gap-2 backdrop-blur-xl border rounded-full px-4 py-2 text-[12px] font-black uppercase tracking-widest ${
+                        detectedService === 'student' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                        : detectedService === 'lawyer' ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                        : 'bg-blue-500/15 border-blue-500/30 text-blue-400'
+                      }`}
+                    >
+                      <Sparkles size={12} />
+                      {detectedService === 'permit' ? 'Permit Advisor' : detectedService === 'student' ? 'Student Advisor' : 'Legal Counsel'}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Close / hang up */}
+                <button
+                  onClick={hangUpCall}
+                  className="w-11 h-11 flex items-center justify-center rounded-full bg-white/8 hover:bg-red-500/20 border border-white/10 hover:border-red-500/40 text-white/60 hover:text-red-400 transition-all active:scale-90"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* ── ChatGPT-Exact Voice Orb ── */}
+              <div className="relative flex items-center justify-center" style={{ width: 260, height: 260 }}>
+
+                {/* The perfect circle container — clips everything inside */}
+                <motion.div
+                  animate={{ scale: isSpeaking ? [1, 1.04, 0.98, 1.03, 1] : isListening ? [1, 1.02, 0.99, 1.02, 1] : 1 }}
+                  transition={{ duration: isSpeaking ? 1.0 : 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                  className="relative overflow-hidden"
+                  style={{
+                    width: 220, height: 220,
+                    borderRadius: '50%',
+                    background: assistantType === 'student'
+                      ? 'linear-gradient(160deg, #a7f3d0 0%, #34d399 40%, #059669 100%)'
+                      : assistantType === 'lawyer'
+                        ? 'linear-gradient(160deg, #fef3c7 0%, #fcd34d 40%, #d97706 100%)'
+                        : 'linear-gradient(160deg, #e0f2fe 0%, #7dd3fc 40%, #3b82f6 100%)',
+                    boxShadow: isSpeaking
+                      ? assistantType === 'student'
+                        ? '0 0 80px 30px rgba(52,211,153,0.45), 0 0 140px 60px rgba(16,185,129,0.2)'
+                        : assistantType === 'lawyer'
+                          ? '0 0 80px 30px rgba(252,211,77,0.45), 0 0 140px 60px rgba(245,158,11,0.2)'
+                          : '0 0 80px 30px rgba(125,211,252,0.45), 0 0 140px 60px rgba(59,130,246,0.2)'
+                      : assistantType === 'student'
+                        ? '0 0 40px 10px rgba(52,211,153,0.2)'
+                        : assistantType === 'lawyer'
+                          ? '0 0 40px 10px rgba(252,211,77,0.2)'
+                          : '0 0 40px 10px rgba(125,211,252,0.2)'
+                  }}
+                >
+                  {/* Cloud blob 1 — large bright wisp, top-left */}
+                  <motion.div
+                    animate={{
+                      x: isSpeaking ? ['-10%', '15%', '-5%', '10%', '-10%'] : ['-10%', '8%', '-6%', '5%', '-10%'],
+                      y: isSpeaking ? ['-15%', '10%', '-8%', '12%', '-15%'] : ['-15%', '5%', '-10%', '3%', '-15%'],
+                    }}
+                    transition={{ duration: isSpeaking ? 2.8 : 8, repeat: Infinity, ease: 'easeInOut' }}
+                    className="absolute"
+                    style={{
+                      width: '130%', height: '130%',
+                      top: '-15%', left: '-15%',
+                      borderRadius: '50%',
+                      background: 'radial-gradient(ellipse at 45% 42%, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.4) 35%, transparent 65%)',
+                      filter: 'blur(18px)',
+                    }}
+                  />
+                  {/* Cloud blob 2 — medium, drifts bottom-right */}
+                  <motion.div
+                    animate={{
+                      x: isSpeaking ? ['20%', '-10%', '18%', '-5%', '20%'] : ['20%', '-5%', '12%', '-8%', '20%'],
+                      y: isSpeaking ? ['20%', '-5%', '22%', '-2%', '20%'] : ['20%', '5%', '15%', '0%', '20%'],
+                    }}
+                    transition={{ duration: isSpeaking ? 3.2 : 10, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}
+                    className="absolute"
+                    style={{
+                      width: '110%', height: '110%',
+                      top: '-5%', left: '-5%',
+                      borderRadius: '50%',
+                      background: assistantType === 'student'
+                        ? 'radial-gradient(ellipse at 60% 65%, rgba(255,255,255,0.7) 0%, rgba(167,243,208,0.5) 30%, transparent 60%)'
+                        : assistantType === 'lawyer'
+                          ? 'radial-gradient(ellipse at 60% 65%, rgba(255,255,255,0.7) 0%, rgba(254,243,199,0.5) 30%, transparent 60%)'
+                          : 'radial-gradient(ellipse at 60% 65%, rgba(255,255,255,0.7) 0%, rgba(186,230,255,0.5) 30%, transparent 60%)',
+                      filter: 'blur(22px)',
+                    }}
+                  />
+                  {/* Cloud blob 3 — small bright accent, wanders freely */}
+                  <motion.div
+                    animate={{
+                      x: isSpeaking ? ['-5%', '25%', '-8%', '20%', '-5%'] : ['5%', '-12%', '15%', '-5%', '5%'],
+                      y: isSpeaking ? ['10%', '-12%', '18%', '-8%', '10%'] : ['-5%', '10%', '-8%', '6%', '-5%'],
+                    }}
+                    transition={{ duration: isSpeaking ? 2.0 : 12, repeat: Infinity, ease: 'easeInOut', delay: 1.8 }}
+                    className="absolute"
+                    style={{
+                      width: '80%', height: '80%',
+                      top: '10%', left: '10%',
+                      borderRadius: '60% 40% 50% 50% / 40% 50% 50% 60%',
+                      background: 'radial-gradient(ellipse at 40% 40%, rgba(255,255,255,0.85) 0%, transparent 55%)',
+                      filter: 'blur(14px)',
+                    }}
+                  />
+                  {/* Cloud blob 4 — subtle deep color layer for depth */}
+                  <motion.div
+                    animate={{
+                      x: isSpeaking ? ['15%', '-15%', '10%', '-10%', '15%'] : ['0%', '10%', '-5%', '8%', '0%'],
+                      y: isSpeaking ? ['-10%', '15%', '-5%', '10%', '-10%'] : ['0%', '-8%', '5%', '-3%', '0%'],
+                      scale: isSpeaking ? [1, 1.15, 0.9, 1.1, 1] : 1,
+                    }}
+                    transition={{ duration: isSpeaking ? 1.8 : 9, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+                    className="absolute inset-0"
+                    style={{
+                      borderRadius: '50%',
+                      background: assistantType === 'student'
+                        ? 'radial-gradient(ellipse at 70% 30%, rgba(16,185,129,0.45) 0%, transparent 60%)'
+                        : assistantType === 'lawyer'
+                          ? 'radial-gradient(ellipse at 70% 30%, rgba(245,158,11,0.45) 0%, transparent 60%)'
+                          : 'radial-gradient(ellipse at 70% 30%, rgba(59,130,246,0.5) 0%, transparent 60%)',
+                      filter: 'blur(20px)',
+                    }}
+                  />
+                </motion.div>
+
+                {/* Soft outer glow ring — pulses on speak */}
+                <motion.div
+                  animate={{ opacity: isSpeaking ? [0.4, 0.8, 0.4] : isListening ? [0.2, 0.4, 0.2] : [0.1, 0.2, 0.1], scale: isSpeaking ? [1, 1.12, 1] : [1, 1.04, 1] }}
+                  transition={{ duration: isSpeaking ? 1.0 : 3, repeat: Infinity, ease: 'easeInOut' }}
+                  className="absolute rounded-full pointer-events-none"
+                  style={{
+                    width: 240, height: 240,
+                    background: assistantType === 'student'
+                      ? 'radial-gradient(circle, rgba(52,211,153,0.35) 0%, transparent 70%)'
+                      : assistantType === 'lawyer'
+                        ? 'radial-gradient(circle, rgba(252,211,77,0.35) 0%, transparent 70%)'
+                        : 'radial-gradient(circle, rgba(125,211,252,0.4) 0%, transparent 70%)',
+                    filter: 'blur(20px)',
+                  }}
+                />
+              </div>
+
+              {/* ── Status text + transcript ── */}
+              <div className="mt-20 text-center max-w-lg px-6 z-10">
+                <AnimatePresence mode="wait">
+                  {callEnded ? (
+                    <motion.div key="ended" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center gap-3">
+                      <p className="text-white/90 text-xl font-bold">Call Summary Saved</p>
+                      <p className="text-white/40 text-sm">Your dashboard has been updated with the conversation roadmap.</p>
+                    </motion.div>
+                  ) : (
+                    <motion.div key="active" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                      <p className="text-white/35 text-[11px] font-black uppercase tracking-[0.35em] mb-3">
+                        {isSpeaking ? 'Assistant Speaking…' : isListening ? 'Listening…' : 'Connecting…'}
+                      </p>
+                      <motion.p
+                        key={voiceTranscript}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-white/80 text-lg font-semibold leading-relaxed min-h-[32px]"
+                      >
+                        {isListening ? (
+                          voiceTranscript ? voiceTranscript : (
+                            <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 2, repeat: Infinity }}>
+                              I'm listening to you...
+                            </motion.span>
+                          )
+                        ) : isSpeaking ? (
+                          fullCleanText.split(' ').slice(0, 12).map((w, i) => (
+                            <motion.span key={i} animate={{ opacity: i < spokenWordIndex ? 1 : 0.2 }} transition={{ duration: 0.08 }} className="inline-block mr-1">{w}</motion.span>
+                          ))
+                        ) : null}
+                      </motion.p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* ── Hang-up button ── */}
+              {!callEnded && (
+                <motion.button
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  onClick={hangUpCall}
+                  whileHover={{ scale: 1.06 }}
+                  whileTap={{ scale: 0.93 }}
+                  className="absolute bottom-12 w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-[0_0_40px_rgba(239,68,68,0.5)] transition-colors z-10"
+                >
+                  {/* Phone hang-up icon */}
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
+                    <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C9.6 21 3 14.4 3 6c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
+                  </svg>
+                </motion.button>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <style dangerouslySetInnerHTML={{
           __html: `

@@ -100,7 +100,7 @@ async def ai_fallback_response(
         response = await asyncio.to_thread(
             model.generate_content,
             prompt,
-            generation_config={"max_output_tokens": 1024},
+            generation_config={"max_output_tokens": max_tokens},  # Fixed: was hardcoded 1024
         )
         text = response.text.strip()
         

@@ -33,12 +33,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                 // Then verify and sync is_admin from backend in the background
                 try {
-                    const res = await fetch(`http://localhost:8003/auth/me?token=${savedToken}`);
+                    const res = await fetch(`http://localhost:8003/auth/me`, {
+                        headers: {
+                            'Authorization': `Bearer ${savedToken}`
+                        }
+                    });
                     if (res.ok) {
                         const data = await res.json();
                         const adminStatus = !!data.is_admin;
                         localStorage.setItem('permitops_is_admin', adminStatus ? 'true' : 'false');
                         setUser({ email: data.email, fullName: data.full_name || savedName || getFallbackName(savedUser), isAdmin: adminStatus });
+                    } else if (res.status === 401) {
+                        // Token is invalid/expired - clear it
+                        console.warn("Session expired or invalid. Logging out.");
+                        logout();
                     }
                 } catch (e) {
                     // silently fail — offline or backend down

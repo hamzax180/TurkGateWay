@@ -1,13 +1,19 @@
 import sys
 import io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
+# Force UTF-8 encoding for stdout and stderr to prevent crashes on Windows with non-ASCII characters
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
 
 # Adaptive Learning Engine - Heartbeat Force Reload
 import os
 import asyncio
 import datetime
 from fastapi import FastAPI, Depends, HTTPException, status, Query, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import RedirectResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -45,9 +51,21 @@ from agents.lawyer.model import lawyer_model, lawyer_chat_model
 
 app = FastAPI(title="PermitOps AI Backend")
 
+@app.get("/")
+async def root():
+    return {"status": "ok", "message": "PermitOps AI Backend is running"}
+
+# Configure CORS - Explicit origins are required when allow_credentials is True
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -101,19 +119,47 @@ class UserCredentials(BaseModel):
     is_extension: Optional[bool] = False
     father_name: Optional[str] = None
     mother_name: Optional[str] = None
+    
+security = HTTPBearer()
+security_optional = HTTPBearer(auto_error=False)
 
-# --- Auth Dependency ---
-async def get_current_user(token: str, db: Session = Depends(get_db)):
-    payload = decode_access_token(token)
+async def get_current_user(token: str = None, db: Session = Depends(get_db), credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+    user = await get_current_user_optional(token, db, credentials)
+    if not user:
+        token_preview = (credentials.credentials[:10] + "...") if credentials else (token[:10] + "...") if token else "None"
+        print(f"DEBUG: get_current_user failed. Token: {token_preview}")
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return user
+
+async def get_current_user_optional(token: str = None, db: Session = Depends(get_db), credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_optional)):
+    # Source token from header (preferred) or query param
+    final_token = None
+    # Check if credentials is the actual credentials object or just a Depends placeholder
+    if credentials and hasattr(credentials, 'credentials'):
+        final_token = credentials.credentials
+    elif token:
+        final_token = token
+        
+    if not final_token:
+        return None
+        
+    payload = decode_access_token(final_token)
     if not payload:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        print(f"DEBUG: decode_access_token failed for token starting with {final_token[:10] if final_token else 'None'}")
+        return None
+        
     email: str = payload.get("sub")
     if email is None:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    user = db.query(DBUser).filter(DBUser.email == email).first()
-    if user is None:
-        raise HTTPException(status_code=401, detail="User not found")
-    return user
+        return None
+        
+    try:
+        user = db.query(DBUser).filter(DBUser.email == email).first()
+        if not user:
+            print(f"DEBUG: User not found in DB for email: {email}")
+        return user
+    except Exception as e:
+        print(f"[DB Error in get_current_user_optional] {e}")
+        return None
 
 # --- Rate Limiting ---
 limiter = Limiter(key_func=get_remote_address)
@@ -176,8 +222,7 @@ async def check_email(request: Request, db: Session = Depends(get_db)):
     return {"status": "exists"}
 
 @app.get("/auth/me")
-async def get_me(token: str, db: Session = Depends(get_db)):
-    user = await get_current_user(token, db)
+async def get_me(user: DBUser = Depends(get_current_user)):
     return {
         "email": user.email,
         "full_name": user.full_name,
@@ -186,8 +231,7 @@ async def get_me(token: str, db: Session = Depends(get_db)):
     }
 
 @app.delete("/auth/account")
-async def delete_account(token: str, db: Session = Depends(get_db)):
-    user = await get_current_user(token, db)
+async def delete_account(user: DBUser = Depends(get_current_user), db: Session = Depends(get_db)):
     # Delete all associated data
     session_ids = [s.id for s in db.query(ChatSession.id).filter(ChatSession.user_id == user.id).all()]
     if session_ids:
@@ -202,15 +246,13 @@ import uuid
 
 @app.get("/chat/sessions")
 @limiter.limit("20/minute", key_func=user_id_key)
-async def get_chat_sessions(request: Request, token: str, db: Session = Depends(get_db)):
-    user = await get_current_user(token, db)
+async def get_chat_sessions(request: Request, user: DBUser = Depends(get_current_user), db: Session = Depends(get_db)):
     sessions = db.query(ChatSession).filter(ChatSession.user_id == user.id).order_by(ChatSession.created_at.desc()).all()
     return [{"id": s.id, "title": s.title or "New Chat", "created_at": s.created_at, "assistant_type": s.assistant_type or "permit"} for s in sessions]
 
 @app.post("/chat/sessions")
 @limiter.limit("20/minute", key_func=user_id_key)
-async def create_chat_session(request: Request, token: str, assistant_type: str = "permit", db: Session = Depends(get_db)):
-    user = await get_current_user(token, db)
+async def create_chat_session(request: Request, assistant_type: str = "permit", user: DBUser = Depends(get_current_user), db: Session = Depends(get_db)):
     session_id = str(uuid.uuid4())
     new_session = ChatSession(id=session_id, user_id=user.id, title="New Chat", assistant_type=assistant_type)
     db.add(new_session)
@@ -689,7 +731,7 @@ async def _run_direct_gemini(query: str, user: Optional[DBUser] = None, db: Opti
 
 @app.post("/agent/query")
 @limiter.limit("5/minute", key_func=user_id_key)
-async def agent_query(request: Request, db: Session = Depends(get_db)):
+async def agent_query(request: Request, db: Session = Depends(get_db), user: Optional[DBUser] = Depends(get_current_user_optional)):
     content_type = request.headers.get("content-type", "")
     
     file_obj = None
@@ -740,12 +782,9 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
             print(f"[SmartRouter] Dynamic Routing: Detected LAWYER topic. Overriding assistant_type.")
             assistant_type = "lawyer"
 
-    if request.query_params.get("token"):
-        token = request.query_params.get("token")
-    user = None
-    if token:
+    if not user and token:
         try:
-            user = await get_current_user(token, db)
+            user = await get_current_user_optional(token, db)
         except:
             pass
 
@@ -1118,8 +1157,7 @@ async def agent_query(request: Request, db: Session = Depends(get_db)):
             return {"role": "assistant", "content": f"Critical Error: {str(e)}"}
 
 @app.get("/chat/history/{session_id}")
-async def get_chat_history(session_id: str, token: str, db: Session = Depends(get_db)):
-    user = await get_current_user(token, db)
+async def get_chat_history(session_id: str, user: DBUser = Depends(get_current_user), db: Session = Depends(get_db)):
     # Ensure user owns the session
     session = db.query(ChatSession).filter(ChatSession.id == session_id, ChatSession.user_id == user.id).first()
     if not session:
@@ -1156,8 +1194,7 @@ async def clear_chat_history(session_id: str, token: Optional[str] = None, db: S
 
 
 @app.delete("/chat/sessions/clear")
-async def clear_all_sessions(token: str, db: Session = Depends(get_db)):
-    user = await get_current_user(token, db)
+async def clear_all_sessions(user: DBUser = Depends(get_current_user), db: Session = Depends(get_db)):
     # Delete all sessions belonging to this user.
     # We delete sessions, and cascade delete should handle messages.
     # To be absolutely sure in SQLite without relying solely on DB-level cascade:
@@ -1171,13 +1208,7 @@ async def clear_all_sessions(token: str, db: Session = Depends(get_db)):
 
 
 @app.get("/workflow/latest")
-async def get_latest(token: Optional[str] = None, session_id: Optional[str] = None, db: Session = Depends(get_db)):
-    user = None
-    if token:
-        try:
-            user = await get_current_user(token, db)
-        except:
-            pass
+async def get_latest(session_id: Optional[str] = None, user: Optional[DBUser] = Depends(get_current_user_optional), db: Session = Depends(get_db)):
 
     if user:
         if session_id:
@@ -1210,14 +1241,7 @@ async def get_latest(token: Optional[str] = None, session_id: Optional[str] = No
     return {}
 
 
-async def _get_and_update_state(step_id: int, token: Optional[str], session_id: Optional[str], db: Session, new_status: str):
-    user = None
-    if token:
-        try:
-            user = await get_current_user(token, db)
-        except:
-            pass
-
+async def _get_and_update_state(step_id: int, user: Optional[DBUser], session_id: Optional[str], db: Session, new_status: str):
     state_dict = None
     db_session = None
     
@@ -1259,19 +1283,19 @@ async def _get_and_update_state(step_id: int, token: Optional[str], session_id: 
     return state_dict
 
 @app.post("/workflow/step/complete/{step_id}")
-async def complete_step(step_id: int, token: Optional[str] = None, session_id: Optional[str] = None, db: Session = Depends(get_db)):
+async def complete_step(step_id: int, session_id: Optional[str] = None, user: Optional[DBUser] = Depends(get_current_user_optional), db: Session = Depends(get_db)):
     try:
-        await _get_and_update_state(step_id, token, session_id, db, "completed")
+        await _get_and_update_state(step_id, user, session_id, db, "completed")
         return {"status": "success", "message": f"Step {step_id} marked as completed"}
     except Exception as e:
         if isinstance(e, HTTPException): raise e
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/workflow/step/automate/{step_id}")
-async def automate_step(step_id: int, token: Optional[str] = None, session_id: Optional[str] = None, db: Session = Depends(get_db)):
+async def automate_step(step_id: int, session_id: Optional[str] = None, user: Optional[DBUser] = Depends(get_current_user_optional), db: Session = Depends(get_db)):
     try:
         # Mark step as in-progress
-        state_dict = await _get_and_update_state(step_id, token, session_id, db, "in-progress")
+        state_dict = await _get_and_update_state(step_id, user, session_id, db, "in-progress")
 
         steps = state_dict.get("execution_plan", {}).get("steps", [])
         step_title = ""
@@ -1281,11 +1305,12 @@ async def automate_step(step_id: int, token: Optional[str] = None, session_id: O
                 break
 
         # Check which automation to run based on title
+        store_key = str(user.id) if user else (session_id or "default")
+        
         if any(kw in step_title for kw in ["MERSİS", "Company", "NACE", "Articles"]):
-            store_key = token or session_id
             creds = user_credentials_store.get(store_key)
             if not creds:
-                await _get_and_update_state(step_id, token, session_id, db, "pending")
+                await _get_and_update_state(step_id, user, session_id, db, "pending")
                 return {"status": "error", "message": "No credentials found. Please submit your credentials via the portal modal first."}
 
             from bot import run_mersis_bot, MERSIS_URL
@@ -1300,15 +1325,14 @@ async def automate_step(step_id: int, token: Optional[str] = None, session_id: O
             )
 
             if result["status"] == "success":
-                await _get_and_update_state(step_id, token, session_id, db, "completed")
+                await _get_and_update_state(step_id, user, session_id, db, "completed")
                 return {"status": "success", "message": result["message"]}
             else:
-                await _get_and_update_state(step_id, token, session_id, db, "pending")
+                await _get_and_update_state(step_id, user, session_id, db, "pending")
                 return {"status": "error", "message": result["message"]}
         
         elif "Health Insurance" in step_title or "Sigorta" in step_title:
             from bot import run_health_insurance_bot
-            store_key = token or session_id
             creds = user_credentials_store.get(store_key, {})
             
             result = await asyncio.to_thread(asyncio.run, run_health_insurance_bot(
@@ -1316,15 +1340,14 @@ async def automate_step(step_id: int, token: Optional[str] = None, session_id: O
                 dob=creds.get("dob", ""),
             ))
             if result["status"] == "success":
-                await _get_and_update_state(step_id, token, session_id, db, "completed")
+                await _get_and_update_state(step_id, user, session_id, db, "completed")
                 return {"status": "success", "message": result["message"]}
             else:
-                await _get_and_update_state(step_id, token, session_id, db, "pending")
+                await _get_and_update_state(step_id, user, session_id, db, "pending")
                 return {"status": "error", "message": result["message"]}
 
         elif "Kimlik" in step_title or "İkamet" in step_title:
             from bot import run_eikamet_bot
-            store_key = token or session_id
             creds = user_credentials_store.get(store_key, {})
 
             result = await asyncio.to_thread(asyncio.run, run_eikamet_bot(
@@ -1336,15 +1359,15 @@ async def automate_step(step_id: int, token: Optional[str] = None, session_id: O
                 is_extension=creds.get("is_extension", False)
             ))
             if result["status"] == "success":
-                await _get_and_update_state(step_id, token, session_id, db, "completed")
+                await _get_and_update_state(step_id, user, session_id, db, "completed")
                 return {"status": "success", "message": result["message"]}
             else:
-                await _get_and_update_state(step_id, token, session_id, db, "pending")
+                await _get_and_update_state(step_id, user, session_id, db, "pending")
                 return {"status": "error", "message": result["message"]}
 
         # All other steps → simple simulate + complete
         await asyncio.sleep(3)
-        await _get_and_update_state(step_id, token, session_id, db, "completed")
+        await _get_and_update_state(step_id, user, session_id, db, "completed")
         return {"status": "success", "message": f"Step {step_id} automated successfully"}
 
     except Exception as e:
@@ -1358,7 +1381,7 @@ async def business_intake(query: UserQuery):
 
 
 @app.post("/api/submit-edevlet")
-async def submit_edevlet(creds: UserCredentials, token: Optional[str] = None, session_id: Optional[str] = None, db: Session = Depends(get_db)):
+async def submit_edevlet(creds: UserCredentials, session_id: Optional[str] = None, user: Optional[DBUser] = Depends(get_current_user_optional), db: Session = Depends(get_db)):
     try:
         from bot import run_edevlet_bot, run_mersis_bot
         docs_to_upload = ["lease_agreement.pdf", "tax_certificate.pdf"]
@@ -1377,7 +1400,7 @@ async def submit_edevlet(creds: UserCredentials, token: Optional[str] = None, se
                 pass
 
         # Persist credentials so automate_step can reuse them
-        store_key = token or session_id or "default"
+        store_key = str(user.id) if user else (session_id or "default")
         user_credentials_store[store_key] = {
             "tckn": creds.tckn, 
             "password": creds.password,
@@ -1449,12 +1472,11 @@ iyzico = IyzicoPayment()
 
 @app.post("/payment/subscribe")
 async def initialize_subscription(
-    token: str, 
     plan_code: Optional[str] = Query(None), # e.g. "monthly-premium"
+    user: DBUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    print(f"[Payment] Subscribe request with token: {token[:10]}...")
-    user = await get_current_user(token, db)
+    print(f"[Payment] Subscribe request for user: {user.email}")
     if not user:
         print("[Payment] Invalid token")
         raise HTTPException(status_code=401, detail="Invalid token")

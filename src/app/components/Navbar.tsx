@@ -41,7 +41,11 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
       }
       // Always sync from backend to get the real-time value
       try {
-        const res = await fetch(`http://localhost:8003/auth/me?token=${token}`);
+        const res = await fetch(`http://localhost:8003/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         if (res.ok) {
           const data = await res.json();
           const admin = !!data.is_admin;

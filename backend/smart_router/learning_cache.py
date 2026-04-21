@@ -44,8 +44,10 @@ _MAX_LEARNED_PER_INTENT = 10       # Max learned responses per intent key
 _MAX_LEARNED_PAIRS = 50            # Max query+response pairs in "learned" bucket
 _MIN_RESPONSE_LENGTH = 10          # Ignore tiny/error responses
 # Fuzzy matching thresholds: must pass both
-_MIN_CHAR_SIMILARITY = 0.85
-_MIN_WORD_SIMILARITY = 0.80
+# Lowered from 0.85/0.80 — old values were too strict and caused cache misses
+# on paraphrased queries (e.g. "how long does it take" vs "how long will it take")
+_MIN_CHAR_SIMILARITY = 0.75
+_MIN_WORD_SIMILARITY = 0.70
 # Point to the data directory in the project root
 _ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 _LEARNING_LOG = os.path.join(_ROOT_DIR, "data", "learning_log.json")

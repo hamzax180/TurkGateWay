@@ -52,7 +52,7 @@ def build_variables(
     Accepts named arguments and passes through any extras via **kwargs.
     """
     base = {
-        "name": user_name or "",
+        "name": user_name if user_name else "there",  # Fallback: avoids "Welcome back, !"
         "issue": issue or "",
         "timeframe": timeframe or "",
         "university": university or "",

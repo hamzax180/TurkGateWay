@@ -116,10 +116,10 @@ INTENT_MAP = {
         r"(مخبز|فرن|حلويات|مخبوزات|فطائر|معجنات)"
     ],
     "permit.restaurant_typo": [
-        r"\b(resteruant|resteraunt|restarant|restuarant|resturant)\b"
+        r"\b(resteruant|resteraunt|restarant|restuarant|resturant|restrant|restruant|restaurent|restaurnt)\b"
     ],
     "permit.cafe_typo": [
-        r"\b(caffe|cafee|cafetaria|cafeterya)\b"
+        r"\b(caffe|cafee|cafetaria|cafeterya|coffe shop|coffe|coffeshop|cofee|cofffee|kahve dukkan)\b"
     ],
 
     "permit.how_to_start": [

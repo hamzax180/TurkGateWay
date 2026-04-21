@@ -5,7 +5,14 @@ import jwt
 from passlib.context import CryptContext
 from dotenv import load_dotenv
 
-load_dotenv()
+# Define the base directory (backend folder)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Check for .env in the backend folder (same as main.py)
+env_path = os.path.join(BASE_DIR, '..', '.env')
+if not os.path.exists(env_path):
+    env_path = os.path.join(BASE_DIR, '.env')
+
+load_dotenv(dotenv_path=env_path)
 
 # --- Security Configuration ---
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-super-secret-key-change-it")
