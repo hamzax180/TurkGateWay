@@ -69,9 +69,14 @@ const CustomSelect = ({
 const STUDENT_SERVICES_OPTIONS = [
   { label: 'University Registration', value: 'University Registration' },
   { label: 'Student Visa Application', value: 'Student Visa Application' },
-  { label: 'Renew ID (Kimlik)', value: 'Renew ID (Kimlik)' },
+  { label: 'ID (Kimlik)', value: 'ID (Kimlik)' },
   { label: 'Lost Student ID', value: 'Lost Student ID' },
   { label: 'Student Istanbul Card', value: 'Student Istanbul Card' },
+];
+
+const KIMLIK_ACTION_OPTIONS = [
+  { label: 'New ID — First-time application', value: 'new' },
+  { label: 'Renew ID — Expired or expiring soon', value: 'renew' },
 ];
 
 const PERMIT_SERVICES_OPTIONS = [
@@ -116,6 +121,7 @@ export default function ServicesPage() {
 
   // Form states based on selections
   const [studentServiceType, setStudentServiceType] = useState('University Registration');
+  const [kimlikAction, setKimlikAction] = useState('renew'); // 'new' | 'renew'
   const [studentUni, setStudentUni] = useState('');
   const [studentVisaCountry, setStudentVisaCountry] = useState('');
 
@@ -266,8 +272,10 @@ export default function ServicesPage() {
         prompt = `I want to register to a university. The university is ${studentUni || 'not specified yet'}. Provide the roadmap.`;
       } else if (studentServiceType === 'Student Visa Application') {
         prompt = `I need to get a student visa. I am coming from ${studentVisaCountry || 'my home country'}. What are the steps?`;
-      } else if (studentServiceType === 'Renew ID (Kimlik)') {
-        prompt = `I need to renew my foreign ID (Kimlik). What should I do?`;
+      } else if (studentServiceType === 'ID (Kimlik)') {
+        prompt = kimlikAction === 'new'
+          ? `I need to apply for a new foreign ID card (Kimlik) in Turkey for the first time. What are the steps and required documents?`
+          : `I need to renew my existing foreign ID (Kimlik) in Turkey. It is expiring soon. What should I do?`;
       } else if (studentServiceType === 'Lost Student ID') {
         prompt = `I lost my student ID card. How do I get a replacement?`;
       } else {
@@ -462,14 +470,14 @@ export default function ServicesPage() {
                         <label className="block text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.25em] mb-3 ml-2 opacity-60">{t('services_type_service')}</label>
                         <CustomSelect 
                           value={studentServiceType} 
-                          onChange={setStudentServiceType} 
+                          onChange={(val) => { setStudentServiceType(val); setStudentUni(''); setStudentVisaCountry(''); }} 
                           options={STUDENT_SERVICES_OPTIONS} 
                           placeholder={t('services_select_service')} 
                         />
                       </div>
 
                       <AnimatePresence>
-                        {studentServiceType === t('services_task_enroll') && (
+                        {studentServiceType === 'University Registration' && (
                           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
                             <label className="block text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.25em] mb-3 ml-2 opacity-60">{t('services_select_uni')}</label>
                             <CustomSelect 
@@ -478,6 +486,29 @@ export default function ServicesPage() {
                               options={UNIVERSITIES_OPTIONS} 
                               placeholder={t('services_select_uni_placeholder')} 
                               maxH="max-h-64"
+                            />
+                          </motion.div>
+                        )}
+                        {studentServiceType === 'Student Visa Application' && (
+                          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
+                            <label className="block text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.25em] mb-3 ml-2 opacity-60">Country of Origin</label>
+                            <CustomSelect 
+                              value={studentVisaCountry} 
+                              onChange={setStudentVisaCountry} 
+                              options={COUNTRIES_OPTIONS} 
+                              placeholder="Select your country" 
+                              maxH="max-h-64"
+                            />
+                          </motion.div>
+                        )}
+                        {studentServiceType === 'ID (Kimlik)' && (
+                          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
+                            <label className="block text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.25em] mb-3 ml-2 opacity-60">What do you need?</label>
+                            <CustomSelect
+                              value={kimlikAction}
+                              onChange={setKimlikAction}
+                              options={KIMLIK_ACTION_OPTIONS}
+                              placeholder="Select action"
                             />
                           </motion.div>
                         )}

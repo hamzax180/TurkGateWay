@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Sparkles, User, Mic, Plus, ChevronDown, Building2, FileText, Search, Clock, HelpCircle, Scale, Menu, GraduationCap, Cpu, X, Volume2, VolumeX } from 'lucide-react';
+import { Send, User, Mic, Plus, ChevronDown, FileText, Menu, GraduationCap, Cpu, X, Volume2, VolumeX, ArrowRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useLanguage } from '../context/LanguageContext';
@@ -65,8 +65,6 @@ export default function ChatPage() {
   const recognitionRef = useRef<any>(null);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [spokenWordIndex, setSpokenWordIndex] = useState(-1);
-  const [fullCleanText, setFullCleanText] = useState("");
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
@@ -79,10 +77,10 @@ export default function ChatPage() {
   const voicesLoadedRef = useRef(false);
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const speechQueueRef = useRef<string[]>([]);
-  const isSpeechQueueActiveRef = useRef(false);
+  const ttsKeepaliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
 
-  // Initialize Speech Voices
+  // Initialize Speech Voices — load early, retry until populated
   useEffect(() => {
     const synth = window.speechSynthesis;
     if (!synth) return;
@@ -99,6 +97,12 @@ export default function ChatPage() {
     if (synth.onvoiceschanged !== undefined) {
       synth.onvoiceschanged = loadVoices;
     }
+    // Fallback polling — some browsers fire onvoiceschanged late
+    const poll = setInterval(() => {
+      if (!voicesLoadedRef.current) loadVoices();
+      else clearInterval(poll);
+    }, 300);
+    return () => clearInterval(poll);
   }, []);
 
   // Load sessions on mount or when auth changes
@@ -301,22 +305,21 @@ export default function ChatPage() {
     setIsVoiceMode(true);
     setCallEnded(false);
     setCallDuration(0);
-    setDetectedService(null);
+    setDetectedService(assistantType); // show chip immediately
     setVoiceTranscript('');
     voiceLoopRef.current = true;
     // Start call timer
     callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
 
-    // Initial Greeting
-    const greetingKey = `chat_greeting_${assistantType}`;
-    const greeting = t(greetingKey) || (assistantType === 'student' ? "Hello! How can I help with your studies or residency today?" :
-      assistantType === 'lawyer' ? "Hello. I am your legal assistant. What is your concern?" :
-        "Hello! How can I help you with your permit application today?");
+    // Initial Greeting — short, punchy, human
+    const greeting = assistantType === 'student'
+      ? "Hey, I'm your student agent. What do you need?"
+      : assistantType === 'lawyer'
+        ? "Hello, legal agent here. Go ahead."
+        : "Hey! Permit agent here. What business are you opening?";
 
-    // Short delay for the UI to transition
-    setTimeout(() => {
-      speak(greeting);
-    }, 800);
+    // Small delay for UI transition, then greet immediately
+    setTimeout(() => { speak(greeting); }, 400);
   };
 
   const hangUpCall = () => {
@@ -324,6 +327,8 @@ export default function ChatPage() {
     if (recognitionRef.current) recognitionRef.current.stop();
     if (window.speechSynthesis) window.speechSynthesis.cancel();
     clearInterval(callTimerRef.current);
+    // Clear TTS keepalive
+    if (ttsKeepaliveRef.current) { clearInterval(ttsKeepaliveRef.current); ttsKeepaliveRef.current = null; }
     setIsListening(false);
     setIsSpeaking(false);
     setCallEnded(true);
@@ -340,14 +345,12 @@ export default function ChatPage() {
   const startListening = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) { alert('Speech recognition not supported in this browser.'); return; }
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
-    setIsSpeaking(false);
 
-    // Unlock speech synthesis on user interaction (primes audio context for AI response)
+    // Prime audio context so TTS fires instantly after recognition (no muted-audio glitch)
     try {
       const synth = window.speechSynthesis;
       if (synth && !synth.speaking) {
-        const silent = new SpeechSynthesisUtterance("");
+        const silent = new SpeechSynthesisUtterance(' ');
         silent.volume = 0;
         synth.speak(silent);
       }
@@ -355,34 +358,45 @@ export default function ChatPage() {
 
     const rec = new SpeechRecognition();
     rec.lang = language === 'tr' ? 'tr-TR' : language === 'ar' ? 'ar-SA' : 'en-US';
-    rec.continuous = true;   // Real phone-call: keep listening
-    rec.interimResults = true;
+    rec.continuous = true;       // phone-call style — keep listening
+    rec.interimResults = true;   // show live transcript
+    rec.maxAlternatives = 1;
 
     rec.onstart = () => setIsListening(true);
 
     rec.onend = () => {
       setIsListening(false);
-      // Auto-restart recognition if call still active (phone-call loop)
+      // Auto-restart quickly if still in call and AI isn't speaking
       if (voiceLoopRef.current && !isSpeaking) {
-        setTimeout(() => { if (voiceLoopRef.current) startListening(); }, 400);
+        setTimeout(() => { if (voiceLoopRef.current && !isSpeaking) startListening(); }, 150);
       }
     };
 
     rec.onerror = (e: any) => {
-      if (e.error === 'no-speech' && voiceLoopRef.current) {
-        setTimeout(() => { if (voiceLoopRef.current) startListening(); }, 600);
-      } else {
+      if ((e.error === 'no-speech' || e.error === 'aborted') && voiceLoopRef.current) {
+        setTimeout(() => { if (voiceLoopRef.current && !isSpeaking) startListening(); }, 200);
+      } else if (e.error !== 'not-allowed') {
         setIsListening(false);
       }
     };
 
-    rec.onresult = (event: any) => {
-      const last = event.results[event.results.length - 1];
-      const transcript = last[0].transcript.trim();
-      setVoiceTranscript(transcript);
+    let lastFinalTranscript = '';
 
-      // Live service detection from transcript
-      const lower = transcript.toLowerCase();
+    rec.onresult = (event: any) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) finalTranscript += t;
+        else interimTranscript += t;
+      }
+
+      const liveText = (finalTranscript || interimTranscript).trim();
+      if (liveText) setVoiceTranscript(liveText);
+
+      // Live service detection
+      const lower = liveText.toLowerCase();
       if (/cafe|coffee|restaurant|shop|retail|office|bakery|pharmacy|gym|barber|permit|ruhsat|محل|مطعم|كافيه/.test(lower)) {
         setDetectedService('permit');
       } else if (/university|student|visa|scholarship|dorm|ikamet|جامعة|طالب|منحة/.test(lower)) {
@@ -391,29 +405,27 @@ export default function ChatPage() {
         setDetectedService('lawyer');
       }
 
-      if (transcript.length > 1) {
-        // Clear old timer
+      if (finalTranscript && finalTranscript !== lastFinalTranscript && finalTranscript.length > 2) {
+        // Browser confirmed final — send immediately, no silence wait
+        lastFinalTranscript = finalTranscript;
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        handleUserFinished(finalTranscript);
+        return;
+      }
 
-        // If it's final, send immediately
-        if (last.isFinal && transcript.length > 2) {
-          handleUserFinished(transcript);
-          return;
-        }
-
-        // Otherwise, set a timer for manual silence detection (much faster than browser's isFinal)
+      // Interim: start/reset silence timer — 500ms feels like natural call pacing
+      if (interimTranscript.length > 2) {
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
         silenceTimerRef.current = setTimeout(() => {
-          handleUserFinished(transcript);
-        }, 750); // Send after 750ms of silence
+          if (interimTranscript.trim().length > 2) handleUserFinished(interimTranscript.trim());
+        }, 500);
       }
     };
 
     const handleUserFinished = (transcript: string) => {
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       setVoiceTranscript('');
-      try {
-        rec.stop();
-      } catch (e) { }
+      try { rec.stop(); } catch (e) { }
       send(transcript, true);
     };
 
@@ -427,6 +439,51 @@ export default function ChatPage() {
     setIsListening(false);
   };
 
+  // ── Pick the best available male voice ──────────────────────────────────────
+  const pickMaleVoice = (voices: SpeechSynthesisVoice[], lang: string): SpeechSynthesisVoice | null => {
+    const searchLangs = [lang, lang.split('-')[0]];
+    const inLang = (v: SpeechSynthesisVoice) => searchLangs.some(l => v.lang.startsWith(l));
+
+    // Explicit male names across OS/browser combos — ordered by quality
+    const maleKeywords = [
+      'Google UK English Male',
+      'Microsoft David',
+      'Microsoft Mark',
+      'Microsoft Guy',
+      'Daniel',          // macOS high-quality male EN
+      'Aaron',           // macOS male EN-US
+      'Google US English',   // usually male-sounding
+      'Google UK English',
+      'Fred',
+      'Alex',
+      'Male',
+      'man',
+      'Guy',
+    ];
+
+    for (const kw of maleKeywords) {
+      const v = voices.find(v => inLang(v) && v.name.toLowerCase().includes(kw.toLowerCase()));
+      if (v) return v;
+    }
+    // Fallback: any voice in the correct language
+    return voices.find(inLang) ?? null;
+  };
+
+  // ── Pre-process text for natural, fast TTS ───────────────────────────────────
+  const cleanForSpeech = (raw: string): string => raw
+    .replace(/\[CTA: .+? \| .+?\]/g, '')           // remove CTA blocks
+    .replace(/```[\s\S]*?```/g, '')                  // remove code blocks
+    .replace(/`[^`]+`/g, '')                         // remove inline code
+    .replace(/#+\s*/g, '')                            // remove markdown headings
+    .replace(/[*_~>|]/g, '')                          // remove markdown symbols
+    .replace(/\[(.+?)\]\(.+?\)/g, '$1')              // links → label only
+    .replace(/!\[.*?\]\(.*?\)/g, '')                 // remove images
+    .replace(/\n{2,}/g, '. ')                         // double newline → pause
+    .replace(/\n/g, ' ')                              // single newline → space
+    .replace(/\s{2,}/g, ' ')                          // collapse whitespace
+    .replace(/([.!?])([A-Z])/g, '$1 $2')             // ensure space after sentence
+    .trim();
+
   const speak = (text: string) => {
     const synth = window.speechSynthesis;
     if (!synth) return;
@@ -434,22 +491,18 @@ export default function ChatPage() {
     speechQueueRef.current = [];
     isSpeechQueueActiveRef.current = false;
 
-    // Clean and fragment text into sentences for better responsiveness
-    const cleanText = text
-      .replace(/\[CTA: .+? \| .+?\]/g, '')
-      .replace(/[*_#`~>]/g, '')
-      .replace(/\[(.+?)\]\(.+?\)/g, '$1');
-
+    const cleanText = cleanForSpeech(text);
     setFullCleanText(cleanText);
     setSpokenWordIndex(0);
 
-    // Split by punctuation but keep it
-    const sentences = cleanText.match(/[^.!?]+[.!?]*/g) || [cleanText];
-    speechQueueRef.current = sentences.map(s => s.trim()).filter(s => s.length > 0);
+    // Split into sentences — keeps punctuation, handles ellipsis & abbreviations
+    const sentences = cleanText
+      .match(/[^.!?\n]+(?:[.!?]+['"]?|$)/g)
+      ?.map(s => s.trim())
+      .filter(s => s.length > 1) ?? [cleanText];
 
-    if (speechQueueRef.current.length > 0) {
-      processSpeechQueue();
-    }
+    speechQueueRef.current = sentences;
+    if (speechQueueRef.current.length > 0) processSpeechQueue();
   };
 
   const processSpeechQueue = () => {
@@ -466,44 +519,56 @@ export default function ChatPage() {
 
     utterance.lang = language === 'tr' ? 'tr-TR' : language === 'ar' ? 'ar-SA' : 'en-US';
 
-    // Personality
-    if (assistantType === 'student') { utterance.pitch = 1.15; utterance.rate = 1.05; }
-    else if (assistantType === 'lawyer') { utterance.pitch = 0.95; utterance.rate = 0.9; }
-
-    // Voice Selection
+    // ── Voice parameters — human-like male, conversational speed ──
     const voices = availableVoices.length > 0 ? availableVoices : synth.getVoices();
-    const searchLangs = [utterance.lang, utterance.lang.split('-')[0]];
-    let bestVoice = voices.find(v =>
-      searchLangs.some(l => v.lang.startsWith(l)) &&
-      (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Natural'))
-    ) || voices.find(v => searchLangs.some(l => v.lang.startsWith(l)));
-
+    const bestVoice = pickMaleVoice(voices, utterance.lang);
     if (bestVoice) utterance.voice = bestVoice;
+
+    // Natural male prosody — slightly faster than default, deep pitch
+    utterance.rate  = assistantType === 'lawyer' ? 1.05 : 1.12;   // conversational fast
+    utterance.pitch = assistantType === 'lawyer' ? 0.80 : 0.85;   // deep male tone
+    utterance.volume = 1.0;
 
     utterance.onstart = () => {
       setIsSpeaking(true);
+      // Stop mic while AI speaks to prevent echo
       if (recognitionRef.current) try { recognitionRef.current.stop(); } catch { }
+      // ── Chrome TTS keepalive: Chrome silently pauses synth after ~15s ──
+      // Calling pause()+resume() every 12s kicks it back alive without interrupting speech.
+      if (ttsKeepaliveRef.current) clearInterval(ttsKeepaliveRef.current);
+      ttsKeepaliveRef.current = setInterval(() => {
+        const s = window.speechSynthesis;
+        if (s && s.speaking) { s.pause(); s.resume(); }
+        else if (ttsKeepaliveRef.current) { clearInterval(ttsKeepaliveRef.current); ttsKeepaliveRef.current = null; }
+      }, 12000);
     };
 
     utterance.onend = () => {
       if (speechQueueRef.current.length > 0) {
-        processSpeechQueue();
+        processSpeechQueue(); // immediately chain next sentence
       } else {
+        // All sentences done — clear keepalive
+        if (ttsKeepaliveRef.current) { clearInterval(ttsKeepaliveRef.current); ttsKeepaliveRef.current = null; }
         setIsSpeaking(false);
         setSpokenWordIndex(-1);
         currentUtteranceRef.current = null;
+        // Resume listening quickly — feels like a live call
         if (voiceLoopRef.current) {
-          setTimeout(() => { if (voiceLoopRef.current) startListening(); }, 300);
+          setTimeout(() => { if (voiceLoopRef.current) startListening(); }, 120);
         }
       }
     };
 
     utterance.onerror = (e: any) => {
-      console.error("Queue Speech error:", { error: e.error, text: text.slice(0, 20) });
+      if (e.error === 'interrupted' || e.error === 'canceled') return; // normal cancel
+      console.warn('TTS error — skipping sentence:', e.error);
+      if (ttsKeepaliveRef.current) { clearInterval(ttsKeepaliveRef.current); ttsKeepaliveRef.current = null; }
       setIsSpeaking(false);
       currentUtteranceRef.current = null;
-      // Skip failed sentence and try next
       if (speechQueueRef.current.length > 0) processSpeechQueue();
+      else if (voiceLoopRef.current) {
+        setTimeout(() => { if (voiceLoopRef.current) startListening(); }, 120);
+      }
     };
 
     synth.speak(utterance);
@@ -569,9 +634,6 @@ export default function ChatPage() {
       if (!res || !res.ok) throw new Error();
       const data = await res.json();
 
-      if (data.source) {
-        console.log(`%c[Data Source] %c${data.source}`, "color: #ef4444; font-weight: bold;", "color: #3b82f6; font-weight: bold;");
-      }
 
       if (data.session_title && data.session_title !== sessionTitle) {
         setSessionTitle(data.session_title);
@@ -610,7 +672,7 @@ export default function ChatPage() {
   const clearChat = async () => {
     if (isAuthenticated && token && sessionId) {
       try {
-        await fetch(`http://localhost:8003/chat/history/${sessionId}?token=${token}`, { method: 'DELETE' });
+        await apiFetch(`/chat/history/${sessionId}`, { method: 'DELETE' });
         setSessionId(null);
       } catch (e) {
         console.error("Failed to clear history on backend", e);
@@ -1464,13 +1526,37 @@ export default function ChatPage() {
                       initial={{ opacity: 0, scale: 0.8, y: -10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.8 }}
-                      className={`flex items-center gap-2 backdrop-blur-xl border rounded-full px-4 py-2 text-[12px] font-black uppercase tracking-widest ${detectedService === 'student' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-                          : detectedService === 'lawyer' ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
-                            : 'bg-blue-500/15 border-blue-500/30 text-blue-400'
-                        }`}
+                      className={`flex items-center gap-2.5 px-4 py-2 rounded-full border backdrop-blur-xl shadow-lg transition-all ${
+                        detectedService === 'student'
+                          ? 'border-emerald-500/20 bg-emerald-500/10 shadow-emerald-500/10'
+                          : detectedService === 'lawyer'
+                            ? 'border-amber-500/20 bg-amber-500/10 shadow-amber-500/10'
+                            : 'border-blue-500/20 bg-blue-500/10 shadow-blue-500/10'
+                      }`}
                     >
-                      <Sparkles size={12} />
-                      {detectedService === 'permit' ? 'Permit Advisor' : detectedService === 'student' ? 'Student Advisor' : 'Legal Counsel'}
+                      {/* Cpu icon with animated glow — identical to navbar chip */}
+                      <div className="relative flex items-center justify-center">
+                        <Cpu
+                          size={15}
+                          className={`animate-[pulse_1.5s_easeInOut_infinite] relative z-10 ${
+                            detectedService === 'student' ? 'text-emerald-400'
+                              : detectedService === 'lawyer' ? 'text-amber-400'
+                                : 'text-blue-400'
+                          }`}
+                        />
+                        <div className={`absolute inset-0 blur-md rounded-full animate-pulse ${
+                          detectedService === 'student' ? 'bg-emerald-500/30'
+                            : detectedService === 'lawyer' ? 'bg-amber-500/30'
+                              : 'bg-blue-500/30'
+                        }`} />
+                      </div>
+                      <span className={`text-[12px] font-black uppercase tracking-[0.15em] ${
+                        detectedService === 'student' ? 'text-emerald-400'
+                          : detectedService === 'lawyer' ? 'text-amber-400'
+                            : 'text-blue-400'
+                      }`}>
+                        {detectedService === 'permit' ? 'Permit Agent' : detectedService === 'student' ? 'Student Agent' : 'Legal Agent'}
+                      </span>
                     </motion.div>
                   )}
                 </AnimatePresence>
