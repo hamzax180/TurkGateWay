@@ -29,12 +29,17 @@ async def student_node(state: GraphState):
 
     if not isinstance(combined, CombinedPermitResult):
         print(f"[Student Orchestrator] Result is not CombinedPermitResult, it is {type(combined)}")
+        from models.schemas import AgentStep
         combined = CombinedPermitResult(
             summary=str(combined) if combined else "Here is your student guide.",
             permits=["Student Residence Permit (Kimlik)"],
             agencies=["Göç İdaresi", "University Student Affairs"],
             documents=["Passport", "Acceptance Letter", "Health Insurance"],
-            steps=["1. Enrollment", "2. Health Insurance", "3. Kimlik Application"],
+            steps=[
+                AgentStep(title="Enrollment", description="University enrollment", documents=["Acceptance Letter"]),
+                AgentStep(title="Health Insurance", description="Get health insurance", documents=["Passport"]),
+                AgentStep(title="Kimlik Application", description="Apply for residency", documents=["Health Insurance"])
+            ],
             timeline_days=30,
             location="Istanbul",
             business_type="Student"
@@ -52,19 +57,16 @@ async def student_node(state: GraphState):
     )
     
     from models.schemas import StepDetail
-    from utils.protocol import get_localized_steps
-    
-    lang = state.get('language', 'en')
-    step_specs = get_localized_steps(lang, combined.business_type)
     
     details = []
-    for id_val, title, resp, note in step_specs:
+    for i, st in enumerate(combined.steps):
         details.append(StepDetail(
-            id=id_val,
-            title=title,
-            responsible=resp,
+            id=i + 1,
+            title=st.title,
+            responsible="Agent" if "e-Devlet" in st.description or "Agent" in st.description or "e-İkamet" in st.description else "Human/Agent",
             status="pending",
-            notes=note
+            notes=st.description,
+            docs=st.documents
         ))
     
     state['state'].execution_plan = ExecutionPlan(

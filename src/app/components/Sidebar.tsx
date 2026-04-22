@@ -42,7 +42,7 @@ export default function Sidebar({
   onMobileClose,
   refreshTrigger = 0,
   showAllTypes = false,
-  onSwitchAssistant = () => {},
+  onSwitchAssistant = () => { },
   mobileOnly = false,
 }: SidebarProps) {
   const { t, isRTL, language } = useLanguage();
@@ -77,24 +77,24 @@ export default function Sidebar({
     if (!title) return t('chat_new');
     if (title === 'New Chat') return t('chat_new');
     if (title === 'Document Analysis') return t('chat_suggestion_permit').replace('?', '');
-    
+
     const lowerTitle = title.toLowerCase();
-    
+
     // Pattern: "[Business] in [District]" — restricted to permit mode
     const match = (sType === 'permit' || !sType) ? lowerTitle.match(/^(.+?)\s+in\s+(.+)$/) : null;
     if (match) {
       const businessRaw = match[1].trim();
       const districtRaw = match[2].trim().replace(/\s/g, ''); // normalize for keys
-      
+
       const bizKey = `biz_${businessRaw}`;
       const distKey = `dist_${districtRaw}`;
-      
+
       const localizedBiz = t(bizKey);
       const localizedDist = t(distKey);
-      
+
       // If we found both in our dictionary
       if (localizedBiz !== bizKey && localizedDist !== distKey) {
-        return isRTL 
+        return isRTL
           ? `${localizedBiz} ${t('connect_in')} ${localizedDist}`
           : `${localizedBiz} ${t('connect_in')} ${localizedDist}`;
       }
@@ -119,8 +119,8 @@ export default function Sidebar({
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
           className="hidden md:flex h-full flex-col shrink-0 relative z-50 border-r border-[var(--border)] overflow-hidden"
         >
-          <SidebarInner 
-            isMobile={false} 
+          <SidebarInner
+            isMobile={false}
             isExpanded={isExpanded}
             setIsExpanded={setIsExpanded}
             isRTL={isRTL}
@@ -166,7 +166,7 @@ export default function Sidebar({
               transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
               className={`fixed top-0 ${isRTL ? 'right-0' : 'left-0'} h-full w-[85vw] max-w-[340px] z-[210] md:hidden shadow-2xl overflow-hidden backdrop-blur-sm`}
             >
-              <SidebarInner 
+              <SidebarInner
                 isMobile
                 isExpanded={isExpanded}
                 setIsExpanded={setIsExpanded}
@@ -205,7 +205,7 @@ export default function Sidebar({
 }
 
 /* ─── Shared Sidebar Content ────────────────── */
-const SidebarInner = React.memo(({ 
+const SidebarInner = React.memo(({
   isMobile = false,
   isExpanded,
   setIsExpanded,
@@ -228,7 +228,7 @@ const SidebarInner = React.memo(({
   isAuthenticated,
   logout,
   language,
-}: { 
+}: {
   isMobile?: boolean,
   isExpanded: boolean,
   setIsExpanded: (v: boolean) => void,
@@ -328,13 +328,12 @@ const SidebarInner = React.memo(({
         <button
           onClick={() => { onNewChat(); if (isMobile) onMobileClose?.(); }}
           title={t('sidebar_new_chat')}
-          className={`group flex items-center justify-start gap-3 transition-all duration-300 ${
-            isMobile
-              ? 'w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)]'
-              : `h-14 rounded-2xl bg-[var(--surface-1)] hover:bg-[var(--surface-2)] border border-[var(--border)] shadow-sm hover:shadow-md overflow-hidden ${isExpanded ? 'w-full px-5' : 'w-12 px-3.5'}`
-          }`}
+          className={`group flex items-center justify-start gap-3 transition-all duration-300 ${isMobile
+            ? 'w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)]'
+            : `h-14 rounded-2xl bg-[var(--surface-1)] hover:bg-[var(--surface-2)] border border-[var(--border)] shadow-sm hover:shadow-md overflow-hidden ${isExpanded ? 'w-full px-5' : 'w-12 px-3.5'}`
+            }`}
         >
-          <Plus size={isMobile ? 20 : 22} className={isMobile ? "text-[var(--text)] shrink-0" : "text-indigo-500 shrink-0"} />
+          <Plus size={isMobile ? 20 : 22} className={isMobile ? "text-[var(--text)] shrink-0" : "text-[var(--accent)] shrink-0"} />
           {showLabels && (
             <span className="text-[15px] font-semibold text-[var(--text)] whitespace-nowrap">
               {t('sidebar_new_chat')}
@@ -391,9 +390,9 @@ const SidebarInner = React.memo(({
       {showLabels && (
         <motion.div variants={itemVariants} className="flex bg-[var(--surface-2)] p-1 rounded-xl mx-3 mb-2 mt-3 shrink-0">
           {[
-            { id: 'permit', label: t('assistant_permit'), icon: Building2, color: 'text-red-500' },
-            { id: 'student', label: t('assistant_student'), icon: GraduationCap, color: 'text-red-500' },
-            { id: 'lawyer', label: t('assistant_lawyer'), icon: Scale, color: 'text-red-500' },
+            { id: 'permit', label: t('assistant_permit'), icon: Building2, color: 'text-[var(--accent)]' },
+            { id: 'student', label: t('assistant_student'), icon: GraduationCap, color: 'text-[var(--accent)]' },
+            { id: 'lawyer', label: t('assistant_lawyer'), icon: Scale, color: 'text-[var(--accent)]' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -432,8 +431,8 @@ const SidebarInner = React.memo(({
               key={s.id}
               variants={itemVariants}
               className={`group relative flex items-center gap-3 p-3.5 rounded-xl transition-all cursor-pointer ${currentSessionId === s.id
-                  ? 'bg-[var(--surface-1)] border border-[var(--border)] text-[var(--text)] shadow-sm'
-                  : 'hover:bg-[var(--surface-2)]/50 text-[var(--text)] opacity-100'
+                ? 'bg-[var(--surface-1)] border border-[var(--border)] text-[var(--text)] shadow-sm'
+                : 'hover:bg-[var(--surface-2)]/50 text-[var(--text)] opacity-100'
                 }`}
               onClick={() => {
                 onSessionSelect(s.id, s.title);
@@ -441,10 +440,10 @@ const SidebarInner = React.memo(({
               }}
             >
               {!showLabels && (
-                <MessageSquare size={18} className={currentSessionId === s.id ? "text-red-500" : "text-[var(--muted)]"} />
+                <MessageSquare size={18} className={currentSessionId === s.id ? "text-[var(--accent)]" : "text-[var(--muted)]"} />
               )}
               {showLabels && (
-                <span 
+                <span
                   title={s.title}
                   className={`text-sm tracking-tight truncate flex-1 pr-8 ${currentSessionId === s.id ? 'font-bold' : 'font-semibold text-[var(--text)]'}`}
                 >
@@ -470,7 +469,7 @@ const SidebarInner = React.memo(({
 
       {/* Bottom */}
       <motion.div variants={itemVariants} className="p-3 space-y-1 mt-auto border-t border-[var(--border)] bg-[var(--surface)]/50 shrink-0">
-        
+
         {isMobile && (
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border)] px-2">
             <LanguageSwitcher />

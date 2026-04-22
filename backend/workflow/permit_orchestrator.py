@@ -31,12 +31,17 @@ async def permit_node(state: GraphState):
     if not isinstance(combined, CombinedPermitResult):
         print(f"[Orchestrator] Result is not CombinedPermitResult, it is {type(combined)}")
         # Fallback for string or invalid output
+        from models.schemas import AgentStep
         combined = CombinedPermitResult(
             summary=str(combined),
             permits=["İşyeri Açma ve Çalışma Ruhsatı"],
             agencies=["Municipality", "Tax Office"],
             documents=["ID", "Lease", "Tax ID"],
-            steps=["1. Tax ID", "2. Registration", "3. Permit"],
+            steps=[
+                AgentStep(title="Tax ID", description="Get tax ID", documents=["ID"]),
+                AgentStep(title="Registration", description="Company registration", documents=["Lease"]),
+                AgentStep(title="Permit", description="Get permit", documents=["Tax ID"])
+            ],
             timeline_days=30,
             location="Istanbul",
             business_type="Business"
@@ -50,21 +55,18 @@ async def permit_node(state: GraphState):
         agencies=combined.agencies,
         documents=combined.documents,
     )
-    # Build dynamic steps based on detected business type
+    # Build dynamic steps based on agent's generated steps
     from models.schemas import StepDetail
-    from utils.protocol import get_localized_steps
-    
-    lang = state.get('language', 'en')
-    step_specs = get_localized_steps(lang, combined.business_type)
     
     details = []
-    for id_val, title, resp, note in step_specs:
+    for i, st in enumerate(combined.steps):
         details.append(StepDetail(
-            id=id_val,
-            title=title,
-            responsible=resp,
+            id=i + 1,
+            title=st.title,
+            responsible="Agent" if "e-Devlet" in st.description or "Agent" in st.description else "Human/Agent",
             status="pending",
-            notes=note
+            notes=st.description,
+            docs=st.documents
         ))
     
     # Use the structured steps as the final execution plan

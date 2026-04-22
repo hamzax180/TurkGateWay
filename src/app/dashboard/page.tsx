@@ -336,7 +336,7 @@ export default function Dashboard() {
       date: data.last_updated ? new Date(data.last_updated).toLocaleDateString() : 'Recent',
       summary: s.notes || `Step ${i + 1} of the permit process.`,
       detail: s.notes || `${s.responsible} is handling this step.`,
-      docs: i === 1 ? (data.permit_plan?.documents || []) : [],
+      docs: s.docs && s.docs.length > 0 ? s.docs : [],
     })))
   ] : [
     {

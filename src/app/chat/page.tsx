@@ -75,6 +75,31 @@ export default function ChatPage() {
   const callTimerRef = useRef<any>(null);
   const voiceLoopRef = useRef(false);
   const msgIdRef = useRef(1);
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const voicesLoadedRef = useRef(false);
+  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const speechQueueRef = useRef<string[]>([]);
+  const isSpeechQueueActiveRef = useRef(false);
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  // Initialize Speech Voices
+  useEffect(() => {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+
+    const loadVoices = () => {
+      const voices = synth.getVoices();
+      if (voices.length > 0) {
+        setAvailableVoices(voices);
+        voicesLoadedRef.current = true;
+      }
+    };
+
+    loadVoices();
+    if (synth.onvoiceschanged !== undefined) {
+      synth.onvoiceschanged = loadVoices;
+    }
+  }, []);
 
   // Load sessions on mount or when auth changes
   useEffect(() => {
@@ -281,7 +306,17 @@ export default function ChatPage() {
     voiceLoopRef.current = true;
     // Start call timer
     callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
-    startListening();
+
+    // Initial Greeting
+    const greetingKey = `chat_greeting_${assistantType}`;
+    const greeting = t(greetingKey) || (assistantType === 'student' ? "Hello! How can I help with your studies or residency today?" :
+      assistantType === 'lawyer' ? "Hello. I am your legal assistant. What is your concern?" :
+        "Hello! How can I help you with your permit application today?");
+
+    // Short delay for the UI to transition
+    setTimeout(() => {
+      speak(greeting);
+    }, 800);
   };
 
   const hangUpCall = () => {
@@ -307,6 +342,16 @@ export default function ChatPage() {
     if (!SpeechRecognition) { alert('Speech recognition not supported in this browser.'); return; }
     if (window.speechSynthesis) window.speechSynthesis.cancel();
     setIsSpeaking(false);
+
+    // Unlock speech synthesis on user interaction (primes audio context for AI response)
+    try {
+      const synth = window.speechSynthesis;
+      if (synth && !synth.speaking) {
+        const silent = new SpeechSynthesisUtterance("");
+        silent.volume = 0;
+        synth.speak(silent);
+      }
+    } catch (e) { }
 
     const rec = new SpeechRecognition();
     rec.lang = language === 'tr' ? 'tr-TR' : language === 'ar' ? 'ar-SA' : 'en-US';
@@ -346,15 +391,34 @@ export default function ChatPage() {
         setDetectedService('lawyer');
       }
 
-      if (last.isFinal && transcript.length > 2) {
-        setVoiceTranscript('');
-        rec.stop(); // Pause recognition while AI responds
-        send(transcript);
+      if (transcript.length > 1) {
+        // Clear old timer
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+
+        // If it's final, send immediately
+        if (last.isFinal && transcript.length > 2) {
+          handleUserFinished(transcript);
+          return;
+        }
+
+        // Otherwise, set a timer for manual silence detection (much faster than browser's isFinal)
+        silenceTimerRef.current = setTimeout(() => {
+          handleUserFinished(transcript);
+        }, 750); // Send after 750ms of silence
       }
     };
 
+    const handleUserFinished = (transcript: string) => {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      setVoiceTranscript('');
+      try {
+        rec.stop();
+      } catch (e) { }
+      send(transcript, true);
+    };
+
     recognitionRef.current = rec;
-    try { rec.start(); } catch {}
+    try { rec.start(); } catch { }
   };
 
   const stopListening = () => {
@@ -367,40 +431,79 @@ export default function ChatPage() {
     const synth = window.speechSynthesis;
     if (!synth) return;
     synth.cancel();
+    speechQueueRef.current = [];
+    isSpeechQueueActiveRef.current = false;
 
+    // Clean and fragment text into sentences for better responsiveness
     const cleanText = text
       .replace(/\[CTA: .+? \| .+?\]/g, '')
       .replace(/[*_#`~>]/g, '')
-      .replace(/\[(.+?)\]\(.+?\)/g, '$1')
-      .slice(0, 600);
+      .replace(/\[(.+?)\]\(.+?\)/g, '$1');
 
     setFullCleanText(cleanText);
     setSpokenWordIndex(0);
 
-    const utterance = new SpeechSynthesisUtterance(cleanText);
+    // Split by punctuation but keep it
+    const sentences = cleanText.match(/[^.!?]+[.!?]*/g) || [cleanText];
+    speechQueueRef.current = sentences.map(s => s.trim()).filter(s => s.length > 0);
+
+    if (speechQueueRef.current.length > 0) {
+      processSpeechQueue();
+    }
+  };
+
+  const processSpeechQueue = () => {
+    const synth = window.speechSynthesis;
+    if (!synth || speechQueueRef.current.length === 0) {
+      isSpeechQueueActiveRef.current = false;
+      return;
+    }
+
+    isSpeechQueueActiveRef.current = true;
+    const text = speechQueueRef.current.shift()!;
+    const utterance = new SpeechSynthesisUtterance(text);
+    currentUtteranceRef.current = utterance;
+
     utterance.lang = language === 'tr' ? 'tr-TR' : language === 'ar' ? 'ar-SA' : 'en-US';
 
-    if (assistantType === 'student') { utterance.pitch = 1.2; utterance.rate = 1.1; }
-    else if (assistantType === 'lawyer') { utterance.pitch = 0.9; utterance.rate = 0.92; }
-    else { utterance.pitch = 1.0; utterance.rate = 1.0; }
+    // Personality
+    if (assistantType === 'student') { utterance.pitch = 1.15; utterance.rate = 1.05; }
+    else if (assistantType === 'lawyer') { utterance.pitch = 0.95; utterance.rate = 0.9; }
 
-    const voices = synth.getVoices();
-    const preferredVoice = voices.find(v => v.lang.startsWith(utterance.lang) && (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Natural')));
-    if (preferredVoice) utterance.voice = preferredVoice;
+    // Voice Selection
+    const voices = availableVoices.length > 0 ? availableVoices : synth.getVoices();
+    const searchLangs = [utterance.lang, utterance.lang.split('-')[0]];
+    let bestVoice = voices.find(v =>
+      searchLangs.some(l => v.lang.startsWith(l)) &&
+      (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Natural'))
+    ) || voices.find(v => searchLangs.some(l => v.lang.startsWith(l)));
 
-    utterance.onstart = () => { setIsSpeaking(true); if (recognitionRef.current) try { recognitionRef.current.stop(); } catch {} };
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      setSpokenWordIndex(-1);
-      // Resume listening after AI speaks (real phone-call feel)
-      if (voiceLoopRef.current) setTimeout(() => { if (voiceLoopRef.current) startListening(); }, 500);
+    if (bestVoice) utterance.voice = bestVoice;
+
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      if (recognitionRef.current) try { recognitionRef.current.stop(); } catch { }
     };
-    utterance.onerror = () => { setIsSpeaking(false); setSpokenWordIndex(-1); };
-    utterance.onboundary = (event: any) => {
-      if (event.name === 'word') {
-        const wordCount = cleanText.substring(0, event.charIndex + 2).trim().split(/\s+/).length;
-        setSpokenWordIndex(wordCount);
+
+    utterance.onend = () => {
+      if (speechQueueRef.current.length > 0) {
+        processSpeechQueue();
+      } else {
+        setIsSpeaking(false);
+        setSpokenWordIndex(-1);
+        currentUtteranceRef.current = null;
+        if (voiceLoopRef.current) {
+          setTimeout(() => { if (voiceLoopRef.current) startListening(); }, 300);
+        }
       }
+    };
+
+    utterance.onerror = (e: any) => {
+      console.error("Queue Speech error:", { error: e.error, text: text.slice(0, 20) });
+      setIsSpeaking(false);
+      currentUtteranceRef.current = null;
+      // Skip failed sentence and try next
+      if (speechQueueRef.current.length > 0) processSpeechQueue();
     };
 
     synth.speak(utterance);
@@ -420,9 +523,10 @@ export default function ChatPage() {
     }
   };
 
-  const send = async (text?: string) => {
+  const send = async (text?: string, isFromVoice: boolean = false) => {
     const q = (text ?? input).trim();
     if ((!q && !file) || busy || !sessionId) return;
+    const wasListening = isListening; // Capture state before potential reset
     setInput('');
     if (window.speechSynthesis) window.speechSynthesis.cancel();
     setIsSpeaking(false);
@@ -491,10 +595,10 @@ export default function ChatPage() {
 
       setMsgs(p => [...p, { id: msgIdRef.current++, role: 'assistant', content: rawContent }]);
 
-      // Auto-speak if the message was sent via voice or if we want premium experience
-      if (isVoiceMode || isListening) {
+      // Auto-speak if it was a voice query or we are in call mode
+      if (isVoiceMode || isFromVoice || wasListening) {
         speak(rawContent);
-        setVoiceTranscript(""); // Clear transcript after sending
+        setVoiceTranscript("");
       }
     } catch {
       setMsgs(p => [...p, { id: msgIdRef.current++, role: 'assistant', content: "⚠️ Backend is currently offline. Please make sure the server is running." }]);
@@ -871,7 +975,7 @@ export default function ChatPage() {
                       scale: 1.05,
                       rotateY: 10,
                       rotateX: -10,
-                      shadow: assistantType === 'student' ? '0 0 70px rgba(16,185,129,0.7)' :
+                      boxShadow: assistantType === 'student' ? '0 0 70px rgba(16,185,129,0.7)' :
                         assistantType === 'lawyer' ? '0 0 70px rgba(245,158,11,0.7)' :
                           '0 0 70px rgba(59,130,246,0.7)'
                     }}
@@ -1018,8 +1122,8 @@ export default function ChatPage() {
                       <button
                         onClick={toggleVoice}
                         className={`relative flex items-center gap-2 px-4 py-2 rounded-full transition-all shrink-0 ${isListening
-                            ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]'
-                            : 'bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)]'
+                          ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]'
+                          : 'bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)]'
                           }`}
                       >
                         {isListening && (
@@ -1083,11 +1187,14 @@ export default function ChatPage() {
                     className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     {m.role === 'assistant' && (
-                      <div className={`h-9 w-9 rounded-xl bg-gradient-to-br flex items-center justify-center text-white shrink-0 mt-1 shadow-md border ${assistantType === 'student' ? 'from-emerald-500 to-emerald-600 shadow-emerald-500/30 border-emerald-400/30' :
+                      <div className={`group relative h-9 w-9 rounded-xl bg-gradient-to-br flex items-center justify-center text-white shrink-0 mt-1 shadow-md border ${assistantType === 'student' ? 'from-emerald-500 to-emerald-600 shadow-emerald-500/30 border-emerald-400/30' :
                         assistantType === 'lawyer' ? 'from-amber-500 to-amber-600 shadow-amber-500/30 border-amber-400/30' :
                           'from-blue-500 to-blue-600 shadow-blue-500/30 border-blue-400/30'
-                        } ${isRTL ? 'ml-4' : 'mr-4'}`}>
-                        <Cpu size={18} />
+                        } ${isRTL ? 'ml-4' : 'mr-4'} transition-all cursor-pointer`}
+                        onClick={() => speak(translateHistory(m.content))}
+                      >
+                        <Cpu size={18} className="group-hover:opacity-0 transition-opacity" />
+                        <Volume2 size={16} className="absolute opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     )}
 
@@ -1206,6 +1313,15 @@ export default function ChatPage() {
                       {t('agent_thinking')}
                     </span>
                   </div>
+                  {isSpeaking && (
+                    <button
+                      onClick={() => window.speechSynthesis.cancel()}
+                      className="ml-4 p-1.5 rounded-full bg-[var(--surface-2)] text-red-500 hover:text-white hover:bg-red-500 transition-all shadow-sm active:scale-95"
+                      title="Stop Speaking"
+                    >
+                      <VolumeX size={18} />
+                    </button>
+                  )}
                 </motion.div>
               )}
               <div ref={bottomRef} className="h-4" />
@@ -1219,7 +1335,7 @@ export default function ChatPage() {
                 <div className={`relative flex items-center gap-2 rounded-full p-1.5 border border-[var(--border)] transition-all duration-300 bg-[var(--surface-1)] shadow-sm ${busy ? 'opacity-70' : 'focus-within:shadow-md'}`}>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="hidden sm:flex p-2 text-[var(--muted)] hover:text-indigo-400 transition-all shrink-0"
+                    className="hidden sm:flex p-2 text-[var(--muted)] hover:text-[var(--accent)] transition-all shrink-0"
                   >
                     <Plus size={22} />
                   </button>
@@ -1252,8 +1368,8 @@ export default function ChatPage() {
                       <button
                         onClick={toggleVoice}
                         className={`relative flex items-center gap-2 px-4 py-2 rounded-full transition-all shrink-0 ${isListening
-                            ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]'
-                            : 'bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)]'
+                          ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]'
+                          : 'bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)]'
                           }`}
                       >
                         {isListening && (
@@ -1348,11 +1464,10 @@ export default function ChatPage() {
                       initial={{ opacity: 0, scale: 0.8, y: -10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.8 }}
-                      className={`flex items-center gap-2 backdrop-blur-xl border rounded-full px-4 py-2 text-[12px] font-black uppercase tracking-widest ${
-                        detectedService === 'student' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-                        : detectedService === 'lawyer' ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
-                        : 'bg-blue-500/15 border-blue-500/30 text-blue-400'
-                      }`}
+                      className={`flex items-center gap-2 backdrop-blur-xl border rounded-full px-4 py-2 text-[12px] font-black uppercase tracking-widest ${detectedService === 'student' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                          : detectedService === 'lawyer' ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                            : 'bg-blue-500/15 border-blue-500/30 text-blue-400'
+                        }`}
                     >
                       <Sparkles size={12} />
                       {detectedService === 'permit' ? 'Permit Advisor' : detectedService === 'student' ? 'Student Advisor' : 'Legal Counsel'}
@@ -1486,6 +1601,26 @@ export default function ChatPage() {
                     filter: 'blur(20px)',
                   }}
                 />
+
+                {/* Busy processing dots overlay */}
+                {busy && !isSpeaking && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="absolute inset-0 flex items-center justify-center z-[100]"
+                  >
+                    <div className="flex gap-2.5">
+                      {[0, 1, 2].map((i) => (
+                        <motion.div
+                          key={i}
+                          animate={{ y: [0, -15, 0], scale: [1, 1.25, 1] }}
+                          transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.12, ease: "easeInOut" }}
+                          className="w-3.5 h-3.5 rounded-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.6)]"
+                        />
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
               </div>
 
               {/* ── Status text + transcript ── */}
@@ -1501,7 +1636,7 @@ export default function ChatPage() {
                       <p className="text-white/35 text-[11px] font-black uppercase tracking-[0.35em] mb-3">
                         {isSpeaking ? 'Assistant Speaking…' : isListening ? 'Listening…' : 'Connecting…'}
                       </p>
-                      <motion.p
+                      <motion.div
                         key={voiceTranscript}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -1509,16 +1644,23 @@ export default function ChatPage() {
                       >
                         {isListening ? (
                           voiceTranscript ? voiceTranscript : (
-                            <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 2, repeat: Infinity }}>
-                              I'm listening to you...
-                            </motion.span>
+                            <div className="flex items-center justify-center h-[32px] gap-2 mt-2">
+                              {[0, 1, 2].map(i => (
+                                <motion.div
+                                  key={i}
+                                  animate={{ y: [0, -6, 0], scale: [1, 1.2, 1], opacity: [0.3, 1, 0.3] }}
+                                  transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
+                                  className={`w-2.5 h-2.5 rounded-full ${assistantType === 'student' ? 'bg-emerald-400/80' : assistantType === 'lawyer' ? 'bg-amber-400/80' : 'bg-blue-400/80'}`}
+                                />
+                              ))}
+                            </div>
                           )
                         ) : isSpeaking ? (
                           fullCleanText.split(' ').slice(0, 12).map((w, i) => (
                             <motion.span key={i} animate={{ opacity: i < spokenWordIndex ? 1 : 0.2 }} transition={{ duration: 0.08 }} className="inline-block mr-1">{w}</motion.span>
                           ))
                         ) : null}
-                      </motion.p>
+                      </motion.div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -1537,7 +1679,7 @@ export default function ChatPage() {
                 >
                   {/* Phone hang-up icon */}
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
-                    <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C9.6 21 3 14.4 3 6c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/>
+                    <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C9.6 21 3 14.4 3 6c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" />
                   </svg>
                 </motion.button>
               )}

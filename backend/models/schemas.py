@@ -13,17 +13,24 @@ class StepDetail(BaseModel):
     responsible: str = "Agent"  # "Human", "Agent", "Human/Agent"
     status: str = "pending"    # "pending", "completed"
     notes: Optional[str] = None
+    docs: List[str] = Field(default_factory=list, description="Documents needed for this step")
+
 
 class ExecutionPlan(BaseModel):
     steps: List[StepDetail] = Field(..., description="Ordered detailed steps for the workflow")
     assigned_agents: List[str] = Field(default=["Planner", "Classifier"])
 
 # Combined schema — lets us answer fully in ONE Gemini API call
+class AgentStep(BaseModel):
+    title: str = Field(..., description="Title of the step")
+    description: str = Field(..., description="Detailed explanation of the step")
+    documents: List[str] = Field(default_factory=list, description="Documents legally required for THIS specific step")
+
 class CombinedPermitResult(BaseModel):
     permits: List[str] = Field(..., description="Required permit types (e.g. Workplace License, Fire Safety)")
     agencies: List[str] = Field(..., description="Government agencies involved")
     documents: List[str] = Field(..., description="All documents required across permits")
-    steps: List[str] = Field(..., description="Ordered steps the business owner must follow")
+    steps: List[AgentStep] = Field(..., description="Ordered steps the business owner must follow")
     timeline_days: int = Field(..., description="Estimated total days to obtain all permits")
     summary: str = Field(..., description="One-paragraph plain-language summary for the business owner")
     location: str = Field(..., description="The district of Istanbul (e.g. Kadıköy, Beşiktaş)")
