@@ -15,6 +15,7 @@ export default function LoginPage() {
     const { login } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [mfaCode, setMfaCode] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState(1);
@@ -53,21 +54,25 @@ export default function LoginPage() {
                 setStep(2);
                 return;
             }
-            
-            // Step 2: Login with Password
+
+            // Step 2 & 3: Login with Password and optional MFA
             const res = await fetch('http://localhost:8003/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ email, password, mfa_code: mfaCode || undefined }),
             });
 
             if (!res.ok) {
                 const data = await res.json();
+                if (res.status === 403 && data.detail === "MFA_REQUIRED") {
+                    setStep(3);
+                    return;
+                }
                 throw new Error(data.detail || 'Login failed');
             }
 
             const data = await res.json();
-            login(data.access_token, data.email, data.full_name, data.is_admin);
+            login(data.access_token, data.email, data.full_name, data.is_admin, data.token_balance);
             router.push('/dashboard');
         } catch (err: any) {
             setError(err.message);
@@ -123,8 +128,8 @@ export default function LoginPage() {
                                         required
                                         autoFocus
                                     />
-                                    <label 
-                                        htmlFor="email" 
+                                    <label
+                                        htmlFor="email"
                                         className={`absolute ${language === 'ar' ? 'right-4' : 'left-4'} -top-2.5 bg-[var(--surface-1)] px-1.5 text-sm text-[var(--accent)] transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-placeholder-shown:text-[var(--muted)] peer-focus:-top-2.5 peer-focus:text-sm peer-focus:text-[var(--accent)] pointer-events-none`}
                                     >
                                         {t('auth_email')}
@@ -140,7 +145,7 @@ export default function LoginPage() {
                                     </Link>
                                 </p>
                             </div>
-                        ) : (
+                        ) : step === 2 ? (
                             <div className="space-y-4">
                                 <div className="group relative">
                                     <input
@@ -150,11 +155,11 @@ export default function LoginPage() {
                                         className="w-full bg-transparent border border-[var(--border)] group-focus-within:border-[var(--accent)] rounded-lg py-4 px-4 text-[var(--text)] placeholder-transparent focus:outline-none transition-all peer"
                                         placeholder={t('auth_enter_password')}
                                         id="password"
-                                        required
+                                        required={step === 2}
                                         autoFocus
                                     />
-                                    <label 
-                                        htmlFor="password" 
+                                    <label
+                                        htmlFor="password"
                                         className={`absolute ${language === 'ar' ? 'right-4' : 'left-4'} -top-2.5 bg-[var(--surface-1)] px-1.5 text-sm text-[var(--accent)] transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-placeholder-shown:text-[var(--muted)] peer-focus:-top-2.5 peer-focus:text-sm peer-focus:text-[var(--accent)] pointer-events-none`}
                                     >
                                         {t('auth_enter_password')}
@@ -164,13 +169,36 @@ export default function LoginPage() {
                                     {t('auth_change_email')}
                                 </button>
                             </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="group relative">
+                                    <input
+                                        type="text"
+                                        value={mfaCode}
+                                        onChange={(e) => setMfaCode(e.target.value)}
+                                        className="w-full bg-transparent border border-[var(--border)] group-focus-within:border-[var(--accent)] rounded-lg py-4 px-4 text-[var(--text)] placeholder-transparent focus:outline-none transition-all peer text-center tracking-widest font-mono text-xl"
+                                        placeholder="000000"
+                                        maxLength={6}
+                                        id="mfaCode"
+                                        required={step === 3}
+                                        autoFocus
+                                    />
+                                    <label
+                                        htmlFor="mfaCode"
+                                        className={`absolute ${language === 'ar' ? 'right-4' : 'left-4'} -top-2.5 bg-[var(--surface-1)] px-1.5 text-sm text-[var(--accent)] transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-placeholder-shown:text-[var(--muted)] peer-focus:-top-2.5 peer-focus:text-sm peer-focus:text-[var(--accent)] pointer-events-none`}
+                                    >
+                                        Authentication Code
+                                    </label>
+                                </div>
+                                <p className="text-xs text-[var(--muted)] px-1">Please enter the 6-digit code from your authenticator app.</p>
+                            </div>
                         )}
 
                         {/* Actions */}
                         <div className="flex items-center justify-between pt-6">
-                            <button 
+                            <button
                                 type="button"
-                                onClick={() => router.push('/signup')} 
+                                onClick={() => router.push('/signup')}
                                 className="text-[var(--muted)] text-sm font-medium hover:text-[var(--accent)] px-4 py-2 rounded-md transition-colors"
                             >
                                 {t('auth_signup_title')}
@@ -191,7 +219,7 @@ export default function LoginPage() {
             {/* Footer */}
             <div className={`w-full max-w-[450px] mt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-[var(--muted)] gap-4 relative ${language === 'ar' ? 'rtl' : 'ltr'}`}>
                 <div className="relative">
-                    <button 
+                    <button
                         type="button"
                         onClick={() => setIsLangOpen(!isLangOpen)}
                         className="flex items-center gap-1 cursor-pointer hover:bg-[var(--surface-2)] px-3 py-1.5 rounded-md text-[var(--text)] transition-colors border border-transparent hover:border-[var(--border)]"
@@ -199,7 +227,7 @@ export default function LoginPage() {
                         <span>{currentLanguageLabel}</span>
                         <ChevronDown size={14} className={`transition-transform duration-200 ${isLangOpen ? 'rotate-180' : ''}`} />
                     </button>
-                    
+
                     {isLangOpen && (
                         <div className={`absolute bottom-full mb-2 w-40 bg-[var(--surface-1)] rounded-md shadow-2xl py-1 z-50 overflow-hidden border border-[var(--border)] ${language === 'ar' ? 'right-0' : 'left-0'}`}>
                             {languages.map((lang) => (

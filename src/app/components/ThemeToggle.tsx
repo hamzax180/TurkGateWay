@@ -2,14 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { Sun, Moon } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ThemeToggle() {
   const [dark, setDark] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Check initial theme
-    const isDark = document.documentElement.classList.contains('dark') || 
-                   localStorage.getItem('theme') === 'dark';
+    setMounted(true);
+    const isDark =
+      document.documentElement.classList.contains('dark') ||
+      localStorage.getItem('theme') === 'dark';
     setDark(isDark);
     if (isDark) {
       document.documentElement.classList.add('dark');
@@ -19,9 +22,9 @@ export default function ThemeToggle() {
   }, []);
 
   const toggle = () => {
-    const newVal = !dark;
-    setDark(newVal);
-    if (newVal) {
+    const next = !dark;
+    setDark(next);
+    if (next) {
       document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
     } else {
@@ -30,13 +33,39 @@ export default function ThemeToggle() {
     }
   };
 
+  if (!mounted) return <div className="w-8 h-8" />;
+
   return (
-    <button 
+    <button
       onClick={toggle}
-      className="p-2 rounded-full hover:bg-white/10 transition-colors text-gray-500 hover:text-white dark:text-gray-400 dark:hover:text-white"
-      aria-label="Toggle Theme"
+      aria-label="Toggle theme"
+      className="relative w-8 h-8 flex items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface)] transition-colors duration-200 overflow-hidden"
     >
-      {dark ? <Sun size={20} /> : <Moon size={20} />}
+      <AnimatePresence mode="wait" initial={false}>
+        {dark ? (
+          <motion.span
+            key="sun"
+            initial={{ opacity: 0, rotate: -90, scale: 0.6 }}
+            animate={{ opacity: 1, rotate: 0, scale: 1 }}
+            exit={{ opacity: 0, rotate: 90, scale: 0.6 }}
+            transition={{ duration: 0.2 }}
+            className="text-amber-400"
+          >
+            <Sun size={15} />
+          </motion.span>
+        ) : (
+          <motion.span
+            key="moon"
+            initial={{ opacity: 0, rotate: 90, scale: 0.6 }}
+            animate={{ opacity: 1, rotate: 0, scale: 1 }}
+            exit={{ opacity: 0, rotate: -90, scale: 0.6 }}
+            transition={{ duration: 0.2 }}
+            className="text-[var(--muted)]"
+          >
+            <Moon size={15} />
+          </motion.span>
+        )}
+      </AnimatePresence>
     </button>
   );
 }

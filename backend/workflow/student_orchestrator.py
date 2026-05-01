@@ -71,7 +71,7 @@ async def student_node(state: GraphState):
     
     state['state'].execution_plan = ExecutionPlan(
         steps=details,
-        assigned_agents=["Academic Advisor", "Immigration Specialist"]
+        assigned_agents=["Academic Agent", "Immigration Specialist"]
     )
     return state
 

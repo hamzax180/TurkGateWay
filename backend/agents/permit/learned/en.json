@@ -2,19 +2,27 @@
   "learned": [
     {
       "q": "yenibosna",
-      "r": "Merhaba! Harika, Yenibosna is a vibrant area for a new venture.\n\nTo help me tailor the permit information specifically for you, could you tell me **what type of business** you are planning to open in Yenibosna? (e.g., Cafe, Restaurant, Retail Shop, Office, etc.)"
+      "r": "Harika, Yenibosna is a vibrant area for a new venture.\n\nTo help me tailor the permit information specifically for you, could you tell me **what type of business** you are planning to open in Yenibosna? (e.g., Cafe, Restaurant, Retail Shop, Office, etc.)"
     },
     {
       "q": "kayashier",
-      "r": "Merhaba!\n\nThank you for confirming Kayaşehir! That's in the Başakşehir district of Istanbul, and it's a bustling area for a new café. Let's get your roadmap set"
+      "r": "\nThank you for confirming Kayaşehir! That's in the Başakşehir district of Istanbul, and it's a bustling area for a new café. Let's get your roadmap set"
     },
     {
       "q": "whataretherequirementsforaresidencypermitinturkey",
-      "r": "Merhaba!\n\nIt sounds like you're looking for information on residency permits in Turkey. As PermitOps AI, my expertise is specifically focused on business permits and municipal protocols for Restaurants, Cafes, and Retail businesses in Istanbul districts.\n\nFor questions regarding general residency permits, which fall under immigration and legal matters, I recommend using the mode selector to connect with an advisor who specializes in those areas. They'll be able to provide you with the most accurate and up-to-date information.\n\nIs there anything I can help you with regarding business permits for a restaurant, cafe, or retail shop in Istanbul?"
+      "r": "\nIt sounds like you're looking for information on residency permits in Turkey. As PermitOps AI, my expertise is specifically focused on business permits and municipal protocols for Restaurants, Cafes, and Retail businesses in Istanbul districts.\n\nFor questions regarding general residency permits, which fall under immigration and legal matters, I recommend using the mode selector to connect with an agent who specializes in those areas. They'll be able to provide you with the most accurate and up-to-date information.\n\nIs there anything I can help you with regarding business permits for a restaurant, cafe, or retail shop in Istanbul?"
     },
     {
       "q": "and emilio",
-      "r": "Merhaba!\n\nIt's great to connect with you. To help you navigate the permit process here in Istanbul"
+      "r": "\nIt's great to connect with you. To help you navigate the permit process here in Istanbul"
+    },
+    {
+      "q": "yes",
+      "r": "It's great to help you with opening your cafe in Bakırköy. This is an exciting step!"
+    },
+    {
+      "q": "df",
+      "r": "Thank you for clarifying! It seems like there might be a slight mix-up in our conversation. My expertise is specifically"
     }
   ]
 }

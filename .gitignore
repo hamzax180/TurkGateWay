@@ -56,3 +56,11 @@ __pycache__/
 db.sqlite3
 learning_log.json
 response_dump.json
+
+# Desktop and Build artifacts
+/dist-desktop/
+/desktop/node_modules/
+/desktop/dist/
+*.exe
+*.node
+*.sst

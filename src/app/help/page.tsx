@@ -8,6 +8,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 
 export default function HelpPage() {
   const { t, isRTL } = useLanguage();
@@ -17,20 +18,28 @@ export default function HelpPage() {
 
   const faqs = [
     {
-      q: "What documents do I need for a business permit?",
-      a: "Requirements vary by municipality (district) and business type. Generally, you need a Tax Plate (Vergi Levhası), Fire Safety Report, and Chamber of Commerce registration. Use the Permit assistant in the chat for a specific list for your district."
+      q: "How do I start a new session with an AI Agent?",
+      a: "Navigate to the Services page and select your goal (e.g., Opening a Business, University Registration). The Smart Router will automatically connect you with the specialized Agent (Permit, Student, or Legal) and set up the localized context for your specific needs."
     },
     {
-      q: "How long does the fire safety inspection take?",
-      a: "In Istanbul, it usually takes between 7 to 15 working days after the application is submitted. Our platform tracks these estimated timelines for each of the 39 municipalities."
+      q: "Why does the Permit Agent ask for my district and business type?",
+      a: "Bureaucratic requirements in Turkey vary heavily by municipality (ilçe) and sector (NACE code). By providing this information, our Context Engine ensures the AI fetches the exact municipal guidelines and tax rules applicable to your specific situation."
     },
     {
-      q: "Can I renew my student residence permit here?",
-      a: "The Student Agent helps you prepare the roadmap, checklists, and document templates for e-Devlet and Göç İدايرة submissions. We automate the verification but you must still attend your assigned appointment."
+      q: "Can the AI generate official forms and documents for me?",
+      a: "Yes! The Agents provide step-by-step roadmaps and can guide you through preparing documents for e-Devlet, Göç İdaresi (Residence Permits), and MERSİS (Company Formation). However, you must still officially submit these documents to the government yourself."
     },
     {
-      q: "Is TurkGateway AI officially affiliated with the government?",
-      a: "No, TurkGateway AI is an independent platform that helps navigate bureaucratic protocols. We use AI to simplify local laws and municipal guidelines for your convenience."
+      q: "How accurate is the Legal Agent's advice?",
+      a: "The Legal Agent is trained on up-to-date Turkish Commercial Code and Labor Laws. While it provides excellent foundational guidance and contract review, it does not replace a licensed attorney for official court proceedings or binding legal representation."
+    },
+    {
+      q: "How do I change the language of the AI responses?",
+      a: "You can change the interface language using the globe icon in the navigation bar. The Smart Router will automatically instruct the AI to respond in your selected language (English, Turkish, or Arabic), utilizing our localized prompt caching system."
+    },
+    {
+      q: "Is my conversation history saved securely?",
+      a: "Yes. Your active sessions are stored locally in your browser to maintain context. If you clear your browser data or delete the session from the sidebar, the conversational memory for that session will be permanently erased."
     }
   ];
 
@@ -190,9 +199,8 @@ export default function HelpPage() {
           </div>
         </div>
 
-        <footer className="py-16 text-center text-[var(--muted)] text-sm mt-auto opacity-50">
-          <p>© 2026 TurkGateway AI • {t('footer_version')}</p>
-        </footer>
+      {/* ── Minimalist Footer ── */}
+      <Footer />
       </main>
     </div>
   );

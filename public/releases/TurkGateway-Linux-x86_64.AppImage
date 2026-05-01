@@ -1,0 +1,4 @@
+This is a placeholder file for the Linux AppImage.
+To generate the real AppImage, run:
+cd desktop
+npm run dist:linux

@@ -71,6 +71,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    # 1. HSTS (Strict Transport Security)
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    # 2. Prevent MIME-sniffing
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    # 3. Clickjacking protection
+    response.headers["X-Frame-Options"] = "DENY"
+    # 4. XSS Protection filter
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    # 5. Basic Content Security Policy
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
+    return response
+
 # --- Try to load the agent pipeline (optional, runs in thread to avoid deadlock) ---
 _agents_available = False
 try:
@@ -88,6 +103,24 @@ def sanitize_surrogates(text: str) -> str:
     """Strip surrogate pairs that crash SQLite's utf-8 encoder."""
     if not isinstance(text, str): return text
     return "".join(c for c in text if not (0xD800 <= ord(c) <= 0xDFFF))
+
+# ── Input allowlists ─────────────────────────────────────────────────────────
+_VALID_LANGUAGES      = {"en", "tr", "ar"}
+_VALID_AGENT_TYPES    = {"permit", "student", "lawyer"}
+_SESSION_ID_PATTERN   = __import__('re').compile(r'^[a-zA-Z0-9\-_]{1,64}$')
+
+def _safe_language(val: str) -> str:
+    """Return val if it's an allowed language code, else 'en'."""
+    return val if val in _VALID_LANGUAGES else "en"
+
+def _safe_agent_type(val: str) -> str:
+    """Return val if it's an allowed agent type, else 'permit'."""
+    return val if val in _VALID_AGENT_TYPES else "permit"
+
+def _safe_session_id(val: str) -> str:
+    """Validate session_id; reject if it doesn't match safe pattern."""
+    val = str(val).strip()
+    return val if _SESSION_ID_PATTERN.match(val) else "default-session"
 
 
 # --- Smart Router (zero/low-token layer) ---
@@ -119,9 +152,28 @@ class UserCredentials(BaseModel):
     is_extension: Optional[bool] = False
     father_name: Optional[str] = None
     mother_name: Optional[str] = None
-    
+    # Extended e-İkamet pre-registration fields
+    nationality_id: Optional[str] = None
+    nationality: Optional[str] = None
+    gender: Optional[str] = "Male"
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
+from fastapi.security import APIKeyHeader
 security = HTTPBearer()
 security_optional = HTTPBearer(auto_error=False)
+api_key_header = APIKeyHeader(name="Authorization", auto_error=False)
+
+async def get_user_from_api_key(api_key_str: str = Depends(api_key_header), db: Session = Depends(get_db)):
+    if not api_key_str:
+        raise HTTPException(status_code=401, detail="API Key required")
+    if api_key_str.startswith("Bearer "):
+        api_key_str = api_key_str[7:]
+    
+    user = db.query(DBUser).filter(DBUser.api_key == api_key_str).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid API Key")
+    return user
 
 async def get_current_user(token: str = None, db: Session = Depends(get_db), credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
     user = await get_current_user_optional(token, db, credentials)
@@ -198,7 +250,7 @@ async def register(request: Request, user: UserCreate, db: Session = Depends(get
     db.refresh(new_user)
     
     access_token = create_access_token(data={"sub": new_user.email})
-    return {"access_token": access_token, "token_type": "bearer", "email": new_user.email, "full_name": new_user.full_name, "is_admin": new_user.is_admin}
+    return {"access_token": access_token, "token_type": "bearer", "email": new_user.email, "full_name": new_user.full_name, "is_admin": new_user.is_admin, "token_balance": new_user.token_balance}
 
 @app.post("/auth/login", response_model=Token)
 @limiter.limit("10/minute", key_func=user_id_key)
@@ -207,8 +259,51 @@ async def login(request: Request, user: UserLogin, db: Session = Depends(get_db)
     if not db_user or not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
     
+    if db_user.mfa_enabled:
+        if not user.mfa_code:
+            raise HTTPException(status_code=403, detail="MFA_REQUIRED")
+        import pyotp
+        totp = pyotp.TOTP(db_user.mfa_secret)
+        if not totp.verify(user.mfa_code):
+            raise HTTPException(status_code=401, detail="Invalid MFA code")
+    
     access_token = create_access_token(data={"sub": db_user.email})
-    return {"access_token": access_token, "token_type": "bearer", "email": db_user.email, "full_name": db_user.full_name, "is_admin": db_user.is_admin}
+    return {"access_token": access_token, "token_type": "bearer", "email": db_user.email, "full_name": db_user.full_name, "is_admin": db_user.is_admin, "token_balance": db_user.token_balance}
+
+class MFAVerify(BaseModel):
+    code: str
+
+@app.post("/auth/mfa/setup")
+async def setup_mfa(current_user: DBUser = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.mfa_enabled:
+        raise HTTPException(status_code=400, detail="MFA is already enabled")
+    
+    import pyotp
+    secret = pyotp.random_base32()
+    current_user.mfa_secret = secret
+    db.commit()
+    
+    totp = pyotp.TOTP(secret)
+    provisioning_uri = totp.provisioning_uri(name=current_user.email, issuer_name="PermitOps")
+    
+    return {"secret": secret, "provisioning_uri": provisioning_uri}
+
+@app.post("/auth/mfa/verify")
+async def verify_mfa(mfa: MFAVerify, current_user: DBUser = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.mfa_enabled:
+        raise HTTPException(status_code=400, detail="MFA is already enabled")
+    
+    if not current_user.mfa_secret:
+        raise HTTPException(status_code=400, detail="MFA setup not initiated")
+        
+    import pyotp
+    totp = pyotp.TOTP(current_user.mfa_secret)
+    if totp.verify(mfa.code):
+        current_user.mfa_enabled = True
+        db.commit()
+        return {"status": "success", "message": "MFA enabled successfully"}
+    else:
+        raise HTTPException(status_code=400, detail="Invalid code")
 
 @app.post("/auth/check-email")
 async def check_email(request: Request, db: Session = Depends(get_db)):
@@ -221,13 +316,96 @@ async def check_email(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Couldn't find your TurkGateway Account")
     return {"status": "exists"}
 
+import secrets
+from models.schemas import APIKeyResponse, DeveloperChatRequest
+
+@app.post("/auth/api-key/generate", response_model=APIKeyResponse)
+async def generate_api_key(current_user: DBUser = Depends(get_current_user), db: Session = Depends(get_db)):
+    api_key = f"sk_po_{secrets.token_urlsafe(32)}"
+    current_user.api_key = api_key
+    db.commit()
+    return {"api_key": api_key}
+
+@app.get("/auth/api-key")
+async def get_api_key(current_user: DBUser = Depends(get_current_user)):
+    return {"api_key": current_user.api_key}
+
+@app.delete("/auth/api-key")
+async def revoke_api_key(current_user: DBUser = Depends(get_current_user), db: Session = Depends(get_db)):
+    current_user.api_key = None
+    db.commit()
+    return {"status": "success"}
+
+# --- Developer API Public Endpoints ---
+@app.post("/v1/chat/completions")
+async def api_chat_completions(request: DeveloperChatRequest, current_user: DBUser = Depends(get_user_from_api_key), db: Session = Depends(get_db)):
+    # Verify Token Limit
+    if current_user.subscription_status == "free":
+        now = datetime.datetime.utcnow()
+        if current_user.last_token_reset is None or (now - current_user.last_token_reset).total_seconds() > 12 * 3600:
+            current_user.token_balance = 5
+            current_user.last_token_reset = now
+            db.commit()
+            
+        if current_user.token_balance <= 0:
+            raise HTTPException(status_code=429, detail="API Token Limit Reached")
+        current_user.token_balance -= 1
+        db.commit()
+        
+    # Standardize input
+    user_message = next((m.content for m in reversed(request.messages) if m.role == "user"), "")
+    if not user_message:
+        raise HTTPException(status_code=400, detail="No user message provided")
+        
+    # Route to correct agent
+    assistant_type = request.model.replace("permitops-", "").replace("-v1", "")
+    if assistant_type not in ["permit", "student", "lawyer"]:
+        assistant_type = "permit"
+        
+    try:
+        model = None
+        if assistant_type == "permit": model = gemini_model
+        elif assistant_type == "student": model = student_model
+        elif assistant_type == "lawyer": model = lawyer_model
+        else: model = gemini_model
+        
+        if hasattr(model, 'generate_content_async'):
+            response = await model.generate_content_async(user_message)
+            text_resp = response.text
+        else:
+            text_resp = "API Agent not ready"
+            
+        return {
+            "id": f"chatcmpl-{secrets.token_hex(12)}",
+            "object": "chat.completion",
+            "created": int(datetime.datetime.utcnow().timestamp()),
+            "model": request.model,
+            "choices": [{
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": text_resp,
+                },
+                "finish_reason": "stop"
+            }],
+            "usage": {
+                "prompt_tokens": len(user_message) // 4,
+                "completion_tokens": len(text_resp) // 4,
+                "total_tokens": (len(user_message) + len(text_resp)) // 4
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/auth/me")
 async def get_me(user: DBUser = Depends(get_current_user)):
     return {
         "email": user.email,
         "full_name": user.full_name,
         "is_admin": user.is_admin,
-        "subscription_status": user.subscription_status
+        "subscription_status": user.subscription_status,
+        "token_balance": user.token_balance,
+        "last_token_reset": user.last_token_reset.isoformat() if user.last_token_reset else None
     }
 
 @app.delete("/auth/account")
@@ -247,8 +425,8 @@ import uuid
 @app.get("/chat/sessions")
 @limiter.limit("20/minute", key_func=user_id_key)
 async def get_chat_sessions(request: Request, user: DBUser = Depends(get_current_user), db: Session = Depends(get_db)):
-    sessions = db.query(ChatSession).filter(ChatSession.user_id == user.id).order_by(ChatSession.created_at.desc()).all()
-    return [{"id": s.id, "title": s.title or "New Chat", "created_at": s.created_at, "assistant_type": s.assistant_type or "permit"} for s in sessions]
+    sessions = db.query(ChatSession).filter(ChatSession.user_id == user.id).order_by(ChatSession.is_favorite.desc(), ChatSession.created_at.desc()).all()
+    return [{"id": s.id, "title": s.title or "New Chat", "created_at": s.created_at, "assistant_type": s.assistant_type or "permit", "is_favorite": s.is_favorite} for s in sessions]
 
 @app.post("/chat/sessions")
 @limiter.limit("20/minute", key_func=user_id_key)
@@ -257,7 +435,18 @@ async def create_chat_session(request: Request, assistant_type: str = "permit", 
     new_session = ChatSession(id=session_id, user_id=user.id, title="New Chat", assistant_type=assistant_type)
     db.add(new_session)
     db.commit()
-    return {"id": session_id, "title": "New Chat", "assistant_type": assistant_type}
+    return {"id": session_id, "title": "New Chat", "assistant_type": assistant_type, "is_favorite": False}
+
+@app.post("/chat/sessions/{session_id}/favorite")
+@limiter.limit("20/minute", key_func=user_id_key)
+async def toggle_session_favorite(request: Request, session_id: str, user: DBUser = Depends(get_current_user), db: Session = Depends(get_db)):
+    session = db.query(ChatSession).filter(ChatSession.id == session_id, ChatSession.user_id == user.id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    session.is_favorite = not session.is_favorite
+    db.commit()
+    return {"status": "success", "is_favorite": session.is_favorite}
 
 async def _get_history_context(session_id: str, db: Session, limit: int = 10, current_query: Optional[str] = None, strip_boilerplate: bool = False, user_id: Optional[int] = None) -> str:
     """Fetch recent chat history to provide context for the AI."""
@@ -742,12 +931,12 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
     
     if "multipart/form-data" in content_type:
         form = await request.form()
-        query_text = form.get("query", "")
-        language = form.get("language", "en")
-        session_id = form.get("session_id", "default-session")
+        query_text = str(form.get("query", ""))
+        language = _safe_language(str(form.get("language", "en")))
+        session_id = _safe_session_id(str(form.get("session_id", "default-session")))
         token = form.get("token")
         upload_file = form.get("file")
-        assistant_type = form.get("assistant_type", "permit")
+        assistant_type = _safe_agent_type(str(form.get("assistant_type", "permit")))
         
         # --- DEBUG TRACER ---
         import smart_router
@@ -767,10 +956,10 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
     else:
         body = await request.json()
         query_text = body.get("query", "")
-        language = body.get("language", "en")
-        session_id = body.get("context", {}).get("session_id", "default-session")
-        assistant_type = body.get("assistant_type", "permit")
-        print(f"\n[AI Advisor] New Request: '{query_text[:40]}...' (Type: {assistant_type}, Lang: {language})")
+        language = _safe_language(body.get("language", "en"))
+        session_id = _safe_session_id(body.get("context", {}).get("session_id", "default-session"))
+        assistant_type = _safe_agent_type(body.get("assistant_type", "permit"))
+        print(f"\n[AI Agent] New Request: '{str(query_text)[:40]}...' (Type: {assistant_type}, Lang: {language})")
     
     # --- Dynamic Agent Correction (Safety Layer) ---
     _q_low = query_text.lower()
@@ -792,6 +981,34 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
         # Get or create session — PRIVACY RULE: Only persist to DB if logged in
         db_session = None
         if user:
+            # Token limit check for free users
+            # Token limit check for free users with 12-hour refresh
+            if user.subscription_status == "free":
+                now = datetime.datetime.utcnow()
+                
+                # 1. Reset check: If they are at 0, see if 12h passed since they hit 0
+                if user.token_balance <= 0:
+                    if user.last_token_reset and (now - user.last_token_reset).total_seconds() > 12 * 3600:
+                        user.token_balance = 5
+                        user.last_token_reset = None # Clear timer until they hit 0 again
+                        db.commit()
+                    else:
+                        # Locked out - show when it will open
+                        from fastapi import HTTPException
+                        next_reset = (user.last_token_reset or now) + datetime.timedelta(hours=12)
+                        reset_str = next_reset.strftime("%m/%d/%Y, %I:%M:%S %p")
+                        raise HTTPException(status_code=403, detail=f"Model quota reached|{reset_str}")
+
+                # 2. Consume token
+                user.token_balance -= 1
+                
+                # 3. If they JUST hit 0, start the 12h timer from this moment
+                if user.token_balance <= 0:
+                    user.token_balance = 0
+                    user.last_token_reset = now
+                
+                db.commit()
+                
             db_session = db.query(ChatSession).filter(ChatSession.id == session_id, ChatSession.user_id == user.id).first()
             if not db_session:
                 db_session = ChatSession(id=session_id, user_id=user.id, title=query_text[:50], assistant_type=assistant_type)
@@ -1124,7 +1341,7 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
                         lang_map = _LAWYER_TITLES.get(language, _LAWYER_TITLES["en"])
                         new_title = lang_map.get(btype)
                         if not new_title:
-                            new_title = "Legal Consultation" if language == "en" else ("استشارة قانونية" if language == "ar" else "Hukuki Danışmanlık")
+                            new_title = "Legal Consultation" if language == "en" else ("استشارة قانونية" if language == "ar" else "Hukuki Ajanlık")
                         
                     if new_title:
                         if len(new_title) > 35:
@@ -1137,7 +1354,13 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
                     print(f"[Title Update Error] {title_err}")
 
         print(f"[agent_query] Success. Content length: {len(answer)}")
-        return {"role": "assistant", "content": answer, "session_title": db_session.title if db_session else None, "source": source}
+        return {
+            "role": "assistant", 
+            "content": answer, 
+            "session_title": db_session.title if db_session else None, 
+            "source": source,
+            "token_balance": user.token_balance if user else None
+        }
 
     except Exception as e:
         print(f"[AgentQuery CRITICAL ERROR] {e}")
@@ -1148,11 +1371,17 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
             fallback_answer = await _run_local_fallback(query_text, assistant_type, language, user.full_name if user else "")
             
             # Save fallback message with a premium "Local Core" badge
-            assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=f"🛡️ [Backup Core] {fallback_answer}")
+            assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=fallback_answer)
             db.add(assistant_msg)
             db.commit()
             
-            return {"role": "assistant", "content": f"🛡️ [Backup Core] {fallback_answer}", "session_title": db_session.title if db_session else None}
+            return {
+                "role": "assistant", 
+                "content": fallback_answer, 
+                "session_title": db_session.title if db_session else None, 
+                "source": "Backup Core Fallback",
+                "token_balance": user.token_balance if user else None
+            }
         except:
             return {"role": "assistant", "content": f"Critical Error: {str(e)}"}
 
@@ -1356,7 +1585,14 @@ async def automate_step(step_id: int, session_id: Optional[str] = None, user: Op
                 passport_type=creds.get("passport_type", "Normal"),
                 ikamet_type=creds.get("ikamet_type", "Student"),
                 dob=creds.get("dob", "2000-01-01"),
-                is_extension=creds.get("is_extension", False)
+                is_extension=creds.get("is_extension", False),
+                father_name=creds.get("father_name", ""),
+                mother_name=creds.get("mother_name", ""),
+                nationality_id=creds.get("nationality_id", ""),
+                nationality=creds.get("nationality", ""),
+                gender=creds.get("gender", "Male"),
+                email=creds.get("email", ""),
+                phone=creds.get("phone", ""),
             ))
             if result["status"] == "success":
                 await _get_and_update_state(step_id, user, session_id, db, "completed")
@@ -1411,7 +1647,12 @@ async def submit_edevlet(creds: UserCredentials, session_id: Optional[str] = Non
             "dob": creds.dob,
             "is_extension": creds.is_extension,
             "father_name": creds.father_name,
-            "mother_name": creds.mother_name
+            "mother_name": creds.mother_name,
+            "nationality_id": creds.nationality_id,
+            "nationality": creds.nationality,
+            "gender": creds.gender or "Male",
+            "email": creds.email,
+            "phone": creds.phone,
         }
         print(f"[Credentials] Stored for key={store_key}")
 
@@ -1437,7 +1678,12 @@ async def submit_edevlet(creds: UserCredentials, session_id: Optional[str] = Non
                     dob=creds.dob or "",
                     is_extension=creds.is_extension,
                     father_name=creds.father_name or "",
-                    mother_name=creds.mother_name or ""
+                    mother_name=creds.mother_name or "",
+                    nationality_id=creds.nationality_id or "",
+                    nationality=creds.nationality or "",
+                    gender=creds.gender or "Male",
+                    email=creds.email or "",
+                    phone=creds.phone or "",
                 )
             )
         elif use_insurance:

@@ -129,7 +129,7 @@ async def generate_rag_response(
     lang_map = {"tr": "Turkish", "ar": "Arabic", "en": "English"}
     lang_name = lang_map.get(language, "English")
 
-    prompt = f"""You are a knowledgeable, warm, and professional advisor. Answer the user's question using ONLY the provided context below. Be conversational and human — use emojis sparingly, be encouraging, and speak like a helpful friend who happens to be an expert.
+    prompt = f"""You are a knowledgeable, warm, and professional agent. Answer the user's question using ONLY the provided context below. Be conversational and human — use emojis sparingly, be encouraging, and speak like a helpful friend who happens to be an expert.
 
 CONTEXT (use this to answer):
 {context_block}

@@ -495,7 +495,16 @@ def find_learned_response(
         # Character overlap
         char_score = SequenceMatcher(None, normalized, stored_query).ratio()
         
-        # Must pass both thresholds to prevent proper noun confusion
+        # TYPO DETECTION: If character match is very high (>85%), it's almost certainly a typo. 
+        # Bypass word intersection (which fails on misspelled words).
+        if char_score >= 0.85:
+            if char_score > best_score:
+                best_score = char_score
+                best_match_text = stored_response
+                best_match_state = stored_state
+            continue
+            
+        # PARAPHRASE DETECTION: Must pass both thresholds to prevent proper noun confusion
         if char_score >= _MIN_CHAR_SIMILARITY and word_score >= _MIN_WORD_SIMILARITY:
             combined = (char_score + word_score) / 2
             if combined > best_score:

@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
-from typing import List, Dict, Optional
+from pydantic import BaseModel, Field, field_validator, EmailStr
+from typing import List, Dict, Optional, Literal
 from datetime import datetime
+import re
 
 class PermitPlan(BaseModel):
     permits: List[str] = Field(..., description="List of required permit types")
@@ -62,21 +63,53 @@ class PermitState(BaseModel):
     last_updated: datetime = Field(default_factory=datetime.now)
 
 class UserQuery(BaseModel):
-    query: str
-    language: str = "en"
+    query: str = Field(..., min_length=1, max_length=4000)
+    language: Literal["en", "tr", "ar"] = "en"
     context: Optional[Dict] = None
 
+    @field_validator("query")
+    @classmethod
+    def sanitize_query(cls, v: str) -> str:
+        # Strip null bytes and control characters
+        v = v.replace("\x00", "").strip()
+        if not v:
+            raise ValueError("Query cannot be empty")
+        return v
+
 class UserCreate(BaseModel):
-    email: str
-    password: str
-    full_name: Optional[str] = None
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
+    full_name: Optional[str] = Field(None, max_length=100)
+
+    @field_validator("full_name")
+    @classmethod
+    def sanitize_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        # Strip HTML tags and control characters
+        v = re.sub(r"<[^>]+>", "", v).strip()
+        return v
 
 class UserLogin(BaseModel):
-    email: str
-    password: str
+    email: EmailStr
+    password: str = Field(..., min_length=1, max_length=128)
+    mfa_code: Optional[str] = None
 
 class Token(BaseModel):
     access_token: str
     token_type: str
     email: str
     full_name: Optional[str] = None
+    is_admin: Optional[bool] = False
+
+class APIKeyResponse(BaseModel):
+    api_key: str
+
+class ChatCompletionMessage(BaseModel):
+    role: str
+    content: str
+
+class DeveloperChatRequest(BaseModel):
+    model: str = "permitops-lawyer-v1"
+    messages: List[ChatCompletionMessage]
+    temperature: Optional[float] = 0.7

@@ -371,7 +371,7 @@ async def smart_router_handle(
     # --- PHASE 0.5: Contextual Affirmative Check (Handle 'yes' to deadlines) ---
     lower_q = query.lower().strip().replace("?", "").replace(".", "").replace("!", "")
 
-    affirmative = ["yes", "yeah", "yep", "sure", "ok", "okay", "evet", "tamam", "olur", "\u0646\u0639\u0645", "\u0627\u064a\u0648\u0647", "\u0623\u062c\u0644", "\u0637\u0628\u0631\u0627", "\u0637\u0628\u0631\u0627\u064b", "\u0645\u0627\u0634\u064a"]
+    affirmative = ["yes", "yeah", "yep", "sure", "ok", "okay", "evet", "tamam", "olur", "\u0646\u0639\u0645", "\u0627\u064a\u0648\u0647", "\u0623\u062c\u0644", "\u0637\u0628\u0631\u0627", "\u0637\u0628\u0631\u0627\u064b", "\u0645\u0627\u0634\u064a", "please", "go ahead", "show me", "show", "give me", "do it", "let's go", "let's", "yalla", "\u064a\u0644\u0644\u0627", "send", "continue", "devam", "devam et", "\u0627\u0643\u0645\u0644"]
     if lower_q in affirmative and last_assistant_msg:
         if any(marker in last_assistant_msg for marker in ["check the current registration calendar", "registration calendar", "university deadline", "kay\u0131t takvimi", "moaud", "\u0645\u0648\u0639\u062f", "announcements", "duyurular", "major schools"]):
             prompt = {
@@ -381,6 +381,79 @@ async def smart_router_handle(
             }.get(language, "Great! Which university are you targeting?")
             await wait_task
             return prompt, None, "Contextual Affirmative (Deadlines)"
+
+        # --- Contextual Affirmative: user said yes to a PERMIT checklist / steps offer ---
+        _checklist_markers = [
+            "want the checklist", "checklist?", "want the steps", "shall i generate",
+            "show you the", "fire compliance", "itfaiye", "baca certificate", "same permit",
+            "same requirement", "fire safety", "municipality", "gıda sicil",
+            "let me pull up", "should i generate", "want me to generate",
+            "shall i prepare", "want a full roadmap", "full roadmap",
+            "want your roadmap", "roadmap?", "adım adım", "yol harita",
+            "İzinler gerekiyor", "ruhsat", "permit", "show the steps",
+            "\u0647\u0644 \u062a\u0631\u064a\u062f", "\u0627\u0644\u062e\u0637\u0648\u0627\u062a", "\u0627\u0644\u0642\u0627\u0626\u0645\u0629", "\u0627\u0644\u0625\u062c\u0631\u0627\u0621\u0627\u062a"
+        ]
+        if any(marker in last_assistant_msg for marker in _checklist_markers):
+            # Extract business type + district from conversation history
+            from utils.protocol import get_localized_steps, _detect_type
+            from models.schemas import PermitState, CombinedPermitResult, ExecutionPlan, StepDetail, PermitPlan, AgentStep
+            from datetime import datetime
+
+            _hist_lower = (history_text or "").lower()
+            # Find district in history
+            _found_district = "Istanbul"
+            for d in _ALL_DISTRICTS:
+                if d in _hist_lower:
+                    _found_district = d.title()
+                    break
+            # Find business type in history
+            _found_btype_raw = "general"
+            for bt in _ALL_BUSINESS_TYPES:
+                if bt in _hist_lower:
+                    _found_btype_raw = bt
+                    break
+            _found_btype = _detect_type(_found_btype_raw)
+
+            step_specs = get_localized_steps(language, _found_btype)
+            details, steps_list, agent_steps = [], [], []
+            for spec in step_specs:
+                id_val, title, resp, note = spec[0], spec[1], spec[2], spec[3]
+                step_docs = list(spec[4]) if len(spec) > 4 else []
+                details.append(StepDetail(id=id_val, title=title, responsible=resp, status="pending", notes=note, docs=step_docs))
+                steps_list.append(title)
+                agent_steps.append(AgentStep(title=title, description=note, documents=step_docs))
+
+            _timeline = {"food": 45, "retail": 35, "service": 30}.get(_found_btype, 40)
+            _permits = {"food": ["İşyeri Açma Ruhsatı", "Gıda Sicil Belgesi", "İtfaiye Raporu"],
+                        "retail": ["İşyeri Açma Ruhsatı", "Vergi Levhası"],
+                        "service": ["İşyeri Açma Ruhsatı", "Mesleki Yeterlilik"]}.get(_found_btype, ["İşyeri Açma Ruhsatı"])
+            _agencies = {"food": ["Municipality", "İtfaiye", "Tarım Bakanlığı", "Vergi Dairesi"],
+                         "retail": ["Municipality", "Vergi Dairesi", "Ticaret Odası"],
+                         "service": ["Municipality", "Vergi Dairesi", "Mesleki Kuruluş"]}.get(_found_btype, ["Municipality", "Vergi Dairesi"])
+            _docs = {"food": ["Lease Agreement", "Tax Number", "Company Docs", "Gıda Sicil Formu", "İtfaiye Raporu", "Baca Belgesi"],
+                     "retail": ["Lease Agreement", "Tax Number", "Company Docs", "Vergi Levhası"],
+                     "service": ["Lease Agreement", "Tax Number", "Company Docs", "Mesleki Belge"]}.get(_found_btype, ["Lease Agreement", "Tax Number", "Company Docs"])
+
+            _summ = {
+                "en": f"Here's your complete {_found_btype_raw} permit roadmap for {_found_district}! Follow these {len(steps_list)} steps to open legally.",
+                "tr": f"İşte {_found_district} için {_found_btype_raw} ruhsat yol haritanız! Yasal olarak açmak için bu {len(steps_list)} adımı takip edin.",
+                "ar": f"إليك خارطة طريق رخصة {_found_btype_raw} في {_found_district}! اتبع هذه الخطوات الـ {len(steps_list)} لفتح نشاطك التجاري قانونياً.",
+            }.get(language, f"Here's your {_found_btype_raw} roadmap for {_found_district}!")
+            _labels = {"en": {"ag": "Agencies", "dc": "Documents", "st": "Steps", "tm": "Timeline", "dy": "days"},
+                       "tr": {"ag": "Kurumlar", "dc": "Belgeler", "st": "Adımlar", "tm": "Tahmini Süre", "dy": "gün"},
+                       "ar": {"ag": "الجهات", "dc": "المستندات", "st": "الخطوات", "tm": "المدة", "dy": "يوم"}}.get(language, {"ag": "Agencies", "dc": "Documents", "st": "Steps", "tm": "Timeline", "dy": "days"})
+
+            combined = CombinedPermitResult(permits=_permits, agencies=_agencies, documents=_docs, steps=agent_steps, timeline_days=_timeline, summary=_summ, location=_found_district, business_type=_found_btype)
+            state = PermitState(business_profile={"raw_query": query, "language": language}, combined_result=combined, permit_plan=PermitPlan(permits=_permits, agencies=_agencies, documents=_docs), execution_plan=ExecutionPlan(steps=details, assigned_agents=["Planner"]), last_updated=datetime.now())
+            out_str = (f"💬 {_summ}\n\n📋 **{_labels['ag']}:** {', '.join(_agencies)}\n📄 **{_labels['dc']}:** {', '.join(_docs[:5])}\n✅ **{_labels['st']}:**\n"
+                       + "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps_list))
+                       + f"\n\n⏱️ **{_labels['tm']}:** {_timeline} {_labels['dy']}")
+            dashboard_dump = state.model_dump()
+            if hasattr(dashboard_dump.get("last_updated"), "isoformat"):
+                dashboard_dump["last_updated"] = dashboard_dump["last_updated"].isoformat()
+            print(f"[Smart Router] ✅ Contextual Affirmative → direct permit roadmap for '{_found_btype_raw}' in '{_found_district}'")
+            await wait_task
+            return out_str, dashboard_dump, "Contextual Affirmative (Permit Steps)"
 
     # --- PHASE 0.5b: Contextual University Reply ---
     _was_asking_uni = any(marker in last_assistant_msg for marker in [
@@ -418,7 +491,7 @@ async def smart_router_handle(
             
 
         if _reply_uni:
-            from models.schemas import PermitState, CombinedPermitResult, ExecutionPlan, StepDetail, PermitPlan
+            from models.schemas import PermitState, CombinedPermitResult, ExecutionPlan, StepDetail, PermitPlan, AgentStep
             from utils.protocol import get_localized_steps
             from datetime import datetime
             deadline_info = _UNI_DEADLINES.get(_reply_uni, {}).get(language, "August")
@@ -429,13 +502,18 @@ async def smart_router_handle(
             }.get(language, f"Perfect! \ud83c\udf93 Here's your registration roadmap for **{_reply_uni}**!")
             _bt = "student.register_uni"
             step_specs = get_localized_steps(language, _bt)
-            details = [StepDetail(id=id_val, title=title, responsible=resp, status="pending", notes=note) for id_val, title, resp, note in step_specs]
-            steps_list = [title for id_val, title, resp, note in step_specs]
-            labels = {"en": {"ag": "Key Institutions", "dc": "Essential Documents", "st": "Registration Steps"}, "tr": {"ag": "Kurumlar", "dc": "Gerekli Belgeler", "st": "Kay\u0131t Ad\u0131mlar\u0131"}, "ar": {"ag": "\u0627\u0644\u0645\u0624\u0633\u0633\u0627\u062a", "dc": "\u0627\u0644\u0645\u0633\u062a\u0646\u062f\u0627\u062a \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629", "st": "\u062e\u0637\u0648\u0627\u062a \u0627\u0644\u062a\u0633\u062c\u064a\u0644"}}.get(language, {"ag": "Agencies", "dc": "Docs", "st": "Steps"})
+            details, steps_list, agent_steps = [], [], []
+            for spec in step_specs:
+                id_val, title, resp, note = spec[0], spec[1], spec[2], spec[3]
+                step_docs = list(spec[4]) if len(spec) > 4 else []
+                details.append(StepDetail(id=id_val, title=title, responsible=resp, status="pending", notes=note, docs=step_docs))
+                steps_list.append(title)
+                agent_steps.append(AgentStep(title=title, description=note, documents=step_docs))
+            labels = {"en": {"ag": "Key Institutions", "dc": "Essential Documents", "st": "Registration Steps"}, "tr": {"ag": "Kurumlar", "dc": "Gerekli Belgeler", "st": "Kayıt Adımları"}, "ar": {"ag": "\u0627\u0644\u0645\u0624\u0633\u0633\u0627\u062a", "dc": "\u0627\u0644\u0645\u0633\u062a\u0646\u062f\u0627\u062a \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629", "st": "\u062e\u0637\u0648\u0627\u062a \u0627\u0644\u062a\u0633\u062c\u064a\u0644"}}.get(language, {"ag": "Agencies", "dc": "Docs", "st": "Steps"})
             agencies = ["University Registrar", "Portal / OBS", "MEB (Denklik)"]
             docs = ["Admission Letter", "Passport", "Original Diploma", "Apostille", "Photos"]
-            combined = CombinedPermitResult(permits=[f"{_reply_uni} Registration"], agencies=agencies, documents=docs, steps=steps_list, timeline_days=15, summary=prompt_summ, location=_reply_uni, business_type=_bt)
-            state = PermitState(business_profile={"raw_query": query, "language": language, "university": _reply_uni}, combined_result=combined, permit_plan=PermitPlan(permits=[_reply_uni], agencies=agencies, documents=docs), execution_plan=ExecutionPlan(steps=details, assigned_agents=["Student Advisor"]), last_updated=datetime.now())
+            combined = CombinedPermitResult(permits=[f"{_reply_uni} Registration"], agencies=agencies, documents=docs, steps=agent_steps, timeline_days=15, summary=prompt_summ, location=_reply_uni, business_type=_bt)
+            state = PermitState(business_profile={"raw_query": query, "language": language, "university": _reply_uni}, combined_result=combined, permit_plan=PermitPlan(permits=[_reply_uni], agencies=agencies, documents=docs), execution_plan=ExecutionPlan(steps=details, assigned_agents=["Student Agent"]), last_updated=datetime.now())
             loc_data = _UNI_LOCATIONS.get(_reply_uni, {}).get(language, "")
             loc_block = f"📍 **Location:** {loc_data}\n\n" if loc_data else ""
             out_str = f"{loc_block}💬 {prompt_summ}\n\n📋 **{labels['ag']}:** {', '.join(agencies)}\n📄 **{labels['dc']}:** {', '.join(docs)}\n✅ **{labels['st']}:**\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps_list))
@@ -462,12 +540,22 @@ async def smart_router_handle(
     
     fuzzy_district_match = None
     fuzzy_business_match = None
-    if not has_relevant_kw:
-        for word in query.lower().split():
-            if not fuzzy_district_match: fuzzy_district_match = _fuzzy_match(word, _ALL_DISTRICTS)
-            if not fuzzy_business_match: fuzzy_business_match = _fuzzy_match(word, _ALL_BUSINESS_TYPES)
-        if fuzzy_district_match or fuzzy_business_match:
-            has_relevant_kw = True
+    
+    _has_exact_district = any(w in query.lower() for w in _ALL_DISTRICTS)
+    _has_exact_business = any(w in query.lower() for w in _ALL_BUSINESS_TYPES)
+
+    for word in query.lower().split():
+        if not _has_exact_district and not fuzzy_district_match:
+            fuzzy_district_match = _fuzzy_match(word, _ALL_DISTRICTS)
+        if not _has_exact_business and not fuzzy_business_match:
+            fuzzy_business_match = _fuzzy_match(word, _ALL_BUSINESS_TYPES)
+
+    if fuzzy_district_match or fuzzy_business_match:
+        has_relevant_kw = True
+        if fuzzy_district_match:
+            combined_context += f" {fuzzy_district_match}"
+        if fuzzy_business_match:
+            combined_context += f" {fuzzy_business_match}"
     
     early_intent_group, early_sub_intent, early_confidence = detect_intent(query, assistant_type, context_text=last_assistant_msg)
     
@@ -541,8 +629,20 @@ async def smart_router_handle(
         print(f"[SmartRouter] Meta-query detected with no keyword match ('{query[:30]}...'). Bypassing for AI orchestrator.")
         return None, None, "Meta-Query Bypass"
 
+    # --- PHASE 0.6: Process Redirects BEFORE Roadmap Builder ---
+    if early_confidence > 0 and early_intent_group == "redirect":
+        target_agent = early_sub_intent.split(":", 1)[0] if early_sub_intent and ":" in early_sub_intent else early_sub_intent
+        if target_agent == "lawyer": suffix = {"tr": "Bu konu hukuki uzmanl\u0131k gerektirmektedir. L\u00fctfen yukar\u0131dan **Avukat Dan\u0131\u015fman\u0131** moduna ge\u00e7in.", "ar": "\u0647\u0630\u0627 \u0627\u0644\u0645\u0648\u0636\u0648\u0639 \u064a\u062a\u0637\u0644\u0628 \u062e\u0628\u0631\u0629 \u0642\u0627\u0646\u0648\u0646\u064a\u0629. \u064a\u0631\u062c\u0649 \u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0644\u0648\u0636\u0639 **\u0627\u0644\u0645\u0633\u062a\u0634\u0627\u0631 \u0627\u0644\u0642\u0627\u0646\u0648\u0646\u064a** \u0645\u0646 \u0627\u0644\u0623\u0639\u0644\u0649.", "en": "This topic requires legal expertise. Please switch to **Lawyer Agent** mode."}.get(language, "Switch to Lawyer mode.")
+        elif target_agent == "student": suffix = {"tr": "\u00d6\u011frenci prosed\u00fcrleri i\u00e7in l\u00fctfen yukar\u0131dan **\u00d6\u011frenci Dan\u0131\u015fman\u0131** moduna ge\u00e7in.", "ar": "\u0628\u0627\u0644\u0646\u0633\u0628\u0629 \u0644\u0644\u0625\u062c\u0631\u0627\u0621\u0627\u062a \u0627\u0644\u0637\u0644\u0627\u0628\u064a\u0629\u060b \u064a\u0631\u062c\u0649 \u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0644\u0648\u0636\u0639 **\u0627\u0644\u0645\u0633\u062a\u0634\u0627\u0631 \u0627\u0644\u0637\u0644\u0627\u0628\u064a** \u0645\u0646 \u0627\u0644\u0623\u0639\u0644\u0649.", "en": "For student procedures, please switch to **Student Agent** mode."}.get(language, "Switch to Student mode.")
+        else: suffix = {"tr": "\u0130\u015fletme ruhsat\u0131 i\u015flemleri i\u00e7in l\u00fctfen yukar\u0131dan **Ruhsat Dan\u0131\u015fman\u0131** moduna ge\u00e7in.", "ar": "\u0628\u0627\u0644\u0646\u0633\u0628\u0629 \u0644\u0625\u062c\u0631\u0627\u0621\u0627\u062a \u062a\u0631\u0627\u062e\u064a\u0636 \u0627\u0644\u0623\u0639\u0645\u0627\u0644\u060b \u064a\u0631\u062c\u0649 \u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0644\u0648\u0636\u0639 **\u0645\u0633\u062a\u0634\u0627\u0631 \u0627\u0644\u062a\u0631\u0627\u062e\u064a\u0636** \u0645\u0646 \u0627\u0644\u0623\u0639\u0644\u0649.", "en": "For business permit procedures, please switch to **Permit Agent** mode."}.get(language, "Switch to Permit mode.")
+        
+        # Add special action keyword 'REDIRECT_NEW_CHAT:target|message' so the frontend opens a new chat with correct agent
+        msg = f"REDIRECT_NEW_CHAT:{target_agent}|{suffix}"
+        await wait_task
+        return msg, None, f"Smart Router (Redirect to {target_agent})"
+
     if _NEW_CONSULTATION_RE.search(query) or _ISOLATED_ANSWER_RE.match(query) or (is_clarifying and has_relevant_kw):
-        from models.schemas import PermitState, CombinedPermitResult, ExecutionPlan, StepDetail, PermitPlan
+        from models.schemas import PermitState, CombinedPermitResult, ExecutionPlan, StepDetail, PermitPlan, AgentStep
         from utils.protocol import get_localized_steps
         from datetime import datetime
 
@@ -665,6 +765,10 @@ async def smart_router_handle(
             district_note = ""
 
             query_lower = query.lower()
+            if fuzzy_district_match:
+                query_lower += f" {fuzzy_district_match}"
+            if fuzzy_business_match:
+                query_lower += f" {fuzzy_business_match}"
             # Strip common prefixes like "in", "i said", "it is", "it's"
             _stripped = re.sub(r"^(i said |it is |it's |its |in |at |from |the )", "", query_lower).strip()
             
@@ -821,14 +925,15 @@ async def smart_router_handle(
                 prompt_summ = {"en": f"Found it! \ud83c\udf93 The deadline for **{found_uni}** is **{deadline_info}**. I've also generated your step-by-step registration roadmap in the dashboard!", "tr": f"Buldum! \ud83c\udf93 **{found_uni}** i\u00e7in son tarih **{deadline_info}**. Ayr\u0131ca senin i\u00e7in haz\u0131rlad\u0131\u011f\u0131m kay\u0131t yol haritas\u0131n\u0131 panelde g\u00f6rebilirsin!", "ar": f"\u0648\u062c\u062f\u062a\u0647\u0627! \ud83c\udf93 \u0627\u0644\u0645\u0648\u0639\u062f \u0627\u0644\u0646\u0647\u0627\u0626\u064a \u0644\u062c\u0627\u0645\u0639\u0629 **{found_uni}** \u0647\u0648 **{deadline_info}**. \u0644\u0642\u062f \u0642\u0645\u062a \u0623\u064a\u0636\u0627\u064b \u0628\u0625\u0646\u0634\u0627\u0621 \u062e\u0627\u0631\u0637\u0629 \u0637\u0631\u064a\u0642 \u0627\u0644\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0627\u0635\u0629 \u0628\u0643 \u0641\u064a \u0644\u0648\u062d\u0629 \u0627\u0644\u062a\u062d\u0643\u0645!"}.get(language, f"Found it! The deadline for {found_uni} is {deadline_info}")
                 business_type, agencies, docs = "student.register_uni", ["University Registrar", "Portal / OBS", "MEB (Denklik)"], ["Admission Letter", "Passport", "Original Diploma", "Apostille", "Photos"]
                 step_specs = get_localized_steps(language, business_type); details = [StepDetail(id=id_val, title=title, responsible=resp, status="pending", notes=note) for id_val, title, resp, note in step_specs]; steps_list = [title for id_val, title, resp, note in step_specs]; labels = {"en": {"ag": "Key Institutions", "dc": "Documents", "st": "Steps"}, "tr": {"ag": "Kurumlar", "dc": "Belgeler", "st": "Ad\u0131mlar"}, "ar": {"ag": "\u0627\u0644\u0645\u0624\u0633\u0633\u0627\u062a", "dc": "\u0627\u0644\u0645\u0633\u062a\u0646\u062f\u0627\u062a", "st": "\u062e\u0637\u0648\u0627\u062a"}}.get(language, {"ag": "Agencies", "dc": "Docs", "st": "Steps"})
-                combined = CombinedPermitResult(permits=[f"{found_uni} Registration"], agencies=agencies, documents=docs, steps=steps_list, timeline_days=15, summary=prompt_summ, location=found_uni, business_type=business_type); state = PermitState(business_profile={"raw_query": query, "language": language, "university": found_uni}, combined_result=combined, permit_plan=PermitPlan(permits=[found_uni], agencies=agencies, documents=docs), execution_plan=ExecutionPlan(steps=details, assigned_agents=["Student Advisor"]), last_updated=datetime.now())
+                agent_steps = [AgentStep(title=title, description=note, documents=[]) for id_val, title, resp, note in step_specs]
+                combined = CombinedPermitResult(permits=[f"{found_uni} Registration"], agencies=agencies, documents=docs, steps=agent_steps, timeline_days=15, summary=prompt_summ, location=found_uni, business_type=business_type); state = PermitState(business_profile={"raw_query": query, "language": language, "university": found_uni}, combined_result=combined, permit_plan=PermitPlan(permits=[found_uni], agencies=agencies, documents=docs), execution_plan=ExecutionPlan(steps=details, assigned_agents=["Student Agent"]), last_updated=datetime.now())
                 out_str, dashboard_dump = f"\ud83d\udcac {prompt_summ}\n\n\ud83d\udccb **{labels['ag']}:** {', '.join(agencies)}\n\ud83d\udcc4 **{labels['dc']}:** {', '.join(docs)}\n\u2705 **{labels['st']}:**\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps_list)), state.model_dump()
                 if hasattr(dashboard_dump.get("last_updated"), "isoformat"): dashboard_dump["last_updated"] = dashboard_dump["last_updated"].isoformat()
                 await wait_task
                 return out_str, dashboard_dump, "Smart Router (Registration Roadmap)"
             
 
-            is_renew = "renew" in query.lower() or "replace" in query.lower() or "uzat" in query.lower() or "\u062a\u062c\u062f\u064a\u062f" in query.lower(); business_type, district, timeline = ("student_renew" if is_renew else "Student"), "Istanbul", (10 if is_renew else 30)
+            is_renew = ("renew" in query.lower() or "replace" in query.lower() or "uzat" in query.lower() or "\u062a\u062c\u062f\u064a\u062f" in query.lower()) and "kimlik" not in query.lower(); business_type, district, timeline = ("student_renew" if is_renew else "Student"), "Istanbul", (10 if is_renew else 30)
             if language == "tr": permits, agencies, docs, summ = (["\u00d6\u011frenci \u0130kamet \u0130zni Uzatmas\u0131"], ["G\u00f6\u00e7 \u0130daresi", "Noter", "Sigorta \u015eirketi"], ["Sa\u011fl\u0131k Sigortas\u0131", "Noter Onayl\u0131 Kira S\u00f6zle\u015fmesi", "\u00d6\u011frenci Belgesi", "Biyometrik Foto\u011fraf"], "Sorun de\u011fil, hemen organize edelim! \ud83c\udf93 \u0130kamet yenileme s\u00fcreci birka\u00e7 ad\u0131mdan olu\u015fuyor.") if is_renew else (["\u00d6\u011frenci Kayd\u0131", "\u00d6\u011frenci \u0130kamet \u0130zni"], ["\u00d6\u011frenci \u0130\u015fleri", "G\u00f6\u00e7 \u0130daresi", "SGK"], ["Pasaport", "Kabul Mektubu", "Sa\u011fl\u0131k Sigortas\u0131"], "T\u00fcrkiye'de \u00f6\u011frenci olmak heyecan verici \u2014 tebrikler! \ud83c\udf93"); labels = {"ag":"Kurumlar", "dc":"Belgeler", "st":"Ad\u0111mlar", "tm":"Tahmini S\u00fcre", "dy":"g\u00fcn"}
             elif language == "ar": permits, agencies, docs, summ = (["\u062a\u0645\u062f\u064a\u062f \u0625\u0642\u0627\u0645\u0629 \u0627\u0644\u0637\u0627\u0644\u0628"], ["\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0647\u062c\u0631\u0629", "\u0627\u0644\u0639\u062f\u0644 (\u0627\u0644\u0646\u0648\u062a\u0631)", "\u0634\u0631\u0643\u0629 \u0627\u0644\u062a\u0623\u0645\u064a\u0646"], ["\u0627\u0644\u062a\u0623\u0645\u064a\u0646 \u0627\u0644\u0635\u062d\u064a", "\u0639\u0642\u062f \u0625\u064a\u062c\u0627\u0631 \u0645\u0648\u062b\u0642", "\u0634\u0647\u0627\u062f\u0629 \u0637\u0627\u0644\u0628", "\u0635\u0648\u0631 \u0634\u062e\u0635\u064a\u0629"], "\u0644\u0627 \u062a\u0642\u0644\u0642\u060b \u0633\u0646\u0631\u062a\u0628 \u0643\u0644 \u0634\u064a\u0621! \ud83c\udf93") if is_renew else (["\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062c\u0627\u0645\u0639\u0629", "\u0625\u0642\u0627\u0645\u0629 \u0627\u0644\u0637\u0627\u0644\u0628"], ["\u0634\u0624\u0648\u0646 \u0627\u0644\u0637\u0644\u0627\u0628", "\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0627\u0647\u062c\u0631\u0629", "SGK"], ["\u062c\u0648\u0627\u0632 \u0627\u0644\u0633\u0641\u0631", "\u062e\u0637\u0627\u0628 \u0627\u0644\u0642\u0628\u0648\u0644", "\u0627\u0644\u062a\u0623\u0645\u064a\u0646 \u0627\u0644\u0635\u062d\u064a"], "\u062a\u0647\u0627\u0646\u064a\u0646\u0627 \u0639\u0644\u0649 \u0642\u0628\u0648\u0644\u0643 \u0641\u064a \u0627\u0644\u062c\u0627\u0645\u0639\u0629! \ud83c\udf93"); labels = {"ag":"\u0627\u0644\u0645\u0624\u0633\u0633\u0627\u062a", "dc":"\u0627\u0644\u0645\u0633\u062a\u0646\u062f\u0627\u062a", "st":"\u062e\u0637\u0648\u0627\u062a\u0643", "tm":"\u0627\u0644\u0645\u062f\u0629", "dy":"\u064a\u0648\u0645"}
             else: permits, agencies, docs, summ = (["Student Residence Permit Extension"], ["Migration Office", "Notary Public", "Insurance Provider"], ["Health Insurance Policy", "Notarized Lease Agreement", "Student Certificate", "Photos"], "No stress \u2014 let's sort this out together! \ud83c\udf93") if is_renew else (["University Registration", "Student Residence Permit"], ["Student Affairs", "Migration Directorate", "SGK"], ["Passport", "Acceptance Letter", "Health Insurance"], "Welcome to Turkey \u2014 exciting times ahead! \ud83c\udf93"); labels = {"ag":"Agencies", "dc":"Documents", "st":"Steps", "tm":"Time", "dy":"days"}
@@ -861,7 +966,18 @@ async def smart_router_handle(
             else: timeline, permits, agencies, docs, summ, labels = 20, ["Legal Consultation"], ["Court"], ["Evidence"], "Legal guidance requested.", {"ag":"Agencies", "dc":"Docs", "st":"Steps", "tm":"Time", "dy":"days"}
         else: return None, None, "Assistant Type Mismatch"
 
-        step_specs = get_localized_steps(language, business_type); details = [StepDetail(id=id_val, title=title, responsible=resp, status="pending", notes=note) for id_val, title, resp, note in step_specs]; steps_list = [title for id_val, title, resp, note in step_specs]; combined = CombinedPermitResult(permits=permits, agencies=agencies, documents=docs, steps=steps_list, timeline_days=timeline, summary=summ, location=district, business_type=business_type); state = PermitState(business_profile={"raw_query": query, "language": language}, combined_result=combined, permit_plan=PermitPlan(permits=permits, agencies=agencies, documents=docs), execution_plan=ExecutionPlan(steps=details, assigned_agents=["Planner"]), last_updated=datetime.now())
+        step_specs = get_localized_steps(language, business_type)
+        details = []
+        steps_list = []
+        agent_steps_list = []
+        for spec in step_specs:
+            id_val, title, resp, note = spec[0], spec[1], spec[2], spec[3]
+            step_docs = list(spec[4]) if len(spec) > 4 else []
+            details.append(StepDetail(id=id_val, title=title, responsible=resp, status="pending", notes=note, docs=step_docs))
+            steps_list.append(title)
+            agent_steps_list.append(AgentStep(title=title, description=note, documents=step_docs))
+        agent_steps = agent_steps_list
+        combined = CombinedPermitResult(permits=permits, agencies=agencies, documents=docs, steps=agent_steps, timeline_days=timeline, summary=summ, location=district, business_type=business_type); state = PermitState(business_profile={"raw_query": query, "language": language}, combined_result=combined, permit_plan=PermitPlan(permits=permits, agencies=agencies, documents=docs), execution_plan=ExecutionPlan(steps=details, assigned_agents=["Planner"]), last_updated=datetime.now())
         out_str, dashboard_dump = f"\ud83d\udcac {summ}\n\n\ud83d\udccb **{labels['ag']}:** {', '.join(agencies)}\n\ud83d\udcc4 **{labels['dc']}:** {', '.join(docs[:6])}\n\u2705 **{labels['st']}:**\n" + "\n".join(f"{i+1}. {s}" for i, s in enumerate(steps_list)) + f"\n\n\u23f1\ufe0f **{labels['tm']}:** {timeline} {labels['dy']}", state.model_dump()
         if hasattr(dashboard_dump.get("last_updated"), "isoformat"): dashboard_dump["last_updated"] = dashboard_dump["last_updated"].isoformat()
         await wait_task
@@ -869,13 +985,6 @@ async def smart_router_handle(
 
     intent_group, sub_intent, confidence = early_intent_group, early_sub_intent, early_confidence
     if confidence > 0:
-        if intent_group == "redirect":
-            target_agent = sub_intent.split(":", 1)[0] if sub_intent and ":" in sub_intent else sub_intent
-            if target_agent == "lawyer": suffix = {"tr": "Bu konu hukuki uzmanl\u0131k gerektirmektedir. L\u00fctfen yukar\u0131dan **Avukat Dan\u0131\u015fman\u0131** moduna ge\u00e7in.", "ar": "\u0647\u0630\u0627 \u0627\u0644\u0645\u0648\u0636\u0648\u0639 \u064a\u062a\u0637\u0644\u0628 \u062e\u0628\u0631\u0629 \u0642\u0627\u0646\u0648\u0646\u064a\u0629. \u064a\u0631\u062c\u0649 \u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0644\u0648\u0636\u0639 **\u0627\u0644\u0645\u0633\u062a\u0634\u0627\u0631 \u0627\u0644\u0642\u0627\u0646\u0648\u0646\u064a** \u0645\u0646 \u0627\u0644\u0623\u0639\u0644\u0649.", "en": "This topic requires legal expertise. Please switch to **Lawyer Advisor** mode."}.get(language, "Switch to Lawyer mode.")
-            elif target_agent == "student": suffix = {"tr": "\u00d6\u011frenci prosed\u00fcrleri i\u00e7in l\u00fctfen yukar\u0131dan **\u00d6\u011frenci Dan\u0131\u015fman\u0131** moduna ge\u00e7in.", "ar": "\u0628\u0627\u0644\u0646\u0633\u0628\u0629 \u0644\u0644\u0625\u062c\u0631\u0627\u0621\u0627\u062a \u0627\u0644\u0637\u0644\u0627\u0628\u064a\u0629\u060b \u064a\u0631\u062c\u0649 \u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0644\u0648\u0636\u0639 **\u0627\u0644\u0645\u0633\u062a\u0634\u0627\u0631 \u0627\u0644\u0637\u0644\u0627\u0628\u064a** \u0645\u0646 \u0627\u0644\u0623\u0639\u0644\u0649.", "en": "For student procedures, please switch to **Student Advisor** mode."}.get(language, "Switch to Student mode.")
-            else: suffix = {"tr": "\u0130\u015fletme ruhsat\u0131 i\u015flemleri i\u00e7in l\u00fctfen yukar\u0131dan **Ruhsat Dan\u0131\u015fman\u0131** moduna ge\u00e7in.", "ar": "\u0628\u0627\u0644\u0646\u0633\u0628\u0629 \u0644\u0625\u062c\u0631\u0627\u0621\u0627\u062a \u062a\u0631\u0627\u062e\u064a\u0636 \u0627\u0644\u0623\u0639\u0645\u0627\u0644\u060b \u064a\u0631\u062c\u0649 \u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0644\u0648\u0636\u0639 **\u0645\u0633\u062a\u0634\u0627\u0631 \u0627\u0644\u062a\u0631\u0627\u062e\u064a\u0636** \u0645\u0646 \u0627\u0644\u0623\u0639\u0644\u0649.", "en": "For business permit procedures, please switch to **Permit Advisor** mode."}.get(language, "Switch to Permit mode.")
-            await wait_task
-            return f"* ( {suffix} ) *", None, "Smart Router (Redirect Suffix)"
 
         if assistant_type == "student" and sub_intent == "register_uni":
             _funi = any(k in query.lower() or k in user_history_text for k in _UNI_MAP)

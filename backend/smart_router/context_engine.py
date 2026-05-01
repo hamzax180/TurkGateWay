@@ -748,28 +748,32 @@ def resolve_followup(
     # 2. CONSULATE RESOLUTION (any agent)
     # ------------------------------------------------------------------
     if state.current_topic in ("visa", "consulate") or state.last_assistant_topic in ("visa", "consulate"):
-        location = _extract_location(query) or state.city
-        if location:
-            normalized = None
-            loc_lower = location.lower()
-            for alias, canonical in _CITY_ALIASES.items():
-                if alias in loc_lower or loc_lower in alias:
-                    normalized = canonical
-                    break
-            if not normalized:
-                for alias, canonical in _COUNTRY_ALIASES.items():
+        location_in_query = _extract_location(query)
+        is_asking_consulate = any(w in q_lower for w in ["where", "address", "consulate", "embassy", "location"])
+        
+        if location_in_query or (is_asking_consulate and state.city):
+            loc_to_use = location_in_query or state.city
+            if loc_to_use:
+                normalized = None
+                loc_lower = loc_to_use.lower()
+                for alias, canonical in _CITY_ALIASES.items():
                     if alias in loc_lower or loc_lower in alias:
-                        for ca, cc in _CITY_ALIASES.items():
-                            if canonical.lower() in cc.lower():
-                                normalized = cc; break
-                        if not normalized: normalized = canonical
+                        normalized = canonical
                         break
-            if normalized and normalized in _CONSULATE_INFO:
-                return _format_consulate(normalized, _CONSULATE_INFO[normalized], language)
-            elif normalized:
-                return _r(
-                    f"📍 For **{normalized}**, book your visa appointment at **[vize.mfa.gov.tr](https://vize.mfa.gov.tr)** 🌐\n\nWhat nationality is your passport? 📄",
-                    f"📍 **{normalized}** için resmi randevu sistemi: **vize.mfa.gov.tr** 🌐\n\nHangi ülke pasaportunla başvuruyorsun?", language)
+                if not normalized:
+                    for alias, canonical in _COUNTRY_ALIASES.items():
+                        if alias in loc_lower or loc_lower in alias:
+                            for ca, cc in _CITY_ALIASES.items():
+                                if canonical.lower() in cc.lower():
+                                    normalized = cc; break
+                            if not normalized: normalized = canonical
+                            break
+                if normalized and normalized in _CONSULATE_INFO:
+                    return _format_consulate(normalized, _CONSULATE_INFO[normalized], language)
+                elif normalized:
+                    return _r(
+                        f"📍 For **{normalized}**, book your visa appointment at **[vize.mfa.gov.tr](https://vize.mfa.gov.tr)** 🌐\n\nWhat nationality is your passport? 📄",
+                        f"📍 **{normalized}** için resmi randevu sistemi: **vize.mfa.gov.tr** 🌐\n\nHangi ülke pasaportunla başvuruyorsun?", language)
 
     # ------------------------------------------------------------------
     # 3. KEYWORD-TRIGGERED RESOLUTION (all agents)

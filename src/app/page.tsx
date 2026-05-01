@@ -12,6 +12,7 @@ import type { Variants } from 'framer-motion';
 import { useLanguage } from './context/LanguageContext';
 import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
+import TypewriterText from './components/TypewriterText';
 
 /* ── Animation Variants ── */
 const fade: Variants = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
@@ -137,13 +138,13 @@ export default function Home() {
         </div>
 
       {/* ═══════════════ PERMIT ASSISTANT CONTENT ═══════════════ */}
-      <section className="w-full max-w-4xl mx-auto flex flex-col items-center text-center space-y-8 pt-20 md:pt-24 pb-10 px-6 relative z-10">
+      <section className="w-full max-w-4xl mx-auto flex flex-col items-center text-center space-y-8 pt-20 md:pt-24 pb-10 px-6 relative z-10 min-h-[400px] md:min-h-[450px]">
 
         {/* Animated Header Group */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
+          initial={{ opacity: 0, y: 30, filter: 'blur(20px)', scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)', scale: 1 }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
           className="space-y-4"
         >
           <div className="flex items-center justify-center gap-3 mb-1">
@@ -154,12 +155,12 @@ export default function Home() {
           </div>
 
           <h1 
-            className="text-4xl md:text-7xl font-bold tracking-tight text-white leading-tight"
+            className="text-4xl md:text-7xl font-bold tracking-tight text-white leading-tight min-h-[140px] md:min-h-[280px] flex items-center justify-center"
             style={{ 
               textShadow: '0 4px 20px rgba(0,0,0,0.5), -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000' 
             }}
           >
-            {t('home_hero_title')}
+            <TypewriterText text={t('home_hero_title')} speed={40} />
           </h1>
 
           <motion.h2
@@ -294,20 +295,26 @@ export default function Home() {
     </main>
 
     {/* ── Minimalist Footer ── */}
-    <footer className="w-full py-10 border-t border-white/5 bg-[var(--surface)] relative z-10">
-      <div className="max-w-6xl mx-auto px-6 text-center">
+    <footer className="w-full py-12 border-t border-white/5 bg-[var(--surface)] relative z-10">
+      <div className="max-w-6xl mx-auto px-6 flex flex-col items-center gap-8">
+        <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-4">
+          <Link href="/terms" className="text-[11px] font-semibold tracking-[0.2em] uppercase text-[var(--muted)] hover:text-[var(--text)] transition-colors">Terms</Link>
+          <Link href="/privacy" className="text-[11px] font-semibold tracking-[0.2em] uppercase text-[var(--muted)] hover:text-[var(--text)] transition-colors">Privacy</Link>
+          <Link href="/help" className="text-[11px] font-semibold tracking-[0.2em] uppercase text-[var(--muted)] hover:text-[var(--text)] transition-colors">Help</Link>
+        </div>
+        
         <motion.p 
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="text-[11px] font-semibold tracking-[0.15em] uppercase text-[var(--muted)] opacity-70"
+          className="text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--muted)] opacity-30"
         >
-          © 2026 ALL RIGHTS RESERVED BY TurkGateWay AND POWERED BY{' '}
+          © 2026 TurkGateWay • POWERED BY{' '}
           <a 
             href="https://webocontrol.com" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="inline-block hover:text-[var(--text)] transition-colors"
+            className="inline-block hover:opacity-100 transition-opacity"
           >
             <span>WEBO</span><span className="text-red-600">CONTROL</span>
           </a>
