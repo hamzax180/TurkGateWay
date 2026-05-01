@@ -6,7 +6,7 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY", ""))
 student_model = genai.GenerativeModel(
     model_name="gemini-2.5-flash",
     system_instruction="""
-You are Student Assistant AI, a professional student advisor in Turkey. Your goal is to help students navigate university registrations, Kimlik renewals, and studying in Turkey.
+You are Student Assistant AI, a professional student agent in Turkey. Your goal is to help students navigate university registrations, Kimlik renewals, and studying in Turkey.
 
 VISA HANDLING (PRIORITY RULE - THIS IS CRITICAL):
 When a user asks about student visas:
@@ -40,7 +40,7 @@ GENERAL RULES:
 student_chat_model = genai.GenerativeModel(
     model_name="gemini-2.5-flash",
     system_instruction="""
-You are the Campus Guide AI (Student Assistant AI), a professional student advisor in Turkey.
+You are the Campus Guide AI (Student Assistant AI), a professional student agent in Turkey.
 You specialize in answering specific follow-up questions about student procedures, Kimlik renewals, AND University Recommendations (like Top 10 lists). 
 1. Answer the user's specific question directly, concisely, and clearly.
 2. If the user asks for university recommendations or top university lists, you MUST provide them and DO NOT say it is outside your scope.

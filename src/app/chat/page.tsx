@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, User, Mic, Plus, ChevronDown, FileText, Menu, GraduationCap, Cpu, X, Volume2, VolumeX, ArrowRight } from 'lucide-react';
+import { Send, Sparkles, User, Mic, Plus, ChevronDown, Building2, FileText, Search, Clock, HelpCircle, Scale, Menu, GraduationCap, Cpu, X, Volume2, VolumeX, ArrowRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useLanguage } from '../context/LanguageContext';
@@ -18,12 +19,25 @@ type Role = 'assistant' | 'user';
 interface Msg { id: number; role: Role; content: string; }
 
 export default function ChatPage() {
+  const router = useRouter();
   const { t, isRTL, language, translateHistory } = useLanguage();
-  const { token, isAuthenticated, user } = useAuth();
+  const { token, isAuthenticated, user, setTokenBalance, lastTokenReset } = useAuth();
+
+  const getRefreshTimeLabel = () => {
+    if (quotaRefreshTime) return quotaRefreshTime;
+    if (!lastTokenReset) return '12 hours';
+    const resetDate = new Date(lastTokenReset);
+    resetDate.setHours(resetDate.getHours() + 12);
+    return resetDate.toLocaleString(language === 'ar' ? 'ar-SA' : (language === 'tr' ? 'tr-TR' : 'en-US'), {
+        year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
+    });
+  };
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionTitle, setSessionTitle] = useState<string>('');
   const [sidebarRefresh, setSidebarRefresh] = useState(0);
   const [allSessions, setAllSessions] = useState<any[]>([]);
+  const [showQuotaWarning, setShowQuotaWarning] = useState(false);
+  const [quotaRefreshTime, setQuotaRefreshTime] = useState('');
 
   const [assistantType, setAssistantType] = useState<'permit' | 'student' | 'lawyer'>('permit');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -58,6 +72,7 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [visibleChars, setVisibleChars] = useState<Record<number, number>>({});
   const [isLoaded, setIsLoaded] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -70,6 +85,7 @@ export default function ChatPage() {
   const [callDuration, setCallDuration] = useState(0);
   const [detectedService, setDetectedService] = useState<string | null>(null);
   const [callEnded, setCallEnded] = useState(false);
+  const [switchingAgent, setSwitchingAgent] = useState(false);
   const callTimerRef = useRef<any>(null);
   const voiceLoopRef = useRef(false);
   const msgIdRef = useRef(1);
@@ -78,7 +94,10 @@ export default function ChatPage() {
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const speechQueueRef = useRef<string[]>([]);
   const ttsKeepaliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isSpeechQueueActiveRef = useRef(false);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [fullCleanText, setFullCleanText] = useState('');
+  const [spokenWordIndex, setSpokenWordIndex] = useState(-1);
 
   // Initialize Speech Voices — load early, retry until populated
   useEffect(() => {
@@ -242,7 +261,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [msgs, busy]);
+  }, [msgs, busy, visibleChars]);
 
   // Auto-send a question if navigated from "Ask AI about this step"
   useEffect(() => {
@@ -279,17 +298,26 @@ export default function ChatPage() {
   };
 
   const switchAssistant = (newType: 'permit' | 'student' | 'lawyer') => {
+    if (newType === assistantType) return;
+
+    setSwitchingAgent(true);
     setAssistantType(newType);
     setIsDropdownOpen(false);
 
-    // Resume logic: find the most recent session belonging to the requested type
-    const recentSession = allSessions.find(s => (s.assistant_type || 'permit') === newType);
-    if (recentSession) {
-      setSessionId(recentSession.id);
-      setSessionTitle(recentSession.title || '');
-    } else {
-      handleNewChat(newType);
-    }
+    // Give the premium loading screen a moment to shine
+    setTimeout(() => {
+      // Resume logic: find the most recent session belonging to the requested type
+      const recentSession = allSessions.find(s => (s.assistant_type || 'permit') === newType);
+      if (recentSession) {
+        setSessionId(recentSession.id);
+        setSessionTitle(recentSession.title || '');
+      } else {
+        handleNewChat(newType);
+      }
+
+      // Keep loading for at least 1.5s for the wow factor
+      setTimeout(() => setSwitchingAgent(false), 1500);
+    }, 100);
   };
 
   // --- Voice Chat Logic ---
@@ -525,9 +553,22 @@ export default function ChatPage() {
     if (bestVoice) utterance.voice = bestVoice;
 
     // Natural male prosody — slightly faster than default, deep pitch
-    utterance.rate  = assistantType === 'lawyer' ? 1.05 : 1.12;   // conversational fast
+    utterance.rate = assistantType === 'lawyer' ? 1.05 : 1.12;   // conversational fast
     utterance.pitch = assistantType === 'lawyer' ? 0.80 : 0.85;   // deep male tone
     utterance.volume = 1.0;
+
+    utterance.onboundary = (event) => {
+      if (event.name === 'word') {
+        // Find which sentence we are in and add the word index
+        const spokenTextSoFar = text.substring(0, event.charIndex);
+        const wordCountInSentence = spokenTextSoFar.split(/\s+/).filter(Boolean).length;
+
+        // Find overall index in fullCleanText
+        const previousSentencesText = cleanForSpeech(text).split(text)[0] || ""; // This is tricky
+        // Simpler: just use a ref to track total words spoken so far in this session
+        setSpokenWordIndex(prev => prev + 1);
+      }
+    };
 
     utterance.onstart = () => {
       setIsSpeaking(true);
@@ -588,6 +629,18 @@ export default function ChatPage() {
     }
   };
 
+  const handleToggleFavorite = async (id: string) => {
+    if (!token) return;
+    try {
+      const res = await apiFetch(`/chat/sessions/${id}/favorite`, { method: 'POST' });
+      if (res?.ok) {
+        setSidebarRefresh(prev => prev + 1);
+      }
+    } catch (e) {
+      console.error("Failed to toggle favorite", e);
+    }
+  };
+
   const send = async (text?: string, isFromVoice: boolean = false) => {
     const q = (text ?? input).trim();
     if ((!q && !file) || busy || !sessionId) return;
@@ -599,6 +652,13 @@ export default function ChatPage() {
     const displayQ = file ? `📎 [Attached: ${file.name}]\n${q}` : q;
     const userMsg: Msg = { id: msgIdRef.current++, role: 'user', content: displayQ };
     setMsgs(p => [...p, userMsg]);
+    if (user?.subscriptionStatus === 'free' && (user.tokenBalance ?? 0) <= 0) {
+      setShowQuotaWarning(true);
+      // We don't have the refresh time locally here easily without a previous 403, 
+      // but we can just show the generic message.
+      return;
+    }
+
     setBusy(true);
     if (!sessionTitle && msgs.length === 0) {
       setSessionTitle(q.length > 35 ? q.slice(0, 32) + '...' : q || "Document Analysis");
@@ -631,31 +691,81 @@ export default function ChatPage() {
         headers,
         body,
       });
+
+      if (res?.status === 403) {
+        const errorData = await res.json();
+        const detail = errorData.detail || "";
+        const [title, refreshTime] = detail.includes('|') ? detail.split('|') : ["Model quota reached", "shortly"];
+        
+        setQuotaRefreshTime(refreshTime);
+        setShowQuotaWarning(true);
+        setBusy(false);
+        return;
+      }
+
+      if (res?.status === 429) {
+        setMsgs(p => [...p, { 
+          id: msgIdRef.current++, 
+          role: 'assistant', 
+          content: "⚠️ **Too many requests.**\n\nYou're sending messages too fast. Please wait a moment before trying again." 
+        }]);
+        setBusy(false);
+        return;
+      }
+
       if (!res || !res.ok) throw new Error();
       const data = await res.json();
+      const source = data.source || "Unknown";
+      console.log(`%c[Data Message Source] %c${source}`, "color: #3b82f6; font-weight: bold", "color: inherit", { assistant: assistantType, session: sessionId, data });
 
+      // Update token balance if returned
+      if (data.token_balance !== undefined) {
+        setTokenBalance(data.token_balance);
+      } else if (user?.subscriptionStatus === 'free' && user.tokenBalance !== undefined) {
+        setTokenBalance(Math.max(0, user.tokenBalance - 1));
+      }
 
       if (data.session_title && data.session_title !== sessionTitle) {
         setSessionTitle(data.session_title);
         setSidebarRefresh(prev => prev + 1);
       }
 
-      const rawContent: string = data.content ?? data.answer ?? data.response ?? 'Done.';
+      let rawContent: string = data.content ?? data.answer ?? data.response ?? 'Done.';
+      
+      // Clean up any leaked source prefixes from the text (e.g. [Backup Core], [Direct Reply])
+      rawContent = rawContent.replace(/^🛡️?\s*\[.*?\]\s*/, '').trim();
 
       // Detect topic-switch redirect signal
       if (rawContent.startsWith('REDIRECT_NEW_CHAT:')) {
-        const displayMsg = rawContent.replace('REDIRECT_NEW_CHAT:', '').trim();
+        const parts = rawContent.replace('REDIRECT_NEW_CHAT:', '').split('|');
+        const targetType = parts[0]?.trim() as any;
+        const displayMsg = parts[1]?.trim() || parts[0]?.trim();
+
         setMsgs(p => [...p, { id: msgIdRef.current++, role: 'assistant', content: displayMsg }]);
         setBusy(false);
         // Auto-navigate to a new chat after 2 seconds
         setTimeout(async () => {
+          if (['permit', 'student', 'lawyer'].includes(targetType)) {
+            setAssistantType(targetType);
+          }
           await handleNewChat();
           setMsgs([]);
         }, 2000);
         return;
       }
 
-      setMsgs(p => [...p, { id: msgIdRef.current++, role: 'assistant', content: rawContent }]);
+      const assistantMsgId = msgIdRef.current++;
+      setVisibleChars(prev => ({ ...prev, [assistantMsgId]: 0 }));
+      setMsgs(p => [...p, { id: assistantMsgId, role: 'assistant', content: rawContent }]);
+
+      // Start typewriter effect
+      let chars = 0;
+      const total = rawContent.length;
+      const interval = setInterval(() => {
+        chars += 3; // Type 3 chars at a time for speed
+        setVisibleChars(prev => ({ ...prev, [assistantMsgId]: chars }));
+        if (chars >= total) clearInterval(interval);
+      }, 15);
 
       // Auto-speak if it was a voice query or we are in call mode
       if (isVoiceMode || isFromVoice || wasListening) {
@@ -686,7 +796,7 @@ export default function ChatPage() {
 
   const isEmpty = msgs.length === 0;
 
-  if (!isLoaded) return <LoadingScreen />;
+  if (!isLoaded || switchingAgent) return <LoadingScreen />;
 
   return (
     <div className="flex h-screen overflow-hidden selection:bg-purple-500/30 relative bg-[var(--bg)] transition-colors duration-500">
@@ -698,6 +808,7 @@ export default function ChatPage() {
         onSessionSelect={(id, title) => { setSessionId(id); setSessionTitle(title); }}
         onNewChat={() => handleNewChat()}
         onDeleteSession={handleDeleteSession}
+        onToggleFavorite={handleToggleFavorite}
         token={token}
         onSwitchAssistant={switchAssistant}
         mobileOpen={mobileMenuOpen}
@@ -818,7 +929,12 @@ export default function ChatPage() {
               </span>
               <ChevronDown size={10} className={`transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </div>
-            {isEmpty && (
+            {isAuthenticated && user?.subscriptionStatus !== 'free' && (
+              <span className="text-[10px] font-black text-emerald-500 mt-0.5 tracking-widest uppercase">
+                PREMIUM
+              </span>
+            )}
+            {isEmpty && !isAuthenticated && (
               <span className="text-[13px] font-bold text-[var(--text)]/40 mt-0.5 tracking-tight">
                 {t('chat_new')}
               </span>
@@ -1075,6 +1191,28 @@ export default function ChatPage() {
                 </div>
 
                 <div className="flex flex-col items-center gap-2 mb-4">
+                  
+                  {isAuthenticated && user?.subscriptionStatus === 'free' && (
+                    <motion.div
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.3, duration: 0.5 }}
+                      onClick={() => router.push('/pricing')}
+                      className="cursor-pointer mb-6 md:mb-8 inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-blue-500/5 border border-blue-500/20 hover:border-blue-500/40 hover:bg-blue-500/10 transition-all shadow-sm group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] font-bold text-blue-400/90 tracking-wide uppercase">
+                          {(user.tokenBalance ?? 0) === 0 ? 'ZERO' : (user.tokenBalance ?? 0)} {t('tokens_unit') || 'Tokens'}
+                        </span>
+                        <span className="opacity-30 text-white text-[10px]">|</span>
+                        <span className="text-[13px] font-medium text-[var(--muted)] group-hover:text-blue-400 transition-colors">
+                          {(user.tokenBalance ?? 0) <= 0 ? `${t('quota_refresh_msg')} ${getRefreshTimeLabel()}` : (t('sidebar_upgrade') || 'Upgrade')}
+                        </span>
+                      </div>
+                      <ArrowRight size={14} className="text-blue-500 group-hover:translate-x-1 transition-transform" />
+                    </motion.div>
+                  )}
+
                   <motion.span
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
@@ -1244,8 +1382,9 @@ export default function ChatPage() {
                 {msgs.map(m => (
                   <motion.div
                     key={m.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, y: 16, filter: 'blur(8px)' }}
+                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                    transition={{ duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
                     className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     {m.role === 'assistant' && (
@@ -1298,6 +1437,11 @@ export default function ChatPage() {
                                     );
                                   }
 
+                                  const isLastAssistantMsg = m.id === msgs[msgs.length - 1]?.id && m.role === 'assistant';
+                                  // Default to full length for historical messages (anything not in current typing state)
+                                  const charsToShow = visibleChars[m.id] ?? (m.role === 'assistant' ? part.length : part.length);
+                                  const textToDisplay = part.slice(0, charsToShow);
+
                                   return (
                                     <ReactMarkdown
                                       key={idx}
@@ -1317,7 +1461,7 @@ export default function ChatPage() {
                                         }
                                       }}
                                     >
-                                      {part}
+                                      {textToDisplay}
                                     </ReactMarkdown>
                                   );
                                 })}
@@ -1389,6 +1533,53 @@ export default function ChatPage() {
               <div ref={bottomRef} className="h-4" />
             </div>
           )}
+
+          {/* Claude-style Quota Notification Overlay */}
+          <AnimatePresence>
+            {showQuotaWarning && (
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                className="absolute bottom-24 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-[60] px-4"
+              >
+                <div className="bg-[#1e1e1e] border border-white/10 rounded-2xl shadow-2xl p-6 overflow-hidden relative">
+                  <div className="flex gap-5">
+                    <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0 border border-blue-500/20">
+                      <Cpu size={24} className="text-blue-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-[16px] font-bold text-white mb-1.5">
+                        {t('quota_reached_title')}
+                      </h4>
+                      <p className="text-[14px] text-gray-400 leading-relaxed mb-6">
+                        {t('quota_reached_desc')}
+                        <span className="block mt-2 font-medium text-blue-400/80">
+                          {t('quota_refresh_msg')} {getRefreshTimeLabel()}
+                        </span>
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <button
+                          onClick={() => setShowQuotaWarning(false)}
+                          className="px-2 py-2 text-[14px] font-bold text-gray-500 hover:text-white transition-colors"
+                        >
+                          {t('quota_dismiss')}
+                        </button>
+                        <Link
+                          href="/pricing"
+                          onClick={() => setShowQuotaWarning(false)}
+                          className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[14px] font-bold shadow-lg shadow-blue-600/20 transition-all no-underline flex items-center gap-2 active:scale-95"
+                        >
+                          <span>{t('pricing_upgrade')}</span>
+                          <ArrowRight size={16} />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Sticky Input Bar - Floating Gemini Pill */}
           {!isEmpty && (
@@ -1526,35 +1717,31 @@ export default function ChatPage() {
                       initial={{ opacity: 0, scale: 0.8, y: -10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.8 }}
-                      className={`flex items-center gap-2.5 px-4 py-2 rounded-full border backdrop-blur-xl shadow-lg transition-all ${
-                        detectedService === 'student'
+                      className={`flex items-center gap-2.5 px-4 py-2 rounded-full border backdrop-blur-xl shadow-lg transition-all ${detectedService === 'student'
                           ? 'border-emerald-500/20 bg-emerald-500/10 shadow-emerald-500/10'
                           : detectedService === 'lawyer'
                             ? 'border-amber-500/20 bg-amber-500/10 shadow-amber-500/10'
                             : 'border-blue-500/20 bg-blue-500/10 shadow-blue-500/10'
-                      }`}
+                        }`}
                     >
                       {/* Cpu icon with animated glow — identical to navbar chip */}
                       <div className="relative flex items-center justify-center">
                         <Cpu
                           size={15}
-                          className={`animate-[pulse_1.5s_easeInOut_infinite] relative z-10 ${
-                            detectedService === 'student' ? 'text-emerald-400'
+                          className={`animate-[pulse_1.5s_easeInOut_infinite] relative z-10 ${detectedService === 'student' ? 'text-emerald-400'
                               : detectedService === 'lawyer' ? 'text-amber-400'
                                 : 'text-blue-400'
-                          }`}
+                            }`}
                         />
-                        <div className={`absolute inset-0 blur-md rounded-full animate-pulse ${
-                          detectedService === 'student' ? 'bg-emerald-500/30'
+                        <div className={`absolute inset-0 blur-md rounded-full animate-pulse ${detectedService === 'student' ? 'bg-emerald-500/30'
                             : detectedService === 'lawyer' ? 'bg-amber-500/30'
                               : 'bg-blue-500/30'
-                        }`} />
+                          }`} />
                       </div>
-                      <span className={`text-[12px] font-black uppercase tracking-[0.15em] ${
-                        detectedService === 'student' ? 'text-emerald-400'
+                      <span className={`text-[12px] font-black uppercase tracking-[0.15em] ${detectedService === 'student' ? 'text-emerald-400'
                           : detectedService === 'lawyer' ? 'text-amber-400'
                             : 'text-blue-400'
-                      }`}>
+                        }`}>
                         {detectedService === 'permit' ? 'Permit Agent' : detectedService === 'student' ? 'Student Agent' : 'Legal Agent'}
                       </span>
                     </motion.div>

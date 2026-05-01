@@ -14,6 +14,7 @@ interface ChatSession {
   title: string;
   created_at: string;
   assistant_type?: string;
+  is_favorite?: boolean;
 }
 
 interface SidebarProps {
@@ -21,6 +22,7 @@ interface SidebarProps {
   onSessionSelect: (id: string, title: string) => void;
   onNewChat: () => void;
   onDeleteSession: (id: string) => void;
+  onToggleFavorite?: (id: string) => void;
   token: string | null;
   assistantType: string;
   mobileOpen?: boolean;
@@ -44,6 +46,7 @@ export default function Sidebar({
   showAllTypes = false,
   onSwitchAssistant = () => { },
   mobileOnly = false,
+  onToggleFavorite = () => { },
 }: SidebarProps) {
   const { t, isRTL, language } = useLanguage();
   const { logout, isAuthenticated } = useAuth();
@@ -136,6 +139,7 @@ export default function Sidebar({
             currentSessionId={currentSessionId}
             onSessionSelect={onSessionSelect}
             onDeleteSession={onDeleteSession}
+            onToggleFavorite={onToggleFavorite}
             getDisplayTitle={getDisplayTitle}
             filteredSessions={filteredSessions}
             isAuthenticated={isAuthenticated}
@@ -184,6 +188,7 @@ export default function Sidebar({
                 currentSessionId={currentSessionId}
                 onSessionSelect={onSessionSelect}
                 onDeleteSession={onDeleteSession}
+                onToggleFavorite={onToggleFavorite}
                 getDisplayTitle={getDisplayTitle}
                 filteredSessions={filteredSessions}
                 isAuthenticated={isAuthenticated}
@@ -223,6 +228,7 @@ const SidebarInner = React.memo(({
   currentSessionId,
   onSessionSelect,
   onDeleteSession,
+  onToggleFavorite,
   getDisplayTitle,
   filteredSessions,
   isAuthenticated,
@@ -246,7 +252,8 @@ const SidebarInner = React.memo(({
   currentSessionId: string | null,
   onSessionSelect: (id: string, title: string) => void,
   onDeleteSession: (id: string) => void,
-  getDisplayTitle: (title: string) => string,
+  onToggleFavorite: (id: string) => void,
+  getDisplayTitle: (title: string, sType?: string) => string,
   filteredSessions: any[],
   isAuthenticated: boolean,
   logout: () => void,
@@ -426,7 +433,81 @@ const SidebarInner = React.memo(({
             ))}
           </div>
         ) : (
-          filteredSessions.map((s) => (
+          <>
+            {showLabels && (
+              <div className="px-3 py-2 text-[10px] font-bold text-[var(--muted)] uppercase tracking-widest flex items-center gap-2 opacity-60">
+                <Star size={10} className="text-amber-500 fill-amber-500" />
+                {t('sidebar_favorites')}
+              </div>
+            )}
+            {filteredSessions.filter(s => s.is_favorite).length === 0 && showLabels && (
+              <div className="px-7 py-2 text-[11px] text-[var(--muted)] italic opacity-50">
+                {t('sidebar_no_favorites')}
+              </div>
+            )}
+            {filteredSessions.filter(s => s.is_favorite).map((s) => (
+              <motion.div
+                key={s.id}
+                variants={itemVariants}
+                className={`group relative flex items-center gap-3 p-3.5 rounded-xl transition-all cursor-pointer ${currentSessionId === s.id
+                  ? 'bg-[var(--surface-1)] border border-[var(--border)] text-[var(--text)] shadow-sm'
+                  : 'hover:bg-[var(--surface-2)]/50 text-[var(--text)] opacity-100'
+                  }`}
+                onClick={() => {
+                  onSessionSelect(s.id, s.title);
+                  if (isMobile) onMobileClose?.();
+                }}
+              >
+                {!showLabels && (
+                  <MessageSquare size={18} className={currentSessionId === s.id ? "text-[var(--accent)]" : "text-[var(--muted)]"} />
+                )}
+                {showLabels && (
+                  <span
+                    title={s.title}
+                    className={`text-sm tracking-tight truncate flex-1 pr-8 ${currentSessionId === s.id ? 'font-bold' : 'font-semibold text-[var(--text)]'}`}
+                  >
+                    {getDisplayTitle(s.title, s.assistant_type)}
+                  </span>
+                )}
+                {showLabels && (
+                  <div className={`absolute right-3 flex items-center gap-1 transition-all ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFavorite(s.id);
+                      }}
+                      title={language === 'ar' ? 'تفضيل' : language === 'tr' ? 'Favorilere Ekle' : 'Favorite'}
+                      className={`p-1.5 rounded-lg transition-all ${s.is_favorite ? 'text-amber-500 bg-amber-500/10' : 'text-[var(--muted)] hover:text-amber-500 hover:bg-amber-500/10'}`}
+                    >
+                      <Star size={16} fill={s.is_favorite ? "currentColor" : "none"} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteSession(s.id);
+                      }}
+                      title={language === 'ar' ? 'حذف الدردشة' : language === 'tr' ? 'Sohbeti Sil' : 'Delete Chat'}
+                      className="p-1.5 rounded-lg transition-all text-[var(--muted)] hover:text-red-500 hover:bg-red-500/10"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+
+            {filteredSessions.some(s => s.is_favorite) && filteredSessions.some(s => !s.is_favorite) && showLabels && (
+               <div className="h-px bg-[var(--border)] mx-3 my-2 opacity-50" />
+            )}
+
+            {showLabels && filteredSessions.some(s => !s.is_favorite) && (
+              <div className="px-3 py-2 text-[10px] font-bold text-[var(--muted)] uppercase tracking-widest flex items-center gap-2 opacity-60">
+                <History size={10} className="text-[var(--muted)]" />
+                {t('sidebar_recent')}
+              </div>
+            )}
+
+            {filteredSessions.filter(s => !s.is_favorite).map((s) => (
             <motion.div
               key={s.id}
               variants={itemVariants}
@@ -451,19 +532,32 @@ const SidebarInner = React.memo(({
                 </span>
               )}
               {showLabels && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteSession(s.id);
-                  }}
-                  title={language === 'ar' ? 'حذف الدردشة' : language === 'tr' ? 'Sohbeti Sil' : 'Delete Chat'}
-                  className={`absolute right-3 p-1.5 rounded-lg transition-all hover:text-red-500 hover:bg-red-500/10 ${isMobile ? 'opacity-100 text-[var(--muted)]' : 'opacity-0 group-hover:opacity-100'}`}
-                >
-                  <Trash2 size={16} />
-                </button>
+                <div className={`absolute right-3 flex items-center gap-1 transition-all ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleFavorite(s.id);
+                    }}
+                    title={language === 'ar' ? 'تفضيل' : language === 'tr' ? 'Favorilere Ekle' : 'Favorite'}
+                    className={`p-1.5 rounded-lg transition-all ${s.is_favorite ? 'text-amber-500 bg-amber-500/10' : 'text-[var(--muted)] hover:text-amber-500 hover:bg-amber-500/10'}`}
+                  >
+                    <Star size={16} fill={s.is_favorite ? "currentColor" : "none"} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteSession(s.id);
+                    }}
+                    title={language === 'ar' ? 'حذف الدردشة' : language === 'tr' ? 'Sohbeti Sil' : 'Delete Chat'}
+                    className="p-1.5 rounded-lg transition-all text-[var(--muted)] hover:text-red-500 hover:bg-red-500/10"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               )}
             </motion.div>
-          ))
+          ))}
+          </>
         )}
       </motion.div>
 

@@ -1,63 +1,45 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, X, ShieldCheck, RefreshCw, ArrowRight, ChevronDown, Lock, Headphones, FileText, Zap, Users, Clock, CreditCard, Sparkles, Star } from 'lucide-react';
+import { Check, ArrowLeft, RefreshCw, X, Building, GraduationCap, Scale, Cpu, Users, Building2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useLanguage } from '../context/LanguageContext';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import { apiFetch } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function PricingPage() {
-  const { t } = useLanguage();
   const router = useRouter();
+  const { user } = useAuth();
+
+  const [checkoutPlan, setCheckoutPlan] = useState<'premium' | 'max' | null>(null);
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
+  const [billingPlan, setBillingPlan] = useState<'individual' | 'team'>('individual');
   
-  const [isYearly, setIsYearly] = useState(true);
   const [iyzicoFormHtml, setIyzicoFormHtml] = useState<string | null>(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-  const monthlyPrice = 299;
-  const yearlyTotal = 3157;
-  const yearlyMonthly = Math.round(yearlyTotal / 12);
-  const displayPrice = isYearly ? yearlyMonthly : monthlyPrice;
+  // Close iyzico form if user navigates back
+  useEffect(() => {
+    if (!checkoutPlan) setIyzicoFormHtml(null);
+  }, [checkoutPlan]);
 
-  const FEATURES = [
-    { label: t('pricing_feat_ai') || 'Unlimited AI Consultations', free: 'Basic', premium: 'Unlimited' },
-    { label: t('pricing_feat_sessions') || 'Active Sessions', free: '1', premium: 'Unlimited' },
-    { label: t('pricing_feat_history') || 'Project History', free: '7 Days', premium: 'Lifetime' },
-    { label: t('pricing_feat_docs') || 'Advanced Doc Management', free: false, premium: true },
-    { label: t('pricing_feat_priority') || 'Priority Workflows', free: false, premium: true },
-    { label: t('pricing_feat_support') || 'Regulatory Support', free: false, premium: true },
-    { label: t('pricing_feat_compliance') || 'MERSİS/e-Devlet Integration', free: false, premium: true },
-    { label: t('pricing_feat_updates') || 'Early Legal Updates', free: true, premium: true },
-  ];
-
-  const TRUST_ITEMS = [
-    { icon: Lock, label: 'Secure Encryption', sub: '256-bit SSL Protection' },
-    { icon: ShieldCheck, label: 'Verified Payments', sub: 'Secured by iyzico' },
-    { icon: Headphones, label: 'Expert Support', sub: '24/7 Response Time' },
-    { icon: Clock, label: 'No Commitment', sub: 'Cancel Anytime' },
-  ];
-
-  const FAQ_DATA = [
-    { q: t('pricing_faq_q1') || 'Is there a free trial?', a: t('pricing_faq_a1') || 'Yes, the Free plan allows you to explore basic permit requirements without any credit card.' },
-    { q: t('pricing_faq_q2') || 'What payment methods do you accept?', a: t('pricing_faq_a2') || 'We accept all major credit and debit cards through our secure payment partner, iyzico.' },
-    { q: t('pricing_faq_q3') || 'Can I change plans later?', a: t('pricing_faq_a3') || 'Absolutely! You can upgrade to Premium or cancel your subscription at any time from your dashboard.' },
-    { q: t('pricing_faq_q4') || 'Is my data secure?', a: t('pricing_faq_a4') || 'We use banking-grade encryption and follow strict Turkish data protection (KVKK) protocols.' },
-  ];
-
-  const handleSubscribe = async (planType: 'monthly' | 'yearly') => {
+  const handleSubscribeClick = async () => {
     try {
       setIsSubscribing(true);
-      const token = localStorage.getItem('TurkGateway_token');
+      const token = localStorage.getItem('permitops_token');
       if (!token) {
-        setToast({ message: 'Please log in to browse plans', type: 'error' });
+        setToast({ message: 'Please log in to checkout', type: 'error' });
         router.push('/login');
         return;
       }
-      const planCode = planType === 'yearly' ? 'P66275815_YEARLY' : 'P66275815_MONTHLY';
+      
+      const planCode = checkoutPlan === 'premium' 
+        ? (billingCycle === 'yearly' ? 'P66275815_YEARLY' : 'P66275815_MONTHLY')
+        : (billingCycle === 'yearly' ? 'MAX_YEARLY' : 'MAX_MONTHLY');
+
       const res = await apiFetch(`/payment/subscribe?token=${token}&plan_code=${planCode}`, { method: 'POST' });
       if (res && res.ok) {
         const json = await res.json();
@@ -76,324 +58,373 @@ export default function PricingPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] selection:bg-indigo-500/30">
-      <Navbar />
+  const premiumMonthly = 299;
+  const premiumYearly = 3157;
+  const maxMonthly = 899;
+  const maxYearly = 8990;
 
-      {/* Decorative background elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-indigo-500/10 blur-[120px] rounded-full" />
-        <div className="absolute top-[20%] -right-[10%] w-[35%] h-[35%] bg-purple-500/10 blur-[120px] rounded-full" />
-      </div>
+  const subtotal = checkoutPlan === 'premium' ? (billingCycle === 'yearly' ? premiumYearly : premiumMonthly) : (billingCycle === 'yearly' ? maxYearly : maxMonthly);
+  const tax = Math.round(subtotal * 0.20); // 20% VAT
+  const total = subtotal + tax;
 
-      <main className="relative z-10 pt-20">
-        
-        {/* Hero Section */}
-        <section className="max-w-5xl mx-auto px-6 pt-16 pb-12 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+  const renderCheckmark = () => <Check size={14} className="text-gray-400 mt-0.5 shrink-0" />;
+
+  // ────────────────────────────────────────────────────────────
+  // CHECKOUT SCREEN (Image 2 Match)
+  // ────────────────────────────────────────────────────────────
+  if (checkoutPlan) {
+    return (
+      <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans selection:bg-blue-500/30 pt-20 pb-24">
+        <Navbar />
+        <main className="max-w-2xl mx-auto px-6 pt-12">
+          <button 
+            onClick={() => setCheckoutPlan(null)}
+            className="mb-8 text-[var(--muted)] hover:text-[var(--text)] transition-colors"
           >
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-[var(--text)] to-[var(--text)]/60">
-              {t('pricing_title') || 'Simple Pricing for Every Business'}
-            </h1>
-            <p className="text-[var(--muted)] text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
-              {t('pricing_subtitle') || 'Start for free and scale as your regulatory needs grow. No hidden fees, just pure AI efficiency.'}
-            </p>
-          </motion.div>
+            <ArrowLeft size={24} />
+          </button>
 
-          {/* Billing Toggle */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.4 }}
-            className="mt-12 flex flex-col items-center"
-          >
-            <div className="inline-flex items-center p-1 bg-[var(--surface-1)] border border-[var(--border)] rounded-full shadow-inner">
-              <button
-                onClick={() => setIsYearly(false)}
-                className={`px-8 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${!isYearly ? 'bg-[var(--surface-3)] text-[var(--text)] shadow-md' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
-              >
-                {t('pricing_monthly') || 'Monthly'}
-              </button>
-              <button
-                onClick={() => setIsYearly(true)}
-                className={`px-8 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${isYearly ? 'bg-indigo-600 text-white shadow-lg' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
-              >
-                {t('pricing_annual') || 'Annual'}
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${isYearly ? 'bg-white/20' : 'bg-emerald-500/10 text-emerald-500'}`}>
-                  SAVE 12%
-                </span>
-              </button>
+          <h1 className="text-2xl font-semibold text-[var(--text)] mb-8 capitalize">{checkoutPlan} plan</h1>
+
+          {/* Cycle Toggles */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <button
+              onClick={() => setBillingCycle('monthly')}
+              className={`p-4 rounded-xl border text-left transition-all ${billingCycle === 'monthly' ? 'bg-[var(--surface-2)] border-blue-500 shadow-[0_0_0_1px_rgba(59,130,246,1)]' : 'bg-[var(--surface-1)] border-[var(--border)] hover:border-gray-500'}`}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${billingCycle === 'monthly' ? 'border-blue-500' : 'border-gray-500'}`}>
+                  {billingCycle === 'monthly' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                </div>
+                <span className="font-semibold text-[var(--text)]">Monthly</span>
+              </div>
+              <div className="pl-7 text-sm text-[var(--muted)]">
+                USD {checkoutPlan === 'premium' ? premiumMonthly : maxMonthly}.00/month + tax
+              </div>
+            </button>
+
+            <button
+              onClick={() => setBillingCycle('yearly')}
+              className={`relative p-4 rounded-xl border text-left transition-all ${billingCycle === 'yearly' ? 'bg-blue-500/5 border-blue-500 shadow-[0_0_0_1px_rgba(59,130,246,1)]' : 'bg-[var(--surface-1)] border-[var(--border)] hover:border-gray-500'}`}
+            >
+              <div className="absolute top-3 right-3 text-[10px] font-bold bg-blue-600/30 text-blue-500 px-2 py-0.5 rounded-sm">Save 12%</div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${billingCycle === 'yearly' ? 'border-blue-500' : 'border-gray-500'}`}>
+                  {billingCycle === 'yearly' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                </div>
+                <span className="font-semibold text-[var(--text)]">Yearly</span>
+              </div>
+              <div className="pl-7 text-sm text-[var(--muted)]">
+                USD {checkoutPlan === 'premium' ? premiumYearly : maxYearly}.00/year + tax
+              </div>
+            </button>
+          </div>
+
+          {/* Order details */}
+          <div className="border border-[var(--border)] rounded-xl p-6 mb-6 bg-[var(--surface-1)]">
+            <h2 className="font-semibold text-[var(--text)] mb-6">Order details</h2>
+            <div className="space-y-4 text-sm">
+              <div className="flex justify-between text-[var(--muted)]">
+                <span><span className="capitalize">{checkoutPlan}</span> plan<br/><span className="text-[var(--text)]/50">{billingCycle === 'yearly' ? 'Annually' : 'Monthly'}</span></span>
+                <span>USD {subtotal}</span>
+              </div>
+              <div className="h-px w-full bg-[var(--border)] my-2" />
+              <div className="flex justify-between text-[var(--muted)]">
+                <span>Subtotal</span>
+                <span>USD {subtotal}</span>
+              </div>
+              <div className="flex justify-between text-[var(--muted)]">
+                <span>Tax (VAT 20%)</span>
+                <span>USD {tax}</span>
+              </div>
+              <div className="h-px w-full bg-[var(--border)] my-2" />
+              <div className="flex justify-between font-semibold text-[var(--text)]">
+                <span>Total due today</span>
+                <span>USD {total}</span>
+              </div>
             </div>
-          </motion.div>
-        </section>
-
-        {/* Pricing Cards */}
-        <section className="max-w-6xl mx-auto px-6 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 max-w-5xl mx-auto">
             
-            {/* Free Plan */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3, duration: 0.6 }}
-              className="group relative flex flex-col p-8 rounded-[32px] bg-[var(--surface-1)] border border-[var(--border)] hover:border-[var(--border-2)] transition-all duration-300 shadow-xl"
-            >
-              <div className="mb-8">
-                <h3 className="text-xl font-bold mb-2">{t('sidebar_free') || 'Free'}</h3>
-                <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-5xl font-bold">₺0</span>
-                  <span className="text-[var(--muted)] text-sm">/ {t('pricing_monthly_unit') || 'mo'}</span>
-                </div>
-                <p className="text-sm text-[var(--muted)] leading-relaxed">
-                  Perfect for individuals exploring permit requirements and basic regulations.
-                </p>
-              </div>
-
-              <div className="space-y-4 mb-10 flex-1">
-                {['Basic AI Consultations', '1 Active Session', '7-Day History', 'Community Access', 'Web Platform'].map((feat) => (
-                  <div key={feat} className="flex items-center gap-3">
-                    <div className="w-5 h-5 rounded-full bg-[var(--surface-2)] flex items-center justify-center border border-[var(--border)]">
-                      <Check size={12} className="text-[var(--muted)]" />
-                    </div>
-                    <span className="text-sm text-[var(--text)]/80">{feat}</span>
-                  </div>
-                ))}
-                {['Advanced Reports', 'Priority Support'].map((feat) => (
-                  <div key={feat} className="flex items-center gap-3 opacity-40">
-                    <div className="w-5 h-5 rounded-full bg-[var(--surface-2)] flex items-center justify-center border border-[var(--border)]">
-                      <X size={12} className="text-[var(--muted)]" />
-                    </div>
-                    <span className="text-sm text-[var(--text)]/80 line-through">{feat}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                disabled
-                className="w-full py-4 rounded-2xl bg-[var(--surface-2)] border border-[var(--border)] text-[var(--muted)] font-bold text-sm cursor-not-allowed"
-              >
-                {t('pricing_current') || 'Current Plan'}
-              </button>
-            </motion.div>
-
-            {/* Premium Plan */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
-              className="group relative flex flex-col p-8 rounded-[32px] bg-gradient-to-b from-indigo-600 to-indigo-700 text-white shadow-[0_20px_50px_-12px_rgba(79,70,229,0.5)] transform hover:-translate-y-1 transition-all duration-300"
-            >
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white text-indigo-600 text-[11px] font-black uppercase tracking-wider shadow-xl flex items-center gap-1.5">
-                <Star size={12} fill="currentColor" />
-                {t('pricing_most_popular') || 'Most Popular'}
-              </div>
-
-              <div className="mb-8">
-                <h3 className="text-xl font-bold mb-2">Premium</h3>
-                <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-5xl font-bold">₺{displayPrice}</span>
-                  <span className="text-white/60 text-sm">/ mo</span>
-                </div>
-                {isYearly ? (
-                  <div className="inline-block px-2 py-1 rounded bg-white/10 text-[10px] font-bold uppercase tracking-wider">
-                    Billed as ₺{yearlyTotal}/year (Save ₺{(monthlyPrice * 12) - yearlyTotal})
-                  </div>
-                ) : (
-                  <div className="text-white/60 text-xs font-medium">Billed monthly</div>
-                )}
-                <p className="text-sm text-white/80 leading-relaxed mt-4">
-                  Full capabilities for businesses managing high-stakes compliance and expansion in Turkey.
-                </p>
-              </div>
-
-              <div className="space-y-4 mb-10 flex-1">
-                {[
-                  'Unlimited AI Consultations',
-                  'Priority Agent Workflows',
-                  'Lifetime Project History',
-                  'Advanced Doc Processing',
-                  'Expert Regulatory Support',
-                  'MERSİS/e-Devlet Integration',
-                  'Priority Feature Access'
-                ].map((feat) => (
-                  <div key={feat} className="flex items-center gap-3">
-                    <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
-                      <Check size={12} className="text-white" strokeWidth={3} />
-                    </div>
-                    <span className="text-sm font-medium text-white">{feat}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={() => handleSubscribe(isYearly ? 'yearly' : 'monthly')}
-                disabled={isSubscribing}
-                className="w-full py-4 rounded-2xl bg-white text-indigo-600 hover:bg-white/90 font-bold text-sm shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-              >
-                {isSubscribing ? <RefreshCw size={18} className="animate-spin" /> : <>{t('pricing_upgrade') || 'Upgrade to Premium'} <ArrowRight size={18} /></>}
-              </button>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Trust Section */}
-        <section className="py-20 bg-[var(--surface-1)] border-y border-[var(--border)]">
-          <div className="max-w-6xl mx-auto px-6">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-12">
-              {TRUST_ITEMS.map(({ icon: Icon, label, sub }) => (
-                <div key={label} className="flex flex-col items-center text-center gap-4 group">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300">
-                    <Icon size={24} />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold mb-1">{label}</h4>
-                    <p className="text-xs text-[var(--muted)]">{sub}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="mt-6 p-4 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] text-xs text-[var(--muted)] flex gap-3 leading-relaxed">
+              <span className="shrink-0 w-4 h-4 rounded-full border border-gray-500 flex items-center justify-center font-serif italic text-[10px]">i</span>
+              <span>Your subscription will auto renew on {new Date(Date.now() + (billingCycle === 'yearly' ? 365 : 30) * 24 * 60 * 60 * 1000).toLocaleDateString()}. You will be charged USD {subtotal}.00/{billingCycle === 'yearly' ? 'year' : 'month'} + tax.</span>
             </div>
           </div>
-        </section>
 
-        {/* Detailed Comparison */}
-        <section className="max-w-5xl mx-auto px-6 py-24">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">{t('pricing_compare') || 'Compare Plans'}</h2>
-            <p className="text-[var(--muted)]">{t('pricing_compare_subtitle') || 'Everything you need to know about TurkGateway features.'}</p>
-          </div>
-
-          <div className="rounded-[32px] border border-[var(--border)] bg-[var(--surface-1)] overflow-hidden shadow-2xl">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-[var(--surface-2)] border-b border-[var(--border)]">
-                  <th className="px-8 py-6 text-xs font-black uppercase tracking-widest text-[var(--muted)]">{t('pricing_feat_label') || 'Feature'}</th>
-                  <th className="px-8 py-6 text-xs font-black uppercase tracking-widest text-center text-[var(--muted)]">Free</th>
-                  <th className="px-8 py-6 text-xs font-black uppercase tracking-widest text-center text-indigo-500">Premium</th>
-                </tr>
-              </thead>
-              <tbody>
-                {FEATURES.map((row, i) => (
-                  <tr key={row.label} className={`border-b border-[var(--border)] last:border-0 ${i % 2 === 0 ? 'bg-transparent' : 'bg-[var(--surface-2)]/30'}`}>
-                    <td className="px-8 py-5 text-sm font-medium">{row.label}</td>
-                    <td className="px-8 py-5 text-center">
-                      {row.free === true ? <Check size={18} className="mx-auto text-emerald-500" /> : row.free === false ? <X size={18} className="mx-auto text-[var(--muted)]/30" /> : <span className="text-xs font-bold text-[var(--muted)]">{row.free}</span>}
-                    </td>
-                    <td className="px-8 py-5 text-center">
-                      {row.premium === true ? <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center mx-auto"><Check size={14} className="text-indigo-500" strokeWidth={3} /></div> : <span className="text-sm font-black text-indigo-500">{row.premium}</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {/* FAQ Section */}
-        <section className="max-w-3xl mx-auto px-6 py-24">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">{t('pricing_faq_title') || 'Frequently Asked Questions'}</h2>
-            <p className="text-[var(--muted)]">
-              {t('pricing_faq_subtitle') || 'Have more questions?'} <a href="mailto:support@turkgateway.ai" className="text-indigo-500 hover:underline font-bold">Contact our support team</a>
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            {FAQ_DATA.map((item, i) => (
-              <div key={i} className={`rounded-2xl border transition-all duration-300 ${openFaq === i ? 'border-indigo-500/50 bg-indigo-500/5' : 'border-[var(--border)] bg-[var(--surface-1)]'}`}>
-                <button
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex items-center justify-between px-6 py-5 text-left"
-                >
-                  <span className="font-bold text-sm md:text-base">{item.q}</span>
-                  <ChevronDown size={20} className={`text-[var(--muted)] transition-transform duration-300 ${openFaq === i ? 'rotate-180 text-indigo-500' : ''}`} />
-                </button>
-                <AnimatePresence>
-                  {openFaq === i && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="overflow-hidden"
-                    >
-                      <p className="px-6 pb-6 text-sm md:text-base text-[var(--muted)] leading-relaxed">
-                        {item.a}
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Final CTA */}
-        <section className="max-w-5xl mx-auto px-6 py-24">
-          <div className="relative rounded-[48px] bg-gradient-to-br from-indigo-600 via-indigo-600 to-purple-700 p-12 md:p-20 text-center overflow-hidden shadow-2xl">
-            <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-white/10 blur-[100px] rounded-full" />
-            <div className="relative z-10">
-              <h2 className="text-3xl md:text-5xl font-black text-white mb-6 leading-tight">
-                {t('pricing_cta_title') || 'Ready to simplify your Turkish business expansion?'}
-              </h2>
-              <p className="text-white/80 text-lg mb-10 max-w-2xl mx-auto">
-                Join hundreds of businesses using TurkGateway to automate their regulatory compliance.
-              </p>
-              <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-                <button
-                  onClick={() => handleSubscribe(isYearly ? 'yearly' : 'monthly')}
-                  disabled={isSubscribing}
-                  className="px-10 py-5 rounded-2xl bg-white text-indigo-600 font-black text-lg shadow-2xl hover:bg-white/90 transition-all active:scale-[0.98] min-w-[240px]"
-                >
-                  {isSubscribing ? <RefreshCw size={24} className="animate-spin" /> : (t('pricing_get_started') || 'Get Started Now')}
-                </button>
-              </div>
-              <div className="mt-8 flex items-center justify-center gap-6 text-white/60 text-[10px] md:text-xs font-bold uppercase tracking-[0.2em]">
-                <div className="flex items-center gap-1.5"><ShieldCheck size={14} /> SECURE IYZICO CHECKOUT</div>
-                <div className="flex items-center gap-1.5"><RefreshCw size={14} /> CANCEL ANYTIME</div>
-                <div className="flex items-center gap-1.5"><CreditCard size={14} /> VAT INCLUDED</div>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      {/* iyzico Modal */}
-      <AnimatePresence>
-        {iyzicoFormHtml && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              onClick={() => setIyzicoFormHtml(null)}
-              className="absolute inset-0 bg-black/80 backdrop-blur-md" 
-            />
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative bg-[var(--surface-1)] w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-[var(--border)] h-[80vh]"
-            >
-              <div className="px-8 py-6 border-b border-[var(--border)] flex items-center justify-between bg-[var(--surface-2)]">
+          {/* Payment Method */}
+          <div className="border border-[var(--border)] rounded-xl p-6 bg-[var(--surface-1)]">
+            <h2 className="font-semibold text-[var(--text)] mb-6">Payment method</h2>
+            
+            {!iyzicoFormHtml ? (
+              <div className="space-y-4">
                 <div>
-                  <h3 className="font-black text-lg tracking-tight">Secure Payment Gateway</h3>
-                  <p className="text-xs text-[var(--muted)] font-bold uppercase tracking-wider">Transaction secured by iyzico & TurkGateway</p>
+                  <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">Full name</label>
+                  <input type="text" readOnly value={user?.fullName || 'Guest User'} className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:border-blue-500" />
                 </div>
-                <button onClick={() => setIyzicoFormHtml(null)} className="p-2 hover:bg-red-500 hover:text-white rounded-xl transition-all">
-                  <X size={20} />
+                <div>
+                  <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">Country or region</label>
+                  <select className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] focus:outline-none appearance-none">
+                    <option>Türkiye</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">Address</label>
+                  <input type="text" className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:border-blue-500" />
+                </div>
+                
+                <button
+                  onClick={handleSubscribeClick}
+                  disabled={isSubscribing}
+                  className="w-full mt-6 bg-[var(--text)] text-[var(--bg)] font-semibold rounded-lg py-3 hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                >
+                  {isSubscribing ? <RefreshCw size={18} className="animate-spin" /> : 'Proceed to Secure Checkout'}
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto p-8" id="iyzico-form-container">
+            ) : (
+              <div className="bg-white rounded-lg p-2 mt-4" id="iyzico-form-container">
                 <div dangerouslySetInnerHTML={{ __html: iyzicoFormHtml }} />
                 <div id="iyzipay-checkout-form" className="responsive" />
               </div>
-            </motion.div>
+            )}
           </div>
+        </main>
+      </div>
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // PRICING SCREEN (Image 1 Match)
+  // ────────────────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans selection:bg-blue-500/30">
+      <Navbar />
+
+      <main className="pt-32 pb-24 relative z-10 px-6 overflow-hidden">
+        {/* Glow Effects */}
+        <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none -z-10" />
+        <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px] pointer-events-none -z-10" />
+        
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl text-[var(--text)] mb-8 font-serif tracking-tight" style={{ fontFamily: 'Georgia, serif' }}>
+            Plans that grow with you
+          </h1>
+          
+          <div className="inline-flex items-center p-1 bg-[var(--surface-1)] rounded-xl border border-[var(--border)] shadow-inner">
+            <button 
+              onClick={() => setBillingPlan('individual')}
+              className={`px-6 py-2 rounded-lg text-sm font-semibold transition-colors ${billingPlan === 'individual' ? 'bg-[var(--surface-3)] text-[var(--text)] shadow-sm border border-[var(--border)]' : 'text-[var(--muted)] hover:text-[var(--text)] border border-transparent'}`}
+            >
+              Individual
+            </button>
+            <button 
+              onClick={() => setBillingPlan('team')}
+              className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${billingPlan === 'team' ? 'bg-[var(--surface-3)] text-[var(--text)] shadow-sm border border-[var(--border)]' : 'text-[var(--muted)] hover:text-[var(--text)] border border-transparent'}`}
+            >
+              Team and Enterprise
+            </button>
+          </div>
+        </div>
+
+        {/* Pricing Cards */}
+        {billingPlan === 'individual' ? (
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* Free Card */}
+          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl p-8 flex flex-col">
+            <div className="mb-6 h-16 flex items-start">
+              <div className="flex items-center gap-4">
+                <div className="relative shrink-0 h-16 w-16 rounded-2xl flex items-center justify-center bg-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.5)]">
+                  <Cpu size={32} className="text-white animate-pulse" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-base font-bold text-[var(--text)]">Monthly</span>
+                  <span className="text-xs text-[var(--muted)]">Standard plan</span>
+                </div>
+              </div>
+            </div>
+            <h2 className="text-2xl font-semibold text-[var(--text)] mb-1">Free</h2>
+            <p className="text-sm text-[var(--muted)] mb-6">Meet TurkGateway</p>
+            
+            <div className="text-3xl font-semibold text-[var(--text)] mb-8">$0</div>
+            
+            <button disabled className="w-full py-2.5 rounded-lg border border-[var(--border)] text-[var(--muted)] font-medium text-sm mb-8 bg-[var(--surface-2)]">
+              Use TurkGateway for free
+            </button>
+
+            <div className="space-y-4 text-[13px] text-[var(--muted)] flex-1 border-t border-[var(--border)] pt-6">
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>Chat on web, iOS, and Android</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>Basic access to all 3 AI Agents</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>Standard residency & permit roadmaps</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>Multi-language support (EN, TR, AR)</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>Built-in web search for legal updates</span></div>
+            </div>
+          </div>
+
+          {/* Pro Card */}
+          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl p-8 flex flex-col relative">
+            <div className="mb-6 h-16 flex justify-between items-start">
+              <div className="flex items-center gap-4">
+                <div className="relative shrink-0 h-16 w-16 rounded-2xl flex items-center justify-center bg-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.5)]">
+                  <Cpu size={32} className="text-white animate-pulse" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-base font-bold text-[var(--text)]">Yearly</span>
+                  <span className="text-xs text-[var(--muted)]">Best value</span>
+                </div>
+              </div>
+              <div className="flex items-center shrink-0 bg-[var(--bg)] rounded-full p-0.5 border border-[var(--border)] text-[9px] font-semibold mt-2">
+                <span className="px-3 py-1 text-[var(--muted)]">Monthly</span>
+                <span className="px-3 py-1 bg-[var(--surface-2)] text-[var(--text)] rounded-full">Yearly <span className="text-blue-500 ml-1">Save 17%</span></span>
+              </div>
+            </div>
+            
+            <h2 className="text-2xl font-semibold text-[var(--text)] mb-1">Premium</h2>
+            <p className="text-sm text-[var(--muted)] mb-6">Research, code, and organize</p>
+            
+            <div className="flex items-baseline gap-2 mb-8">
+              <div className="text-3xl font-semibold text-[var(--text)]">${Math.round(premiumYearly / 12)}</div>
+              <div className="text-[10px] text-[var(--muted)] flex flex-col">
+                <span>USD / month</span>
+                <span>billed annually</span>
+              </div>
+            </div>
+            
+            <button onClick={() => setCheckoutPlan('premium')} className="w-full py-2.5 rounded-lg bg-[var(--text)] text-[var(--bg)] font-semibold text-sm mb-2 hover:opacity-90 transition-opacity">
+              Get Premium plan
+            </button>
+            <p className="text-[9px] text-[var(--muted)] text-center mb-5 font-medium">No commitment · Cancel anytime</p>
+
+            <div className="space-y-4 text-[13px] text-[var(--muted)] flex-1 border-t border-[var(--border)] pt-6">
+              <p className="font-semibold text-[var(--text)] text-xs mb-2">Everything in Free and:</p>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span className="font-medium text-[var(--text)]">Desktop App (Zero latency & Voice mode)</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>Unlimited tokens</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>Automated document review & translation</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>AI Agent filling & generating official docs</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>Advanced legal deep-dives</span></div>
+            </div>
+          </div>
+
+          {/* Max Card */}
+          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl p-8 flex flex-col">
+            <div className="mb-6 h-16 flex items-start">
+              <div className="flex items-center gap-4">
+                <div className="relative shrink-0 h-16 w-16 rounded-2xl flex items-center justify-center bg-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.5)]">
+                  <Cpu size={32} className="text-white animate-pulse" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-base font-bold text-[var(--text)]">Unlimited Tokens</span>
+                  <span className="text-xs text-[var(--muted)]">Maximum power</span>
+                </div>
+              </div>
+            </div>
+            
+            <h2 className="text-2xl font-semibold text-[var(--text)] mb-1">Max</h2>
+            <p className="text-sm text-[var(--muted)] mb-6">Unlimited tokens forever</p>
+            
+            <div className="flex items-baseline gap-2 mb-3">
+              <div className="text-3xl font-semibold text-[var(--text)]">One time payment</div>
+              <div className="text-[10px] text-[var(--muted)] flex flex-col">
+                <span className="font-bold text-blue-500 uppercase tracking-widest">Lifetime Access</span>
+              </div>
+            </div>
+
+            <button onClick={() => setCheckoutPlan('max')} className="w-full py-2.5 mt-5 rounded-lg bg-[var(--text)] text-[var(--bg)] font-semibold text-sm mb-2 hover:opacity-90 transition-opacity">
+              Get Max plan
+            </button>
+            <p className="text-[9px] text-[var(--muted)] text-center mb-5 font-medium">No commitment · Cancel anytime</p>
+
+            <div className="space-y-4 text-[13px] text-[var(--muted)] flex-1 border-t border-[var(--border)] pt-6">
+              <p className="font-semibold text-[var(--text)] text-xs mb-2">Everything in Premium, plus:</p>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span className="font-medium text-[var(--text)] text-blue-400">Unlimited tokens forever</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>Full application management & submission</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>1-on-1 consultations with verified Lawyers</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>Dedicated account manager</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>VIP priority processing</span></div>
+            </div>
+          </div>
+
+        </div>
+        ) : (
+        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Team Card */}
+          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl p-8 flex flex-col relative">
+            <div className="mb-6 h-16 flex items-start">
+              <div className="flex items-center gap-4">
+                <div className="relative shrink-0 h-16 w-16 rounded-2xl flex items-center justify-center bg-indigo-500 shadow-[0_0_30px_rgba(99,102,241,0.5)]">
+                  <Users size={32} className="text-white animate-pulse" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-base font-bold text-[var(--text)]">Team</span>
+                  <span className="text-xs text-[var(--muted)]">Shared workspace</span>
+                </div>
+              </div>
+            </div>
+            <h2 className="text-2xl font-semibold text-[var(--text)] mb-1">Business</h2>
+            <p className="text-sm text-[var(--muted)] mb-6">For growing teams & agencies</p>
+            
+            <div className="flex items-baseline gap-2 mb-8">
+              <div className="text-3xl font-semibold text-[var(--text)]">$499</div>
+              <div className="text-[10px] text-[var(--muted)] flex flex-col">
+                <span>USD / month</span>
+                <span>billed annually</span>
+              </div>
+            </div>
+            
+            <button className="w-full py-2.5 rounded-lg bg-[var(--text)] text-[var(--bg)] font-semibold text-sm mb-8 hover:opacity-90 transition-opacity">
+              Start Team Trial
+            </button>
+
+            <div className="space-y-4 text-[13px] text-[var(--muted)] flex-1 border-t border-[var(--border)] pt-6">
+              <p className="font-semibold text-[var(--text)] text-xs mb-2">Everything in Premium, plus:</p>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>Centralized admin dashboard</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>Shared team document storage</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>Unlimited sub-accounts (up to 5)</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>Consolidated monthly billing</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>API access (10k requests)</span></div>
+            </div>
+          </div>
+
+          {/* Enterprise Card */}
+          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl p-8 flex flex-col">
+            <div className="mb-6 h-16 flex items-start">
+              <div className="flex items-center gap-4">
+                <div className="relative shrink-0 h-16 w-16 rounded-2xl flex items-center justify-center bg-gray-800 shadow-[0_0_30px_rgba(31,41,55,0.5)]">
+                  <Building2 size={32} className="text-white animate-pulse" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-base font-bold text-[var(--text)]">Enterprise</span>
+                  <span className="text-xs text-[var(--muted)]">Custom solutions</span>
+                </div>
+              </div>
+            </div>
+            <h2 className="text-2xl font-semibold text-[var(--text)] mb-1">Custom</h2>
+            <p className="text-sm text-[var(--muted)] mb-6">Scale without limits</p>
+            
+            <div className="text-3xl font-semibold text-[var(--text)] mb-8">Let's talk</div>
+            
+            <button className="w-full py-2.5 rounded-lg border border-[var(--border)] text-[var(--text)] font-semibold text-sm mb-8 hover:bg-[var(--surface-2)] transition-colors">
+              Contact Sales
+            </button>
+
+            <div className="space-y-4 text-[13px] text-[var(--muted)] flex-1 border-t border-[var(--border)] pt-6">
+              <p className="font-semibold text-[var(--text)] text-xs mb-2">Everything in Team, plus:</p>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span className="font-medium text-[var(--text)]">Custom AI Model fine-tuning</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>White-label platform integration</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>Dedicated Slack/Teams channel</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>On-premise deployment options</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>Custom compliance reporting</span></div>
+            </div>
+          </div>
+        </div>
         )}
-      </AnimatePresence>
+
+        <p className="text-center text-[11px] text-[var(--muted)] mt-12 max-w-2xl mx-auto">
+          *Usage limits apply. Prices shown don't include applicable tax. Prices and plans are subject to change at TurkGateway's discretion.
+        </p>
+
+      </main>
+      
+      <Footer />
 
       {/* Custom Toast */}
       <AnimatePresence>
@@ -403,16 +434,15 @@ export default function PricingPage() {
               initial={{ y: 50, opacity: 0, scale: 0.8 }}
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ y: 20, opacity: 0, scale: 0.8 }}
-              className={`px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border-2 ${
+              className={`px-8 py-4 rounded-xl shadow-2xl flex items-center gap-4 border ${
                 toast.type === 'success'
-                  ? 'bg-emerald-500 border-emerald-400 text-white'
-                  : 'bg-red-500 border-red-400 text-white'
+                  ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500'
+                  : 'bg-red-500/10 border-red-500/50 text-red-500'
               }`}
             >
-              {toast.type === 'success' ? <Check size={20} strokeWidth={3} /> : <X size={20} strokeWidth={3} />}
-              <span className="font-bold tracking-tight">{toast.message}</span>
+              <span className="font-medium text-sm">{toast.message}</span>
               <button onClick={() => setToast(null)} className="ml-4 opacity-50 hover:opacity-100 transition-opacity">
-                <X size={16} strokeWidth={3} />
+                <X size={16} />
               </button>
             </motion.div>
           </div>

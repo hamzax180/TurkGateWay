@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
@@ -15,6 +15,7 @@ class ChatSession(Base):
     messages = relationship("ChatMessage", back_populates="session", cascade="all, delete-orphan")
     dashboard_state = Column(Text, nullable=True) # Serialized JSON for this specific session
     assistant_type = Column(String, default="permit", nullable=True)
+    is_favorite = Column(Boolean, default=False)
 
 
 class ChatMessage(Base):

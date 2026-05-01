@@ -32,7 +32,7 @@ async def lawyer_node(state: GraphState):
         from models.schemas import AgentStep
         combined = CombinedPermitResult(
             summary=str(combined) if combined else "Here is your legal guide.",
-            permits=["Legal Advisory"],
+            permits=["Legal Agent"],
             agencies=["Turkish Courts", "Notary Public"],
             documents=["ID", "Relevant Contracts", "Power of Attorney"],
             steps=[
@@ -71,7 +71,7 @@ async def lawyer_node(state: GraphState):
     
     state['state'].execution_plan = ExecutionPlan(
         steps=details,
-        assigned_agents=["Legal Advisor", "Notary"]
+        assigned_agents=["Legal Agent", "Notary"]
     )
     return state
 

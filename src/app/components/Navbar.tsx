@@ -68,6 +68,7 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
     { href: '/dashboard', label: t('navbar_dashboard') },
     { href: '/pricing', label: t('navbar_pricing') },
     ...(isAdmin ? [{ href: '/admin/subscribers', label: t('navbar_subscribers') }] : []),
+    { href: '/download', label: t('navbar_download') === 'navbar_download' ? 'Download App' : t('navbar_download') || 'Download App' },
   ];
 
 
@@ -130,6 +131,21 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
           <ThemeToggle />
           {isAuthenticated ? (
             <>
+              {user?.subscriptionStatus === 'free' ? (
+                <Link 
+                  href="/pricing"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/5 border border-blue-500/20 text-blue-400/80 text-[11px] font-medium transition-all hover:border-blue-500/40 hover:bg-blue-500/10 no-underline shadow-sm"
+                >
+                  <span>Free Plan</span>
+                  <span className="opacity-40">•</span>
+                  <span className="font-bold text-blue-500">Upgrade</span>
+                </Link>
+              ) : (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/20 text-emerald-500 text-[11px] font-bold shadow-sm">
+                  <ShieldCheck size={12} className="shrink-0" />
+                  <span>Premium Plan</span>
+                </div>
+              )}
               <span className="text-xs font-bold text-[var(--muted)] uppercase tracking-widest transition-colors duration-500">{user?.fullName || user?.email}</span>
               <button
                 onClick={logout}

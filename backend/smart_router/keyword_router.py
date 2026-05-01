@@ -440,7 +440,7 @@ def detect_intent(
     
     # Ignore common verb/phrase tokens from fuzzy matching to prevent false positives
     stop_words = {
-        "what", "when", "where", "which", "know", "take", "long", "tell", "need", 
+        "what", "whats", "what's", "when", "where", "which", "know", "take", "long", "tell", "need", 
         "some", "want", "have", "with", "this", "that", "from", "your", "does", "will", 
         "hows", "about", "like", "make", "work", "just", "time", "sure", "right", 
         "correct", "true", "accurate", "help", "good", "great", "perfect"

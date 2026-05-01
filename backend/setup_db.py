@@ -59,9 +59,15 @@ def setup():
         tables = [row[0] for row in r.fetchall()]
         print(f"  SUCCESS: Tables: {tables}")
 
-        for t in ['knowledge_articles', 'knowledge_chunks', 'agent_context']:
+        # SECURITY: table names are hardcoded — never interpolated from user input
+        _KNOWN_TABLES = {
+            'knowledge_articles': 'knowledge_articles',
+            'knowledge_chunks':   'knowledge_chunks',
+            'agent_context':      'agent_context',
+        }
+        for t in _KNOWN_TABLES:
             if t in tables:
-                count = conn.execute(text(f"SELECT COUNT(*) FROM {t}")).scalar()
+                count = conn.execute(text(f"SELECT COUNT(*) FROM {_KNOWN_TABLES[t]}")).scalar()
                 print(f"    -> {t}: {count} rows")
             else:
                 print(f"    FAIL: {t}: MISSING")

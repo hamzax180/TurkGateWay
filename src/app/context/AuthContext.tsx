@@ -3,17 +3,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 interface AuthContextType {
-    user: { email: string; fullName?: string; isAdmin?: boolean } | null;
+    user: { email: string; fullName?: string; isAdmin?: boolean; tokenBalance?: number; subscriptionStatus?: string } | null;
     token: string | null;
-    login: (token: string, email: string, fullName?: string, isAdmin?: boolean) => void;
+    login: (token: string, email: string, fullName?: string, isAdmin?: boolean, tokenBalance?: number, subscriptionStatus?: string) => void;
     logout: () => void;
     isAuthenticated: boolean;
+    setTokenBalance: (balance: number) => void;
+    lastTokenReset: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<{ email: string; fullName?: string; isAdmin?: boolean } | null>(null);
+    const [user, setUser] = useState<{ email: string; fullName?: string; isAdmin?: boolean; tokenBalance?: number; subscriptionStatus?: string; lastTokenReset?: string | null } | null>(null);
     const [token, setToken] = useState<string | null>(null);
 
     const getFallbackName = (email: string) => {
@@ -42,7 +44,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         const data = await res.json();
                         const adminStatus = !!data.is_admin;
                         localStorage.setItem('permitops_is_admin', adminStatus ? 'true' : 'false');
-                        setUser({ email: data.email, fullName: data.full_name || savedName || getFallbackName(savedUser), isAdmin: adminStatus });
+                        setUser({ 
+                            email: data.email, 
+                            fullName: data.full_name || savedName || getFallbackName(savedUser), 
+                            isAdmin: adminStatus,
+                            tokenBalance: data.token_balance,
+                            subscriptionStatus: data.subscription_status,
+                            lastTokenReset: data.last_token_reset
+                        });
                     } else if (res.status === 401) {
                         // Token is invalid/expired - clear it
                         console.warn("Session expired or invalid. Logging out.");
@@ -68,14 +77,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => window.removeEventListener('storage', handleStorage);
     }, []);
 
-    const login = (token: string, email: string, fullName?: string, isAdmin?: boolean) => {
+    const login = (token: string, email: string, fullName?: string, isAdmin?: boolean, tokenBalance?: number, subscriptionStatus?: string) => {
         const name = fullName || getFallbackName(email);
         setToken(token);
-        setUser({ email, fullName: name, isAdmin: !!isAdmin });
+        setUser({ email, fullName: name, isAdmin: !!isAdmin, tokenBalance, subscriptionStatus, lastTokenReset: null });
         localStorage.setItem('permitops_token', token);
         localStorage.setItem('permitops_user', email);
         localStorage.setItem('permitops_name', name);
         localStorage.setItem('permitops_is_admin', isAdmin ? 'true' : 'false');
+    };
+
+    const setTokenBalance = (balance: number) => {
+        setUser(prev => prev ? { ...prev, tokenBalance: balance } : null);
     };
 
     const logout = () => {
@@ -88,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token }}>
+        <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token, setTokenBalance, lastTokenReset: user?.lastTokenReset || null }}>
             {children}
         </AuthContext.Provider>
     );
