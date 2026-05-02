@@ -160,8 +160,8 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
                 {t('navbar_login')}
               </button>
               <Link href="/signup">
-                <button className="bg-[var(--text)] text-[var(--bg)] hover:opacity-90 px-5 py-2 rounded-full text-sm font-bold shadow-lg transition-all active:scale-95">
-                  {t('navbar_signup')}
+                <button className="bg-[var(--text)] text-[var(--bg)] hover:opacity-90 px-5 py-2 rounded-full text-sm font-bold shadow-lg transition-all active:scale-95 whitespace-nowrap">
+                  {t('signup_free')}
                 </button>
               </Link>
             </>

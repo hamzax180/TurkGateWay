@@ -14,6 +14,17 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import Footer from '../components/Footer';
 
+const C: Record<string, { bg: string; border: string; text: string; dot: string; light: string }> = {
+  emerald: { bg:'bg-emerald-500/10', border:'border-emerald-500/20', text:'text-emerald-600 dark:text-emerald-400', dot:'bg-emerald-500', light:'bg-emerald-50 dark:bg-emerald-500/10' },
+  blue:    { bg:'bg-blue-500/10',    border:'border-blue-500/20',    text:'text-blue-600 dark:text-blue-400',       dot:'bg-blue-500',    light:'bg-blue-50 dark:bg-blue-500/10'       },
+  purple:  { bg:'bg-purple-500/10',  border:'border-purple-500/20',  text:'text-purple-600 dark:text-purple-400',   dot:'bg-purple-500',  light:'bg-purple-50 dark:bg-purple-500/10'   },
+  orange:  { bg:'bg-orange-500/10',  border:'border-orange-500/20',  text:'text-orange-600 dark:text-orange-400',   dot:'bg-orange-500',  light:'bg-orange-50 dark:bg-orange-500/10'   },
+  cyan:    { bg:'bg-cyan-500/10',    border:'border-cyan-500/20',    text:'text-cyan-600 dark:text-cyan-400',       dot:'bg-cyan-500',    light:'bg-cyan-50 dark:bg-cyan-500/10'       },
+  rose:    { bg:'bg-rose-500/10',    border:'border-rose-500/20',    text:'text-rose-600 dark:text-rose-400',       dot:'bg-rose-500',    light:'bg-rose-50 dark:bg-rose-500/10'       },
+  amber:   { bg:'bg-amber-500/10',   border:'border-amber-500/20',   text:'text-amber-600 dark:text-amber-400',     dot:'bg-amber-500',   light:'bg-amber-50 dark:bg-amber-500/10'     },
+  indigo:  { bg:'bg-indigo-500/10',  border:'border-indigo-500/20',  text:'text-indigo-600 dark:text-indigo-400',   dot:'bg-indigo-500',  light:'bg-indigo-50 dark:bg-indigo-500/10'   },
+};
+
 export default function DocumentationPage() {
   const { t } = useLanguage();
   const { token } = useAuth();
@@ -21,26 +32,38 @@ export default function DocumentationPage() {
   const [activeSection, setActiveSection] = useState('architecture');
 
   const sections = [
-    { id: 'architecture', title: 'System Architecture', icon: Network },
-    { id: 'smart-router', title: 'Smart Router & Context', icon: Cpu },
-    { id: 'permit-api', title: 'Permit Agent', icon: Building2 },
-    { id: 'student', title: 'Student Agent', icon: GraduationCap },
-    { id: 'legal-engine', title: 'Legal Agent', icon: Scale },
-    { id: 'terms', title: 'Terms of Service', icon: FileText },
-    { id: 'privacy', title: 'Privacy Policy', icon: Lock },
+    { id: 'architecture', title: 'System Architecture', icon: Network,       color: 'blue'    },
+    { id: 'smart-router', title: 'Smart Router & Context', icon: Cpu,           color: 'amber'   },
+    { id: 'permit-api',   title: 'Permit Agent',           icon: Building2,     color: 'emerald' },
+    { id: 'student',      title: 'Student Agent',          icon: GraduationCap, color: 'purple'  },
+    { id: 'legal-engine', title: 'Legal Agent',            icon: Scale,         color: 'orange'  },
+    { id: 'terms',        title: 'Terms of Service',       icon: FileText,      color: 'rose'    },
+    { id: 'privacy',      title: 'Privacy Policy',         icon: Lock,          color: 'indigo'  },
   ];
 
   useEffect(() => {
+    const termsSubs = [
+      'terms-acceptance', 'terms-ai-disclaimer', 'terms-responsibilities',
+      'terms-payments', 'terms-liability', 'terms-ip', 'terms-termination', 'terms-governing',
+    ];
+    const privacySubs = [
+      'privacy-kvkk', 'privacy-collection', 'privacy-documents',
+      'privacy-sharing', 'privacy-storage', 'privacy-rights', 'privacy-retention', 'privacy-updates',
+    ];
+    const allIds = [...sections.map(s => s.id), ...termsSubs, ...privacySubs];
+
     const handleScroll = () => {
-      const scrollPosition = window.scrollY + 100;
-      sections.forEach(section => {
-        const element = document.getElementById(section.id);
-        if (element && element.offsetTop <= scrollPosition && element.offsetTop + element.offsetHeight > scrollPosition) {
-          setActiveSection(section.id);
+      const scrollPosition = window.scrollY + 140;
+      // Walk from bottom up so the topmost visible section wins
+      for (let i = allIds.length - 1; i >= 0; i--) {
+        const el = document.getElementById(allIds[i]);
+        if (el && el.offsetTop <= scrollPosition) {
+          setActiveSection(allIds[i]);
+          break;
         }
-      });
+      }
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -83,48 +106,98 @@ export default function DocumentationPage() {
           <aside className="hidden lg:block w-64 sticky top-16 shrink-0 h-fit">
             <div className="space-y-1">
               <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)] mb-6 px-4">Documentation</p>
-              {sections.map(section => (
+              {sections.map(section => {
+                const c = C[section.color];
+                const isActive = activeSection === section.id ||
+                  (section.id === 'privacy' && activeSection.startsWith('privacy-')) ||
+                  (section.id === 'terms' && activeSection.startsWith('terms-'));
+
+                return (
                 <div key={section.id}>
                   <button
                     onClick={() => scrollTo(section.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-sm font-semibold ${activeSection === section.id || (section.id === 'privacy' && ['privacy-kvkk', 'privacy-collection', 'privacy-documents', 'privacy-sharing', 'privacy-storage', 'privacy-rights', 'privacy-retention', 'privacy-updates'].includes(activeSection))
-                        ? 'bg-[var(--accent)]/10 text-[var(--accent)] shadow-sm'
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-sm font-semibold ${
+                      isActive
+                        ? `${c.light} ${c.text} border ${c.border} shadow-sm`
                         : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]'
-                      }`}
+                    }`}
                   >
-                    <section.icon size={16} className={(activeSection === section.id || (section.id === 'privacy' && activeSection.startsWith('privacy-'))) ? 'text-[var(--accent)]' : 'text-[var(--muted)]'} />
+                    <section.icon size={16} className={
+                      isActive
+                        ? c.text : 'text-[var(--muted)]'
+                    } />
                     {section.title}
                   </button>
 
-                  {/* Sub-sections for Privacy Policy */}
-                  {(activeSection === 'privacy' || activeSection.startsWith('privacy-')) && section.id === 'privacy' && (
-                    <div className="mt-4 ml-4 pl-4 border-l border-[var(--border)] space-y-4 py-2">
+                  {/* Sub-sections for Terms of Service */}
+                  {(activeSection === 'terms' || activeSection.startsWith('terms-')) && section.id === 'terms' && (
+                    <div className="mt-4 ml-4 pl-4 border-l border-[var(--border)] space-y-1 py-2">
                       <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)] mb-4">Contents</p>
                       {[
-                        { id: 'privacy-kvkk', label: 'KVKK Compliance' },
-                        { id: 'privacy-collection', label: 'Data Collection' },
-                        { id: 'privacy-documents', label: 'Document Data' },
-                        { id: 'privacy-sharing', label: 'Third-Party Sharing' },
-                        { id: 'privacy-storage', label: 'Data Storage' },
-                        { id: 'privacy-rights', label: 'Your Rights' },
-                        { id: 'privacy-retention', label: 'Data Retention' },
-                        { id: 'privacy-updates', label: 'Policy Updates' },
-                      ].map(sub => (
-                        <button
-                          key={sub.id}
-                          onClick={() => scrollTo(sub.id)}
-                          className={`w-full flex items-center gap-3 text-xs font-semibold transition-all group ${activeSection === sub.id ? 'text-indigo-400' : 'text-[var(--muted)] hover:text-[var(--text)]'
+                        { id: 'terms-acceptance',      label: 'Acceptance of Terms',      color: 'blue'    },
+                        { id: 'terms-ai-disclaimer',   label: 'AI Disclaimer',            color: 'amber'   },
+                        { id: 'terms-responsibilities',label: 'User Responsibilities',    color: 'emerald' },
+                        { id: 'terms-payments',        label: 'Subscriptions & Payments', color: 'purple'  },
+                        { id: 'terms-liability',       label: 'Limitation of Liability',  color: 'orange'  },
+                        { id: 'terms-ip',              label: 'Intellectual Property',    color: 'cyan'    },
+                        { id: 'terms-termination',     label: 'Termination',              color: 'rose'    },
+                        { id: 'terms-governing',       label: 'Governing Law',            color: 'indigo'  },
+                      ].map(sub => {
+                        const c = C[sub.color];
+                        const isActive = activeSection === sub.id;
+                        return (
+                          <button
+                            key={sub.id}
+                            onClick={() => scrollTo(sub.id)}
+                            className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                              isActive ? `${c.light} ${c.text} border ${c.border}` : 'text-[var(--muted)] hover:bg-[var(--surface-2)]'
                             }`}
-                        >
-                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${activeSection === sub.id ? 'bg-indigo-400 scale-125 shadow-[0_0_8px_rgba(129,140,248,0.6)]' : 'bg-[var(--border)] group-hover:bg-[var(--muted)]'
+                          >
+                            <div className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${
+                              isActive ? c.dot : 'bg-[var(--muted)] opacity-40 group-hover:opacity-100'
                             }`} />
-                          {sub.label}
-                        </button>
-                      ))}
+                            {sub.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Sub-sections for Privacy Policy */}
+                  {(activeSection === 'privacy' || activeSection.startsWith('privacy-')) && section.id === 'privacy' && (
+                    <div className="mt-4 ml-4 pl-4 border-l border-[var(--border)] space-y-1 py-2">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)] mb-4">Contents</p>
+                      {[
+                        { id: 'privacy-kvkk',       label: 'KVKK Compliance',     color: 'emerald' },
+                        { id: 'privacy-collection', label: 'Data Collection',      color: 'blue'    },
+                        { id: 'privacy-documents',  label: 'Document Data',        color: 'purple'  },
+                        { id: 'privacy-sharing',    label: 'Third-Party Sharing',  color: 'orange'  },
+                        { id: 'privacy-storage',    label: 'Data Storage',         color: 'cyan'    },
+                        { id: 'privacy-rights',     label: 'Your Rights',          color: 'rose'    },
+                        { id: 'privacy-retention',  label: 'Data Retention',       color: 'amber'   },
+                        { id: 'privacy-updates',    label: 'Policy Updates',       color: 'indigo'  },
+                      ].map(sub => {
+                        const c = C[sub.color];
+                        const isActive = activeSection === sub.id;
+                        return (
+                          <button
+                            key={sub.id}
+                            onClick={() => scrollTo(sub.id)}
+                            className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                              isActive ? `${c.light} ${c.text} border ${c.border}` : 'text-[var(--muted)] hover:bg-[var(--surface-2)]'
+                            }`}
+                          >
+                            <div className={`w-1.5 h-1.5 rounded-full shrink-0 transition-all ${
+                              isActive ? c.dot : 'bg-[var(--muted)] opacity-40 group-hover:opacity-100'
+                            }`} />
+                            {sub.label}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
-              ))}
+              )})}
             </div>
           </aside>
 
@@ -137,9 +210,6 @@ export default function DocumentationPage() {
               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             >
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] font-bold uppercase tracking-widest mb-6 border border-[var(--accent)]/20 shadow-sm">
-                <Terminal size={12} /> Developer Hub
-              </div>
               <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-8 bg-gradient-to-br from-[var(--text)] to-[var(--text)]/60 bg-clip-text text-transparent">
                 TurkGateway AI Infrastructure
               </h1>
@@ -413,22 +483,58 @@ export default function DocumentationPage() {
               <h2 className="text-3xl font-bold mb-10 flex items-center gap-4 border-b border-rose-500/20 pb-6">
                 <FileText className="text-rose-500" size={28} /> Terms of Service
               </h2>
-              <div className="space-y-8 text-[var(--text)]/80 leading-relaxed font-medium relative z-10">
-                <div className="p-8 rounded-3xl bg-[var(--surface-1)] border border-[var(--border)] shadow-sm hover:border-rose-500/30 hover:bg-rose-500/[0.02] transition-all group">
-                  <h3 className="text-xl font-bold text-[var(--text)] mb-4 group-hover:text-rose-400 transition-colors">1. Acceptable Use</h3>
-                  <p className="mb-4">
-                    By using TurkGateway AI, you agree to utilize the platform exclusively for lawful administrative and bureaucratic research purposes in Türkiye.
+              <div className="space-y-16 text-[var(--text)]/80 leading-relaxed font-medium relative z-10">
+                <div id="terms-acceptance" className="scroll-mt-24 p-8 rounded-3xl bg-[var(--surface-1)] border border-[var(--border)] shadow-sm hover:border-rose-500/30 hover:bg-rose-500/[0.02] transition-all group">
+                  <h3 className="text-xl font-bold text-[var(--text)] mb-4 group-hover:text-rose-400 transition-colors">1. Acceptance of Terms</h3>
+                  <p className="mb-4 text-[var(--muted)] text-sm leading-relaxed">
+                    By creating an account or using TurkGateway AI, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and our Privacy Policy.
                   </p>
                   <ul className="list-disc pl-6 space-y-2 text-sm text-[var(--muted)]">
-                    <li>Unauthorized automated scraping of AI outputs is strictly prohibited.</li>
-                    <li>The platform must not be used to generate fraudulent official documentation.</li>
-                    <li>Account sharing across multiple entities is not permitted under individual plans.</li>
+                    <li>If using the Service on behalf of a company, you represent the authority to bind such entity.</li>
+                    <li>Minors under 18 may not use the Service without verifiable parental consent.</li>
+                    <li>Continued use after any Terms update constitutes acceptance of the revised terms.</li>
                   </ul>
                 </div>
-                <div className="p-8 rounded-3xl bg-[var(--surface-1)] border border-[var(--border)] shadow-sm hover:border-rose-500/30 hover:bg-rose-500/[0.02] transition-all group">
-                  <h3 className="text-xl font-bold text-[var(--text)] mb-4 group-hover:text-rose-400 transition-colors">2. Liability Disclaimer</h3>
-                  <p>
-                    While TurkGateway AI provides high-precision roadmaps and document assistance, the platform does not constitute legal advice. Users are encouraged to verify critical compliance steps with verified legal professionals.
+                <div id="terms-ai-disclaimer" className="scroll-mt-24 p-8 rounded-3xl bg-[var(--surface-1)] border border-[var(--border)] shadow-sm hover:border-rose-500/30 hover:bg-rose-500/[0.02] transition-all group">
+                  <h3 className="text-xl font-bold text-[var(--text)] mb-4 group-hover:text-rose-400 transition-colors">2. AI Disclaimer</h3>
+                  <p className="text-[var(--muted)] text-sm leading-relaxed">
+                    TurkGateway utilizes advanced LLMs and RAG pipelines to provide information about Turkish laws and municipal protocols. This does <strong className="text-[var(--text)]">NOT</strong> constitute professional legal advice, financial advice, or an official government determination.
+                  </p>
+                </div>
+                <div id="terms-responsibilities" className="scroll-mt-24 p-8 rounded-3xl bg-[var(--surface-1)] border border-[var(--border)] shadow-sm hover:border-rose-500/30 hover:bg-rose-500/[0.02] transition-all group">
+                  <h3 className="text-xl font-bold text-[var(--text)] mb-4 group-hover:text-rose-400 transition-colors">3. User Responsibilities</h3>
+                  <p className="text-[var(--muted)] text-sm leading-relaxed">
+                    Users must provide accurate, up-to-date information. You may not use the service for activities illegal under Turkish law, reverse-engineer our Agentic workflows, or automate interactions beyond our provided RPA features.
+                  </p>
+                </div>
+                <div id="terms-payments" className="scroll-mt-24 p-8 rounded-3xl bg-[var(--surface-1)] border border-[var(--border)] shadow-sm hover:border-rose-500/30 hover:bg-rose-500/[0.02] transition-all group">
+                  <h3 className="text-xl font-bold text-[var(--text)] mb-4 group-hover:text-rose-400 transition-colors">4. Subscriptions &amp; Payments</h3>
+                  <p className="text-[var(--muted)] text-sm leading-relaxed">
+                    Premium features are billed via <strong className="text-[var(--text)]">iyzico</strong> (PCI-DSS Level 1). Subscriptions auto-renew monthly unless cancelled before the renewal date. Fees are non-refundable except as required by Turkish Consumer Protection Law (No. 6502).
+                  </p>
+                </div>
+                <div id="terms-liability" className="scroll-mt-24 p-8 rounded-3xl bg-[var(--surface-1)] border border-[var(--border)] shadow-sm hover:border-rose-500/30 hover:bg-rose-500/[0.02] transition-all group">
+                  <h3 className="text-xl font-bold text-[var(--text)] mb-4 group-hover:text-rose-400 transition-colors">5. Limitation of Liability</h3>
+                  <p className="text-[var(--muted)] text-sm leading-relaxed">
+                    TurkGateway shall not be liable for any indirect, incidental, or consequential damages from administrative delays, visa rejections, permit denials, government portal downtime, or regulatory changes. Our total liability shall not exceed fees paid in the preceding 3 months.
+                  </p>
+                </div>
+                <div id="terms-ip" className="scroll-mt-24 p-8 rounded-3xl bg-[var(--surface-1)] border border-[var(--border)] shadow-sm hover:border-rose-500/30 hover:bg-rose-500/[0.02] transition-all group">
+                  <h3 className="text-xl font-bold text-[var(--text)] mb-4 group-hover:text-rose-400 transition-colors">6. Intellectual Property</h3>
+                  <p className="text-[var(--muted)] text-sm leading-relaxed">
+                    All platform content — including AI model logic, Smart Router, workflow schemas, UI design, and documentation — is the exclusive intellectual property of TurkGateway. You retain ownership of your personal data, uploaded documents, and exported roadmaps.
+                  </p>
+                </div>
+                <div id="terms-termination" className="scroll-mt-24 p-8 rounded-3xl bg-[var(--surface-1)] border border-[var(--border)] shadow-sm hover:border-rose-500/30 hover:bg-rose-500/[0.02] transition-all group">
+                  <h3 className="text-xl font-bold text-[var(--text)] mb-4 group-hover:text-rose-400 transition-colors">7. Termination</h3>
+                  <p className="text-[var(--muted)] text-sm leading-relaxed">
+                    You may terminate your account via <strong className="text-[var(--text)]">Settings → Account → Delete Account</strong>. TurkGateway reserves the right to suspend accounts that violate these Terms, engage in fraudulent behavior, or attempt to circumvent payment obligations.
+                  </p>
+                </div>
+                <div id="terms-governing" className="scroll-mt-24 p-8 rounded-3xl bg-[var(--surface-1)] border border-[var(--border)] shadow-sm hover:border-rose-500/30 hover:bg-rose-500/[0.02] transition-all group">
+                  <h3 className="text-xl font-bold text-[var(--text)] mb-4 group-hover:text-rose-400 transition-colors">8. Governing Law</h3>
+                  <p className="text-[var(--muted)] text-sm leading-relaxed">
+                    These Terms are governed by the laws of the <strong className="text-[var(--text)]">Republic of Turkey</strong>. Any disputes fall under the exclusive jurisdiction of the <strong className="text-[var(--text)]">Istanbul Courts</strong>. Before legal proceedings, please contact <strong className="text-[var(--text)]">support@turkgateway.ai</strong>.
                   </p>
                 </div>
               </div>

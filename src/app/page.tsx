@@ -66,7 +66,7 @@ const FlipCard = ({ step, i, isRTL, t }: { step: any; i: number; isRTL: boolean;
       initial={{ opacity: 0, y: 30 }}
       viewport={{ once: true }}
       transition={{ delay: i * 0.15, duration: 0.8, ease: "easeOut" }}
-      className="relative w-full h-[400px] cursor-pointer group [perspective:1200px]"
+      className="relative w-full h-[240px] md:h-[400px] cursor-pointer group [perspective:1200px]"
       onClick={() => setIsFlipped(!isFlipped)}
     >
       <motion.div
@@ -75,15 +75,15 @@ const FlipCard = ({ step, i, isRTL, t }: { step: any; i: number; isRTL: boolean;
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} // Smooth snappy curve
       >
         {/* Front */}
-        <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] flex flex-col justify-center items-center text-center rounded-[32px] bg-gradient-to-br from-white/10 to-white/0 backdrop-blur-md border border-white/20 p-10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:bg-white/10 hover:border-white/30 transition-all duration-500">
-          <h4 className="text-4xl md:text-5xl font-medium text-white drop-shadow-md tracking-tight leading-[1.1] mb-6">{step.title}</h4>
+        <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] flex flex-col justify-center items-center text-center rounded-[32px] bg-gradient-to-br from-white/10 to-white/0 backdrop-blur-md border border-white/20 p-6 md:p-10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:bg-white/10 hover:border-white/30 transition-all duration-500">
+          <h4 className="text-2xl md:text-5xl font-medium text-white drop-shadow-md tracking-tight leading-[1.1] mb-3 md:mb-6">{step.title}</h4>
           
 
         </div>
 
         {/* Back */}
-        <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] flex flex-col justify-center items-center text-center rounded-[32px] bg-gradient-to-br from-[#1a1a2e]/40 to-[#16213e]/40 backdrop-blur-2xl border border-white/20 p-10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all duration-500">
-          <p className="text-[20px] md:text-[22px] text-white/90 leading-relaxed font-light">
+        <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] flex flex-col justify-center items-center text-center rounded-[32px] bg-gradient-to-br from-[#1a1a2e]/40 to-[#16213e]/40 backdrop-blur-2xl border border-white/20 p-6 md:p-10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all duration-500">
+          <p className="text-[14px] md:text-[22px] text-white/90 leading-relaxed font-light">
             {step.desc}
           </p>
         </div>
@@ -270,7 +270,7 @@ export default function Home() {
 
         <div className="max-w-6xl mx-auto relative z-10 px-6 text-center">
           <div className="mb-24 space-y-6">
-            <h2 className="text-5xl md:text-7xl font-medium text-white drop-shadow-[0_6px_10px_rgba(0,0,0,0.9)] tracking-tight leading-tight max-w-4xl mx-auto">{t('process_subtitle')}</h2>
+            <h2 className="text-3xl md:text-7xl font-medium text-white drop-shadow-[0_6px_10px_rgba(0,0,0,0.9)] tracking-tight leading-tight max-w-4xl mx-auto">{t('process_subtitle')}</h2>
           </div>
 
           <motion.div
@@ -283,9 +283,9 @@ export default function Home() {
             <ArrowRight size={20} className="animate-pulse text-white" />
           </motion.div>
  
-          <div className="flex overflow-x-auto pb-12 md:grid md:grid-cols-3 md:gap-16 snap-x snap-mandatory no-scrollbar px-0 md:px-0">
+          <div className="flex overflow-x-auto pb-6 md:grid md:grid-cols-3 md:gap-16 snap-x snap-mandatory no-scrollbar gap-3 px-2 md:px-0">
             {stepsData.map((step, i) => (
-              <div key={i} className="min-w-full md:min-w-0 snap-center px-6 md:px-0">
+              <div key={i} className="min-w-[75vw] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
                 <FlipCard step={step} i={i} isRTL={isRTL} t={t} />
               </div>
             ))}

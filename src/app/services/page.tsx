@@ -120,15 +120,16 @@ export default function ServicesPage() {
   const router = useRouter();
   const { isAuthenticated, setIsLoginModalOpen } = useAuth();
   const [selectedAgent, setSelectedAgent] = useState<'permit' | 'student' | 'lawyer' | null>(null);
+  const [loadingAgent, setLoadingAgent] = useState<'permit' | 'student' | 'lawyer'>('permit');
   const [isInitializing, setIsInitializing] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
-    // Sync active agent for appropriate loading screen
+    // Sync active agent for appropriate loading screen without opening the modal
     const active = localStorage.getItem('permitops_active_agent');
     if (active === 'student' || active === 'lawyer' || active === 'permit') {
-      setSelectedAgent(active as 'permit' | 'student' | 'lawyer');
+      setLoadingAgent(active as 'permit' | 'student' | 'lawyer');
     }
 
     // Initial load animation
@@ -327,7 +328,7 @@ export default function ServicesPage() {
     <>
       <AnimatePresence mode="wait">
         {(!isLoaded || isNavigating) && (
-          <LoadingScreen agentType={selectedAgent || 'permit'} />
+          <LoadingScreen agentType={selectedAgent || loadingAgent} />
         )}
       </AnimatePresence>
 
@@ -362,19 +363,68 @@ export default function ServicesPage() {
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-4xl mx-auto mb-10 relative"
+          className="text-center max-w-4xl mx-auto mb-8 relative"
         >
-          <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-[var(--text)] font-[Outfit] mb-6 leading-none transition-colors duration-500">
+          <h1 className="text-3xl md:text-6xl font-black tracking-tighter text-[var(--text)] font-[Outfit] mb-4 leading-none transition-colors duration-500">
             {t('services_title')}
           </h1>
-          <p className="text-lg md:text-xl text-[var(--muted)] font-medium max-w-2xl mx-auto leading-relaxed transition-colors duration-500">
+          <p className="text-base md:text-xl text-[var(--muted)] font-medium max-w-2xl mx-auto leading-relaxed transition-colors duration-500">
             {t('services_subtitle')}
           </p>
         </motion.div>
 
-        {/* Agent Showroom — Wrapping Carousel */}
+        {/* Mobile: Horizontal snap-scroll cards */}
+        <div className="md:hidden flex gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-4 px-1">
+          {services.map((service, index) => (
+            <div
+              key={service.id}
+              className="snap-center flex-shrink-0 w-[72vw] rounded-[24px] overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-xl flex flex-col"
+            >
+              <div className={`h-[100px] w-full relative flex items-center justify-center overflow-hidden ${service.gradient}`}>
+                <motion.div
+                  animate={{ skewX: [-20, -20], x: ['-200%', '200%'] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full z-0"
+                />
+                <div className="relative z-10 p-3 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-xl shadow-xl">
+                  {service.icon}
+                </div>
+                {service.status !== 'Available' && (
+                  <div className="absolute top-3 right-3 z-20">
+                    <span className="px-2 py-0.5 rounded-full bg-black/40 text-[8px] font-black text-white uppercase tracking-widest">
+                      {t('services_status_soon')}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="p-4 flex flex-col flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-sm font-black font-[Outfit] tracking-tight">{service.title}</h3>
+                  {service.status === 'Available' && (
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                  )}
+                </div>
+                <p className="text-[11px] text-[var(--muted)] font-medium leading-[1.4] mb-3 line-clamp-2">{service.description}</p>
+                {service.status === 'Available' ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleStartProtocol(service.id); }}
+                    className="mt-auto py-2.5 px-4 rounded-[14px] bg-[var(--text)] text-[var(--bg)] font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 hover:bg-red-600 hover:text-white"
+                  >
+                    {t('services_launch_agent')}
+                  </button>
+                ) : (
+                  <button disabled className="mt-auto py-2.5 px-4 rounded-[14px] bg-[var(--text)]/[0.04] text-[var(--text)] opacity-40 font-black uppercase text-[10px] tracking-widest border border-[var(--border)] cursor-not-allowed">
+                    Coming Soon
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop: Auto-scrolling carousel */}
         <div
-          className="carousel-container relative max-w-6xl mx-auto overflow-hidden py-4"
+          className="hidden md:block carousel-container relative max-w-6xl mx-auto overflow-hidden py-4"
           style={{ height: '420px' }}
         >
           {/* Fade edges — themed */}
@@ -610,16 +660,16 @@ export default function ServicesPage() {
         <div className="max-w-[1340px] mx-auto px-6">
 
           {/* Describe What You Need Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-start mb-48">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-20 items-start mb-24 lg:mb-48">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-4xl md:text-6xl font-black text-[var(--text)] font-[Outfit] mb-6 leading-[1.1] tracking-tighter transition-colors duration-500">
+              <h2 className="text-2xl md:text-4xl lg:text-6xl font-black text-[var(--text)] font-[Outfit] mb-4 leading-[1.1] tracking-tighter transition-colors duration-500">
                 {t('services_cta_title')}
               </h2>
-              <p className="text-[var(--muted)] text-lg leading-relaxed mb-8 max-w-lg transition-colors duration-500">
+              <p className="text-[var(--muted)] text-sm md:text-lg leading-relaxed mb-4 lg:mb-8 max-w-lg transition-colors duration-500">
                 {t('services_cta_desc')}
               </p>
             </motion.div>
@@ -628,8 +678,8 @@ export default function ServicesPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              className="bg-[var(--surface-2)] rounded-[32px] p-8 md:p-12 shadow-2xl relative overflow-hidden group border border-[var(--border)] transition-colors duration-500"
-              style={{ minHeight: '620px' }}
+              className="bg-[var(--surface-2)] rounded-[24px] md:rounded-[32px] p-5 md:p-8 lg:p-12 shadow-2xl relative overflow-hidden group border border-[var(--border)] transition-colors duration-500"
+              style={{ minHeight: 'auto' }}
             >
               {/* Graph Paper Background */}
               <div className="absolute inset-0 opacity-[0.03] pointer-events-none dark:opacity-[0.05]"
@@ -656,10 +706,10 @@ export default function ServicesPage() {
                       <Cpu className="text-white" size={20} />
                     </motion.div>
                   </div>
-                  <h3 className="text-2xl font-bold tracking-tight">{t('services_list_title')}</h3>
+                  <h3 className="text-base md:text-2xl font-bold tracking-tight">{t('services_list_title')}</h3>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-2 md:gap-4">
                   {[
                     { icon: FileText, label: t('services_task_register') },
                     { icon: BarChart3, label: t('services_task_tax') },
@@ -681,14 +731,14 @@ export default function ServicesPage() {
                       <div
                         key={i}
                         onClick={() => handleSimulateTask(task.label)}
-                        className={`flex items-center gap-4 p-4 rounded-xl border bg-[var(--surface)] hover:shadow-lg transition-all cursor-pointer group/task ${activeTask === task.label ? `${activeColorClass} shadow-xl scale-[1.02]` : `border-[var(--border)] ${hoverColorClass} opacity-90 hover:opacity-100`
+                        className={`flex items-center gap-2 md:gap-4 p-2.5 md:p-4 rounded-xl border bg-[var(--surface)] hover:shadow-lg transition-all cursor-pointer group/task ${activeTask === task.label ? `${activeColorClass} shadow-xl scale-[1.02]` : `border-[var(--border)] ${hoverColorClass} opacity-90 hover:opacity-100`
                           } ${isTyping && activeTask !== task.label ? 'opacity-50 pointer-events-none' : ''}`}
                       >
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${activeTask === task.label ? `${iconBgClass} ${iconColorClass}` : `bg-[var(--surface-2)] text-[var(--muted)] group-hover/task:${iconColorClass}`
+                        <div className={`w-7 h-7 md:w-10 md:h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors ${activeTask === task.label ? `${iconBgClass} ${iconColorClass}` : `bg-[var(--surface-2)] text-[var(--muted)] group-hover/task:${iconColorClass}`
                           }`}>
-                          <task.icon size={20} />
+                          <task.icon size={14} />
                         </div>
-                        <span className="text-sm font-semibold text-[var(--text)]">{task.label}</span>
+                        <span className="text-[10px] md:text-sm font-semibold text-[var(--text)] leading-tight">{task.label}</span>
                       </div>
                     );
                   })}

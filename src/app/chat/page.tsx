@@ -29,7 +29,7 @@ export default function ChatPage() {
     const resetDate = new Date(lastTokenReset);
     resetDate.setHours(resetDate.getHours() + 12);
     return resetDate.toLocaleString(language === 'ar' ? 'ar-SA' : (language === 'tr' ? 'tr-TR' : 'en-US'), {
-        year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
+      year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
     });
   };
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -666,7 +666,7 @@ export default function ChatPage() {
       const newCount = guestMsgCount + 1;
       setGuestMsgCount(newCount);
       localStorage.setItem('permitops_guest_msg_count', newCount.toString());
-      
+
       if (newCount >= 10) {
         setIsLoginModalOpen(true);
         setInput(q); // Restore input so they don't lose it
@@ -718,7 +718,7 @@ export default function ChatPage() {
         const errorData = await res.json();
         const detail = errorData.detail || "";
         const [title, refreshTime] = detail.includes('|') ? detail.split('|') : ["Model quota reached", "shortly"];
-        
+
         setQuotaRefreshTime(refreshTime);
         setShowQuotaWarning(true);
         setBusy(false);
@@ -726,10 +726,10 @@ export default function ChatPage() {
       }
 
       if (res?.status === 429) {
-        setMsgs(p => [...p, { 
-          id: msgIdRef.current++, 
-          role: 'assistant', 
-          content: "⚠️ **Too many requests.**\n\nYou're sending messages too fast. Please wait a moment before trying again." 
+        setMsgs(p => [...p, {
+          id: msgIdRef.current++,
+          role: 'assistant',
+          content: "⚠️ **Too many requests.**\n\nYou're sending messages too fast. Please wait a moment before trying again."
         }]);
         setBusy(false);
         return;
@@ -753,7 +753,7 @@ export default function ChatPage() {
       }
 
       let rawContent: string = data.content ?? data.answer ?? data.response ?? 'Done.';
-      
+
       // Clean up any leaked source prefixes from the text (e.g. [Backup Core], [Direct Reply])
       rawContent = rawContent.replace(/^🛡️?\s*\[.*?\]\s*/, '').trim();
 
@@ -1213,7 +1213,7 @@ export default function ChatPage() {
                 </div>
 
                 <div className="flex flex-col items-center gap-2 mb-4">
-                  
+
                   {isAuthenticated && user?.subscriptionStatus === 'free' && (
                     <motion.div
                       initial={{ y: 20, opacity: 0 }}
@@ -1235,166 +1235,172 @@ export default function ChatPage() {
                     </motion.div>
                   )}
 
-                <div className="flex flex-col items-center text-center">
-                  <motion.span
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.4, duration: 0.5 }}
-                    className="text-3xl md:text-5xl font-bold tracking-tighter text-[var(--text)] mb-2"
-                  >
-                    {t('chat_greeting').replace('{name}', user?.fullName || (user?.email ? user.email.split('@')[0] : 'there'))}
-                  </motion.span>
-                  <motion.h1
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5, duration: 0.5 }}
-                    className="text-xl md:text-2xl font-medium tracking-tight text-[var(--muted)]"
-                  >
-                    {t('chat_begin') || "How can I help you today?"}
-                  </motion.h1>
+                  <div className="flex flex-col items-center text-center">
+                    <motion.span
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.4, duration: 0.5 }}
+                      className="text-3xl md:text-5xl font-bold tracking-tighter text-[var(--text)] mb-2"
+                    >
+                      {t('chat_greeting').replace('{name}', user?.fullName || (user?.email ? user.email.split('@')[0] : 'there'))}
+                    </motion.span>
+                    <motion.h1
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5, duration: 0.5 }}
+                      className="text-xl md:text-2xl font-medium tracking-tight text-[var(--muted)]"
+                    >
+                      {t('chat_begin') || "How can I help you today?"}
+                    </motion.h1>
+                  </div>
                 </div>
-              </div>
 
-              {/* Suggestion Chips — Premium Grid */}
-              <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.3 }}
-                className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-8 mb-12 w-full max-w-[650px] mx-auto"
-              >
-                {(assistantType === 'student' ? [
-                  { emoji: "🪪", label: t('chat_sug_renew'), mesh: 'mesh-emerald', border: 'hover:border-emerald-500/30' },
-                  { emoji: "🏛️", label: t('chat_sug_uni'), mesh: 'mesh-emerald', border: 'hover:border-emerald-500/30' },
-                  { emoji: "🗺️", label: t('chat_sug_roadmap'), mesh: 'mesh-emerald', border: 'hover:border-emerald-500/30' },
-                  { emoji: "📅", label: t('chat_sug_deadlines'), mesh: 'mesh-emerald', border: 'hover:border-emerald-500/30' }
-                ] : assistantType === 'lawyer' ? [
-                  { emoji: "📑", label: t('chat_sug_contract'), mesh: 'mesh-amber', border: 'hover:border-amber-500/30' },
-                  { emoji: "🏗️", label: t('chat_sug_formation'), mesh: 'mesh-amber', border: 'hover:border-amber-500/30' },
-                  { emoji: "🤝", label: t('chat_sug_employ'), mesh: 'mesh-amber', border: 'hover:border-amber-500/30' },
-                  { emoji: "🏠", label: t('chat_sug_resid'), mesh: 'mesh-amber', border: 'hover:border-amber-500/30' }
-                ] : [
-                  { emoji: "🏢", label: t('chat_suggestion_business'), mesh: 'mesh-blue', border: 'hover:border-blue-500/30' },
-                  { emoji: "📜", label: t('chat_suggestion_permit'), mesh: 'mesh-blue', border: 'hover:border-blue-500/30' },
-                  { emoji: "📍", label: t('chat_suggestion_location'), mesh: 'mesh-blue', border: 'hover:border-blue-500/30' },
-                  { emoji: "💰", label: t('chat_suggestion_cost'), mesh: 'mesh-blue', border: 'hover:border-blue-500/30' }
-                ]).map((chip, i) => (
-                  <button
-                    key={i}
-                    onClick={() => send(chip.label)}
-                    className={`group flex items-center justify-center gap-3 p-4 md:px-6 md:py-4 rounded-[20px] border border-[var(--border)] glass-mesh ${chip.mesh} transition-all text-center w-full shadow-sm hover:shadow-md active:scale-[0.98] ${chip.border}`}
-                  >
-                    <span className="text-xl md:text-2xl filter drop-shadow-sm">{chip.emoji}</span>
-                    <span className="text-[14px] md:text-[15px] font-semibold text-[var(--text)] opacity-90 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                      {chip.label}
-                    </span>
-                  </button>
-                ))}
-              </motion.div>
+                {/* Suggestion Chips — Premium Grid */}
+                <motion.div
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.3 }}
+                  className="grid grid-cols-2 lg:flex lg:flex-row lg:flex-wrap lg:justify-center gap-3 md:gap-2.5 mt-8 md:mt-0 md:mb-8"
+                >
+                  {(assistantType === 'student' ? [
+                    { emoji: "🪪", label: t('chat_sug_renew'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                    { emoji: "🏛️", label: t('chat_sug_uni'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                    { emoji: "🗺️", label: t('chat_sug_roadmap'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                    { emoji: "📅", label: t('chat_sug_deadlines'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                    { emoji: "🛂", label: t('chat_sug_visas'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                    { emoji: "🆘", label: t('chat_sug_shelp'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' }
+                  ] : assistantType === 'lawyer' ? [
+                    { emoji: "📑", label: t('chat_sug_contract'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                    { emoji: "🏗️", label: t('chat_sug_formation'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                    { emoji: "🤝", label: t('chat_sug_employ'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                    { emoji: "📊", label: t('chat_sug_times'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                    { emoji: "🏠", label: t('chat_sug_resid'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                    { emoji: "⚖️", label: t('chat_sug_dispute'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' }
+                  ] : [
+                    { emoji: "🏢", label: t('chat_suggestion_business'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                    { emoji: "📜", label: t('chat_suggestion_permit'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                    { emoji: "📍", label: t('chat_suggestion_location'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                    { emoji: "⏳", label: t('chat_suggestion_duration'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                    { emoji: "💰", label: t('chat_suggestion_cost'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                    { emoji: "❓", label: t('chat_suggestion_help'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' }
+                  ]).map((chip, i) => (
+                    <div
+                      key={i}
+                      onClick={() => send(chip.label)}
+                      className={`lg:glass-mesh lg:${chip.mesh} text-[var(--text)] text-[13px] md:text-[16px] py-4 px-4 md:px-6 rounded-[24px] md:rounded-[28px] flex items-center gap-3 md:gap-4 font-bold select-none md:backdrop-blur-xl transition-all hover:scale-[1.02] md:hover:scale-105 active:scale-95 cursor-pointer border border-[var(--border)] bg-[var(--surface-2)] lg:bg-[var(--surface)] lg:opacity-95 lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] group w-full lg:w-fit h-[68px] md:h-auto ${chip.border}`}
+                    >
+                      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-center shrink-0 group-hover:bg-[var(--surface)] transition-colors ${chip.color.replace('text', 'bg')}/10`}>
+                        <span className="text-xl md:text-2xl filter drop-shadow-sm">{chip.emoji}</span>
+                      </div>
+                      <span className="leading-tight">{chip.label}</span>
+                    </div>
+                  ))}
+                </motion.div>
 
-              {/* Spacer on mobile to push input down */}
-              <div className="flex-1 md:hidden" />
+                {/* Spacer on mobile to push input down */}
+                <div className="flex-1 md:hidden" />
 
-              {/* Chat Input Pill (empty state) */}
-              <div className="w-full max-w-3xl mx-auto mb-10 mt-auto px-4">
-                <div className="relative flex items-center gap-2 rounded-full p-1.5 border border-[var(--border)] bg-[var(--surface-1)] shadow-sm focus-within:shadow-md transition-all">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={(e) => {
-                      if (e.target.files?.[0]) setFile(e.target.files[0]);
-                      e.target.value = '';
-                    }}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="hidden sm:flex p-2 text-[var(--muted)] hover:text-[var(--text)] transition-colors shrink-0"
-                  >
-                    <Plus size={22} />
-                  </button>
+                {/* Chat Input Pill (empty state) */}
+                <div className="w-full max-w-3xl mx-auto mb-10 mt-auto px-4">
+                  <div className="relative flex items-center gap-2 rounded-full p-1.5 border border-[var(--border)] bg-[var(--surface-1)] shadow-sm focus-within:shadow-md transition-all">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) setFile(e.target.files[0]);
+                        e.target.value = '';
+                      }}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="hidden sm:flex p-2 text-[var(--muted)] hover:text-[var(--text)] transition-colors shrink-0"
+                    >
+                      <Plus size={22} />
+                    </button>
 
-                  <textarea
-                    ref={inputRef}
-                    value={input}
-                    onChange={e => {
-                      setInput(e.target.value);
-                      e.target.style.height = 'auto';
-                      e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); if (inputRef.current) inputRef.current.style.height = 'auto'; }
-                    }}
-                    placeholder={t(`chat_placeholder_${assistantType}`) || "Message TurkGateWay..."}
-                    className="flex-1 bg-transparent py-3 px-3 text-[16px] text-[var(--text)] focus:outline-none resize-none overflow-y-auto min-h-[44px] max-h-[120px] slim-scroll placeholder:text-gray-400"
-                    rows={1}
-                  />
+                    <textarea
+                      ref={inputRef}
+                      value={input}
+                      onChange={e => {
+                        setInput(e.target.value);
+                        e.target.style.height = 'auto';
+                        e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); if (inputRef.current) inputRef.current.style.height = 'auto'; }
+                      }}
+                      placeholder={t(`chat_placeholder_${assistantType}`) || "Message TurkGateWay..."}
+                      className="flex-1 bg-transparent py-3 px-3 text-[16px] text-[var(--text)] focus:outline-none resize-none overflow-y-auto min-h-[44px] max-h-[120px] slim-scroll placeholder:text-gray-400"
+                      rows={1}
+                    />
 
-                  <div className="flex items-center gap-1.5 pr-1">
-                    {input.trim() ? (
-                      <button
-                        onClick={() => send()}
-                        className="h-9 w-9 flex items-center justify-center rounded-full bg-[var(--text)] text-[var(--bg)] hover:opacity-90 transition-all shrink-0"
-                      >
-                        <Send size={18} />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={toggleVoice}
-                        className={`relative flex items-center gap-2 px-4 py-2 rounded-full transition-all shrink-0 ${isListening
-                          ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]'
-                          : 'bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)]'
-                          }`}
-                      >
-                        {isListening && (
-                          <motion.div
-                            initial={{ scale: 0.8, opacity: 0.5 }}
-                            animate={{ scale: 1.5, opacity: 0 }}
-                            transition={{ repeat: Infinity, duration: 1.5 }}
-                            className="absolute inset-0 bg-red-500 rounded-full z-0"
-                          />
-                        )}
-                        <div className="relative z-10 flex items-center gap-2">
-                          {isListening ? (
-                            <div className="flex items-center gap-1">
-                              {[1, 2, 3].map(i => (
-                                <motion.div
-                                  key={i}
-                                  animate={{ height: [8, 16, 8] }}
-                                  transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.1 }}
-                                  className="w-1 bg-white rounded-full"
-                                />
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-0.5">
-                              <div className="w-0.5 h-3 bg-current rounded-full animate-pulse" />
-                              <div className="w-0.5 h-2 bg-current rounded-full" />
-                              <div className="w-0.5 h-3.5 bg-current rounded-full animate-pulse" />
-                            </div>
+                    <div className="flex items-center gap-1.5 pr-1">
+                      {input.trim() ? (
+                        <button
+                          onClick={() => send()}
+                          className="h-9 w-9 flex items-center justify-center rounded-full bg-[var(--text)] text-[var(--bg)] hover:opacity-90 transition-all shrink-0"
+                        >
+                          <Send size={18} />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={toggleVoice}
+                          className={`relative flex items-center gap-2 px-4 py-2 rounded-full transition-all shrink-0 ${isListening
+                            ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]'
+                            : 'bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)]'
+                            }`}
+                        >
+                          {isListening && (
+                            <motion.div
+                              initial={{ scale: 0.8, opacity: 0.5 }}
+                              animate={{ scale: 1.5, opacity: 0 }}
+                              transition={{ repeat: Infinity, duration: 1.5 }}
+                              className="absolute inset-0 bg-red-500 rounded-full z-0"
+                            />
                           )}
-                          <Mic size={18} className={isListening ? 'animate-pulse' : ''} />
-                          <span className="hidden sm:inline text-[13px] font-bold tracking-tight">
-                            {isListening ? (t('chat_listening') || "Listening...") : (t('chat_voice') || "Voice")}
-                          </span>
+                          <div className="relative z-10 flex items-center gap-2">
+                            {isListening ? (
+                              <div className="flex items-center gap-1">
+                                {[1, 2, 3].map(i => (
+                                  <motion.div
+                                    key={i}
+                                    animate={{ height: [8, 16, 8] }}
+                                    transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.1 }}
+                                    className="w-1 bg-white rounded-full"
+                                  />
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-0.5">
+                                <div className="w-0.5 h-3 bg-current rounded-full animate-pulse" />
+                                <div className="w-0.5 h-2 bg-current rounded-full" />
+                                <div className="w-0.5 h-3.5 bg-current rounded-full animate-pulse" />
+                              </div>
+                            )}
+                            <Mic size={18} className={isListening ? 'animate-pulse' : ''} />
+                            <span className="hidden sm:inline text-[13px] font-bold tracking-tight">
+                              {isListening ? (t('chat_listening') || "Listening...") : (t('chat_voice') || "Voice")}
+                            </span>
+                          </div>
+                        </button>
+                      )}
+                    </div>
+
+                    {file && (
+                      <div className="absolute -top-12 left-4">
+                        <div className="flex items-center gap-2 bg-[var(--surface-2)] border border-[var(--border)] rounded-full px-3 py-1.5 text-[12px] text-[var(--text)] shadow-sm">
+                          <FileText size={12} className="text-indigo-400" />
+                          <span className="truncate max-w-[120px]">{file.name}</span>
+                          <button onClick={() => setFile(null)} className="ml-1 text-[var(--muted)] hover:text-red-400 transition-colors">
+                            <Plus size={12} className="rotate-45" />
+                          </button>
                         </div>
-                      </button>
+                      </div>
                     )}
                   </div>
-
-                  {file && (
-                    <div className="absolute -top-12 left-4">
-                      <div className="flex items-center gap-2 bg-[var(--surface-2)] border border-[var(--border)] rounded-full px-3 py-1.5 text-[12px] text-[var(--text)] shadow-sm">
-                        <FileText size={12} className="text-indigo-400" />
-                        <span className="truncate max-w-[120px]">{file.name}</span>
-                        <button onClick={() => setFile(null)} className="ml-1 text-[var(--muted)] hover:text-red-400 transition-colors">
-                          <Plus size={12} className="rotate-45" />
-                      </button>
-                    </div>
-                  </div>
-                )}
                 </div>
-              </div>
-            </motion.div>
-          </div>
-        ) : (
+              </motion.div>
+            </div>
+          ) : (
             <div className={`flex-1 overflow-y-auto w-full max-w-4xl mx-auto px-4 md:px-8 py-10 space-y-12 pb-44 slim-scroll bg-[var(--bg)]/40 rounded-t-[40px]`} dir={isRTL ? 'rtl' : 'ltr'}>
               <AnimatePresence initial={false}>
                 {msgs.map(m => (
@@ -1481,7 +1487,7 @@ export default function ChatPage() {
                                       >
                                         {textToDisplay}
                                       </ReactMarkdown>
-                                      
+
                                       {/* ChatGPT Typing Cursor */}
                                       {isLastAssistantMsg && charsToShow < part.length && (
                                         <motion.span
@@ -1583,14 +1589,14 @@ export default function ChatPage() {
                       <p className="text-[13px] text-gray-600 leading-relaxed mb-4">
                         {t('quota_reached_desc')}
                       </p>
-                      
+
                       <div className="flex items-center gap-2 mb-6">
                         <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
                         <span className="text-[12px] font-medium text-indigo-600">
                           {t('quota_refresh_msg')} {getRefreshTimeLabel()}
                         </span>
                       </div>
-                      
+
                       <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
                         <button
                           onClick={() => setShowQuotaWarning(false)}
@@ -1751,10 +1757,10 @@ export default function ChatPage() {
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.8 }}
                       className={`flex items-center gap-2.5 px-4 py-2 rounded-full border backdrop-blur-xl shadow-lg transition-all ${detectedService === 'student'
-                          ? 'border-emerald-500/20 bg-emerald-500/10 shadow-emerald-500/10'
-                          : detectedService === 'lawyer'
-                            ? 'border-amber-500/20 bg-amber-500/10 shadow-amber-500/10'
-                            : 'border-blue-500/20 bg-blue-500/10 shadow-blue-500/10'
+                        ? 'border-emerald-500/20 bg-emerald-500/10 shadow-emerald-500/10'
+                        : detectedService === 'lawyer'
+                          ? 'border-amber-500/20 bg-amber-500/10 shadow-amber-500/10'
+                          : 'border-blue-500/20 bg-blue-500/10 shadow-blue-500/10'
                         }`}
                     >
                       {/* Cpu icon with animated glow — identical to navbar chip */}
@@ -1762,18 +1768,18 @@ export default function ChatPage() {
                         <Cpu
                           size={15}
                           className={`animate-[pulse_1.5s_easeInOut_infinite] relative z-10 ${detectedService === 'student' ? 'text-emerald-400'
-                              : detectedService === 'lawyer' ? 'text-amber-400'
-                                : 'text-blue-400'
+                            : detectedService === 'lawyer' ? 'text-amber-400'
+                              : 'text-blue-400'
                             }`}
                         />
                         <div className={`absolute inset-0 blur-md rounded-full animate-pulse ${detectedService === 'student' ? 'bg-emerald-500/30'
-                            : detectedService === 'lawyer' ? 'bg-amber-500/30'
-                              : 'bg-blue-500/30'
+                          : detectedService === 'lawyer' ? 'bg-amber-500/30'
+                            : 'bg-blue-500/30'
                           }`} />
                       </div>
                       <span className={`text-[12px] font-black uppercase tracking-[0.15em] ${detectedService === 'student' ? 'text-emerald-400'
-                          : detectedService === 'lawyer' ? 'text-amber-400'
-                            : 'text-blue-400'
+                        : detectedService === 'lawyer' ? 'text-amber-400'
+                          : 'text-blue-400'
                         }`}>
                         {detectedService === 'permit' ? 'Permit Agent' : detectedService === 'student' ? 'Student Agent' : 'Legal Agent'}
                       </span>
