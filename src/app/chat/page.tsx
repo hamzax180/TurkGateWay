@@ -21,7 +21,7 @@ interface Msg { id: number; role: Role; content: string; }
 export default function ChatPage() {
   const router = useRouter();
   const { t, isRTL, language, translateHistory } = useLanguage();
-  const { token, isAuthenticated, user, setTokenBalance, lastTokenReset } = useAuth();
+  const { token, isAuthenticated, user, setTokenBalance, lastTokenReset, setIsLoginModalOpen } = useAuth();
 
   const getRefreshTimeLabel = () => {
     if (quotaRefreshTime) return quotaRefreshTime;
@@ -667,8 +667,8 @@ export default function ChatPage() {
       setGuestMsgCount(newCount);
       localStorage.setItem('permitops_guest_msg_count', newCount.toString());
       
-      if (newCount >= 5) {
-        setShowGuestLimitModal(true);
+      if (newCount >= 10) {
+        setIsLoginModalOpen(true);
         setInput(q); // Restore input so they don't lose it
         setBusy(false);
         return;
@@ -1993,64 +1993,6 @@ export default function ChatPage() {
           )}
         </AnimatePresence>
 
-        {/* Guest Limit Modal — ChatGPT Style */}
-        <AnimatePresence>
-          {showGuestLimitModal && (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowGuestLimitModal(false)}
-                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative w-full max-w-[400px] bg-[var(--surface)] rounded-[32px] p-8 shadow-2xl flex flex-col items-center text-center border border-[var(--border)]"
-              >
-                {/* Logo or Icon */}
-                <div className={`w-14 h-14 rounded-2xl mb-8 flex items-center justify-center border border-[var(--border)] shadow-sm bg-[var(--surface-2)]`}>
-                  <Cpu size={28} className={
-                    assistantType === 'student' ? 'text-emerald-500' :
-                    assistantType === 'lawyer' ? 'text-amber-500' :
-                    'text-blue-500'
-                  } />
-                </div>
-
-                <h2 className="text-[24px] font-bold text-[var(--text)] leading-tight mb-3 tracking-tight">
-                  {t('guest_modal_title') || "Thanks for trying TurkGateWay"}
-                </h2>
-                <p className="text-[15px] text-[var(--muted)] leading-relaxed mb-8 px-2">
-                  {t('guest_modal_desc') || "Log in or sign up to get smarter responses, unlock roadmaps, and more."}
-                </p>
-
-                <div className="w-full space-y-3">
-                  <button
-                    onClick={() => router.push('/login')}
-                    className="w-full py-3.5 px-6 rounded-full bg-[var(--text)] text-[var(--bg)] font-bold text-[15px] hover:opacity-90 transition-all active:scale-[0.98]"
-                  >
-                    {t('login') || "Log in"}
-                  </button>
-                  <button
-                    onClick={() => router.push('/register')}
-                    className="w-full py-3.5 px-6 rounded-full bg-transparent text-[var(--text)] font-bold text-[15px] border border-[var(--border)] hover:bg-[var(--surface-2)] transition-all active:scale-[0.98]"
-                  >
-                    {t('signup_free') || "Sign up for free"}
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => setShowGuestLimitModal(false)}
-                  className="mt-6 text-[14px] text-[var(--muted)] font-medium hover:text-[var(--text)] transition-colors underline underline-offset-4 decoration-[var(--border)]"
-                >
-                  {t('stay_logged_out') || "Stay logged out"}
-                </button>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
 
         <style dangerouslySetInnerHTML={{
           __html: `

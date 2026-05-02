@@ -103,7 +103,7 @@ export default function LoginModal() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     onClick={() => setIsLoginModalOpen(false)}
-                    className="absolute inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-[12px]"
+                    className="absolute inset-0 bg-black/40 dark:bg-black/80 backdrop-blur-[2px]"
                 />
 
                 {/* Modal Container */}
@@ -111,69 +111,71 @@ export default function LoginModal() {
                     initial={{ opacity: 0, scale: 0.98, y: 10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.98, y: 10 }}
-                    className="w-full max-w-[480px] bg-white dark:bg-[#171717] rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100 dark:border-white/10 relative overflow-hidden z-10"
+                    className="w-full max-w-[320px] bg-[var(--surface)] rounded-[32px] shadow-[0_20px_60px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.4)] border border-[var(--border)] relative overflow-hidden z-10"
                 >
-                    <div className="px-10 py-12 flex flex-col items-center">
+                    <div className="px-6 py-5 flex flex-col items-center">
                         {/* Close Button */}
                         <button 
                             onClick={() => setIsLoginModalOpen(false)}
-                            className="absolute top-6 right-6 p-2 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+                            className="absolute top-4 right-4 p-1 rounded-full text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
                         >
-                            <X size={20} />
+                            <X size={16} />
                         </button>
 
-                        <h1 className="text-[32px] font-semibold text-gray-900 dark:text-white tracking-tight mb-4 text-center">
+                        <h1 className="text-[20px] font-semibold text-[var(--text)] tracking-tight mb-2 text-center">
                             {step === 1 ? 'Log in or sign up' : 'Enter password'}
                         </h1>
-                        <p className="text-[15px] text-gray-600 dark:text-gray-400 text-center mb-10 px-4 leading-relaxed">
+                        <p className="text-[13px] text-[var(--muted)] text-center mb-5 px-2 leading-relaxed">
                             {step === 1 
-                                ? "You'll get smarter responses and can upload files, images, and more."
+                                ? "Log in or sign up to get smarter responses and more."
                                 : `Logging in as ${email}`}
                         </p>
 
-                        <div className="w-full space-y-3">
+                        <div className="w-full space-y-2.5">
                             {step === 1 && (
                                 <>
                                     <button
                                         onClick={() => googleLogin()}
-                                        className="w-full flex items-center justify-center gap-3 py-3 px-6 border border-gray-300 dark:border-white/20 rounded-full hover:bg-gray-50 dark:hover:bg-white/5 transition-all"
+                                        className="w-full flex items-center justify-center gap-2.5 py-2 px-4 border border-[var(--border)] rounded-full hover:bg-[var(--surface-2)] transition-all"
                                     >
-                                        <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
-                                        <span className="text-[15px] font-medium text-gray-900 dark:text-white">Continue with Google</span>
+                                        <img src="https://www.google.com/favicon.ico" alt="Google" className="w-3.5 h-3.5" />
+                                        <span className="text-[14px] font-medium text-[var(--text)]">Continue with Google</span>
                                     </button>
  
                                     <button
-                                        className="w-full flex items-center justify-center gap-3 py-3 px-6 border border-gray-300 dark:border-white/20 rounded-full hover:bg-gray-50 dark:hover:bg-white/5 transition-all"
+                                        className="w-full flex items-center justify-center gap-2.5 py-2 px-4 border border-[var(--border)] rounded-full hover:bg-[var(--surface-2)] transition-all"
                                     >
-                                        <Apple size={18} className="text-gray-900 dark:text-white" />
-                                        <span className="text-[15px] font-medium text-gray-900 dark:text-white">Continue with Apple</span>
+                                        <Apple size={16} className="text-[var(--text)]" />
+                                        <span className="text-[14px] font-medium text-[var(--text)]">Continue with Apple</span>
                                     </button>
  
                                     <button
-                                        className="w-full flex items-center justify-center gap-3 py-3 px-6 border border-gray-300 dark:border-white/20 rounded-full hover:bg-gray-50 dark:hover:bg-white/5 transition-all"
+                                        className="w-full flex items-center justify-center gap-2.5 py-2 px-4 border border-[var(--border)] rounded-full hover:bg-[var(--surface-2)] transition-all"
                                     >
-                                        <Phone size={18} className="text-gray-900 dark:text-white" />
-                                        <span className="text-[15px] font-medium text-gray-900 dark:text-white">Continue with phone</span>
+                                        <Phone size={16} className="text-[var(--text)]" />
+                                        <span className="text-[14px] font-medium text-[var(--text)]">Continue with phone</span>
                                     </button>
  
-                                    <div className="flex items-center gap-4 py-4">
-                                        <div className="flex-1 h-px bg-gray-200 dark:bg-white/10" />
-                                        <span className="relative px-3 bg-white dark:bg-[#171717] text-[10px] font-black text-gray-400 uppercase tracking-widest">OR</span>
-                                        <div className="flex-1 h-px bg-gray-200 dark:bg-white/10" />
+                                    <div className="flex items-center gap-3 py-3">
+                                        <div className="flex-1 h-[1px] bg-[var(--border)]" />
+                                        <span className="text-[10px] font-medium text-[var(--muted)] uppercase tracking-[0.2em]">or</span>
+                                        <div className="flex-1 h-[1px] bg-[var(--border)]" />
                                     </div>
                                 </>
                             )}
  
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 {step === 1 ? (
-                                    <input
-                                        type="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="Email address"
-                                        className="w-full px-6 py-4 rounded-xl border border-gray-300 dark:border-white/20 focus:border-black dark:focus:border-white outline-none text-[16px] text-gray-900 dark:text-white transition-all bg-transparent"
-                                        required
-                                    />
+                                    <div className="relative group">
+                                        <input
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            placeholder="Email address"
+                                            className="w-full px-6 py-4 rounded-xl border border-[var(--border)] focus:border-[var(--accent)] outline-none text-[16px] text-[var(--text)] transition-all bg-transparent"
+                                            required
+                                        />
+                                    </div>
                                 ) : step === 2 ? (
                                     <input
                                         type="password"
@@ -225,9 +227,9 @@ export default function LoginModal() {
                         </div>
                         
                         {/* Legal Footer Section from Screenshot */}
-                        <div className="mt-12 text-center">
+                        <div className="mt-6 text-center">
                              <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
-                                By joining TurkGateway, you agree to our <Link href="/terms" className="underline hover:text-black dark:hover:text-white">Terms</Link> and have read our <Link href="/privacy" className="underline hover:text-black dark:hover:text-white">Privacy Policy</Link>.
+                                By joining TurkGateway, you agree to our <Link href="/terms" onClick={() => setIsLoginModalOpen(false)} className="underline hover:text-[var(--text)]">Terms</Link> and have read our <Link href="/privacy" onClick={() => setIsLoginModalOpen(false)} className="underline hover:text-[var(--text)]">Privacy Policy</Link>.
                              </p>
                         </div>
                     </div>
