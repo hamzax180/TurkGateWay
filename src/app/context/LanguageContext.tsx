@@ -376,6 +376,11 @@ const translations: Record<Language, Record<string, string>> = {
     services_prompt_enroll: "I need help registering at Koç University and applying for a student visa.",
     services_prompt_renewal: "My e-ikamet (residence permit) expires next month, how do I renew it?",
     services_prompt_legal: "I want to review an international trade contract under Turkish commercial law.",
+    guest_modal_title: "Thanks for trying TurkGateWay",
+    guest_modal_desc: "Log in or sign up to get smarter responses, unlock roadmaps, and more.",
+    login: "Log in",
+    signup_free: "Sign up for free",
+    stay_logged_out: "Stay logged out",
   },
   tr: {
     navbar_home: 'Ana Sayfa',
@@ -740,6 +745,11 @@ const translations: Record<Language, Record<string, string>> = {
     services_prompt_enroll: 'Koç Üniversitesi\'ne kaydolmak ve öğrenci vizesi başvurusu yapmak için yardıma ihtiyacım var.',
     services_prompt_renewal: 'e-ikametim (ikamet iznim) gelecek ay sona eriyor, nasıl yenilerim?',
     services_prompt_legal: 'Türk ticaret hukuku kapsamında uluslararası bir ticaret sözleşmesini incelemek istiyorum.',
+    guest_modal_title: "TurkGateWay'i denediğiniz için teşekkürler",
+    guest_modal_desc: "Daha akıllı yanıtlar almak, yol haritalarının kilidini açmak ve daha fazlası için giriş yapın veya kaydolun.",
+    login: "Giriş yap",
+    signup_free: "Ücretsiz üye ol",
+    stay_logged_out: "Oturum açmadan devam et",
   },
   ar: {
     navbar_home: 'الرئيسية',
@@ -1072,6 +1082,11 @@ const translations: Record<Language, Record<string, string>> = {
     services_prompt_enroll: 'أحتاج إلى مساعدة في التسجيل في جامعة كوتش والتقدم بطلب للحصول على تأشيرة طالب.',
     services_prompt_renewal: 'إقامتي الإلكترونية تنتهي الشهر المقبل، كيف يمكنني تجديدها؟',
     services_prompt_legal: 'أريد مراجعة عقد تجاري دولي بموجب القانون التجاري التركي.',
+    guest_modal_title: "شكراً لتجربتك TurkGateWay",
+    guest_modal_desc: "سجل الدخول أو أنشئ حساباً للحصول على إجابات أكثر ذكاءً، وفتح خرائط الطريق، والمزيد.",
+    login: "تسجيل الدخول",
+    signup_free: "سجل مجاناً",
+    stay_logged_out: "البقاء دون تسجيل",
   },
 };
 

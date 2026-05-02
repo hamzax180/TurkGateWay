@@ -58,10 +58,10 @@ export default function PricingPage() {
     }
   };
 
-  const premiumMonthly = 299;
-  const premiumYearly = 3157;
-  const maxMonthly = 899;
-  const maxYearly = 8990;
+  const premiumMonthly = 300;
+  const premiumYearly = 1000;
+  const maxMonthly = 400;
+  const maxYearly = 1500;
 
   const subtotal = checkoutPlan === 'premium' ? (billingCycle === 'yearly' ? premiumYearly : premiumMonthly) : (billingCycle === 'yearly' ? maxYearly : maxMonthly);
   const tax = Math.round(subtotal * 0.20); // 20% VAT
@@ -99,7 +99,7 @@ export default function PricingPage() {
                 <span className="font-semibold text-[var(--text)]">Monthly</span>
               </div>
               <div className="pl-7 text-sm text-[var(--muted)]">
-                USD {checkoutPlan === 'premium' ? premiumMonthly : maxMonthly}.00/month + tax
+                TL {checkoutPlan === 'premium' ? premiumMonthly : maxMonthly}.00/month + tax
               </div>
             </button>
 
@@ -115,7 +115,7 @@ export default function PricingPage() {
                 <span className="font-semibold text-[var(--text)]">Yearly</span>
               </div>
               <div className="pl-7 text-sm text-[var(--muted)]">
-                USD {checkoutPlan === 'premium' ? premiumYearly : maxYearly}.00/year + tax
+                TL {checkoutPlan === 'premium' ? premiumYearly : maxYearly}.00/year + tax
               </div>
             </button>
           </div>
@@ -126,27 +126,27 @@ export default function PricingPage() {
             <div className="space-y-4 text-sm">
               <div className="flex justify-between text-[var(--muted)]">
                 <span><span className="capitalize">{checkoutPlan}</span> plan<br/><span className="text-[var(--text)]/50">{billingCycle === 'yearly' ? 'Annually' : 'Monthly'}</span></span>
-                <span>USD {subtotal}</span>
+                <span>TL {subtotal}</span>
               </div>
               <div className="h-px w-full bg-[var(--border)] my-2" />
               <div className="flex justify-between text-[var(--muted)]">
                 <span>Subtotal</span>
-                <span>USD {subtotal}</span>
+                <span>TL {subtotal}</span>
               </div>
               <div className="flex justify-between text-[var(--muted)]">
                 <span>Tax (VAT 20%)</span>
-                <span>USD {tax}</span>
+                <span>TL {tax}</span>
               </div>
               <div className="h-px w-full bg-[var(--border)] my-2" />
               <div className="flex justify-between font-semibold text-[var(--text)]">
                 <span>Total due today</span>
-                <span>USD {total}</span>
+                <span>TL {total}</span>
               </div>
             </div>
             
             <div className="mt-6 p-4 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] text-xs text-[var(--muted)] flex gap-3 leading-relaxed">
               <span className="shrink-0 w-4 h-4 rounded-full border border-gray-500 flex items-center justify-center font-serif italic text-[10px]">i</span>
-              <span>Your subscription will auto renew on {new Date(Date.now() + (billingCycle === 'yearly' ? 365 : 30) * 24 * 60 * 60 * 1000).toLocaleDateString()}. You will be charged USD {subtotal}.00/{billingCycle === 'yearly' ? 'year' : 'month'} + tax.</span>
+              <span>Your subscription will auto renew on {new Date(Date.now() + (billingCycle === 'yearly' ? 365 : 30) * 24 * 60 * 60 * 1000).toLocaleDateString()}. You will be charged TL {subtotal}.00/{billingCycle === 'yearly' ? 'year' : 'month'} + tax.</span>
             </div>
           </div>
 
@@ -206,7 +206,7 @@ export default function PricingPage() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl text-[var(--text)] mb-8 font-serif tracking-tight" style={{ fontFamily: 'Georgia, serif' }}>
-            Plans that grow with you
+            Plan prices
           </h1>
           
           <div className="inline-flex items-center p-1 bg-[var(--surface-1)] rounded-xl border border-[var(--border)] shadow-inner">
@@ -245,7 +245,7 @@ export default function PricingPage() {
             <h2 className="text-2xl font-semibold text-[var(--text)] mb-1">Free</h2>
             <p className="text-sm text-[var(--muted)] mb-6">Meet TurkGateway</p>
             
-            <div className="text-3xl font-semibold text-[var(--text)] mb-8">$0</div>
+            <div className="text-3xl font-semibold text-[var(--text)] mb-8">₺0</div>
             
             <button disabled className="w-full py-2.5 rounded-lg border border-[var(--border)] text-[var(--muted)] font-medium text-sm mb-8 bg-[var(--surface-2)]">
               Use TurkGateway for free
@@ -268,24 +268,20 @@ export default function PricingPage() {
                   <Cpu size={32} className="text-white animate-pulse" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-base font-bold text-[var(--text)]">Yearly</span>
+                  <span className="text-base font-bold text-[var(--text)]">Monthly</span>
                   <span className="text-xs text-[var(--muted)]">Best value</span>
                 </div>
-              </div>
-              <div className="flex items-center shrink-0 bg-[var(--bg)] rounded-full p-0.5 border border-[var(--border)] text-[9px] font-semibold mt-2">
-                <span className="px-3 py-1 text-[var(--muted)]">Monthly</span>
-                <span className="px-3 py-1 bg-[var(--surface-2)] text-[var(--text)] rounded-full">Yearly <span className="text-blue-500 ml-1">Save 17%</span></span>
               </div>
             </div>
             
             <h2 className="text-2xl font-semibold text-[var(--text)] mb-1">Premium</h2>
-            <p className="text-sm text-[var(--muted)] mb-6">Research, code, and organize</p>
+            <p className="text-sm text-[var(--muted)] mb-6">Advanced AI guidance for Turkish procedures</p>
             
             <div className="flex items-baseline gap-2 mb-8">
-              <div className="text-3xl font-semibold text-[var(--text)]">${Math.round(premiumYearly / 12)}</div>
+              <div className="text-3xl font-semibold text-[var(--text)]">₺{premiumMonthly}</div>
               <div className="text-[10px] text-[var(--muted)] flex flex-col">
-                <span>USD / month</span>
-                <span>billed annually</span>
+                <span>TL / month</span>
+                <span>billed monthly</span>
               </div>
             </div>
             
@@ -312,7 +308,7 @@ export default function PricingPage() {
                   <Cpu size={32} className="text-white animate-pulse" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-base font-bold text-[var(--text)]">Unlimited Tokens</span>
+                  <span className="text-base font-bold text-[var(--text)]">Yearly</span>
                   <span className="text-xs text-[var(--muted)]">Maximum power</span>
                 </div>
               </div>
@@ -321,14 +317,15 @@ export default function PricingPage() {
             <h2 className="text-2xl font-semibold text-[var(--text)] mb-1">Max</h2>
             <p className="text-sm text-[var(--muted)] mb-6">Unlimited tokens forever</p>
             
-            <div className="flex items-baseline gap-2 mb-3">
-              <div className="text-3xl font-semibold text-[var(--text)]">One time payment</div>
+            <div className="flex items-baseline gap-2 mb-8">
+              <div className="text-3xl font-semibold text-[var(--text)]">₺{maxYearly}</div>
               <div className="text-[10px] text-[var(--muted)] flex flex-col">
-                <span className="font-bold text-blue-500 uppercase tracking-widest">Lifetime Access</span>
+                <span>TL / year</span>
+                <span>billed annually</span>
               </div>
             </div>
 
-            <button onClick={() => setCheckoutPlan('max')} className="w-full py-2.5 mt-5 rounded-lg bg-[var(--text)] text-[var(--bg)] font-semibold text-sm mb-2 hover:opacity-90 transition-opacity">
+            <button onClick={() => setCheckoutPlan('max')} className="w-full py-2.5 rounded-lg bg-[var(--text)] text-[var(--bg)] font-semibold text-sm mb-2 hover:opacity-90 transition-opacity">
               Get Max plan
             </button>
             <p className="text-[9px] text-[var(--muted)] text-center mb-5 font-medium">No commitment · Cancel anytime</p>
@@ -337,7 +334,7 @@ export default function PricingPage() {
               <p className="font-semibold text-[var(--text)] text-xs mb-2">Everything in Premium, plus:</p>
               <div className="flex items-start gap-3">{renderCheckmark()} <span className="font-medium text-[var(--text)] text-blue-400">Unlimited tokens forever</span></div>
               <div className="flex items-start gap-3">{renderCheckmark()} <span>Full application management & submission</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>1-on-1 consultations with verified Lawyers</span></div>
+              <div className="flex items-start gap-3">{renderCheckmark()} <span>Unlimited AI Agent consultations</span></div>
               <div className="flex items-start gap-3">{renderCheckmark()} <span>Dedicated account manager</span></div>
               <div className="flex items-start gap-3">{renderCheckmark()} <span>VIP priority processing</span></div>
             </div>
@@ -363,9 +360,9 @@ export default function PricingPage() {
             <p className="text-sm text-[var(--muted)] mb-6">For growing teams & agencies</p>
             
             <div className="flex items-baseline gap-2 mb-8">
-              <div className="text-3xl font-semibold text-[var(--text)]">$499</div>
+              <div className="text-3xl font-semibold text-[var(--text)]">₺4990</div>
               <div className="text-[10px] text-[var(--muted)] flex flex-col">
-                <span>USD / month</span>
+                <span>TL / month</span>
                 <span>billed annually</span>
               </div>
             </div>

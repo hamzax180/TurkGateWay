@@ -17,9 +17,9 @@ from collections import OrderedDict
 from typing import Optional
 
 _CACHE_FILE = os.path.join(os.path.dirname(__file__), "cache_store.json")
-_MAX_SIZE = 500
-_TTL_SECONDS = 3600  # 1 hour
-_WRITE_BATCH_SIZE = 10  # Persist to disk every N writes
+_MAX_SIZE = 1000            # doubled — more zero-token hits
+_TTL_SECONDS = 21600       # 6 hours — common questions stay cached longer
+_WRITE_BATCH_SIZE = 5      # persist sooner so restarts keep more cache
 
 # In-memory store: {key: {"response": str, "ts": float}}
 _store: OrderedDict = OrderedDict()

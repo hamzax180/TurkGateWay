@@ -6,7 +6,6 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Menu, X, FileCheck, Sun, Moon, ShieldCheck } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
-import LanguageSwitcher from './LanguageSwitcher';
 import Sidebar from './Sidebar';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
@@ -14,7 +13,7 @@ import { useAuth } from '../context/AuthContext';
 export default function Navbar({ isAppPage = false, onMobileMenuClick, extraContent }: { isAppPage?: boolean; onMobileMenuClick?: () => void; extraContent?: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, token, logout, isAuthenticated } = useAuth();
+  const { user, token, logout, isAuthenticated, setIsLoginModalOpen } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -127,8 +126,6 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
         </div>
 
         <div className="hidden md:flex items-center gap-3 relative z-50">
-          <LanguageSwitcher />
-          <ThemeToggle />
           {isAuthenticated ? (
             <>
               {user?.subscriptionStatus === 'free' ? (
@@ -156,11 +153,12 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
             </>
           ) : (
             <>
-              <Link href="/login">
-                <button className="px-4 py-2 text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] transition-colors">
-                  {t('navbar_login')}
-                </button>
-              </Link>
+              <button 
+                onClick={() => setIsLoginModalOpen(true)}
+                className="px-4 py-2 text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] transition-colors"
+              >
+                {t('navbar_login')}
+              </button>
               <Link href="/signup">
                 <button className="bg-[var(--text)] text-[var(--bg)] hover:opacity-90 px-5 py-2 rounded-full text-sm font-bold shadow-lg transition-all active:scale-95">
                   {t('navbar_signup')}

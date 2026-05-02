@@ -61,6 +61,13 @@ export default function Dashboard() {
   const [automatedStepId, setAutomatedStepId] = useState<number | null>(null);
   const [dashboardSessionId, setDashboardSessionId] = useState<string | null>(null);
   const [activeAssistantType, setActiveAssistantType] = useState<'permit' | 'student' | 'lawyer'>('permit');
+
+  useEffect(() => {
+    const saved = (localStorage.getItem('permitops_assistant_type') || localStorage.getItem('permitops_active_agent')) as any;
+    if (saved === 'student' || saved === 'lawyer' || saved === 'permit') {
+      setActiveAssistantType(saved);
+    }
+  }, []);
   const [pendingInitialPrompt, setPendingInitialPrompt] = useState<string | null>(null);
 
   // Student/Residency Bot Data
@@ -85,7 +92,7 @@ export default function Dashboard() {
     if (!generatingWorkflow) return;
     const interval = setInterval(() => {
       setLoadingPhase(prev => (prev + 1) % 3);
-    }, 2500);
+    }, 1000);
     return () => clearInterval(interval);
   }, [generatingWorkflow]);
 
@@ -203,7 +210,7 @@ export default function Dashboard() {
           return true;
         } else if (retryCount < 5 && sid && !sid.startsWith('pending-')) {
           console.log(`[Dashboard] No steps found yet. Retry ${retryCount + 1}/5...`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise(resolve => setTimeout(resolve, 500));
           return await fetchState(retryCount + 1);
         }
       }
@@ -541,7 +548,7 @@ export default function Dashboard() {
 
   const renderContent = () => {
     if (loading && !generatingWorkflow) {
-      return <LoadingScreen />;
+      return <LoadingScreen agentType={activeAssistantType} />;
     }
 
     return (
@@ -556,7 +563,8 @@ export default function Dashboard() {
             >
               {/* Ambient Glow — synced to agent color */}
               <div className="absolute inset-0 pointer-events-none transition-all duration-1000">
-                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-[200px] opacity-[0.1] dark:opacity-[0.06] transition-colors duration-1000 ${loadingPhase === 0 ? 'bg-red-600' : loadingPhase === 1 ? 'bg-blue-500' : 'bg-emerald-500'
+                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-[200px] opacity-[0.1] dark:opacity-[0.06] transition-colors duration-1000 ${
+                  activeAssistantType === 'permit' ? 'bg-blue-600' : activeAssistantType === 'student' ? 'bg-emerald-500' : 'bg-amber-500'
                   }`} />
               </div>
 
@@ -567,16 +575,18 @@ export default function Dashboard() {
                   <motion.div
                     animate={{ scale: [1, 1.08, 1], opacity: [0.15, 0.35, 0.15] }}
                     transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    className={`absolute inset-[-30px] rounded-[36px] blur-[50px] transition-colors duration-1000 ${loadingPhase === 0 ? 'bg-red-600/30' : loadingPhase === 1 ? 'bg-blue-500/30' : 'bg-emerald-500/30'
+                    className={`absolute inset-[-30px] rounded-[36px] blur-[50px] transition-colors duration-1000 ${
+                      activeAssistantType === 'permit' ? 'bg-blue-600/30' : activeAssistantType === 'student' ? 'bg-emerald-500/30' : 'bg-amber-500/30'
                       }`}
                   />
 
                   {/* The Chip */}
-                  <div className={`relative h-28 w-28 rounded-[28px] border transition-all duration-1000 shadow-2xl flex items-center justify-center overflow-hidden animate-pulse ${loadingPhase === 0
-                      ? 'bg-gradient-to-br from-red-600 via-red-700 to-red-950 border-red-400/30 shadow-red-600/30'
-                      : loadingPhase === 1
-                        ? 'bg-gradient-to-br from-blue-500 via-blue-600 to-blue-950 border-blue-400/30 shadow-blue-500/30'
-                        : 'bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-950 border-emerald-400/30 shadow-emerald-500/30'
+                  <div className={`relative h-28 w-28 rounded-[28px] border transition-all duration-1000 shadow-2xl flex items-center justify-center overflow-hidden animate-pulse ${
+                    activeAssistantType === 'permit'
+                      ? 'bg-gradient-to-br from-blue-600 via-blue-700 to-blue-950 border-blue-400/30 shadow-blue-600/30'
+                      : activeAssistantType === 'student'
+                        ? 'bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-950 border-emerald-400/30 shadow-emerald-500/30'
+                        : 'bg-gradient-to-br from-amber-500 via-amber-600 to-amber-950 border-amber-400/30 shadow-amber-500/30'
                     }`}>
                     {/* Circuit texture */}
                     <div className="absolute inset-0 opacity-30 bg-[linear-gradient(45deg,transparent_45%,#ffffff_48%,#ffffff_52%,transparent_55%)] bg-[length:8px_8px] mix-blend-overlay" />
@@ -596,9 +606,10 @@ export default function Dashboard() {
                 <div className="text-center min-h-[220px] flex flex-col items-center">
                   {/* Phase label */}
                   <div className="mb-6">
-                    <span className={`text-[11px] font-bold uppercase tracking-[0.6em] transition-colors duration-1000 ${loadingPhase === 0 ? 'text-red-500/80' : loadingPhase === 1 ? 'text-blue-500/80' : 'text-emerald-500/80'
+                    <span className={`text-[11px] font-bold uppercase tracking-[0.6em] transition-colors duration-1000 ${
+                      activeAssistantType === 'permit' ? 'text-blue-500/80' : activeAssistantType === 'student' ? 'text-emerald-500/80' : 'text-amber-500/80'
                       }`}>
-                      {loadingPhase === 0 ? 'Deploying Permit Agent' : loadingPhase === 1 ? 'Deploying Student Agent' : 'Deploying Legal Agent'}
+                      {activeAssistantType === 'permit' ? 'Deploying Permit Agent' : activeAssistantType === 'student' ? 'Deploying Student Agent' : 'Deploying Legal Agent'}
                     </span>
                   </div>
 
@@ -612,7 +623,7 @@ export default function Dashboard() {
                       transition={{ duration: 0.5, ease: 'easeOut' }}
                       className="text-4xl md:text-6xl font-black text-[var(--text)] tracking-[0.4em] mb-6 uppercase leading-none font-[Outfit]"
                     >
-                      {loadingPhase === 0 ? 'PERMIT' : loadingPhase === 1 ? 'STUDENT' : 'LEGAL'}
+                      {activeAssistantType === 'permit' ? 'PERMIT' : activeAssistantType === 'student' ? 'STUDENT' : 'LEGAL'}
                     </motion.h3>
                   </AnimatePresence>
 
@@ -626,27 +637,32 @@ export default function Dashboard() {
                       transition={{ duration: 0.4, delay: 0.15 }}
                       className="text-[15px] md:text-[17px] text-[var(--muted)] max-w-lg leading-relaxed mb-10 font-medium italic"
                     >
-                      {loadingPhase === 0
+                      {activeAssistantType === 'permit'
                         ? 'Mapping work permit regulations, residence applications, and e-Devlet authentication pathways across Turkish municipal systems.'
-                        : loadingPhase === 1
+                        : activeAssistantType === 'student'
                           ? 'Analyzing university enrollment pipelines, ÖYS registration systems, and student visa compliance requirements.'
                           : 'Indexing Turkish commercial law articles, contract frameworks, and legal precedent databases for consultation.'}
                     </motion.p>
                   </AnimatePresence>
 
-                  {/* Progress bar */}
-                  <div className="w-80 h-[2px] bg-[var(--border)] relative overflow-hidden mb-6 rounded-full">
-                    <motion.div
-                      animate={{ x: ['-100%', '100%'] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                      className={`absolute inset-0 bg-gradient-to-r from-transparent to-transparent transition-all duration-1000 ${loadingPhase === 0 ? 'via-red-600' : loadingPhase === 1 ? 'via-blue-500' : 'via-emerald-500'
+                  {/* Subtle loading dots */}
+                  <div className="flex gap-2 mb-8">
+                    {[0, 1, 2].map((i) => (
+                      <motion.div
+                        key={i}
+                        animate={{ scale: [1, 1.3, 1], opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+                        className={`w-2.5 h-2.5 rounded-full ${
+                          activeAssistantType === 'permit' ? 'bg-blue-500' : activeAssistantType === 'student' ? 'bg-emerald-500' : 'bg-amber-500'
                         }`}
-                    />
+                      />
+                    ))}
                   </div>
 
                   {/* Micro status */}
                   <div className="flex items-center gap-3 text-[10px] font-bold text-[var(--muted)] tracking-[0.3em] uppercase">
-                    <RefreshCw size={10} className={`animate-spin transition-colors duration-1000 ${loadingPhase === 0 ? 'text-red-500' : loadingPhase === 1 ? 'text-blue-500' : 'text-emerald-500'
+                    <RefreshCw size={10} className={`animate-spin transition-colors duration-1000 ${
+                      activeAssistantType === 'permit' ? 'text-blue-500' : activeAssistantType === 'student' ? 'text-emerald-500' : 'text-amber-500'
                       }`} />
                     <span>Initializing Neural Systems</span>
                   </div>

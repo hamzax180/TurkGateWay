@@ -12,3 +12,4 @@ google-generativeai
 playwright
 slowapi
 iyzipay
+google-auth

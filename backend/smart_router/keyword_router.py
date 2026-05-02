@@ -80,15 +80,15 @@ INTENT_MAP = {
 
     # --- Permit Agent intents ---
     "permit.restaurant": [
-        r"\b(restaurant|restoran|lokanta|dinner|dining|food permit)\b",
-        r"(مطعم|بوفيه|مأكولات|وجبات|مطاعم)"
+        r"\b(restaurant|restoran|lokanta|dinner|dining|food permit|yemek)\b",
+        r"(مطعم|بوفيه|مأكولات|وجبات|مطاعم|مطعم صغير)"
     ],
     "permit.cafe": [
-        r"\b(cafe|cafeteria|kafe|coffee shop|tea house|pastry shop)\b",
+        r"\b(cafe|cafeteria|kafe|coffee shop|tea house|pastry shop|kahvehane)\b",
         r"(مقهى|كافيه|كافي|قهوة|محل عصير|كافتيريا)"
     ],
     "permit.clothing": [
-        r"\b(clothing|clothes|apparel|boutique|garment|shoe|giyim)\b",
+        r"\b(clothing|clothes|apparel|boutique|garment|shoe|giyim|tekstil)\b",
         r"(ملابس|ازياء|أزياء|ملبوسات|بوتيك|أحذية|احذية|شنط|حقائب)"
     ],
     "permit.retail": [
@@ -96,24 +96,36 @@ INTENT_MAP = {
         r"(بقالة|سوبر ماركت|تموينات|محل|معرض|تجزئة|دكان)"
     ],
     "permit.office": [
-        r"\b(office|consulting|agency|sanal ofis|ofis|b[üu]ro|headquarters)\b",
+        r"\b(office|consulting|agency|sanal ofis|ofis|b[üu]ro|headquarters|coworking)\b",
         r"(مكتب|مقر|شركة (عقارات|استشارات)|وكالة|استشارات|سياحة|مكاتب)"
     ],
     "permit.barber": [
-        r"\b(barber|hair salon|beauty|kuaf[öo]r|berber|g[üu]zellik|spa)\b",
+        r"\b(barber|hair salon|beauty|kuaf[öo]r|berber|g[üu]zellik|spa|nail salon|kuafor)\b",
         r"(حلاق|صالون|كوافير|تجميل|عناية|سبا|مشغل)"
     ],
     "permit.gym": [
-        r"\b(gym|fitness|crossfit|spor|sports center)\b",
+        r"\b(gym|fitness|crossfit|spor|sports center|pilates|yoga studio)\b",
         r"(نادي|صالة رياضية|جيم|حديد|كروسفيت|نادي رياضي)"
     ],
     "permit.pharmacy": [
-        r"\b(pharmacy|eczane|chemist|drug store|medicine shop)\b",
+        r"\b(pharmacy|eczane|chemist|drug store|medicine shop|ilaç)\b",
         r"(صيدلية|ادوية|أدوية|عطارة|اعشاب)"
     ],
     "permit.bakery": [
-        r"\b(bakery|f[ıi]r[ıi]n|bread|pastanesi)\b",
+        r"\b(bakery|f[ıi]r[ıi]n|bread|pastanesi|ekmek|börek)\b",
         r"(مخبز|فرن|حلويات|مخبوزات|فطائر|معجنات)"
+    ],
+    "permit.hotel": [
+        r"\b(hotel|otel|hostel|pansiyon|guesthouse|accommodation|konaklama|apart otel)\b",
+        r"(فندق|نزل|موتيل|استراحة|شقق فندقية)"
+    ],
+    "permit.clinic": [
+        r"\b(clinic|klinik|medical (center|centre)|dental|doktor|doctor|veteriner|poliklinik)\b",
+        r"(عيادة|مستوصف|مركز طبي|طبيب|أسنان|بيطري)"
+    ],
+    "permit.school": [
+        r"\b(school|okul|dershane|kurs|eğitim merkezi|language school|tutoring|çocuk kulübü)\b",
+        r"(مدرسة|مركز تعليمي|دروس خصوصية|كورسات|دار حضانة)"
     ],
     "permit.restaurant_typo": [
         r"\b(resteruant|resteraunt|restarant|restuarant|resturant|restrant|restruant|restaurent|restaurnt)\b"
@@ -129,6 +141,11 @@ INTENT_MAP = {
         r"^(what permit do you want\??)$",
         r"^(what business (you|do you) want to open\??)$",
         r"(كيف أبدأ|اريد فتح|أريد فتح|كيف افتح|فتح محل|فتح شركة(?! استشارات)|كيف أبدا|تأسيس|أريد تأسيس|انشاء شركة|بدء مشروع|ودي افتح|فتح عمل|الحصول على تصريح)"
+    ],
+    "correction": [
+        r"\b(i (said|meant|mean)|it (was|is)|actually|no (it's|its|it is)|not (x|y) it('s| is)|i was (saying|referring)|correction|i corrected|wrong( district| type)?|i said)\b",
+        r"\b(it was|i meant|i said|no it|not that|i mean|actually it)\b",
+        r"(قصدي|قصدت|أقصد|لا قصدي|المقصود|يعني|بالضبط|أصلح|تصحيح|أعني)"
     ],
     "permit.documents": [
         r"\b(what documents|required docs|document(s)? needed|paperwork|what do i need to bring|belge|what do i need|evrak|gerekli belgeler)\b",

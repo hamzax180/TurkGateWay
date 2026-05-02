@@ -101,6 +101,7 @@ class Token(BaseModel):
     email: str
     full_name: Optional[str] = None
     is_admin: Optional[bool] = False
+    token_balance: Optional[int] = 5
 
 class APIKeyResponse(BaseModel):
     api_key: str

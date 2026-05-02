@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
-import LanguageSwitcher from './LanguageSwitcher';
 import { apiFetch } from '../utils/api';
 
 interface ChatSession {
@@ -49,7 +48,7 @@ export default function Sidebar({
   onToggleFavorite = () => { },
 }: SidebarProps) {
   const { t, isRTL, language } = useLanguage();
-  const { logout, isAuthenticated } = useAuth();
+  const { logout, isAuthenticated, setIsLoginModalOpen } = useAuth();
   const router = useRouter();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [isExpanded, setIsExpanded] = useState(true);
@@ -145,6 +144,7 @@ export default function Sidebar({
             isAuthenticated={isAuthenticated}
             logout={logout}
             language={language}
+            setIsLoginModalOpen={setIsLoginModalOpen}
           />
         </motion.aside>
       )}
@@ -194,6 +194,7 @@ export default function Sidebar({
                 isAuthenticated={isAuthenticated}
                 logout={logout}
                 language={language}
+                setIsLoginModalOpen={setIsLoginModalOpen}
               />
             </motion.div>
           </>
@@ -234,6 +235,7 @@ const SidebarInner = React.memo(({
   isAuthenticated,
   logout,
   language,
+  setIsLoginModalOpen
 }: {
   isMobile?: boolean,
   isExpanded: boolean,
@@ -258,6 +260,7 @@ const SidebarInner = React.memo(({
   isAuthenticated: boolean,
   logout: () => void,
   language: string,
+  setIsLoginModalOpen: (open: boolean) => void;
 }) => {
   const showLabels = isMobile || isExpanded;
 
@@ -422,9 +425,12 @@ const SidebarInner = React.memo(({
           <div className="mx-1 p-4 rounded-2xl bg-[var(--surface-2)]/60 border border-[var(--border)] space-y-3 mt-2">
             <p className="text-[13px] font-semibold text-[var(--text)]">{t('sidebar_sign_in_prompt')}</p>
             <p className="text-[12px] text-[var(--muted)] leading-relaxed">{t('sidebar_sign_in_desc')}</p>
-            <Link href="/login">
-              <button className="text-[var(--accent)] text-[13px] font-bold hover:underline">{t('navbar_login')}</button>
-            </Link>
+            <button 
+              onClick={() => setIsLoginModalOpen(true)}
+              className="text-[var(--accent)] text-[13px] font-bold hover:underline"
+            >
+              {t('navbar_login')}
+            </button>
           </div>
         ) : loading && sessions.length === 0 ? (
           <div className="space-y-4 px-3 py-2">
@@ -565,9 +571,7 @@ const SidebarInner = React.memo(({
       <motion.div variants={itemVariants} className="p-3 space-y-1 mt-auto border-t border-[var(--border)] bg-[var(--surface)]/50 shrink-0">
 
         {isMobile && (
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border)] px-2">
-            <LanguageSwitcher />
-            <ThemeToggle />
+          <div className="flex items-center justify-end pb-2 mb-2 border-b border-[var(--border)] px-2">
           </div>
         )}
 
@@ -582,11 +586,12 @@ const SidebarInner = React.memo(({
         )}
 
         {isMobile && !isAuthenticated && (
-          <Link href="/login" className="block" onClick={onMobileClose}>
-            <div className="group flex items-center gap-3 p-3 rounded-full hover:bg-[var(--surface-2)] cursor-pointer transition-all mb-1">
-              <span className="text-sm font-bold text-[var(--text)]">Login</span>
-            </div>
-          </Link>
+          <div 
+            onClick={() => { setIsLoginModalOpen(true); if (onMobileClose) onMobileClose(); }}
+            className="group flex items-center gap-3 p-3 rounded-full hover:bg-[var(--surface-2)] cursor-pointer transition-all mb-1"
+          >
+            <span className="text-sm font-bold text-[var(--text)]">Login</span>
+          </div>
         )}
 
         {/* Settings & help */}

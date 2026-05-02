@@ -10,6 +10,7 @@
     "server": "set PYTHONPATH=%PYTHONPATH%;. && python backend/main.py"
   },
   "dependencies": {
+    "@react-oauth/google": "^0.13.5",
     "framer-motion": "^12.35.2",
     "lucide-react": "^0.577.0",
     "next": "16.1.6",

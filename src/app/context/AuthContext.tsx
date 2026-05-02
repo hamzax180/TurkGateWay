@@ -10,6 +10,8 @@ interface AuthContextType {
     isAuthenticated: boolean;
     setTokenBalance: (balance: number) => void;
     lastTokenReset: string | null;
+    isLoginModalOpen: boolean;
+    setIsLoginModalOpen: (open: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,6 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<{ email: string; fullName?: string; isAdmin?: boolean; tokenBalance?: number; subscriptionStatus?: string; lastTokenReset?: string | null } | null>(null);
     const [token, setToken] = useState<string | null>(null);
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
     const getFallbackName = (email: string) => {
         return email.split('@')[0].split(/[._-]/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
@@ -101,7 +104,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token, setTokenBalance, lastTokenReset: user?.lastTokenReset || null }}>
+        <AuthContext.Provider value={{ 
+            user, token, login, logout, 
+            isAuthenticated: !!token, 
+            setTokenBalance, 
+            lastTokenReset: user?.lastTokenReset || null,
+            isLoginModalOpen,
+            setIsLoginModalOpen
+        }}>
             {children}
         </AuthContext.Provider>
     );

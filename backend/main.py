@@ -25,6 +25,8 @@ from typing import Optional, List, Dict
 import google.generativeai as genai
 from dotenv import load_dotenv
 import json
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 
 from database import engine, Base, get_db, SessionLocal
 from models.user import User as DBUser
@@ -70,6 +72,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from fastapi.staticfiles import StaticFiles
+import os
+
+# Create static dir if not exists
+os.makedirs("static", exist_ok=True)
+os.makedirs("static/forms", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
@@ -158,6 +169,9 @@ class UserCredentials(BaseModel):
     gender: Optional[str] = "Male"
     email: Optional[str] = None
     phone: Optional[str] = None
+
+class GoogleLogin(BaseModel):
+    id_token: str
 
 from fastapi.security import APIKeyHeader
 security = HTTPBearer()
@@ -269,6 +283,66 @@ async def login(request: Request, user: UserLogin, db: Session = Depends(get_db)
     
     access_token = create_access_token(data={"sub": db_user.email})
     return {"access_token": access_token, "token_type": "bearer", "email": db_user.email, "full_name": db_user.full_name, "is_admin": db_user.is_admin, "token_balance": db_user.token_balance}
+
+@app.post("/auth/google", response_model=Token)
+async def google_login(data: dict, db: Session = Depends(get_db)):
+    try:
+        email = None
+        name = None
+        
+        if data.get("is_access_token"):
+            # Handle access token flow
+            async with httpx.AsyncClient() as client:
+                res = await client.get(
+                    "https://www.googleapis.com/oauth2/v3/userinfo",
+                    headers={"Authorization": f"Bearer {data['id_token']}"}
+                )
+                if res.status_code != 200:
+                    raise HTTPException(status_code=400, detail="Invalid Google access token")
+                user_info = res.json()
+                email = user_info['email']
+                name = user_info.get('name', '')
+        else:
+            # Handle ID token flow
+            client_id = os.getenv("GOOGLE_CLIENT_ID")
+            if not client_id:
+                raise HTTPException(status_code=500, detail="Google Client ID not configured")
+            
+            idinfo = id_token.verify_oauth2_token(data['id_token'], google_requests.Request(), client_id)
+            email = idinfo['email']
+            name = idinfo.get('name', '')
+        
+        if not email:
+            raise HTTPException(status_code=400, detail="Could not retrieve email from Google")
+        
+        # Check if user exists
+        user = db.query(DBUser).filter(DBUser.email == email).first()
+        if not user:
+            # Create new user
+            user = DBUser(
+                email=email,
+                full_name=name,
+                hashed_password=get_password_hash(os.urandom(24).hex()),
+                subscription_status="free",
+                token_balance=5
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
+        # Create access token
+        access_token = create_access_token(data={"sub": user.email})
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "email": user.email,
+            "full_name": user.full_name,
+            "is_admin": user.is_admin,
+            "token_balance": user.token_balance
+        }
+    except Exception as e:
+        print(f"Google Login Error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
 
 class MFAVerify(BaseModel):
     code: str
@@ -1092,7 +1166,8 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
                     student_model=student_model,
                     lawyer_model=lawyer_model,
                     history_text=history_text,
-                    can_learn=True  # Always learn — saves to local files for all future users
+                    can_learn=True,  # Always learn — saves to local files for all future users
+                    subscription_status=user.subscription_status if user else "free"
                 )
                 
                 if smart_answer is not None:
@@ -1100,6 +1175,9 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
                     if user:
                         assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=smart_answer)
                         db.add(assistant_msg)
+                    else:
+                        if session_id not in guest_chat_histories: guest_chat_histories[session_id] = []
+                        guest_chat_histories[session_id].append({"role": "assistant", "content": smart_answer})
                     
                     if offline_state:
                         # Offline dashboard generation without an AI request

@@ -12,6 +12,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '../context/LanguageContext';
 import Footer from '../components/Footer';
+import LoadingScreen from '../components/LoadingScreen';
+import { useAuth } from '../context/AuthContext';
 
 // --- Custom Select Component to prevent native OS upwards dropdown behavior ---
 const CustomSelect = ({
@@ -116,8 +118,23 @@ const DISTRICTS_OPTIONS = [
 export default function ServicesPage() {
   const { t, isRTL } = useLanguage();
   const router = useRouter();
+  const { isAuthenticated, setIsLoginModalOpen } = useAuth();
   const [selectedAgent, setSelectedAgent] = useState<'permit' | 'student' | 'lawyer' | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  useEffect(() => {
+    // Sync active agent for appropriate loading screen
+    const active = localStorage.getItem('permitops_active_agent');
+    if (active === 'student' || active === 'lawyer' || active === 'permit') {
+      setSelectedAgent(active as 'permit' | 'student' | 'lawyer');
+    }
+
+    // Initial load animation
+    const timer = setTimeout(() => setIsLoaded(true), 1200);
+    return () => clearTimeout(timer);
+  }, []);
 
   const [lawyerMatterType, setLawyerMatterType] = useState('Contract Review');
 
@@ -261,6 +278,10 @@ export default function ServicesPage() {
   const LOOP_WIDTH = 520 * services.length; // 1560px (3 items * 520)
 
   const handleStartProtocol = (id: string) => {
+    if (!isAuthenticated) {
+      setIsLoginModalOpen(true);
+      return;
+    }
     if (id === 'permit' || id === 'student' || id === 'lawyer') {
       setSelectedAgent(id as 'permit' | 'student' | 'lawyer');
     }
@@ -290,6 +311,7 @@ export default function ServicesPage() {
     }
 
     setIsInitializing(true);
+    setIsNavigating(true);
     localStorage.setItem('permitops_assistant_type', selectedAgent || 'permit');
     localStorage.setItem('permitops_ask_step', prompt);
     // Force a pending session so the dashboard renders a clean slate
@@ -298,32 +320,39 @@ export default function ServicesPage() {
     // Brief delay for cinematic effect before navigation
     setTimeout(() => {
       router.push('/dashboard');
-    }, 600);
+    }, 1800); // Increased for full loading screen effect
   };
 
   return (
-    <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] selection:bg-blue-500/30 font-sans transition-colors duration-500">
-      <Navbar />
-
-      <div className="absolute inset-0 bg-[var(--bg)] -z-10 transition-colors duration-500" />
-
-      {/* Transition Scanning Overlay */}
-      <AnimatePresence>
-        {isInitializing && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm pointer-events-none"
-          >
-            <motion.div
-              animate={{ y: ['-100vh', '100vh'] }}
-              transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
-              className="absolute inset-x-0 h-[3px] bg-[#ff0000] shadow-[0_0_50px_#ff0000,0_0_100px_#ff0000]"
-            />
-          </motion.div>
+    <>
+      <AnimatePresence mode="wait">
+        {(!isLoaded || isNavigating) && (
+          <LoadingScreen agentType={selectedAgent || 'permit'} />
         )}
       </AnimatePresence>
+
+      <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] selection:bg-blue-500/30 font-sans transition-colors duration-500">
+        <Navbar />
+
+        <div className="absolute inset-0 bg-[var(--bg)] -z-10 transition-colors duration-500" />
+
+        {/* Transition Scanning Overlay */}
+        <AnimatePresence>
+          {isInitializing && !isNavigating && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm pointer-events-none"
+            >
+              <motion.div
+                animate={{ y: ['-100vh', '100vh'] }}
+                transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-x-0 h-[3px] bg-[#ff0000] shadow-[0_0_50px_#ff0000,0_0_100px_#ff0000]"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
       <div className="pt-12 pb-20 px-6 overflow-hidden relative">
         {/* Soft Background Glints */}
@@ -855,6 +884,7 @@ export default function ServicesPage() {
 
       {/* ── Minimalist Footer ── */}
       <Footer />
-    </main>
+      </main>
+    </>
   );
 }

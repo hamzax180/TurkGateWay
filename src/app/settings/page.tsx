@@ -169,14 +169,76 @@ export default function SettingsPage() {
                       {t('settings_appearance')}
                     </h2>
                     
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[var(--surface-2)]/40 border border-[var(--border)]">
-                        <div>
-                          <p className="font-bold">{t('settings_theme')}</p>
-                          <p className="text-xs text-[var(--muted)]">Switch between light and dark mode</p>
+                      <div className="space-y-4">
+                        <p className="font-bold text-sm px-1">{t('settings_theme')}</p>
+                        <div className="grid grid-cols-2 gap-4">
+                          {/* Light Theme Card */}
+                          <button 
+                            onClick={() => {
+                              document.documentElement.classList.remove('dark');
+                              localStorage.setItem('theme', 'light');
+                              window.dispatchEvent(new Event('storage')); // Update other components
+                              setTimeout(() => window.location.reload(), 10); // Force refresh for full effect
+                            }}
+                            className={`group relative flex flex-col items-center p-4 rounded-3xl border-2 transition-all duration-300 ${
+                              mounted && !document.documentElement.classList.contains('dark')
+                                ? 'bg-white border-blue-500 shadow-xl shadow-blue-500/10 scale-[1.02]' 
+                                : 'bg-gray-50 border-transparent hover:border-gray-200'
+                            }`}
+                          >
+                            <div className="w-full aspect-[4/3] rounded-2xl bg-white border border-gray-100 mb-3 shadow-inner flex flex-col p-2 gap-2 overflow-hidden">
+                              <div className="h-2 w-2/3 bg-gray-100 rounded-full" />
+                              <div className="h-2 w-1/2 bg-gray-50 rounded-full" />
+                              <div className="mt-auto flex gap-2">
+                                <div className="h-4 w-4 rounded-full bg-blue-500" />
+                                <div className="h-4 flex-1 bg-gray-100 rounded-md" />
+                              </div>
+                            </div>
+                            <span className={`text-sm font-bold ${mounted && !document.documentElement.classList.contains('dark') ? 'text-blue-600' : 'text-gray-500'}`}>
+                              {language === 'ar' ? 'فاتح' : (language === 'tr' ? 'Açık' : 'Light')}
+                            </span>
+                            {mounted && !document.documentElement.classList.contains('dark') && (
+                              <div className="absolute top-2 right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-white">
+                                <CheckCircle2 size={12} strokeWidth={4} />
+                              </div>
+                            )}
+                          </button>
+
+                          {/* Dark Theme Card */}
+                          <button 
+                            onClick={() => {
+                              document.documentElement.classList.add('dark');
+                              localStorage.setItem('theme', 'dark');
+                              window.dispatchEvent(new Event('storage')); // Update other components
+                              setTimeout(() => window.location.reload(), 10); // Force refresh for full effect
+                            }}
+                            className={`group relative flex flex-col items-center p-4 rounded-3xl border-2 transition-all duration-300 ${
+                              mounted && document.documentElement.classList.contains('dark')
+                                ? 'bg-[#111] border-blue-500 shadow-xl shadow-blue-500/20 scale-[1.02]' 
+                                : 'bg-[#1a1a1a] border-transparent hover:border-white/5'
+                            }`}
+                          >
+                            <div className="w-full aspect-[4/3] rounded-2xl bg-[#0a0a0a] border border-white/5 mb-3 shadow-inner flex flex-col p-2 gap-2 overflow-hidden">
+                              <div className="h-2 w-2/3 bg-white/10 rounded-full" />
+                              <div className="h-2 w-1/2 bg-white/5 rounded-full" />
+                              <div className="mt-auto flex gap-2">
+                                <div className="h-4 w-4 rounded-full bg-blue-500" />
+                                <div className="h-4 flex-1 bg-white/5 rounded-md" />
+                              </div>
+                            </div>
+                            <span className={`text-sm font-bold ${mounted && document.documentElement.classList.contains('dark') ? 'text-blue-400' : 'text-gray-500'}`}>
+                              {language === 'ar' ? 'داكن' : (language === 'tr' ? 'Koyu' : 'Dark')}
+                            </span>
+                            {mounted && document.documentElement.classList.contains('dark') && (
+                              <div className="absolute top-2 right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-white">
+                                <CheckCircle2 size={12} strokeWidth={4} />
+                              </div>
+                            )}
+                          </button>
                         </div>
-                        <ThemeToggle />
                       </div>
+
+                      <div className="h-px bg-[var(--border)] my-6" />
 
                       <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[var(--surface-2)]/40 border border-[var(--border)]">
                         <div>
@@ -185,7 +247,6 @@ export default function SettingsPage() {
                         </div>
                         <LanguageSwitcher />
                       </div>
-                    </div>
                   </div>
 
                   {/* Beta Card */}

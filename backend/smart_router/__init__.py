@@ -174,6 +174,10 @@ _ALL_DISTRICTS = [
     "kagithane", "kartal", "kucukcekmece", "maltepe", "pendik", "sancaktepe",
     "sariyer", "sile", "silivri", "sisli", "sultanbeyli", "sultangazi",
     "tuzla", "umraniye", "uskudar", "zeytinburnu",
+    "yenibosna", "sirinevler", "sirineveler", "taksim", "istiklal", "florya", "yesilkoy",
+    "maslak", "tarabya", "etiler", "levent", "bebek", "mecidiyekoy", "nisantasi",
+    "karakoy", "galata", "cihangir", "moda", "suadiye", "caddebostan", "bostanci",
+    "eminonu", "sultanahmet", "balat", "kayasehir", "kayashier"
 ]
 
 _ALL_BUSINESS_TYPES = [
@@ -309,12 +313,13 @@ async def smart_router_handle(
     student_model=None,
     lawyer_model=None,
     history_text: str = "",
-    can_learn: bool = True
+    can_learn: bool = True,
+    subscription_status: str = "free"
 ) -> Tuple[Optional[str], Optional[dict], Optional[str]]:
     import asyncio
     
     # --- PHASE 1: Start Thinking ---
-    wait_task = asyncio.create_task(asyncio.sleep(3.0))
+    wait_task = asyncio.create_task(asyncio.sleep(1.0))
     
     query = query.strip()
     
@@ -339,6 +344,64 @@ async def smart_router_handle(
         await wait_task
         print(f"\n[Smart Router] 🚀 Response served from IN-MEMORY EXACT CACHE")
         return cached, None, "In-Memory Exact Cache"
+
+    # --- PHASE 0.05: AI Form Generation (High Priority) ---
+    _form_keywords = [
+        "generate form", "write petition", "dilekçe yaz", "dilekce olustur", "application form", 
+        "create form", "write my form", "generate my form", "write a petition", "create a petition", 
+        "dilekce yaz", "form oluştur", "generate petition", "generate a petition", "generate my petition",
+        "make a petition", "make a form", "petition generator", "form generator"
+    ]
+    if any(k in query.lower() for k in _form_keywords):
+        from utils.pdf_generator import generate_petition_pdf
+        from .ai_fallback import ai_fallback_response
+        
+        print(f"[SmartRouter] Generating AI PDF Form for query: {query}")
+        
+        # Check for premium status
+        if subscription_status != "active":
+            msg = {
+                "en": "📄 **Form Generation** is a Premium feature.\n\nPlease upgrade to the **Premium** or **Max** plan to generate official petitions and application forms instantly!",
+                "tr": "📄 **Dilekçe Oluşturma** bir Premium özelliktir.\n\nResmi dilekçe ve başvuru formlarını anında oluşturmak için lütfen **Premium** veya **Max** plana yükseltin!",
+                "ar": "📄 **إنشاء النماذج** هي ميزة ممتازة (Premium).\n\nيرجى الترقية إلى خطة **Premium** أو **Max** لإنشاء الالتماسات ونماذج الطلبات الرسمية على الفور!"
+            }.get(language, "Please upgrade to Premium to generate forms.")
+            await wait_task
+            return msg, None, "Smart Router (Form Restricted)"
+
+        form_prompt = (
+            "You are a strict Turkish legal and administrative expert. The user wants to generate an official "
+            "petition (dilekçe) or application form based on the conversation history. "
+            "Write ONLY the text of the formal Turkish petition. Do not include greetings, markdown, or chat. "
+            "Use placeholders like [AD SOYAD], [TARİH], [ADRES] if info is missing. "
+            "Always start with the addressed institution in ALL CAPS."
+        )
+        
+        form_content = await ai_fallback_response(
+            query=form_prompt,
+            assistant_type=assistant_type,
+            gemini_model=gemini_model,
+            student_model=student_model,
+            lawyer_model=lawyer_model,
+            history_text=history_text,
+            language="tr" 
+        )
+        
+        if not form_content or len(form_content) < 20:
+            form_content = "İLGİLİ MAKAMA,\n\nKonu ile ilgili gereğinin yapılmasını arz ederim.\n\nTarih: [TARİH]\n\nAd Soyad: [AD SOYAD]\nİmza:"
+            
+        pdf_url = generate_petition_pdf("Resmi Dilekce", form_content)
+        
+        # We assume backend is running on 8003
+        download_btn_md = f"\n\n[📄 **Download your official document (PDF)**](http://localhost:8003{pdf_url})"
+        
+        msg = {
+            "en": f"I've generated your official Turkish application form/petition based on our conversation! You can download it below, fill in any placeholders, and print it.{download_btn_md}",
+            "tr": f"Konuşmamıza dayanarak resmi dilekçenizi oluşturdum! Aşağıdan indirebilir, boşlukları doldurup imzalayabilirsiniz.{download_btn_md}",
+            "ar": f"لقد قمت بإنشاء نموذج طلبك الرسمي بناءً على محادثتنا! يمكنك تنزيله من الأسفل، وملء الفراغات، وطباعته.{download_btn_md}"
+        }.get(language, f"Here is your form:{download_btn_md}")
+        
+        await wait_task
+        return msg, None, "Smart Router (Form Generator)"
 
     # --- PHASE 0.1: Context Engine Local Resolution (0 tokens) ---
     # Handles follow-up questions like "apply from riyadh" by understanding conversation state
@@ -454,8 +517,56 @@ async def smart_router_handle(
             print(f"[Smart Router] ✅ Contextual Affirmative → direct permit roadmap for '{_found_btype_raw}' in '{_found_district}'")
             await wait_task
             return out_str, dashboard_dump, "Contextual Affirmative (Permit Steps)"
+    # --- PHASE 0.5a: Contextual Negative Check ---
+    # Intercepts "no/nope/nah/hayır/لا" BEFORE AI fallback so the agent never
+    # resets and greets the user fresh (fixes the "Hi! Let's get things moving" bug).
+    _negatives = {
+        "no", "nope", "nah", "not really", "no thanks", "no thank you",
+        "hayir", "hayır", "yok", "olmaz",
+        "\u0644\u0627", "\u0644\u0627 \u0634\u0643\u0631\u0627", "\u0644\u0627 \u064a\u0648\u062c\u062f", "\u0645\u0627 \u0639\u0646\u062f\u064a", "\u0645\u0648 \u0645\u062d\u062a\u0627\u062c",
+    }
+    if lower_q in _negatives and last_assistant_msg:
+        _was_outdoor  = any(w in last_assistant_msg for w in ["outdoor", "terrace", "kaldirim", "sidewalk"])
+        _was_alcohol  = any(w in last_assistant_msg for w in ["alcohol", "tapdk", "wine", "beer", "bar", "liquor"])
+        _was_music    = any(w in last_assistant_msg for w in ["music", "live music", "band", "entertainment"])
+        _was_yes_no   = any(w in last_assistant_msg for w in [
+            "do you", "will you", "are you", "planning", "have you", "did you",
+            "is there", "would you", "want", "shall i", "should i"
+        ])
+
+        _neg_reply = None
+        if _was_outdoor:
+            _neg_reply = {
+                "en": "Got it, no outdoor seating! \ud83d\udc4d No Kaldirim Isgaliye permit needed then. Is there anything else about your setup you'd like to go over?",
+                "tr": "Anla\u015ft\u0131k, d\u0131\u015f mekan yok! \ud83d\udc4d Kald\u0131r\u0131m i\u015fgaliyesine gerek olmayacak. Ba\u015fka sormak istedi\u011fin bir \u015fey var m\u0131?",
+                "ar": "\u062a\u0645\u0627\u0645! \u0644\u0627 \u062c\u0644\u0633\u0627\u062a \u062e\u0627\u0631\u062c\u064a\u0629. \ud83d\udc4d \u0644\u0646 \u062a\u062d\u062a\u0627\u062c \u062a\u0635\u0631\u064a\u062d \u0627\u0644\u0643\u0644\u062f\u0631\u064a\u0645. \u0647\u0644 \u0647\u0646\u0627\u0643 \u0634\u064a\u0621 \u0622\u062e\u0631 \u062a\u0648\u062f \u0645\u0639\u0631\u0641\u062a\u0647\u061f",
+            }.get(language, "Got it, no outdoor seating! No Kaldirim Isgaliye permit needed. Anything else?")
+        elif _was_alcohol:
+            _neg_reply = {
+                "en": "No alcohol \u2014 noted! \ud83d\udc4d No TAPDK license needed, which saves you time and paperwork. Ready to move to the next step?",
+                "tr": "Alkol yok \u2014 tamam! \ud83d\udc4d TAPDK lisans\u0131na gerek olmayacak. S\u0131radaki ad\u0131ma ge\u00e7elim mi?",
+                "ar": "\u0644\u0627 \u0643\u062d\u0648\u0644 \u2014 \u062a\u0645\u0627\u0645! \ud83d\udc4d \u0644\u0646 \u062a\u062d\u062a\u0627\u062c \u0625\u0644\u0649 \u062a\u0631\u062e\u064a\u0635 TAPDK. \u0647\u0644 \u0646\u0643\u0645\u0644 \u0628\u0627\u0642\u064a \u0627\u0644\u062e\u0637\u0648\u0627\u062a\u061f",
+            }.get(language, "No alcohol \u2014 noted! No TAPDK license needed. Ready for the next step?")
+        elif _was_music:
+            _neg_reply = {
+                "en": "No live music \u2014 got it! \ud83d\udc4d No Canl\u0131 M\u00fczik \u0130zni needed. What else would you like to know?",
+                "tr": "Canl\u0131 m\u00fczik yok \u2014 anla\u015ft\u0131k! \ud83d\udc4d Canl\u0131 m\u00fczik izni gerekmeyecek. Ba\u015fka sorun var m\u0131?",
+                "ar": "\u0644\u0627 \u0645\u0648\u0633\u064a\u0642\u0649 \u062d\u064a\u0629 \u2014 \u062a\u0645\u0627\u0645! \ud83d\udc4d \u0644\u0646 \u062a\u062d\u062a\u0627\u062c \u062a\u0635\u0631\u064a\u062d \u0627\u0644\u0645\u0648\u0633\u064a\u0642\u0649. \u0647\u0644 \u0647\u0646\u0627\u0643 \u0634\u064a\u0621 \u0622\u062e\u0631\u061f",
+            }.get(language, "No live music \u2014 noted! No Canl\u0131 M\u00fczik \u0130zni needed. Anything else?")
+        elif _was_yes_no:
+            _neg_reply = {
+                "en": "No worries! \ud83d\udc4d What would you like to cover next?",
+                "tr": "Sorun de\u011fil! \ud83d\udc4d Devam etmek istedi\u011fin bir konu var m\u0131?",
+                "ar": "\u0644\u0627 \u0628\u0623\u0633! \ud83d\udc4d \u0645\u0627\u0630\u0627 \u062a\u0631\u064a\u062f \u0623\u0646 \u062a\u0639\u0631\u0641 \u0628\u0639\u062f\u0647\u0627\u061f",
+            }.get(language, "No worries! What would you like to cover next?")
+
+        if _neg_reply:
+            print(f"[Smart Router] Contextual Negative -> handled locally (query='{lower_q}')")
+            await wait_task
+            return _neg_reply, None, "Contextual Negative Handler"
 
     # --- PHASE 0.5b: Contextual University Reply ---
+
     _was_asking_uni = any(marker in last_assistant_msg for marker in [
         "which university", "hangi \u00fcniversite", "\u0641\u064a \u0623\u064a \u062c\u0627\u0645\u0639\u0629",
         "register at", "kay\u0131t yapt\u0131rmak", "\u0627\u0644\u062a\u0633\u062c\u064a\u0644",
@@ -522,6 +633,7 @@ async def smart_router_handle(
             await wait_task
             return out_str, dashboard_dump, "Smart Router (Uni Shortcut)"
 
+
     user_blocks = re.findall(r"\[user\]:([\s\S]*?)(?=\[assistant\]:|\[user\]:|-{5,}|$)", history_text.lower())
     user_history_text = " ".join(b.strip() for b in user_blocks)
     combined_context = f"{user_history_text} {query}".lower()
@@ -534,8 +646,9 @@ async def smart_router_handle(
     ])
     
     has_relevant_kw = any(w in query.lower() for w in [
-        "cafe", "kafe", "restaurant", "restoran", "retail", "office", "ofis", "pharmacy", "eczane", "bakery", "f\u0131r\u0131n", "barber", "berber", "gym", "spor", "shop", "store", "company", "ma\u011faza", "d\u00fckkan",
-        "adalar", "arnavutkoy", "arnavutk\u00f6y", "atasehir", "ata\u015fehir", "avcilar", "avc\u0131lar", "bagcilar", "ba\u011fc\u0131lar", "bahcelievler", "bah\u00e7elievler", "bakirkoy", "bak\u0131rk\u00f6y", "basaksehir", "ba\u015fak\u015fehir", "bayrampasa", "bayrampa\u015fa", "besiktas", "be\u015fikta\u015f", "beykoz", "beylikduzu", "beylikd\u00fcz\u00fc", "beyoglu", "beyo\u011flu", "buyukcekmece", "b\u00fcy\u00fck\u00e7ekmece", "catalca", "\u00e7atalca", "cekmekoy", "\u00e7ekmek\u00f6y", "esenler", "esenyurt", "eyup", "ey\u00fcp", "ey\u00fcpsultan", "fatih", "gaziosmanpasa", "gaziosmanpa\u015fa", "gungoren", "g\u00fcng\u00f6ren", "kadikoy", "kad\u0131k\u00f6y", "kagithane", "ka\u011f\u0131thane", "kartal", "kucukcekmece", "k\u00fc\u00e7\u00fck\u00e7ekmece", "maltepe", "pendik", "sancaktepe", "sariyer", "sar\u0131yer", "sile", "\u015file", "silivri", "sisli", "\u015fi\u015fli", "sultanbeyli", "sultangazi", "tuzla", "umraniye", "\u00fcmraniye", "uskudar", "\u00fcck\u00fcdar", "zeytinburnu"
+        "cafe", "kafe", "restaurant", "restoran", "retail", "office", "ofis", "pharmacy", "eczane", "bakery", "fırın", "barber", "berber", "gym", "spor", "shop", "store", "company", "mağaza", "dükkan",
+        "adalar", "arnavutkoy", "arnavutköy", "atasehir", "ataşehir", "avcilar", "avcılar", "bagcilar", "bağcılar", "bahcelievler", "bahçelievler", "bakirkoy", "bakırköy", "basaksehir", "başakşehir", "bayrampasa", "bayrampaşa", "besiktas", "beşiktaş", "beykoz", "beylikduzu", "beylikdüzü", "beyoglu", "beyoğlu", "buyukcekmece", "büyükçekmece", "catalca", "çatalca", "cekmekoy", "çekmeköy", "esenler", "esenyurt", "eyup", "eyüp", "eyüpsultan", "fatih", "gaziosmanpasa", "gaziosmanpaşa", "gungoren", "güngören", "kadikoy", "kadıköy", "kagithane", "kağıthane", "kartal", "kucukcekmece", "küçükçekmece", "maltepe", "pendik", "sancaktepe", "sariyer", "sarıyer", "sile", "şile", "silivri", "sisli", "şişli", "sultanbeyli", "sultangazi", "tuzla", "umraniye", "ümraniye", "uskudar", "ücküdar", "zeytinburnu",
+        "yenibosna", "sirinevler", "sirineveler", "şirinevler", "taksim", "istiklal", "florya", "yesilkoy", "yeşilköy", "maslak", "tarabya", "etiler", "levent", "bebek", "mecidiyekoy", "mecidiyeköy", "nisantasi", "nişantaşı", "karakoy", "karaköy", "galata", "cihangir", "moda", "suadiye", "caddebostan", "bostanci", "eminonu", "eminönü", "sultanahmet", "balat", "kayasehir", "kayashier", "kayaşehir"
     ])
     
     fuzzy_district_match = None
@@ -641,7 +754,7 @@ async def smart_router_handle(
         await wait_task
         return msg, None, f"Smart Router (Redirect to {target_agent})"
 
-    if _NEW_CONSULTATION_RE.search(query) or _ISOLATED_ANSWER_RE.match(query) or (is_clarifying and has_relevant_kw):
+    if _NEW_CONSULTATION_RE.search(query) or _ISOLATED_ANSWER_RE.match(query) or is_clarifying:
         from models.schemas import PermitState, CombinedPermitResult, ExecutionPlan, StepDetail, PermitPlan, AgentStep
         from utils.protocol import get_localized_steps
         from datetime import datetime
@@ -741,7 +854,7 @@ async def smart_router_handle(
             # Neighborhood to District Mapping
             _NB_MAP = {
                 "kayasehir": "basaksehir", "kayashier": "basaksehir", "kayaşehir": "basaksehir",
-                "yenibosna": "bahcelievler", "sirinevler": "bahcelievler",
+                "yenibosna": "bahcelievler", "sirinevler": "bahcelievler", "sirineveler": "bahcelievler", "şirinevler": "bahcelievler",
                 "taksim": "beyoglu", "istiklal": "beyoglu",
                 "florya": "bakirkoy", "yesilkoy": "bakirkoy",
                 "maslak": "sariyer", "tarabya": "sariyer",
