@@ -1,0 +1,112 @@
+{
+  "greeting": [
+    "Merhaba {name}! Bugün size nasıl yardımcı olabilirim?",
+    "Selam! Yardım etmeye hazırım — aklınızda ne var?",
+    "Merhaba {name}! Size nasıl destek olabilirim?",
+    "Selam! Bugün sizi buraya ne getirdi?",
+    "Merhaba! Sizi burada görmek harika. Neye ihtiyacınız var?"
+  ],
+  "farewell": [
+    "Hoşça kalın! İstediğiniz zaman tekrar gelebilirsiniz.",
+    "Kendine iyi bak, {name}! Her şeyde bol şans.",
+    "Görüşmek üzere! Bir şeye ihtiyacınız olursa çekinmeyin.",
+    "Şimdilik elveda! İhtiyacınız olduğunda buradayız.",
+    "Güle güle! Başarılar dilerim."
+  ],
+  "thanks": [
+    "Rica ederim! Yardım edebileceğim başka bir şey olursa haber verin.",
+    "Yardımcı olabildiğime sevindim! Başka bir sorunuz var mı?",
+    "Her zaman! Daha fazla bilgi isterseniz sormaktan çekinmeyin.",
+    "Memnuniyetle! Başka bir şey?",
+    "Sorun değil! İstediğinizi sorabilirsiniz."
+  ],
+  "trust": [
+    "Ben doğru ve yardımcı bilgi sağlamak için tasarlanmış bir yapay zeka asistanıyım. Karmaşık veya kritik konular için her zaman resmi bir uzmana danışmanızı öneririm. Bu konuda başka sorunuz var mı?",
+    "Veri setlerime dayanarak en güncel bilgileri sağlamak için elimden gelenin en iyisini yapıyorum. Net olmayan bir şey olursa lütfen bildirin!",
+    "Güven çok önemlidir. Yanıtlarım mevcut verilere dayanmaktadır, ancak kritik detayları bir profesyonelle doğrulamak her zaman akıllıca bir adımdır.",
+    "Sağladığımız bilgilerin doğruluğu konusunda son derece titiz davranıyoruz. Resmi işlemlere başlamadan önce yetkili makamlardan nihai onay almanız önerilir.",
+    "Görevim, güncel yasalar ve yönetmelikler ışığında işleri sizin için basitleştirmektir. Daha fazla netlik istediğiniz bir konu var mı?"
+  ],
+  "billing": {
+    "price": [
+      "Planlarımız sabit aylık bir ücretle başlar — tam döküm için 'fiyatlandırma' yazabilirsiniz.",
+      "Fiyatlandırma plan seviyenize bağlıdır. Seçenekleri gözden geçirmemi ister misiniz?",
+      "Bireyler ve işletmeler için esnek planlarımız var. Ne arıyorsunuz?",
+      "Abonelik maliyetlerimiz plana göre değişir — bunları karşılaştırmamı ister misiniz?",
+      "Maliyet ihtiyacınız olan özelliklere bağlıdır. İsterseniz her planı anlatabilirim!"
+    ],
+    "refund": [
+      "İadeler genellikle 5 iş günü içinde orijinal ödeme yönteminize yapılır.",
+      "İadeleri 5 iş günü içinde işleme alıyoruz. İnceleyebileceğim belirli bir sipariş veya fatura var mı?",
+      "İade politikamız, ödemeden sonraki 14 gün içinde yapılan talepleri kapsar. İşlemi başlatmamı ister misiniz?",
+      "İadeler 5 iş günü içinde ödeme yönteminize geri döner — endişelenmeyin.",
+      "İade konusunda yardımcı olmaktan mutluluk duyarım. Detayları çekebilmem için hesap e-postanızı paylaşabilir misiniz?"
+    ],
+    "invoice": [
+      "Faturaları hesap panelinizdeki Faturalandırma > Faturalar bölümünden indirebilirsiniz.",
+      "Faturalar her ödemeden sonra otomatik olarak e-postayla gönderilir. Tekrar gönderilmesine ihtiyacınız var mı?",
+      "Tüm faturalarınız panelinizin Faturalandırma bölümündedir.",
+      "Her ödemeden sonra PDF faturaları e-postayla gönderiyoruz. Suret isterseniz bildirin.",
+      "Fatura geçmişiniz hesap panelinizdedir. Oraya gitmenize rehberlik edeyim mi?"
+    ],
+    "subscription": [
+      "Aboneliğinizi Hesap Ayarları sayfasından yönetebilir, yükseltebilir veya iptal edebilirsiniz.",
+      "Abonelik değişiklikleri anında yürürlüğe girer. Ne yapmak isterseniz — yükseltmek, düşürmek veya iptal etmek?",
+      "Kontrol sizde — abonelikler hesap üzerinden her zaman değiştirilebilir.",
+      "İptal etmek için Hesap > Abonelik bölümüne gidip 'Planı İptal Et'e basmanız yeterlidir. Düşürmek ister misiniz?",
+      "Planınız aylık olarak yenilenir. Bir sonraki ödeme tarihini kontrol etmemi ister misiniz?"
+    ]
+  },
+  "support": {
+    "error": [
+      "Teknik bir aksaklık gibi görünüyor! Bir ekran görüntüsü veya tam hata mesajını paylaşabilir misiniz?",
+      "Buna bir bakayım — hangi sayfada ve hangi hatayı görüyorsunuz?",
+      "Bunun için üzgünüm! Hata göründüğünde ne yapmaya çalışıyordunuz?",
+      "Hatalar genellikle hızlıca çözülebilir. Mesajda ne yazıyor?",
+      "Bu doğru görünmüyor. Hangi tarayıcıyı veya cihazı kullanıyorsunuz?"
+    ],
+    "not_working": [
+      "Bir şeyin çalışmamasına üzüldüm. Hangi özellik etkilendi?",
+      "Bu doğru değil! Hangi kısım düzgün davranmıyor? İnceleyelim.",
+      "Bunu çözmeye yardımcı olayım — tam olarak ne çalışmıyor?",
+      "Bu her seferinde mi oluyor yoksa sadece ara sıra mı? Bu, sorunu daraltmama yardımcı olur.",
+      "Bunu bildirdiğiniz için teşekkürler! Çalışmayı durdurmadan önce ne yaptığınızı anlatabilir misiniz?"
+    ],
+    "slow": [
+      "Yavaş deneyim için özür dileriz! Sayfayı yenilemeyi veya tarayıcı önbelleğini temizlemeyi deneyin.",
+      "Performans sorunları birkaç nedenden kaynaklanabilir — yavaş bir bağlantıda veya ortak bir ağda mısınız?",
+      "Sert bir yenileme (Ctrl+Shift+R) yapmayı deneyin — bu genellikle sorunları çözer.",
+      "Yavaşlık tüm sayfalarda mı yoksa sadece belirli bir bölümde mi?",
+      "Buna bakacağız. Bu arada, yardımcı olup olmayacağını görmek için farklı bir tarayıcı deneyin."
+    ]
+  },
+  "help_options": [
+    "Size şu konularda yardımcı olabilirim: ① Şirket kuruluşu ve ruhsatlar, ② Öğrenci işleri ve ikamet, ③ Hukuki danışmanlık ve uyuşmazlıklar. Hangisini seçersiniz?",
+    "Türkiye'de iş, eğitim veya hukuk ile ilgili her şeyi sorabilirsiniz. Hizmetinizdeyim!",
+    "Belirli bir bilgi mi arıyorsunuz? Ruhsat alma, üniversite belgeleri veya sözleşme inceleme adımlarında size rehberlik edebilirim.",
+    "İlgi alanınızı seçin: 🏠 Gayrimenkul ve Yasalar, 🎓 Üniversite ve Burslar, 💼 İş Kurulumu ve Vergiler. Nasıl başlayalım?",
+    "Türkiye'deki yerel uzmanınızım. e-Devlet sistemini anlama, göç randevuları veya üniversite arama konularında yardımcı olabilirim. Bugün neye ihtiyacımız var?"
+  ],
+  "feedback": [
+    "Geri bildiriminizi duymaktan her zaman mutluluk duyarız! Bugün asistanla deneyiminiz nasıldı?",
+    "TurkGateway'i kullandığınız için teşekkürler. Geliştirmek için önerileriniz var mı?",
+    "Görüşleriniz bizim için çok değerli. Aradığınızı bulabildiniz mi?",
+    "Değerlendirmeniz gelişmemize yardımcı olur. Yanıtlar sizin için açık ve yararlı mıydı?",
+    "Her zaman daha iyisi için çalışıyoruz. Gelecekte görmek istediğiniz bir özellik var mı?"
+  ],
+  "smalltalk": [
+    "Çok iyiyim, sorduğun için teşekkürler! 😊 Sen nasılsın?",
+    "Gayet iyi! Sana yardım etmeye hazırım. Günün nasıl geçiyor?",
+    "Harikayım! 👋 İnsanlara yardım etmek beni mutlu ediyor. Sen nasıl hissediyorsun?",
+    "Süper gidiyor! Senin tarafta işler nasıl?"
+  ],
+  "identity": [
+    "Ben TurkGateway AI — Türkiye'de iş, hukuk ve öğrencilik hayatında sana yol gösteren kişisel asistanınım! Beni Türk bürokrasisini bilen bir arkadaşın gibi düşün 😄",
+    "Güzel soru! Üç alanda uzmanlaşmış bir yapay zeka danışmanıyım: işletme ruhsatları, hukuki danışmanlık ve öğrenci hizmetleri.",
+    "Türkiye'deki dijital rehberinim! İster iş kur, ister hukuki süreçleri yönet, ister üniversiteye kayıt ol — her konuda yanındayım."
+  ],
+  "capabilities": [
+    "Birçok konuda yardımcı olabilirim!\n\n🏢 **İşletme Ruhsatları** — Kafe, dükkan, ofis açma süreçleri\n⚖️ **Hukuki Ajanlık** — Sözleşme inceleme, şirket kuruluşu, iş davaları\n🎓 **Öğrenci Hizmetleri** — Üniversite kayıt, ikamet, burslar\n\nBana neye ihtiyacın olduğunu söyle, hemen başlayalım!",
+    "Kısacası Türkiye'deki her türlü bürokratik işlemi açık ve basit adımlara dönüştüren uzmanınınım. Ruhsat mı, hukuk mu, üniversite mi — adım adım seninleyim."
+  ]
+}

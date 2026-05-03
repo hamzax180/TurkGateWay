@@ -1,0 +1,107 @@
+{
+  "greeting": [
+    "Hey {name}! What can I help you with today?",
+    "Hi there! Ready to help — what's on your mind?",
+    "Hello {name}! How can I assist you?",
+    "Hey! What brings you here today?",
+    "Hi! Great to have you here. What do you need help with?",
+    "Welcome back, {name}! What are we tackling today?",
+    "Hey there! 👋 Always happy to help — fire away!"
+  ],
+  "farewell": [
+    "Goodbye, {name}! You know where to find me if you ever need anything. Take care! 👋",
+    "See you later! Wishing you the best of luck with everything — you've got this! 💪",
+    "Bye for now! Don't be a stranger — I'm always here whenever you need a hand.",
+    "Take care out there! It was great chatting with you. Come back anytime!",
+    "Goodbye! May everything go smoothly for you. I'll be right here if you need me again! 😊",
+    "Catch you later, {name}! Remember, no question is too small — always happy to help.",
+    "All the best! 🌟 Drop by anytime, whether it's a big question or just to say hi."
+  ],
+  "thanks": [
+    "You're very welcome! That's exactly what I'm here for. Anything else I can help with? 😊",
+    "Happy to help! Don't hesitate to come back if anything else pops up.",
+    "Anytime! I'm glad we could sort that out together. Got any other questions?",
+    "No problem at all! It makes my day when I can help. What else is on your mind?",
+    "Glad I could help! Remember, I'm here 24/7 whenever you need me. 💪",
+    "That means a lot, thank you! Is there anything else you'd like to tackle while we're at it?",
+    "You're welcome! Helping you is literally my favorite thing to do. 😄 What's next?"
+  ],
+  "trust": [
+    "That's a really smart question to ask! My answers are based on real Turkish regulations and procedures. For anything high-stakes like signing a contract, I'd always recommend double-checking with a licensed professional too. Better safe than sorry! 😊",
+    "I totally get the concern — trust is earned, not assumed. I pull my info from verified Turkish legal and municipal sources, but laws can change. For critical decisions, a quick check with an official source never hurts.",
+    "Great instinct to verify! I'm designed to be as accurate as possible, but I'm an AI, not a licensed attorney. I'll always give you my best guidance, and I'll tell you honestly when something is outside my scope.",
+    "I appreciate you asking! I base my responses on current Turkish regulations and procedures. That said, for legal or financial decisions with big consequences, pairing my guidance with a professional's sign-off is the gold standard. 🏆",
+    "Honestly? I'm confident in my information, but I'll never pretend to be infallible. If something feels off, let me know and I'll dig deeper. The best outcomes happen when we work together! 🤝"
+  ],
+  "billing": {
+    "price": [
+      "Our plans start at a flat monthly fee — reply 'pricing' for the full breakdown.",
+      "Pricing depends on your plan tier. Want me to walk you through the options?",
+      "We have flexible plans for individuals and businesses. What are you looking for?",
+      "Our subscription costs vary by plan — want me to compare them for you?",
+      "The cost depends on which features you need. I can walk you through each plan if you'd like!"
+    ],
+    "refund": [
+      "Refunds are typically processed within 5 business days to your original payment method.",
+      "We process refunds within 5 working days. Got a specific order or invoice I can look into?",
+      "Our refund policy covers requests made within 14 days of the charge. Would you like me to initiate one?",
+      "Refunds go back to your original payment method within 5 business days — no worries there.",
+      "Happy to help with a refund. Can you share your account email so I can pull up the details?"
+    ],
+    "invoice": [
+      "You can download invoices from your account dashboard under Billing > Invoices.",
+      "Invoices are emailed automatically after every charge. Need a copy resent?",
+      "All your invoices are in the Billing section of your dashboard.",
+      "We email PDF invoices after every payment. Let me know if you need a duplicate.",
+      "Your invoice history lives in your account dashboard. Want me to guide you there?"
+    ],
+    "subscription": [
+      "You can manage, upgrade, or cancel your subscription from the Account Settings page.",
+      "Subscription changes take effect immediately. What would you like to do — upgrade, downgrade, or cancel?",
+      "You're in control — subscriptions can be changed anytime from your account.",
+      "To cancel, just head to Account > Subscription and hit 'Cancel Plan'. Want to keep it and just downgrade instead?",
+      "Your plan renews monthly. Want me to check when the next charge is?"
+    ]
+  },
+  "support": {
+    "error": [
+      "Sounds like a technical hiccup! Could you share a screenshot or the exact error message?",
+      "Let me look into that — what error are you seeing and on which page?",
+      "Sorry about that! Can you tell me what you were trying to do when the error appeared?",
+      "Errors can usually be fixed quickly. What does the message say?",
+      "That doesn't sound right. What browser or device are you using?"
+    ],
+    "not_working": [
+      "Sorry to hear something's not working. What feature is affected?",
+      "That's not right! Tell me which part isn't behaving and I'll dig in.",
+      "Let me help get that sorted — what exactly isn't working for you?",
+      "Is this happening every time, or just occasionally? That'll help me narrow it down.",
+      "Thanks for flagging that! Can you walk me through what you did before it stopped working?"
+    ],
+    "slow": [
+      "Sorry for the slow experience! Try refreshing the page or clearing your browser cache.",
+      "Performance issues can be caused by a few things — are you on a slow connection or a shared network?",
+      "Try a hard refresh (Ctrl+Shift+R) — that usually clears things up.",
+      "Is it slow on all pages or just one specific section?",
+      "We'll look into it. In the meantime, try a different browser to see if it helps."
+    ]
+  },
+  "smalltalk": [
+    "I'm doing great, thanks for asking! \ud83d\ude0a How are things on your end?",
+    "All good here! Ready to help whenever you are. How's your day going?",
+    "I'm doing really well, thanks! What's going on with you?",
+    "Honestly? Never been better! What can I do for you today?",
+    "Doing fantastic, thanks for checking in! \ud83d\udc4b What's on your mind?",
+    "Can't complain! Life's good when you get to help people. How about you?"
+  ],
+  "identity": [
+    "I'm TurkGateway AI \u2014 your personal assistant for navigating business, legal, and student life in Turkey! Think of me as that friend who always knows how Turkish bureaucracy works. \ud83d\ude04",
+    "I'm an AI-powered agent built specifically for Turkey. I can help with business permits, legal questions, and student procedures. I'm not a generic chatbot \u2014 I specialize in making Turkey easy for you!",
+    "Great question! I'm TurkGateway's AI assistant, and I specialize in three areas: business permits, legal agent, and student services in Turkey. Consider me your local expert!"
+  ],
+  "capabilities": [
+    "I can help you with quite a lot! Here's the breakdown:\n\n\ud83c\udfe2 **Business Permits** \u2014 Opening a cafe, shop, office, or any business in Istanbul\n\u2696\ufe0f **Legal Advice** \u2014 Contract reviews, company formation, employment disputes\n\ud83c\udf93 **Student Services** \u2014 University registration, residence permits, scholarships\n\nJust tell me what you need and we'll dive right in!",
+    "Think of me as your all-in-one Turkey agent! I specialize in:\n\u2022 Navigating the permit process for any business type\n\u2022 Reviewing contracts and setting up companies\n\u2022 Helping students with visas, housing, and uni registration\n\nWhat sounds relevant to you?",
+    "Here's what I do best: I take the confusing world of Turkish bureaucracy and turn it into clear, step-by-step action plans. Whether it's a business license, a legal question, or getting enrolled at a university \u2014 I'll walk you through it."
+  ]
+}
