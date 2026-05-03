@@ -124,10 +124,10 @@ export default function Home() {
               loop
               muted
               playsInline
+              preload="auto"
+              src="/turkeyflag.mp4"
               className="absolute inset-0 w-full h-full object-cover object-[50%_25%] scale-110 md:scale-105 dark:brightness-100 brightness-[1.2] grayscale-[0.2]"
-            >
-              <source src="/turkeyflag.mp4" type="video/mp4" />
-            </video>
+            />
             
             {/* Silk Texture Simulation Overlay (kept for added luxury feel) */}
             <div className="absolute inset-0 opacity-10 cloth-shimmer" />
@@ -260,10 +260,10 @@ export default function Home() {
             loop
             muted
             playsInline
+            preload="auto"
+            src="/how_it_works.mp4"
             className="w-full h-full object-cover"
-          >
-            <source src="/how_it_works.mp4" type="video/mp4" />
-          </video>
+          />
           {/* Sharp Gradual Transitions (The Split) */}
           <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[var(--bg)] to-transparent z-10" />
         </div>
