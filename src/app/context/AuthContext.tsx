@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { apiFetch } from '../utils/api';
 
 interface AuthContextType {
     user: { email: string; fullName?: string; isAdmin?: boolean; tokenBalance?: number; subscriptionStatus?: string } | null;
@@ -38,12 +39,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                 // Then verify and sync is_admin from backend in the background
                 try {
-                    const res = await fetch(`http://localhost:8003/auth/me`, {
+                    const res = await apiFetch(`/auth/me`, {
                         headers: {
                             'Authorization': `Bearer ${savedToken}`
                         }
                     });
-                    if (res.ok) {
+                    if (res && res.ok) {
                         const data = await res.json();
                         const adminStatus = !!data.is_admin;
                         localStorage.setItem('permitops_is_admin', adminStatus ? 'true' : 'false');
@@ -55,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             subscriptionStatus: data.subscription_status,
                             lastTokenReset: data.last_token_reset
                         });
-                    } else if (res.status === 401) {
+                    } else if (res && res.status === 401) {
                         // Token is invalid/expired - clear it
                         console.warn("Session expired or invalid. Logging out.");
                         logout();
