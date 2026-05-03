@@ -1,0 +1,4 @@
+This is a placeholder file for the Mac DMG.
+To generate the real DMG, run:
+cd desktop
+npm run dist:mac
