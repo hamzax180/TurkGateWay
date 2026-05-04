@@ -1353,48 +1353,33 @@ export default function Dashboard() {
                                   <div className="flex flex-wrap gap-2 items-center pt-1">
                                     {(s.responsible.includes('Agent') || s.responsible.includes('Ajan') || s.responsible.includes('وكيل')) ? (
                                       <>
+                                        {/* Large Premium e-devlet Button */}
                                         <button
                                           onClick={(e) => { e.stopPropagation(); automateStep(s.id); }}
                                           disabled={uploading}
-                                          title={t('dashboard_upload')}
-                                          className="flex items-center justify-center w-[34px] h-[34px] bg-[#E30A17] hover:bg-[#C20914] text-white rounded-[10px] shadow-[0_0_15px_rgba(227,10,23,0.35)] transition-all shrink-0 disabled:opacity-50 border border-white/10 group z-10 mr-1"
+                                          className="relative flex items-center gap-3 px-4 py-3 bg-[#E30A17] hover:bg-[#C20914] text-white rounded-xl shadow-[0_4px_20px_rgba(227,10,23,0.4)] hover:shadow-[0_6px_28px_rgba(227,10,23,0.6)] transition-all active:scale-95 hover:scale-[1.02] border border-white/10 group disabled:opacity-50 flex-1 sm:flex-none overflow-hidden"
+                                          title="Launch Registration Bot via e-devlet"
                                         >
+                                          {/* Shimmer overlay */}
+                                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
                                           {uploading && automatedStepId === s.id ? (
-                                            <RefreshCw size={16} className="animate-spin" />
+                                            <RefreshCw size={18} className="animate-spin shrink-0" />
                                           ) : (
-                                            <div className="relative flex items-center justify-center">
-                                              <img
-                                                src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/E-Devlet_Kap%C4%B1s%C4%B1_logo.svg/320px-E-Devlet_Kap%C4%B1s%C4%B1_logo.svg.png"
-                                                alt="e-Devlet"
-                                                className="h-5 w-auto object-contain brightness-0 invert group-hover:scale-110 transition-transform"
-                                                onError={(e) => {
-                                                  (e.target as HTMLElement).style.display = 'none';
-                                                  (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden');
-                                                }}
-                                              />
-                                              <ShieldCheck size={16} className="hidden" />
-                                            </div>
+                                            <img
+                                              src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/E-Devlet_Kap%C4%B1s%C4%B1_logo.svg/320px-E-Devlet_Kap%C4%B1s%C4%B1_logo.svg.png"
+                                              alt="e-Devlet"
+                                              className="h-5 w-auto object-contain brightness-0 invert shrink-0 group-hover:scale-110 transition-transform"
+                                              onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                                            />
                                           )}
+                                          <div className="flex flex-col items-start min-w-0">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/60 leading-none mb-0.5">e-devlet</span>
+                                            <span className="text-[13px] font-black leading-tight whitespace-nowrap">
+                                              {language === 'ar' ? 'تشغيل بوت التسجيل' : language === 'tr' ? 'Kayıt Botunu Başlat' : 'Launch Registration Bot'}
+                                            </span>
+                                          </div>
+
                                         </button>
-                                        {((s.title || '') + (s.summary || '')).toLowerCase().includes('ikamet') || ((s.title || '') + (s.summary || '')).toLowerCase().includes('kimlik') ? (
-                                          <button
-                                            onClick={(e) => { e.stopPropagation(); automateStep(s.id); }}
-                                            className="btn btn-indigo !py-2 !px-3.5 !text-[11px] flex items-center gap-1.5 shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all !rounded-lg !whitespace-normal flex-1 sm:flex-none text-left"
-                                            title="Launch Registration Bot"
-                                          >
-                                            <Sparkles size={11} className="shrink-0 text-indigo-300 animate-pulse" />
-                                            {language === 'ar' ? 'تشغيل بوت التسجيل' : language === 'tr' ? 'Kayıt Botunu Başlat' : 'Launch Registration Bot'}
-                                          </button>
-                                        ) : (
-                                          <button
-                                            disabled
-                                            className="btn !py-2 !px-3.5 !text-[11px] flex items-center gap-1.5 opacity-40 cursor-not-allowed bg-[var(--surface-2)] border-[var(--border)] text-[var(--muted)] !rounded-lg !whitespace-normal flex-1 sm:flex-none text-left"
-                                            title="Bot automation disabled pending legal approval"
-                                          >
-                                            <Lock size={11} className="shrink-0" />
-                                            {language === 'ar' ? 'معطّل — بانتظار الموافقة' : language === 'tr' ? 'Devre Dışı — Yasal Onay' : 'Disabled — Pending Law Approval'}
-                                          </button>
-                                        )}
                                         <a
                                           href={
                                             ((s.title || '') + (s.summary || '')).toLowerCase().includes('mersis')
