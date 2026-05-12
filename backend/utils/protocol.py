@@ -119,7 +119,8 @@ def _detect_type(business_type: str) -> str:
         return "retail"
     if any(k in bt for k in ["service","hizmet","consulting","danışman","office","ofis",
                                "tech","yazılım","software","agency","ajans","law","hukuk",
-                               "accounting","muhasebe","clinic","klinik","salon","güzellik"]):
+                               "accounting","muhasebe","clinic","klinik","salon","güzellik",
+                               "hotel","otel","pansiyon","school","okul","eğitim"]):
         return "service"
     return "general"
 
