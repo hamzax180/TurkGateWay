@@ -13,3 +13,4 @@ playwright
 slowapi
 iyzipay
 google-auth
+email-validator
