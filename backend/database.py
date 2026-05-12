@@ -8,11 +8,9 @@ from dotenv import load_dotenv
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-# Point to the data directory in the project root
-ROOT_DIR = os.path.dirname(BASE_DIR)
-db_dir = os.path.join(ROOT_DIR, 'data')
-os.makedirs(db_dir, exist_ok=True)
-default_sqlite = f"sqlite:///{os.path.join(db_dir, 'permitops.db')}"
+# Keep the database inside the backend directory to avoid path/permission issues on Render
+db_path = os.path.join(BASE_DIR, 'permitops.db')
+default_sqlite = f"sqlite:///{db_path}"
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", default_sqlite)
 
 # Only add check_same_thread=False for SQLite databases
