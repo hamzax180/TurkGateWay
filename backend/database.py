@@ -8,8 +8,16 @@ from dotenv import load_dotenv
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-# Keep the database inside the backend directory to avoid path/permission issues on Render
-db_path = os.path.join(BASE_DIR, 'permitops.db')
+# Keep the database inside a writable directory
+# Render automatically sets RENDER=true. The /tmp directory is guaranteed to be writable.
+if os.getenv("RENDER"):
+    db_path = "/tmp/permitops.db"
+else:
+    ROOT_DIR = os.path.dirname(BASE_DIR)
+    db_dir = os.path.join(ROOT_DIR, 'data')
+    os.makedirs(db_dir, exist_ok=True)
+    db_path = os.path.join(db_dir, 'permitops.db')
+
 default_sqlite = f"sqlite:///{db_path}"
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", default_sqlite)
 
