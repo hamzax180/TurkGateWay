@@ -96,6 +96,8 @@ export default function ChatPage() {
   const speechQueueRef = useRef<string[]>([]);
   const ttsKeepaliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isSpeechQueueActiveRef = useRef(false);
+  const typewriterIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [fullCleanText, setFullCleanText] = useState('');
   const [spokenWordIndex, setSpokenWordIndex] = useState(-1);
@@ -708,10 +710,15 @@ export default function ChatPage() {
         body = JSON.stringify({ query: q, language, context: { session_id: sessionId }, assistant_type: assistantType });
       }
 
+      // Create abort controller for this request
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       const res = await apiFetch(`/agent/query`, {
         method: 'POST',
         headers,
         body,
+        signal: controller.signal,
       });
 
       if (res?.status === 403) {
@@ -780,14 +787,18 @@ export default function ChatPage() {
       setVisibleChars(prev => ({ ...prev, [assistantMsgId]: 0 }));
       setMsgs(p => [...p, { id: assistantMsgId, role: 'assistant', content: rawContent }]);
 
-      // Start typewriter effect
+      // Start typewriter effect — smooth: 45 chars per 30ms ≈ 1,500 chars/sec (33fps)
       let chars = 0;
       const total = rawContent.length;
-      const interval = setInterval(() => {
-        chars += 3; // Type 3 chars at a time for speed
+      if (typewriterIntervalRef.current) clearInterval(typewriterIntervalRef.current);
+      typewriterIntervalRef.current = setInterval(() => {
+        chars += 45;
         setVisibleChars(prev => ({ ...prev, [assistantMsgId]: chars }));
-        if (chars >= total) clearInterval(interval);
-      }, 15);
+        if (chars >= total) {
+          clearInterval(typewriterIntervalRef.current!);
+          typewriterIntervalRef.current = null;
+        }
+      }, 30);
 
       // Auto-speak if it was a voice query or we are in call mode
       if (isVoiceMode || isFromVoice || wasListening) {
@@ -799,6 +810,38 @@ export default function ChatPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const cancelResponse = () => {
+    // Abort in-flight fetch
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    // Stop typewriter
+    if (typewriterIntervalRef.current) {
+      clearInterval(typewriterIntervalRef.current);
+      typewriterIntervalRef.current = null;
+    }
+    // Append cancelled notice to last assistant message (or add new one)
+    setMsgs(prev => {
+      const lastAssistant = [...prev].reverse().find(m => m.role === 'assistant');
+      if (lastAssistant) {
+        return prev.map(m =>
+          m.id === lastAssistant.id
+            ? { ...m, content: m.content.trim() + '\n\n*Response cancelled.*' }
+            : m
+        );
+      }
+      return [...prev, { id: msgIdRef.current++, role: 'assistant', content: '*Response cancelled.*' }];
+    });
+    // Show full content of last message (stop typewriter clipping)
+    setVisibleChars(prev => {
+      const updated = { ...prev };
+      Object.keys(updated).forEach(k => { updated[Number(k)] = 999999; });
+      return updated;
+    });
+    setBusy(false);
   };
 
   const clearChat = async () => {
@@ -978,9 +1021,9 @@ export default function ChatPage() {
 
         <div className="hidden md:block h-0 shrink-0" />
 
-        {/* Gemini-Style Content Header - Desktop only */}
-        <div className="hidden md:flex flex-col items-center justify-center pt-0 pb-0 shrink-0 z-30 relative">
-          <span className="font-bold text-[var(--text)] opacity-95 tracking-tight leading-none" style={{ fontSize: 'clamp(16px, 1.5vw, 22px)' }}>
+        {/* Gemini-Style Content Header */}
+        <div className="flex flex-col items-center justify-center pt-4 pb-2 md:pt-6 md:pb-4 shrink-0 z-30 relative px-4 text-center">
+          <span className="font-bold text-[var(--text)] opacity-95 tracking-tight leading-tight" style={{ fontSize: 'clamp(16px, 1.5vw, 22px)' }}>
             {(() => {
               if (!sessionTitle || msgs.length === 0 || sessionTitle === t('chat_new')) return t('chat_new');
               const match = sessionTitle.toLowerCase().match(/^(.+?)\s+in\s+(.+)$/);
@@ -1075,13 +1118,13 @@ export default function ChatPage() {
         <div className="flex-1 flex flex-col min-h-0 relative">
 
           {isEmpty ? (
-            <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-5 md:px-6 overflow-y-auto no-scrollbar">
+            <div className="flex-1 flex flex-col xl:justify-center max-w-4xl xl:max-w-5xl mx-auto w-full px-5 md:px-6 xl:px-10 overflow-y-auto no-scrollbar">
               {/* Welcome Message — Cinematic AI Entrance */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2, duration: 0.8 }}
-                className="flex flex-col items-center justify-center text-center px-4 pt-0 md:pt-2 mb-2 md:mb-4"
+                className="flex flex-col items-center justify-center text-center px-4 pt-0 md:pt-2 mb-2 md:mb-4 xl:mb-10"
               >
                 <div className="relative mb-4 md:mb-4">
                   {/* Holographic scanning grid area */}
@@ -1180,7 +1223,7 @@ export default function ChatPage() {
                           '0 0 70px rgba(59,130,246,0.7)'
                     }}
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                    className={`relative h-14 w-14 md:h-16 md:w-16 rounded-xl md:rounded-2xl flex items-center justify-center overflow-hidden border ${assistantType === 'student' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-[0_0_50px_rgba(16,185,129,0.5)] border-emerald-400/40' :
+                    className={`relative h-14 w-14 md:h-16 md:w-16 xl:h-24 xl:w-24 rounded-xl md:rounded-2xl xl:rounded-3xl flex items-center justify-center overflow-hidden border ${assistantType === 'student' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-[0_0_50px_rgba(16,185,129,0.5)] border-emerald-400/40' :
                       assistantType === 'lawyer' ? 'bg-gradient-to-br from-amber-500 to-amber-600 shadow-[0_0_50px_rgba(245,158,11,0.5)] border-amber-400/40' :
                         'bg-gradient-to-br from-blue-500 to-blue-600 shadow-[0_0_50px_rgba(59,130,246,0.5)] border-blue-400/40'
                       }`}
@@ -1200,7 +1243,7 @@ export default function ChatPage() {
                       style={{ transform: 'translateZ(20px)' }}
                       transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                     >
-                      <Cpu size={isMobile ? 24 : 32} className="text-white" />
+                      <Cpu size={isMobile ? 24 : 32} className="text-white xl:!w-12 xl:!h-12" />
                     </motion.div>
 
                     {/* Scanning light streak */}
@@ -1240,7 +1283,7 @@ export default function ChatPage() {
                       initial={{ y: 20, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
                       transition={{ delay: 0.4, duration: 0.5 }}
-                      className="text-2xl md:text-3xl font-bold tracking-tighter text-[var(--text)] mb-0.5"
+                      className="text-2xl md:text-3xl xl:text-5xl font-bold tracking-tighter text-[var(--text)] mb-1"
                     >
                       {t('chat_greeting').replace('{name}', user?.fullName || (user?.email ? user.email.split('@')[0] : 'there'))}
                     </motion.span>
@@ -1248,7 +1291,7 @@ export default function ChatPage() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.5, duration: 0.5 }}
-                      className="text-lg md:text-xl font-medium tracking-tight text-[var(--muted)]"
+                      className="text-lg md:text-xl xl:text-2xl xl:mt-1 font-medium tracking-tight text-[var(--muted)]"
                     >
                       {t('chat_begin') || "How can I help you today?"}
                     </motion.h1>
@@ -1258,7 +1301,7 @@ export default function ChatPage() {
                 {/* Suggestion Chips — Premium Grid */}
                 <motion.div
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.3 }}
-                  className="grid grid-cols-2 lg:grid lg:grid-cols-3 lg:justify-center gap-2 md:gap-2 mt-4 md:mt-0 md:mb-2"
+                  className="grid grid-cols-2 lg:grid lg:grid-cols-3 xl:grid-cols-3 gap-2 md:gap-2 xl:gap-5 mt-4 md:mt-0 md:mb-2 xl:mt-8"
                 >
                   {(assistantType === 'student' ? [
                     { emoji: "🪪", label: t('chat_sug_renew'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
@@ -1285,10 +1328,10 @@ export default function ChatPage() {
                     <div
                       key={i}
                       onClick={() => send(chip.label)}
-                      className={`lg:glass-mesh lg:${chip.mesh} text-[var(--text)] text-[12px] md:text-[13px] py-1.5 md:py-2 px-3 md:px-3 rounded-[16px] md:rounded-[16px] flex items-center gap-2 md:gap-2 font-bold select-none md:backdrop-blur-xl transition-all hover:scale-[1.02] md:hover:scale-105 active:scale-95 cursor-pointer border border-[var(--border)] bg-[var(--surface-2)] lg:bg-[var(--surface)] lg:opacity-95 lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] group w-full lg:w-fit h-[48px] md:h-[48px] ${chip.border}`}
+                      className={`lg:glass-mesh lg:${chip.mesh} text-[var(--text)] text-[12px] md:text-[13px] xl:text-[15px] py-1.5 md:py-2 xl:py-4 px-3 md:px-3 xl:px-5 rounded-[16px] md:rounded-[16px] xl:rounded-[20px] flex items-center gap-2 md:gap-2 xl:gap-3 font-bold select-none md:backdrop-blur-xl transition-all hover:scale-[1.02] md:hover:scale-105 active:scale-95 cursor-pointer border border-[var(--border)] bg-[var(--surface-2)] lg:bg-[var(--surface)] lg:opacity-95 lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] group w-full lg:w-fit h-[48px] md:h-[48px] xl:h-[72px] ${chip.border}`}
                     >
-                      <div className={`w-7 h-7 md:w-8 md:h-8 rounded-[10px] bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-center shrink-0 group-hover:bg-[var(--surface)] transition-colors ${chip.color.replace('text', 'bg')}/10`}>
-                        <span className="text-sm md:text-base filter drop-shadow-sm">{chip.emoji}</span>
+                      <div className={`w-7 h-7 md:w-8 md:h-8 xl:w-11 xl:h-11 rounded-[10px] xl:rounded-[14px] bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-center shrink-0 group-hover:bg-[var(--surface)] transition-colors ${chip.color.replace('text', 'bg')}/10`}>
+                        <span className="text-sm md:text-base xl:text-xl filter drop-shadow-sm">{chip.emoji}</span>
                       </div>
                       <span className="leading-tight">{chip.label}</span>
                     </div>
@@ -1299,7 +1342,7 @@ export default function ChatPage() {
                 <div className="flex-1 min-h-[16px]" />
 
                 {/* Chat Input Pill (empty state) */}
-                <div className="w-full max-w-3xl mx-auto mb-2 md:mb-4 px-4 shrink-0">
+                <div className="w-full max-w-3xl xl:max-w-4xl mx-auto mb-2 md:mb-4 xl:mb-8 px-4 shrink-0">
                   <div className="relative flex items-center gap-2 rounded-full p-1.5 border border-[var(--border)] bg-[var(--surface-1)] shadow-sm focus-within:shadow-md transition-all">
                     <input
                       type="file"
@@ -1334,12 +1377,20 @@ export default function ChatPage() {
                     />
 
                     <div className="flex items-center gap-1.5 pr-1">
-                      {input.trim() ? (
+                      {input.trim() && !busy ? (
                         <button
                           onClick={() => send()}
                           className="h-9 w-9 flex items-center justify-center rounded-full bg-[var(--text)] text-[var(--bg)] hover:opacity-90 transition-all shrink-0"
                         >
                           <Send size={18} />
+                        </button>
+                      ) : busy ? (
+                        <button
+                          onClick={cancelResponse}
+                          className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white transition-all shrink-0 font-bold text-[13px] active:scale-95"
+                        >
+                          <X size={14} />
+                          Cancel
                         </button>
                       ) : (
                         <button
@@ -1648,13 +1699,20 @@ export default function ChatPage() {
                     rows={1}
                   />
                   <div className="flex items-center gap-1.5 pr-1">
-                    {input.trim() ? (
+                    {input.trim() && !busy ? (
                       <button
                         onClick={() => { send(); if (inputRef.current) inputRef.current.style.height = 'auto'; }}
-                        disabled={busy}
                         className="h-9 w-9 flex items-center justify-center rounded-full bg-[var(--text)] text-[var(--bg)] shadow-sm hover:opacity-90 transition-all shrink-0"
                       >
                         <Send size={18} />
+                      </button>
+                    ) : busy ? (
+                      <button
+                        onClick={cancelResponse}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white transition-all shrink-0 font-bold text-[13px] active:scale-95"
+                      >
+                        <X size={14} />
+                        Cancel
                       </button>
                     ) : (
                       <button

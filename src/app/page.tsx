@@ -112,7 +112,7 @@ export default function Home() {
       <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col items-center justify-start transition-colors duration-500 overflow-x-hidden relative">
         
         {/* Real Turkish Flag Video Background */}
-        <div className="absolute inset-x-0 top-0 h-[52vh] md:h-[58vh] dark:bg-[#a00000] bg-gradient-to-br from-white via-red-50 to-red-100 pointer-events-none z-0 select-none overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-[52vh] md:h-[58vh] xl:h-[90vh] dark:bg-[#a00000] bg-gradient-to-br from-white via-red-50 to-red-100 pointer-events-none z-0 select-none overflow-hidden">
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -138,7 +138,7 @@ export default function Home() {
         </div>
 
       {/* ═══════════════ PERMIT ASSISTANT CONTENT ═══════════════ */}
-      <section className="w-full max-w-4xl mx-auto flex flex-col items-center text-center space-y-4 md:space-y-5 pt-14 md:pt-16 pb-4 md:pb-6 px-6 relative z-10">
+      <section className="w-full max-w-4xl mx-auto flex flex-col items-center text-center space-y-4 md:space-y-5 pt-14 md:pt-16 pb-4 md:pb-6 xl:h-[90vh] xl:pt-[18vh] xl:pb-10 px-6 relative z-10">
 
         {/* Animated Header Group */}
         <motion.div
@@ -234,7 +234,7 @@ export default function Home() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 2.8, duration: 1 }}
-          className="pt-2 flex flex-col items-center gap-1 cursor-pointer group"
+          className="pt-2 flex flex-col items-center gap-1 cursor-pointer group xl:mt-auto"
           onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
         >
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--muted)] group-hover:text-[var(--text)] transition-colors">

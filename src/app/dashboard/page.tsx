@@ -548,7 +548,7 @@ export default function Dashboard() {
 
   const renderContent = () => {
     if (loading && !generatingWorkflow) {
-      return <LoadingScreen agentType={activeAssistantType} />;
+      return <LoadingScreen />;
     }
 
     return (

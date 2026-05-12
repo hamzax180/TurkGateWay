@@ -260,6 +260,13 @@ def learn(
     Returns:
         True if the response was saved, False if skipped.
     """
+    # --- Scrub session_id to prevent leaking across sessions ---
+    if dashboard_state:
+        import copy
+        dashboard_state = copy.deepcopy(dashboard_state)
+        if "business_profile" in dashboard_state and "session_id" in dashboard_state["business_profile"]:
+            del dashboard_state["business_profile"]["session_id"]
+            
     # --- Guard clauses ---
     if not response or len(response.strip()) < _MIN_RESPONSE_LENGTH:
         return False

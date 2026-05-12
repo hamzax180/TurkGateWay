@@ -81,7 +81,7 @@ export default function SignupPage() {
     };
 
     return (
-        <main className="min-h-screen bg-[#fff] dark:bg-[#000] flex items-center justify-center p-4 font-sans selection:bg-black selection:text-white transition-colors duration-500 relative overflow-hidden">
+        <main className="min-h-screen bg-[var(--bg)] flex items-center justify-center p-4 font-sans selection:bg-black selection:text-white transition-colors duration-500 relative overflow-hidden">
             {/* ── Immersive Chat Background Preview ── */}
             <div className="absolute inset-0 z-0 opacity-20 dark:opacity-10 pointer-events-none select-none">
                 <div className="h-full w-full flex">
@@ -114,7 +114,7 @@ export default function SignupPage() {
             <motion.div
                 initial={{ opacity: 0, scale: 0.98, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                className="w-full max-w-[480px] bg-white dark:bg-[#171717] rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100 dark:border-white/10 relative overflow-hidden z-10"
+                className="w-full max-w-[480px] bg-white dark:bg-[#0f0f0f] rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-gray-100 dark:border-white/[0.08] relative overflow-hidden z-10"
             >
                 <div className="px-10 py-12 flex flex-col items-center">
                     {/* Close Button */}
@@ -187,7 +187,7 @@ export default function SignupPage() {
 
                         <p className="text-center text-[14px] text-gray-600 dark:text-gray-400 pt-4">
                             Already have an account?{' '}
-                            <Link href="/login" className="text-[#10a37f] font-medium hover:underline">{t('auth_signin_instead')}</Link>
+                            <Link href="/login" className="text-blue-500 font-medium hover:underline">{t('auth_signin_instead')}</Link>
                         </p>
 
                         {/* Legal Footer Section from Screenshot */}

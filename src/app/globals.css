@@ -44,11 +44,24 @@ html[data-scroll-behavior="smooth"] {
 }
 
 html {
-  /* Fluid base font: scales smoothly between 13px (small laptops ~1024px) 
-     and 16px (large desktops ~1920px). All rem units inherit this scale. */
-  font-size: clamp(13px, 0.7vw + 6px, 16px);
+  /* Default for large screens (>1280px): full 16px base */
+  font-size: 16px;
   text-size-adjust: 100%;
   -webkit-text-size-adjust: 100%;
+}
+
+/* Small laptops only (768px–1280px): fluid scale 13px→15px */
+@media (min-width: 768px) and (max-width: 1280px) {
+  html {
+    font-size: clamp(13px, 0.9vw + 4.5px, 15px);
+  }
+}
+
+/* Mobile (< 768px): comfortable fixed size, not affected */
+@media (max-width: 767px) {
+  html {
+    font-size: 14px;
+  }
 }
 
 html,

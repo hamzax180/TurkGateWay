@@ -214,7 +214,7 @@ export default function LoginModal() {
                                         {step === 2 && (error.toLowerCase().includes('incorrect') || error.toLowerCase().includes('password') || error.toLowerCase().includes('unauthorized')) && (
                                             <p className="text-xs text-[var(--muted)]">
                                                 No account yet?{' '}
-                                                <Link href="/signup" onClick={() => setIsLoginModalOpen(false)} className="text-[#10a37f] font-medium hover:underline">Sign up instead</Link>
+                                                <Link href="/signup" onClick={() => setIsLoginModalOpen(false)} className="text-blue-500 font-medium hover:underline">Sign up instead</Link>
                                             </p>
                                         )}
                                     </div>

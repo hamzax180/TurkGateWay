@@ -206,7 +206,8 @@ INTENT_MAP = {
     # --- Student Agent intents ---
     "student.renew_id": [
         r"\b(renew (my )?(student|uni|university|campus) (id|kimlik|card)|(student|uni) id renewal|expired (student id|uni id)|replace (my )?(student|uni) (id|card))\b",
-        r"(تجديد [اأ]?ل?هوي[ةه] [اأ]?ل?جامعي[ةه]|تجديد بطاق[ةه] [اأ]?ل?جامع[ةه]|بطاق[ةه] طالب|هوي[ةه] طالب|تجديد [اأ]?ل?كارنيه [اأ]?ل?جامعي)"
+        r"\b(get (a |an |my )?(new |student )?(id|kimlik|id card)|want (a |an |my )?(id|kimlik)|need (a |an )?(id|kimlik|student id)|apply for (a |an )?(kimlik|student id|id card)|obtain (a |an )?(id|kimlik)|i want to get (a |an )?(id|kimlik)|id application|kimlik application|first.?time (id|kimlik)|new kimlik|get kimlik)\b",
+        r"(تجديد [اأ]?ل?هوي[ةه] [اأ]?ل?جامعي[ةه]|تجديد بطاق[ةه] [اأ]?ل?جامع[ةه]|بطاق[ةه] طالب|هوي[ةه] طالب|تجديد [اأ]?ل?كارنيه [اأ]?ل?جامعي|أريد بطاقة|احتاج كيملك|الحصول على كيملك)"
     ],
     "student.kimlik_lost": [
         r"\b(lost (my )?(kimlik|student id|id card)|stolen (kimlik|card)|missing (kimlik|id))\b",
@@ -499,6 +500,23 @@ def detect_intent(
     if candidates:
         # Sort by confidence descending
         candidates.sort(key=lambda x: x[2], reverse=True)
+
+        # Guard: If the user is on the student agent and the query clearly
+        # contains a university registration signal (e.g. "register in istanbul
+        # university"), suppress any permit-domain redirect so that district
+        # keywords like "istanbul" don't send them to the Permit Agent.
+        _student_reg_signals = [
+            "register", "enroll", "university", "uni", "apply", "admission",
+            "registration", "enrolment"
+        ]
+        _is_student_reg = (assistant_type == "student"
+                           and any(s in text for s in _student_reg_signals))
+        if _is_student_reg:
+            candidates = [(g, s, c) for g, s, c in candidates if g != "permit"]
+
+        if not candidates:
+            return None, None, 0.0
+
         best_group, best_sub, best_conf = candidates[0]
         
         # Redirection logic

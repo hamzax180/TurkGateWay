@@ -79,7 +79,7 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
           : 'bg-transparent'
         }`}
     >
-      <div className="w-full px-4 md:px-6 flex items-center" style={{ height: 'clamp(52px, 5vw, 64px)', gap: 0 }}>
+      <div className="w-full px-4 md:px-6 flex items-center" style={{ height: '64px', gap: 0 }}>
         {/* Mobile Menu Toggle */}
         <button
           className="md:hidden p-2 text-gray-400 hover:text-white transition-colors"
@@ -102,7 +102,7 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
                   key={href}
                   href={href}
                   className={`relative rounded-lg transition-colors ${active ? 'text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
-                  style={{ padding: 'clamp(4px, 0.4vw, 6px) clamp(5px, 0.55vw, 9px)', fontSize: 'clamp(11px, 0.8vw, 13px)', fontWeight: 500 }}
+                  style={{ padding: 'clamp(4px, 0.4vw, 8px) clamp(5px, 0.55vw, 12px)', fontSize: 'clamp(11px, 0.8vw, 14px)', fontWeight: 500 }}
                 >
                   {active && (
                     <motion.span
@@ -155,14 +155,14 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
               <button
                 onClick={() => setIsLoginModalOpen(true)}
                 className="font-medium text-[var(--muted)] hover:text-[var(--text)] transition-colors"
-                style={{ padding: 'clamp(4px, 0.4vw, 8px) clamp(8px, 0.8vw, 16px)', fontSize: 'clamp(11px, 0.85vw, 13px)' }}
+                style={{ padding: 'clamp(4px, 0.4vw, 8px) clamp(8px, 0.8vw, 16px)', fontSize: 'clamp(11px, 0.85vw, 14px)' }}
               >
                 {t('navbar_login')}
               </button>
               <Link href="/signup">
                 <button
                   className="bg-[var(--text)] text-[var(--bg)] hover:opacity-90 rounded-full font-bold shadow-lg transition-all active:scale-95 whitespace-nowrap"
-                  style={{ padding: 'clamp(5px, 0.45vw, 8px) clamp(10px, 1vw, 20px)', fontSize: 'clamp(11px, 0.85vw, 13px)' }}
+                  style={{ padding: 'clamp(5px, 0.45vw, 9px) clamp(10px, 1vw, 20px)', fontSize: 'clamp(11px, 0.85vw, 14px)' }}
                 >
                   {t('signup_free')}
                 </button>

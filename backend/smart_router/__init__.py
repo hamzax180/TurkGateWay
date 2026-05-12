@@ -748,11 +748,17 @@ async def smart_router_handle(
         if target_agent == "lawyer": suffix = {"tr": "Bu konu hukuki uzmanl\u0131k gerektirmektedir. L\u00fctfen yukar\u0131dan **Avukat Dan\u0131\u015fman\u0131** moduna ge\u00e7in.", "ar": "\u0647\u0630\u0627 \u0627\u0644\u0645\u0648\u0636\u0648\u0639 \u064a\u062a\u0637\u0644\u0628 \u062e\u0628\u0631\u0629 \u0642\u0627\u0646\u0648\u0646\u064a\u0629. \u064a\u0631\u062c\u0649 \u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0644\u0648\u0636\u0639 **\u0627\u0644\u0645\u0633\u062a\u0634\u0627\u0631 \u0627\u0644\u0642\u0627\u0646\u0648\u0646\u064a** \u0645\u0646 \u0627\u0644\u0623\u0639\u0644\u0649.", "en": "This topic requires legal expertise. Please switch to **Lawyer Agent** mode."}.get(language, "Switch to Lawyer mode.")
         elif target_agent == "student": suffix = {"tr": "\u00d6\u011frenci prosed\u00fcrleri i\u00e7in l\u00fctfen yukar\u0131dan **\u00d6\u011frenci Dan\u0131\u015fman\u0131** moduna ge\u00e7in.", "ar": "\u0628\u0627\u0644\u0646\u0633\u0628\u0629 \u0644\u0644\u0625\u062c\u0631\u0627\u0621\u0627\u062a \u0627\u0644\u0637\u0644\u0627\u0628\u064a\u0629\u060b \u064a\u0631\u062c\u0649 \u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0644\u0648\u0636\u0639 **\u0627\u0644\u0645\u0633\u062a\u0634\u0627\u0631 \u0627\u0644\u0637\u0644\u0627\u0628\u064a** \u0645\u0646 \u0627\u0644\u0623\u0639\u0644\u0649.", "en": "For student procedures, please switch to **Student Agent** mode."}.get(language, "Switch to Student mode.")
         else: suffix = {"tr": "\u0130\u015fletme ruhsat\u0131 i\u015flemleri i\u00e7in l\u00fctfen yukar\u0131dan **Ruhsat Dan\u0131\u015fman\u0131** moduna ge\u00e7in.", "ar": "\u0628\u0627\u0644\u0646\u0633\u0628\u0629 \u0644\u0625\u062c\u0631\u0627\u0621\u0627\u062a \u062a\u0631\u0627\u062e\u064a\u0636 \u0627\u0644\u0623\u0639\u0645\u0627\u0644\u060b \u064a\u0631\u062c\u0649 \u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0644\u0648\u0636\u0639 **\u0645\u0633\u062a\u0634\u0627\u0631 \u0627\u0644\u062a\u0631\u0627\u062e\u064a\u0636** \u0645\u0646 \u0627\u0644\u0623\u0639\u0644\u0649.", "en": "For business permit procedures, please switch to **Permit Agent** mode."}.get(language, "Switch to Permit mode.")
-        
-        # Add special action keyword 'REDIRECT_NEW_CHAT:target|message' so the frontend opens a new chat with correct agent
-        msg = f"REDIRECT_NEW_CHAT:{target_agent}|{suffix}"
-        await wait_task
-        return msg, None, f"Smart Router (Redirect to {target_agent})"
+        # Guard: Student agent asking about university registration should NEVER
+        # be redirected to the Permit Agent, even if a district name appears.
+        _student_reg_signals = ["register", "enroll", "university", "uni ", "apply", "admission", "registration"]
+        _is_student_reg_query = assistant_type == "student" and any(s in query.lower() for s in _student_reg_signals)
+        if _is_student_reg_query and target_agent == "permit":
+            print(f"[SmartRouter] Suppressing permit redirect — student is asking about university registration.")
+        else:
+            # Add special action keyword 'REDIRECT_NEW_CHAT:target|message' so the frontend opens a new chat with correct agent
+            msg = f"REDIRECT_NEW_CHAT:{target_agent}|{suffix}"
+            await wait_task
+            return msg, None, f"Smart Router (Redirect to {target_agent})"
 
     if _NEW_CONSULTATION_RE.search(query) or _ISOLATED_ANSWER_RE.match(query) or is_clarifying:
         from models.schemas import PermitState, CombinedPermitResult, ExecutionPlan, StepDetail, PermitPlan, AgentStep
@@ -908,8 +914,9 @@ async def smart_router_handle(
                     
             # Fallback: check entire history for district mentions
             if district_display is None:
+                _full_hist_lower = history_text.lower() if history_text else ""
                 for key, data in _DISTRICT_INFO.items():
-                    if key in user_history_text:
+                    if key in _full_hist_lower:
                         dname, mun_en, note_en, mun_tr, note_tr, mun_ar, note_ar = data
                         district_en = dname
                         district_display = dname
@@ -1046,7 +1053,22 @@ async def smart_router_handle(
                 return out_str, dashboard_dump, "Smart Router (Registration Roadmap)"
             
 
-            is_renew = ("renew" in query.lower() or "replace" in query.lower() or "uzat" in query.lower() or "\u062a\u062c\u062f\u064a\u062f" in query.lower()) and "kimlik" not in query.lower(); business_type, district, timeline = ("student_renew" if is_renew else "Student"), "Istanbul", (10 if is_renew else 30)
+            _q = query.lower()
+            _is_kimlik_new  = any(s in _q for s in [
+                "get a id", "get an id", "get my id", "want a id", "want an id",
+                "need an id", "need a id", "apply for id", "apply for an id",
+                "apply for kimlik", "get kimlik", "want kimlik", "need kimlik",
+                "get id card", "id application", "kimlik application",
+                "student id", "first time id", "first kimlik", "obtain id",
+                "obtain kimlik", "new id", "new kimlik",
+            ])
+            is_renew = (
+                "renew" in _q or "replace" in _q or "uzat" in _q or "\u062a\u062c\u062f\u064a\u062f" in _q
+            ) and "kimlik" not in _q
+            # First-time kimlik application → same 9-step roadmap as renewal
+            if _is_kimlik_new:
+                is_renew = True
+            business_type, district, timeline = ("student_renew" if is_renew else "Student"), "Istanbul", (10 if is_renew else 30)
             if language == "tr": permits, agencies, docs, summ = (["\u00d6\u011frenci \u0130kamet \u0130zni Uzatmas\u0131"], ["G\u00f6\u00e7 \u0130daresi", "Noter", "Sigorta \u015eirketi"], ["Sa\u011fl\u0131k Sigortas\u0131", "Noter Onayl\u0131 Kira S\u00f6zle\u015fmesi", "\u00d6\u011frenci Belgesi", "Biyometrik Foto\u011fraf"], "Sorun de\u011fil, hemen organize edelim! \ud83c\udf93 \u0130kamet yenileme s\u00fcreci birka\u00e7 ad\u0131mdan olu\u015fuyor.") if is_renew else (["\u00d6\u011frenci Kayd\u0131", "\u00d6\u011frenci \u0130kamet \u0130zni"], ["\u00d6\u011frenci \u0130\u015fleri", "G\u00f6\u00e7 \u0130daresi", "SGK"], ["Pasaport", "Kabul Mektubu", "Sa\u011fl\u0131k Sigortas\u0131"], "T\u00fcrkiye'de \u00f6\u011frenci olmak heyecan verici \u2014 tebrikler! \ud83c\udf93"); labels = {"ag":"Kurumlar", "dc":"Belgeler", "st":"Ad\u0111mlar", "tm":"Tahmini S\u00fcre", "dy":"g\u00fcn"}
             elif language == "ar": permits, agencies, docs, summ = (["\u062a\u0645\u062f\u064a\u062f \u0625\u0642\u0627\u0645\u0629 \u0627\u0644\u0637\u0627\u0644\u0628"], ["\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0647\u062c\u0631\u0629", "\u0627\u0644\u0639\u062f\u0644 (\u0627\u0644\u0646\u0648\u062a\u0631)", "\u0634\u0631\u0643\u0629 \u0627\u0644\u062a\u0623\u0645\u064a\u0646"], ["\u0627\u0644\u062a\u0623\u0645\u064a\u0646 \u0627\u0644\u0635\u062d\u064a", "\u0639\u0642\u062f \u0625\u064a\u062c\u0627\u0631 \u0645\u0648\u062b\u0642", "\u0634\u0647\u0627\u062f\u0629 \u0637\u0627\u0644\u0628", "\u0635\u0648\u0631 \u0634\u062e\u0635\u064a\u0629"], "\u0644\u0627 \u062a\u0642\u0644\u0642\u060b \u0633\u0646\u0631\u062a\u0628 \u0643\u0644 \u0634\u064a\u0621! \ud83c\udf93") if is_renew else (["\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062c\u0627\u0645\u0639\u0629", "\u0625\u0642\u0627\u0645\u0629 \u0627\u0644\u0637\u0627\u0644\u0628"], ["\u0634\u0624\u0648\u0646 \u0627\u0644\u0637\u0644\u0627\u0628", "\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0627\u0647\u062c\u0631\u0629", "SGK"], ["\u062c\u0648\u0627\u0632 \u0627\u0644\u0633\u0641\u0631", "\u062e\u0637\u0627\u0628 \u0627\u0644\u0642\u0628\u0648\u0644", "\u0627\u0644\u062a\u0623\u0645\u064a\u0646 \u0627\u0644\u0635\u062d\u064a"], "\u062a\u0647\u0627\u0646\u064a\u0646\u0627 \u0639\u0644\u0649 \u0642\u0628\u0648\u0644\u0643 \u0641\u064a \u0627\u0644\u062c\u0627\u0645\u0639\u0629! \ud83c\udf93"); labels = {"ag":"\u0627\u0644\u0645\u0624\u0633\u0633\u0627\u062a", "dc":"\u0627\u0644\u0645\u0633\u062a\u0646\u062f\u0627\u062a", "st":"\u062e\u0637\u0648\u0627\u062a\u0643", "tm":"\u0627\u0644\u0645\u062f\u0629", "dy":"\u064a\u0648\u0645"}
             else: permits, agencies, docs, summ = (["Student Residence Permit Extension"], ["Migration Office", "Notary Public", "Insurance Provider"], ["Health Insurance Policy", "Notarized Lease Agreement", "Student Certificate", "Photos"], "No stress \u2014 let's sort this out together! \ud83c\udf93") if is_renew else (["University Registration", "Student Residence Permit"], ["Student Affairs", "Migration Directorate", "SGK"], ["Passport", "Acceptance Letter", "Health Insurance"], "Welcome to Turkey \u2014 exciting times ahead! \ud83c\udf93"); labels = {"ag":"Agencies", "dc":"Documents", "st":"Steps", "tm":"Time", "dy":"days"}

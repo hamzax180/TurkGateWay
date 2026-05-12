@@ -182,14 +182,19 @@ export default function ServicesPage() {
       return;
     }
 
-    // Typewriter effect user input
+    // Typewriter effect — batch 4 chars per 30ms tick (prevents per-char re-render lag)
     setSimulatedText('');
-    let currentText = '';
-    for (let i = 0; i < target.text.length; i++) {
-      currentText += target.text[i];
-      setSimulatedText(currentText);
-      await new Promise(r => setTimeout(r, 20)); // ultra fast typewriter
-    }
+    await new Promise<void>(resolve => {
+      let charIdx = 0;
+      const iv = setInterval(() => {
+        charIdx = Math.min(charIdx + 4, target.text.length);
+        setSimulatedText(target.text.slice(0, charIdx));
+        if (charIdx >= target.text.length) {
+          clearInterval(iv);
+          resolve();
+        }
+      }, 30);
+    });
 
     // Brief pause to read user input
     await new Promise(r => setTimeout(r, 400));
@@ -214,12 +219,18 @@ export default function ServicesPage() {
     await new Promise(r => setTimeout(r, 600)); // AI 'thinking' delay
     setIsAiTyping(false);
 
-    let currentRes = '';
-    for (let i = 0; i < aiRes.length; i++) {
-      currentRes += aiRes[i];
-      setSimulatedResponse(currentRes);
-      await new Promise(r => setTimeout(r, 15));
-    }
+    // AI response — batch 8 chars per 25ms tick
+    await new Promise<void>(resolve => {
+      let charIdx = 0;
+      const iv = setInterval(() => {
+        charIdx = Math.min(charIdx + 8, aiRes.length);
+        setSimulatedResponse(aiRes.slice(0, charIdx));
+        if (charIdx >= aiRes.length) {
+          clearInterval(iv);
+          resolve();
+        }
+      }, 25);
+    });
 
     // The automation is complete. We intentionally DO NOT redirect to the 
     // dashboard here, as this is purely a visual marketing demonstration of 
@@ -328,7 +339,7 @@ export default function ServicesPage() {
     <>
       <AnimatePresence mode="wait">
         {(!isLoaded || isNavigating) && (
-          <LoadingScreen agentType={selectedAgent || loadingAgent} />
+          <LoadingScreen />
         )}
       </AnimatePresence>
 
