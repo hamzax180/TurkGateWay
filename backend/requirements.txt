@@ -14,3 +14,6 @@ slowapi
 iyzipay
 google-auth
 email-validator
+PyJWT
+bcrypt
+psycopg2-binary
