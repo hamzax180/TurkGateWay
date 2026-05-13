@@ -502,7 +502,7 @@ import uuid
 @limiter.limit("20/minute", key_func=user_id_key)
 async def get_chat_sessions(request: Request, user: DBUser = Depends(get_current_user), db: Session = Depends(get_db)):
     sessions = db.query(ChatSession).filter(ChatSession.user_id == user.id).order_by(ChatSession.is_favorite.desc(), ChatSession.created_at.desc()).all()
-    return [{"id": s.id, "title": s.title or "New Chat", "created_at": s.created_at, "assistant_type": s.assistant_type or "permit", "is_favorite": s.is_favorite} for s in sessions]
+    return [{"id": s.id, "title": s.title or "New Chat", "created_at": s.created_at, "assistant_type": s.assistant_type or "permit", "is_favorite": s.is_favorite, "service_id": s.service_id, "service_slots": json.loads(s.service_slots) if s.service_slots else None} for s in sessions]
 
 @app.post("/chat/sessions")
 @limiter.limit("20/minute", key_func=user_id_key)
@@ -524,7 +524,7 @@ async def toggle_session_favorite(request: Request, session_id: str, user: DBUse
     db.commit()
     return {"status": "success", "is_favorite": session.is_favorite}
 
-async def _get_history_context(session_id: str, db: Session, limit: int = 10, current_query: Optional[str] = None, strip_boilerplate: bool = False, user_id: Optional[int] = None) -> str:
+async def _get_history_context(session_id: str, db: Session, limit: int = 20, current_query: Optional[str] = None, strip_boilerplate: bool = False, user_id: Optional[int] = None) -> str:
     """Fetch recent chat history to provide context for the AI."""
     try:
         # 1. Ownership & Guest Check
@@ -562,9 +562,31 @@ async def _get_history_context(session_id: str, db: Session, limit: int = 10, cu
             return ""
 
         context = "\n--- PREVIOUS CONVERSATION HISTORY ---\n"
-        for m in reversed(msgs):
+        
+        # Fix #3: History compression after 3 turns (6 messages)
+        # msgs is ordered desc (newest first). msgs[0] is newest.
+        older_msgs = msgs[6:] if len(msgs) > 6 else []
+        recent_msgs = msgs[:6] if len(msgs) > 6 else msgs
+        
+        if older_msgs:
+            context += "[OLDER HISTORY COMPRESSED]\n"
+            for m in reversed(older_msgs):
+                role = "User" if m.role == "user" else "Assistant"
+                # Compress to max 100 chars
+                content = m.content[:100].replace('\n', ' ') + "..." if len(m.content) > 100 else m.content.replace('\n', ' ')
+                context += f"[{role}]: {content}\n"
+            context += "[/OLDER HISTORY]\n\n"
+            
+        for m in reversed(recent_msgs):
             role = "User" if m.role == "user" else "Assistant"
             content = m.content
+
+            # Fix #1: Compress the huge roadmap message into a 1-line anchor
+            if role == "Assistant" and len(content) > 300:
+                is_roadmap = any(kw in content.lower() for kw in ["📋", "roadmap", "yol haritası", "خريطة طريق", "action steps", "gerekli belgeler", "kurumlar", "permits (agencies)"])
+                if is_roadmap:
+                    content = "[ASSISTANT_ROADMAP: Detailed roadmap generated and displayed on user's dashboard. Do not repeat it unless explicitly asked.]"
+
             if strip_boilerplate and role == "Assistant":
                 lower_content = content.lower()
                 for marker in ["permits (agencies)", "required docs", "action steps", "📋"]:
@@ -885,18 +907,77 @@ async def _run_with_lawyer_agents(query: str, user: Optional[DBUser] = None, db:
     raise ValueError("Empty agent result")
 
 
-async def _run_direct_gemini(query: str, user: Optional[DBUser] = None, db: Optional[Session] = None, language: str = "en", session_id: str = "default-session", is_followup: bool = False, file_obj=None, assistant_type: str = "permit") -> str:
+async def _run_direct_gemini(
+    query: str,
+    user: Optional[DBUser] = None,
+    db: Optional[Session] = None,
+    language: str = "en",
+    session_id: str = "default-session",
+    is_followup: bool = False,
+    file_obj=None,
+    assistant_type: str = "permit",
+    # Fix #1: receive confirmed session context so it can anchor the Gemini prompt
+    session_service_id: Optional[str] = None,
+    session_service_slots: Optional[dict] = None,
+) -> str:
     """Direct Gemini call — fast and reliable fallback."""
     global guest_dashboard_states
     history = ""
     if db:
         history = await _get_history_context(session_id, db, current_query=query, strip_boilerplate=is_followup, user_id=user.id if user else None)
-        
+
     full_query = f"{history}\nCURRENT USER REQUEST: {query}"
-    
+
     if is_followup:
         full_query = f"SYSTEM INSTRUCTION: This is a specific follow-up question. YOU MUST NOT append the 'Permits/Institutions', 'Required Docs', or 'Action Steps' lists to your answer. Just answer the user's specific question concisely.\n\n{full_query}"
-    
+
+    # Pick the base model first
+    if is_followup:
+        if assistant_type == "student":
+            model_to_use = student_chat_model
+        elif assistant_type == "lawyer":
+            model_to_use = lawyer_chat_model
+        else:
+            model_to_use = chat_model
+    else:
+        if assistant_type == "student":
+            model_to_use = student_model
+        elif assistant_type == "lawyer":
+            model_to_use = lawyer_model
+        else:
+            model_to_use = gemini_model
+
+    # Fix #6: Rebuild the model system instruction per-session
+    if session_service_slots:
+        _btype = session_service_slots.get("business_type") or ""
+        _dist  = session_service_slots.get("district") or ""
+        _uni   = session_service_slots.get("university") or ""
+        _topic = session_service_slots.get("legal_topic") or ""
+        _parts = []
+        if _btype:  _parts.append(f"business_type={_btype}")
+        if _dist:   _parts.append(f"district={_dist}")
+        if _uni:    _parts.append(f"university={_uni}")
+        if _topic:  _parts.append(f"legal_topic={_topic}")
+        if _parts:
+            _anchor_text = (
+                f"\n\n[CONFIRMED SERVICE CONTEXT FOR THIS SESSION]\n"
+                f"You are currently consulting for: {', '.join(_parts)}. "
+                f"This is the established ground truth. Do not ask the user for this information again. "
+                f"All your advice must be tailored specifically to this context."
+            )
+            try:
+                base_inst = model_to_use._system_instruction.parts[0].text
+                new_inst = base_inst + _anchor_text
+                model_to_use = genai.GenerativeModel(
+                    model_name=model_to_use.model_name,
+                    system_instruction=new_inst
+                )
+                print(f"[DirectGemini] Rebuilt model system instruction with anchor: {_parts}")
+            except Exception as e:
+                print(f"[DirectGemini] Could not rebuild model instruction: {e}")
+                # Fallback to prompt injection (Fix #1 style)
+                full_query = _anchor_text + "\n\n" + full_query
+
     localized_query = full_query
     if language == "ar":
         localized_query = f"Answer in Arabic: {full_query}"
@@ -907,23 +988,41 @@ async def _run_direct_gemini(query: str, user: Optional[DBUser] = None, db: Opti
     if file_obj:
         prompt_list.insert(0, file_obj)
         
-    if is_followup:
-        if assistant_type == "student":
-            model_to_use = student_chat_model
-        elif assistant_type == "lawyer":
-            model_to_use = lawyer_chat_model
-        else:
-            model_to_use = chat_model
-        response = await asyncio.to_thread(model_to_use.generate_content, prompt_list)
-    else:
-        if assistant_type == "student":
-            model_to_use = student_model
-        elif assistant_type == "lawyer":
-            model_to_use = lawyer_model
-        else:
-            model_to_use = gemini_model
-        response = await asyncio.to_thread(model_to_use.generate_content, prompt_list)
+    response = await asyncio.to_thread(model_to_use.generate_content, prompt_list)
+    answer = response.text
     
+    # Fix #4: Answer quality filter + retry
+    is_bad_answer = False
+    lower_ans = answer.lower().strip()
+    if not answer or len(lower_ans) < 30:
+        is_bad_answer = True
+        
+    bad_phrases = [
+        "could you clarify",
+        "could you please clarify",
+        "i apologize, i don't have info",
+        "i cannot provide",
+        "what type of business",
+        "hangi tür işletme",
+        "hangi ilçe",
+        "which district"
+    ]
+    if session_service_slots and any(p in lower_ans for p in bad_phrases):
+        is_bad_answer = True
+
+    if is_bad_answer:
+        print(f"[DirectGemini] Quality filter caught bad answer. Retrying with strict instruction.")
+        strict_instruction = (
+            "\n\nCRITICAL SYSTEM INSTRUCTION: You MUST answer the user's question using the provided [CONFIRMED SERVICE CONTEXT]. "
+            "DO NOT ask the user to clarify their business type or district, as it is already confirmed. Provide a helpful, direct answer."
+        )
+        prompt_list[0] = prompt_list[0] + strict_instruction
+        try:
+            response = await asyncio.to_thread(model_to_use.generate_content, prompt_list)
+            answer = response.text
+        except Exception as e:
+            print(f"[DirectGemini] Retry failed: {e}")
+
     # Only mock state if we don't already have one for this session
     has_state = False
     if user and db:
@@ -951,7 +1050,7 @@ async def _run_direct_gemini(query: str, user: Optional[DBUser] = None, db: Opti
                 "assigned_agents": ["Planner", "Classifier"]
             },
             "last_updated": datetime.datetime.now().isoformat(),
-            "direct_answer": response.text
+            "direct_answer": answer
         }
         
         # Custom labels/permits based on agent type
@@ -989,9 +1088,9 @@ async def _run_direct_gemini(query: str, user: Optional[DBUser] = None, db: Opti
         
     if user:
         # Learn for the future (direct calls are often information-rich)
-        learn_response(query, response.text, assistant_type, language, dashboard_state=mock_state if not has_state else None)
+        learn_response(query, answer, assistant_type, language, dashboard_state=mock_state if not has_state else None)
         
-    return response.text
+    return answer
 
 
 @app.post("/agent/query")
@@ -1128,7 +1227,31 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
                     clean = clean[:32] + "..."
                 db_session.title = clean if clean else "New Consultation"
                 db.commit()
-        
+
+        # ------------------------------------------------------------------
+        # Load persisted service context from DB session (before any routing)
+        # This gives the smart router confirmed structured state so it doesn't
+        # have to re-infer the service from scratch on every follow-up message.
+        # ------------------------------------------------------------------
+        session_service_id    = None
+        session_service_slots = {}
+        if db_session:
+            session_service_id = db_session.service_id  # e.g. "permit:cafe:kadikoy"
+            if db_session.service_slots:
+                try:
+                    session_service_slots = json.loads(db_session.service_slots)
+                except Exception:
+                    session_service_slots = {}
+            print(f"[SessionCtx] service_id={session_service_id!r} slots={session_service_slots}")
+
+            # Fix #4: Use the persisted language if present; save it on first message.
+            if db_session.language and db_session.language in {"en", "tr", "ar"}:
+                language = db_session.language  # confirmed language overrides frontend value
+            else:
+                # First request for this session — persist the detected language
+                db_session.language = language
+                db.commit()
+
         # Save user message — PRIVACY RULE: No guest chat saving to DB
         if user:
             user_msg = ChatMessage(session_id=session_id, role="user", content=query_text)
@@ -1181,7 +1304,17 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
                 # get history for smart router context to detect isolated answers (e.g. "Kadikoy")
                 # Use a larger limit (12) to prevent amnesia if the user makes typos or chats in between questions
                 history_text = await _get_history_context(session_id, db, limit=12, strip_boilerplate=True, user_id=user.id if user else None)
-                
+
+                # Prepend confirmed session service context so the router
+                # doesn't re-derive it from scratch on every follow-up turn.
+                service_context_prefix = ""
+                if session_service_id:
+                    service_context_prefix = (
+                        f"[SESSION_CONTEXT] service_id={session_service_id} "
+                        f"slots={json.dumps(session_service_slots)}\n"
+                    )
+                    history_text = service_context_prefix + history_text
+
                 smart_answer, offline_state, smart_source = await _smart_router_handle(
                     query=query_text,
                     assistant_type=assistant_type,
@@ -1207,9 +1340,8 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
                     if offline_state:
                         # Offline dashboard generation without an AI request
                         print("\n" + "="*70)
-                        print(f"✅ [ZERO-TOKEN OFFLINE GENERATOR] Offline Dashboard built for {assistant_type.upper()}")
+                        print(f"[ZERO-TOKEN OFFLINE GENERATOR] Offline Dashboard built for {assistant_type.upper()}")
                         print("="*70 + "\n")
-                        import json
                         offline_state_json = json.dumps(offline_state)
                         if db_session:
                             db_session.dashboard_state = offline_state_json
@@ -1217,20 +1349,43 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
                             user.latest_dashboard_state = offline_state_json
                         else:
                             guest_dashboard_states[session_id] = offline_state_json
-                        
-                        # --- Update session title to reflect what was chosen ---
+
+                        # --- Persist service_id + service_slots to DB session ---
                         if db_session:
                             combined = offline_state.get("combined_result") or {}
                             btype = combined.get("business_type", "") or ""
-                            loc = combined.get("location", "") or ""
-                            # Build a descriptive title from business type + location
-                            if assistant_type == "permit" and btype and btype != "Business":
-                                new_title = f"{btype} in {loc}" if loc and loc != "Istanbul" else btype
+                            loc   = combined.get("location", "") or ""
+                            uni   = (offline_state.get("business_profile") or {}).get("university", "") or ""
+
+                            # Build compound service_id
+                            if assistant_type == "permit" and btype:
+                                svc_id = f"permit:{btype.lower()}:{loc.lower()}" if loc else f"permit:{btype.lower()}"
+                            elif assistant_type == "student" and uni:
+                                svc_id = f"student:register_uni:{uni.lower().replace(' ', '_')}"
                             elif assistant_type == "student":
-                                if "renew" in btype.lower() if btype else False:
-                                    new_title = "Student ID Renewal"
-                                else:
-                                    new_title = "University Registration"
+                                svc_id = f"student:{btype.lower()}" if btype else "student:general"
+                            elif assistant_type == "lawyer":
+                                svc_id = f"lawyer:{btype.lower()}" if btype else "lawyer:general"
+                            else:
+                                svc_id = f"{assistant_type}:general"
+
+                            slots = {
+                                "business_type": btype or None,
+                                "district":      loc  or None,
+                                "university":    uni  or None,
+                                "legal_topic":   btype if assistant_type == "lawyer" else None,
+                                "assistant_type": assistant_type,
+                            }
+                            db_session.service_id    = svc_id
+                            db_session.service_slots = json.dumps(slots)
+                            print(f"[SessionCtx] Persisted service_id={svc_id!r}")
+
+                            # --- Update session title to reflect what was chosen ---
+                            btype_raw = btype  # keep original for title
+                            if assistant_type == "permit" and btype_raw and btype_raw != "Business":
+                                new_title = f"{btype_raw} in {loc}" if loc and loc != "Istanbul" else btype_raw
+                            elif assistant_type == "student":
+                                new_title = "Student ID Renewal" if "renew" in (btype or "").lower() else "University Registration"
                             elif assistant_type == "lawyer":
                                 _LAWYER_TITLES = {
                                     "lawyer_contract": "Contract Review",
@@ -1246,9 +1401,7 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
                             else:
                                 new_title = None
                             if new_title:
-                                if len(new_title) > 35:
-                                    new_title = new_title[:32] + "..."
-                                db_session.title = new_title
+                                db_session.title = new_title[:35]
                     else:
                         print("\n" + "="*70)
                         print(f"📖 [ZERO-TOKEN LIBRARY MATCH] Predefined text response served")
@@ -1306,15 +1459,45 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
                     is_uni_q = any(k in q_lower for k in uni_keywords)
                     is_renewal_q = any(k in q_lower for k in renewal_keywords)
                     # If they shift topics (e.g. had renewal and now asking uni or vice versa), redirect
-                    if is_uni_q and not is_renewal_q:
+                    # Fix #3: Only redirect if NO confirmed service_id — if service is confirmed,
+                    # the user is in an active session and we must not kick them out.
+                    if is_uni_q and not is_renewal_q and not session_service_id:
                         return {"content": "REDIRECT_NEW_CHAT:It looks like you're asking about a completely new topic (university search). I'll open a fresh chat for you so we can start your university roadmap from scratch! 🎓", "session_title": db_session.title if db_session else None}
                 
                 if is_direct:
                     print("\n" + "="*70)
-                    print(f"🤖 [AI DIRECT REPLY] Using Gemini for a follow-up or specific {assistant_type} question")
+                    print(f"[AI DIRECT REPLY] Using Gemini for a follow-up or specific {assistant_type} question")
                     print("="*70 + "\n")
                     source = f"Direct AI Reply ({assistant_type} agent)"
-                    answer = await _run_direct_gemini(query_text, user, db, language, session_id, is_followup=is_followup_prompt, file_obj=file_obj, assistant_type=assistant_type)
+
+                    # Fix #5: Step-specific context injection.
+                    # If user says "step 2" or "explain step 3", pull that step's
+                    # details from the saved dashboard state and prepend them so
+                    # Gemini answers precisely instead of generically.
+                    _step_query = query_text
+                    import re as _re
+                    _step_match = _re.search(r'\bstep\s*(\d+)\b', query_text.lower())
+                    if _step_match and db_session and db_session.dashboard_state:
+                        try:
+                            _ds = json.loads(db_session.dashboard_state)
+                            _steps = (_ds.get("execution_plan") or {}).get("steps", [])
+                            _idx = int(_step_match.group(1)) - 1  # convert to 0-based
+                            if 0 <= _idx < len(_steps):
+                                _s = _steps[_idx]
+                                _title = _s.get("title", "")
+                                _notes = _s.get("notes", "")
+                                _responsible = _s.get("responsible", "")
+                                _step_ctx = (
+                                    f"[STEP CONTEXT] The user is asking about Step {_idx+1}: "
+                                    f'"{_title}" (Handled by: {_responsible}). '
+                                    f'Notes: {_notes}\n'
+                                )
+                                _step_query = _step_ctx + query_text
+                                print(f"[StepCtx] Injected step {_idx+1} details: {_title!r}")
+                        except Exception as _se:
+                            print(f"[StepCtx] Could not inject step context: {_se}")
+
+                    answer = await _run_direct_gemini(_step_query, user, db, language, session_id, is_followup=is_followup_prompt, file_obj=file_obj, assistant_type=assistant_type, session_service_id=session_service_id, session_service_slots=session_service_slots)
                 else:
                     if assistant_type == "student":
                         print("\n" + "="*70)
@@ -1339,15 +1522,55 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
                 print(f"[AgentPipeline ERROR] {agent_err}")
                 traceback.print_exc()
                 # For student queries, always try the student direct model not the permit one
-                answer = await _run_direct_gemini(query_text, user, db, language, session_id, is_followup=False, file_obj=file_obj, assistant_type=assistant_type)
+                answer = await _run_direct_gemini(query_text, user, db, language, session_id, is_followup=False, file_obj=file_obj, assistant_type=assistant_type, session_service_id=session_service_id, session_service_slots=session_service_slots)
                 source = "AI Direct Reply (Pipeline Recovery)"
         else:
             print("\n" + "="*70)
             print(f"🤖 [AI DIRECT FALLBACK] Agents down or missing, using direct Gemini API")
             print("="*70 + "\n")
             source = "AI Direct Fallback (Agents Down)"
-            answer = await _run_direct_gemini(query_text, user, db, language, session_id, is_followup=True, file_obj=file_obj, assistant_type=assistant_type)
+            answer = await _run_direct_gemini(query_text, user, db, language, session_id, is_followup=True, file_obj=file_obj, assistant_type=assistant_type, session_service_id=session_service_id, session_service_slots=session_service_slots)
         
+        # ------------------------------------------------------------------
+        # Persist service_id + service_slots after AI orchestrator builds plan
+        # This runs even when the smart router passes through to the orchestrator
+        # (e.g. first-time new consultation queries).
+        # ------------------------------------------------------------------
+        if db_session and not db_session.service_id:
+            _state_to_check = None
+            if db_session.dashboard_state:
+                try:
+                    _state_to_check = json.loads(db_session.dashboard_state)
+                except Exception:
+                    pass
+            if _state_to_check:
+                _combined = _state_to_check.get("combined_result") or {}
+                _btype = _combined.get("business_type", "") or ""
+                _loc   = _combined.get("location", "") or ""
+                _uni   = (_state_to_check.get("business_profile") or {}).get("university", "") or ""
+                if _btype or _uni:
+                    if assistant_type == "permit" and _btype:
+                        _svc_id = f"permit:{_btype.lower()}:{_loc.lower()}" if _loc else f"permit:{_btype.lower()}"
+                    elif assistant_type == "student" and _uni:
+                        _svc_id = f"student:register_uni:{_uni.lower().replace(' ', '_')}"
+                    elif assistant_type == "student":
+                        _svc_id = f"student:{_btype.lower()}" if _btype else "student:general"
+                    elif assistant_type == "lawyer":
+                        _svc_id = f"lawyer:{_btype.lower()}" if _btype else "lawyer:general"
+                    else:
+                        _svc_id = f"{assistant_type}:general"
+                    _slots = {
+                        "business_type":  _btype or None,
+                        "district":       _loc   or None,
+                        "university":     _uni   or None,
+                        "legal_topic":    _btype if assistant_type == "lawyer" else None,
+                        "assistant_type": assistant_type,
+                    }
+                    db_session.service_id    = _svc_id
+                    db_session.service_slots = json.dumps(_slots)
+                    db.commit()
+                    print(f"[SessionCtx] AI Orchestrator persisted service_id={_svc_id!r}")
+
         if True: # Always save assistant message now that we have session tracking
             # Run direct gemini
             # Perform a case-insensitive search to catch any bolding/emoji variations
@@ -1384,12 +1607,13 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
                              intent_hint = ds_state["combined_result"].get("business_type")
                     
                     learn_response(
-                        query=query_text, 
-                        response=answer, 
-                        assistant_type=assistant_type, 
-                        language=language, 
+                        query=query_text,
+                        response=answer,
+                        assistant_type=assistant_type,
+                        language=language,
                         intent_hint=intent_hint,
-                        dashboard_state=ds_state
+                        dashboard_state=ds_state,
+                        service_id=session_service_id,  # Fix #2: namespace by confirmed service
                     )
                 except Exception as l_err:
                     print(f"[Adaptive LEARNING ERROR] {l_err}")

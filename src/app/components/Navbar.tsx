@@ -152,6 +152,14 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
             </>
           ) : (
             <>
+              <Link
+                href="/pricing"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/5 border border-blue-500/20 text-blue-400/80 text-[11px] font-medium transition-all hover:border-blue-500/40 hover:bg-blue-500/10 no-underline shadow-sm"
+              >
+                <span>Free Plan</span>
+                <span className="opacity-40">•</span>
+                <span className="font-bold text-blue-500">Upgrade</span>
+              </Link>
               <button
                 onClick={() => setIsLoginModalOpen(true)}
                 className="font-medium text-[var(--muted)] hover:text-[var(--text)] transition-colors"

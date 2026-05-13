@@ -709,17 +709,72 @@ def get_localized_steps(lang: str = "en", business_type: str = "Business"):
     """
     Return dynamic step list (id, title, responsible, notes) based on
     detected business category and requested language.
-
-    Step counts:
-      food     → 16  (adds Gıda Sicil, hygiene inspection, fire safety)
-      retail   → 13  (no food permits, no capital deposit)
-      service  → 14  (virtual office OK, no food steps)
-      general  → 14  (safe fallback)
-
-    Agent steps carry detailed 🔒 manual instructions — bot disabled pending legal approval.
     """
     btype = _detect_type(business_type)
     builder = _BUILDERS.get(btype, _steps_general)
     supported = {"en", "tr", "ar"}
     safe_lang = lang if lang in supported else "en"
-    return builder(safe_lang)
+    base_steps = builder(safe_lang)
+    
+    # Fix #5: Branch offline roadmap steps by specific business requirements
+    bt_lower = business_type.lower()
+    extra_steps = []
+    
+    # 1. Pharmacy / Medical
+    if any(k in bt_lower for k in ["pharmacy", "eczane", "صيدلية", "medical", "medikal"]):
+        extra_steps.append({
+            "en": ("Obtain Ministry of Health Approval", "Human", "Required to operate a pharmacy or medical supply store. Apply at Provincial Health Directorate."),
+            "tr": ("Sağlık Bakanlığı Onayı Al", "İnsan", "Eczane veya medikal mağaza için İl Sağlık Müdürlüğüne başvuru zorunludur."),
+            "ar": ("الحصول على موافقة وزارة الصحة", "بشري", "مطلوب لتشغيل صيدلية أو متجر مستلزمات طبية.")
+        })
+        extra_steps.append({
+            "en": ("Register with Chamber of Pharmacists", "Human", "Mandatory registration with the Turkish Pharmacists' Association (TEB)."),
+            "tr": ("Eczacılar Odasına Kayıt Ol", "İnsan", "Türk Eczacıları Birliği (TEB) kaydı zorunludur."),
+            "ar": ("التسجيل في غرفة الصيادلة", "بشري", "تسجيل إلزامي في نقابة الصيادلة التركية.")
+        })
+
+    # 2. Alcohol / TAPDK
+    if any(k in bt_lower for k in ["alcohol", "tekel", "bar ", "pub", "liquor", "alkol", "meyhane"]):
+        extra_steps.append({
+            "en": ("Obtain TAPDK Alcohol License", "Human", "Apply for Tobacco and Alcohol Market Regulatory Authority (TAPDK) license via Ministry of Agriculture."),
+            "tr": ("TAPDK Alkol Ruhsatı Al", "İnsan", "Tarım Bakanlığı üzerinden Tütün ve Alkol Piyasası Düzenleme Kurumu (TAPDK) ruhsatı alın."),
+            "ar": ("الحصول على رخصة الكحول TAPDK", "بشري", "تقدم بطلب للحصول على رخصة الكحول عبر وزارة الزراعة.")
+        })
+
+    # 3. Commercial Kitchens / Chimney
+    if any(k in bt_lower for k in ["cafe", "kafe", "restaur", "lokanta", "fırın", "bakery", "kebab", "döner", "burger", "pizza"]):
+        extra_steps.append({
+            "en": ("Chimney & Emission Compliance (Baca İzni)", "Human", "Must obtain a certified chimney report for commercial kitchens to pass fire/municipality checks."),
+            "tr": ("Baca ve Emisyon Uygunluk İzni", "İnsan", "İtfaiye/belediye onayı için ticari mutfaklara özel onaylı baca raporu zorunludur."),
+            "ar": ("تصريح المدخنة والانبعاثات", "بشري", "يجب الحصول على تقرير مدخنة معتمد للمطابخ التجارية لاجتياز الفحص البلدي.")
+        })
+        
+    # 4. Logistics / Transport (K-Belgesi)
+    if any(k in bt_lower for k in ["transport", "logistics", "lojistik", "nakliye", "shipping"]):
+        extra_steps.append({
+            "en": ("Obtain K-Type Authorization Certificate", "Human", "Mandatory 'K Belgesi' from the Ministry of Transport for commercial freight/logistics."),
+            "tr": ("K Yetki Belgesi Al", "İnsan", "Ticari yük taşımacılığı için Ulaştırma Bakanlığından zorunlu 'K Belgesi' alınmalıdır."),
+            "ar": ("الحصول على شهادة ترخيص فئة K", "بشري", "مطلوبة من وزارة النقل للشحن التجاري واللوجستيات.")
+        })
+
+    if extra_steps:
+        formatted_extras = []
+        for es in extra_steps:
+            title, resp, notes = es[safe_lang]
+            formatted_extras.append((0, title, resp, notes))
+            
+        # The last step is usually "Display Permits & Open for Business". 
+        # We inject compliance steps right before it.
+        final_step = base_steps.pop()
+        base_steps.extend(formatted_extras)
+        base_steps.append(final_step)
+
+    # Re-number steps so they are sequential 1, 2, 3...
+    renumbered = []
+    for i, s in enumerate(base_steps, 1):
+        if len(s) == 4:
+            renumbered.append((i, s[1], s[2], s[3]))
+        else:
+            renumbered.append((i, s[1], s[2], s[3], s[4]))
+            
+    return renumbered

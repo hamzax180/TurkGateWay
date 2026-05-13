@@ -548,7 +548,7 @@ export default function Dashboard() {
 
   const renderContent = () => {
     if (loading && !generatingWorkflow) {
-      return <LoadingScreen />;
+      return <LoadingScreen agentType={activeAssistantType} branded />;
     }
 
     return (
@@ -1064,10 +1064,6 @@ export default function Dashboard() {
             >
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-500 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 shadow-sm">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                    {t('dashboard_live_session')} - TRACKING ACTIVE
-                  </div>
                 </div>
                 <h1 className="text-4xl md:text-5xl font-extrabold text-[var(--text)] tracking-tight py-1 font-inter">
                   {(() => {
@@ -1110,20 +1106,14 @@ export default function Dashboard() {
 
               <div className="flex items-center gap-2.5 md:gap-3 shrink-0">
                 {/* Subscription Status Badge */}
-                <div className={`h-11 px-5 rounded-full flex items-center gap-2.5 border transition-all duration-300 cursor-default shadow-lg ${data?.subscription_status === 'active'
-                    ? 'glass-mesh mesh-emerald border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-emerald-500/10 active:scale-95'
-                    : 'bg-[var(--surface-2)]/80 border-[var(--border)] text-[var(--muted)] hover:border-[var(--border-2)] hover:bg-[var(--surface-2)] shadow-sm'
-                  }`}>
-                  <div className="relative">
-                    <Sparkles size={14} className={data?.subscription_status === 'active' ? 'text-emerald-500 animate-pulse' : 'text-[var(--muted)] opacity-50'} />
-                    {data?.subscription_status === 'active' && (
-                      <motion.div animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }} transition={{ duration: 2, repeat: Infinity }} className="absolute inset-0 bg-emerald-400 blur-md rounded-full -z-10" />
-                    )}
-                  </div>
-                  <span className="text-[12px] font-black uppercase tracking-[0.2em] hidden sm:inline-block whitespace-nowrap">
-                    {data?.subscription_status === 'active' ? t('dashboard_premium') : t('dashboard_free_plan')}
-                  </span>
-                </div>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                  data?.subscription_status === 'active'
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
+                    : 'bg-red-500/10 border-red-500/20 text-red-400'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${data?.subscription_status === 'active' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                  {data?.subscription_status === 'active' ? t('dashboard_premium') : t('dashboard_free_plan')}
+                </span>
 
                 {data?.subscription_status !== 'active' && (
                   <button

@@ -317,12 +317,29 @@ async def smart_router_handle(
     subscription_status: str = "free"
 ) -> Tuple[Optional[str], Optional[dict], Optional[str]]:
     import asyncio
-    
+    import json as _json
+
     # --- PHASE 1: Start Thinking ---
     wait_task = asyncio.create_task(asyncio.sleep(1.0))
-    
+
     query = query.strip()
-    
+
+    # ── Extract confirmed session context injected by /agent/query ──────────
+    # Format: "[SESSION_CONTEXT] service_id=permit:cafe:kadikoy slots={...}\n"
+    # We strip this prefix from history_text so it doesn't confuse later logic.
+    _session_service_id: Optional[str] = None
+    _session_slots: dict = {}
+    if history_text.startswith("[SESSION_CONTEXT]"):
+        _ctx_line, _, history_text = history_text.partition("\n")
+        try:
+            _sid_part = _ctx_line.split("service_id=", 1)[1].split(" ", 1)[0]
+            _session_service_id = _sid_part.strip()
+            _slots_part = _ctx_line.split("slots=", 1)[1]
+            _session_slots = _json.loads(_slots_part)
+        except Exception:
+            pass  # malformed prefix — ignore
+        print(f"[SmartRouter] Session context loaded: service_id={_session_service_id!r} slots={_session_slots}")
+
     # Pre-compute last_assistant_msg early so all phases can use it
     last_assistant_msg = history_text.lower().split("[assistant]:")[-1].strip() if "[assistant]:" in history_text.lower() else ""
     # Pre-detect if the assistant is currently asking a clarifying question
@@ -417,7 +434,7 @@ async def smart_router_handle(
     # --- PHASE 0.2: Learning Cache Check ---
     # SKIP when clarifying — "retail", "sisli" etc. must reach the roadmap builder
     if not _is_clarifying_for_roadmap:
-        learned = _find_learned(query, assistant_type, language, context_text=last_assistant_msg)
+        learned = _find_learned(query, assistant_type, language, context_text=last_assistant_msg, service_id=_session_service_id)
     else:
         learned = None
         print(f"[SmartRouter] Skipping cache/learning — clarifying for roadmap (query: '{query}')")
@@ -444,6 +461,14 @@ async def smart_router_handle(
             }.get(language, "Great! Which university are you targeting?")
             await wait_task
             return prompt, None, "Contextual Affirmative (Deadlines)"
+
+        # --- Contextual Affirmative: Denklik ---
+        if any(marker in last_assistant_msg for marker in ["equivalency (denklik)", "denklik process", "denklik", "equivalency"]):
+            denklik_resp = _library.get(language, {}).get("student", {}).get("equivalency", [])
+            if denklik_resp:
+                response = random.choice(denklik_resp) if isinstance(denklik_resp, list) else denklik_resp
+                await wait_task
+                return response, None, "Contextual Affirmative (Denklik)"
 
         # --- Contextual Affirmative: user said yes to a PERMIT checklist / steps offer ---
         _checklist_markers = [
@@ -753,7 +778,11 @@ async def smart_router_handle(
         _student_reg_signals = ["register", "enroll", "university", "uni ", "apply", "admission", "registration"]
         _is_student_reg_query = assistant_type == "student" and any(s in query.lower() for s in _student_reg_signals)
         if _is_student_reg_query and target_agent == "permit":
-            print(f"[SmartRouter] Suppressing permit redirect — student is asking about university registration.")
+            print(f"[SmartRouter] Suppressing permit redirect -- student is asking about university registration.")
+        elif _session_service_id:
+            # Fix #2: Never redirect away from a session that already has a confirmed service.
+            # The user is asking a follow-up inside their existing roadmap context.
+            print(f"[SmartRouter] Suppressing agent redirect -- service_id={_session_service_id!r} already confirmed.")
         else:
             # Add special action keyword 'REDIRECT_NEW_CHAT:target|message' so the frontend opens a new chat with correct agent
             msg = f"REDIRECT_NEW_CHAT:{target_agent}|{suffix}"
@@ -769,7 +798,11 @@ async def smart_router_handle(
         has_completed_roadmap = bool(last_assistant_msg and len(last_assistant_msg) > 100 and _is_plan and not is_clarifying)
         
         if _NEW_CONSULTATION_RE.search(query) and has_completed_roadmap:
-            if user_name:
+            # Fix #2b: Never open a new chat if the session already has a confirmed service_id.
+            # The user is asking a follow-up, not starting fresh.
+            if _session_service_id:
+                print(f"[SmartRouter] Suppressing REDIRECT_NEW_CHAT -- service_id={_session_service_id!r} is confirmed.")
+            elif user_name:
                 msg = {
                     "en": "REDIRECT_NEW_CHAT: \u26a0\ufe0f It looks like you want to start a new procedure! Opening a **New Chat** automatically to keep your current progress safe...",
                     "tr": "REDIRECT_NEW_CHAT: \u26a0\ufe0f G\u00f6r\u00fcn\u00fc\u015fe g\u00f6re yeni bir i\u015fleme ba\u015flamak istiyorsun! Mevcut \u00e7al\u0131\u015fma alan\u0131n\u0131 kaybetmemek i\u00e7in otomatik olarak **Yeni Sohbet** a\u00e7\u0131l\u0131yor...",
@@ -801,24 +834,44 @@ async def smart_router_handle(
                 (["school", "okul", "education", "dershane", "kurs"], "Educational Centre", "E\u011fitim Merkezi", "\u0645\u0631\u0643\u0632 \u062a\u0639\u0644\u064a\u0645\u064a"),
             ]
             
+            # Fix #3a: Pre-seed from confirmed session slots first.
+            _slot_btype   = (_session_slots.get("business_type") or "").lower()
+            _slot_district = (_session_slots.get("district") or "").lower()
+
             business_type_en, business_type_tr, business_type_ar = "Business", "\u0130\u015fletme", "\u0639\u0645\u0644"
-            for kw_list, en_n, tr_n, ar_n in _BUSINESS_KEYWORDS:
-                if any(kw in query.lower() for kw in kw_list):
-                    business_type_en, business_type_tr, business_type_ar = en_n, tr_n, ar_n
-                    break
+
+            # Try to resolve slot value against keyword table
+            if _slot_btype:
+                for kw_list, en_n, tr_n, ar_n in _BUSINESS_KEYWORDS:
+                    if any(kw in _slot_btype for kw in kw_list):
+                        business_type_en, business_type_tr, business_type_ar = en_n, tr_n, ar_n
+                        break
+                # Raw slot value as fallback label
+                if business_type_en == "Business":
+                    business_type_en = _slot_btype.title()
+                    business_type_tr = _slot_btype.title()
+                    business_type_ar = _slot_btype.title()
+
+            # Only scan query / history if slots gave us nothing
+            if business_type_en == "Business":
+                for kw_list, en_n, tr_n, ar_n in _BUSINESS_KEYWORDS:
+                    if any(kw in query.lower() for kw in kw_list):
+                        business_type_en, business_type_tr, business_type_ar = en_n, tr_n, ar_n
+                        break
             if business_type_en == "Business":
                 for kw_list, en_n, tr_n, ar_n in _BUSINESS_KEYWORDS:
                     hist_lower = user_history_text.lower()
                     if any(kw in hist_lower for kw in kw_list):
                         business_type_en, business_type_tr, business_type_ar = en_n, tr_n, ar_n
                         break
-            
+
             business_type = {"ar": business_type_ar, "tr": business_type_tr, "en": business_type_en}.get(language, business_type_en)
             if business_type == "Business" and fuzzy_business_match:
                 for kw_list, en_n, tr_n, ar_n in _BUSINESS_KEYWORDS:
                     if fuzzy_business_match in kw_list:
                         business_type = {"ar": ar_n, "tr": tr_n, "en": en_n}.get(language, en_n)
                         break
+
 
             _DISTRICT_INFO = {
                 "adalar":      ("Adalar",      "Adalar Municipality",      "Permits in the Princes' Islands involve strict environmental and coastal regulations.",  "Adalar Belediyesi",      "Prens Adalar\u0131'ndaki izinler s\u0131k\u0131 \u00e7evresel ve k\u0131y\u0131 d\u00fczenlemeleri i\u00e7erir.",   "\u0628\u0644\u062f\u064a\u0629 \u0623\u062f\u0627\u0644\u0627\u0631",          "\u062a\u062a\u0636\u0645\u0646 \u0627\u0644\u062a\u0635\u0627\u0631\u064a\u062d \u0641\u064a \u062c\u0632\u0631 \u0627\u0644\u0623\u0645\u064a\u0631\u0627\u062a \u0644\u0648\u0627\u0626\u062d \u0628\u064a\u0626\u064a\u0629 \u0648\u0633\u0627\u062d\u0644\u064a\u0629 \u0635\u0627\u0631\u0645\u0629."),
@@ -966,10 +1019,35 @@ async def smart_router_handle(
                         district_note = ""
                         break
 
+            # Fix #3b: If district is still unknown, try the confirmed session slot.
+            if district_display is None and _slot_district:
+                # Match against _DISTRICT_INFO keys
+                for key, data in _DISTRICT_INFO.items():
+                    if key in _slot_district or _slot_district in key:
+                        dname, mun_en, note_en, mun_tr, note_tr, mun_ar, note_ar = data
+                        district_en = dname
+                        district_display = dname
+                        if language == "tr": mun_name_en, district_note = mun_tr, note_tr
+                        elif language == "ar": mun_name_en, district_note = mun_ar, note_ar
+                        else: mun_name_en, district_note = mun_en, note_en
+                        break
+                if district_display is None:
+                    # Use raw slot value as a titled fallback
+                    district_display = _slot_district.title()
+                    district_en      = district_display
+                    mun_name_en      = f"{district_display} Municipality"
+                    district_note    = ""
+
             no_district = district_display is None
             missing_items = []
             if business_type == "Business": missing_items.append("business")
             if no_district: missing_items.append("district")
+
+            # Fix #4: If the session already has a confirmed service_id, NEVER ask
+            # clarifying questions — the user is in a follow-up conversation.
+            if _session_service_id and missing_items:
+                print(f"[SmartRouter] Skipping clarifying questions -- service_id={_session_service_id!r} confirmed. Passing to AI.")
+                return None, None, "Session Confirmed (pass-through to AI)"
 
             if missing_items:
                 import random

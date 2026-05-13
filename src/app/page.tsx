@@ -9,9 +9,11 @@ import {
   ChevronDown, Search, Sparkles, Plus, Mic, Send
 } from 'lucide-react';
 import type { Variants } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { useLanguage } from './context/LanguageContext';
 import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
 import TypewriterText from './components/TypewriterText';
 
 /* ── Animation Variants ── */
@@ -94,7 +96,10 @@ const FlipCard = ({ step, i, isRTL, t }: { step: any; i: number; isRTL: boolean;
 
 export default function Home() {
   const { t, isRTL } = useLanguage();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const router = useRouter();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
   const stepsData = howItWorksSteps(t);
   const featureData = featuresData(t);
   const statsDisplay = statsData(t);
@@ -106,12 +111,28 @@ export default function Home() {
     { label: t('hero_cat_protocols'), icon: Building2, color: 'text-rose-500' },
     { label: t('hero_cat_safety'), icon: ShieldCheck, color: 'text-emerald-500' },
   ];
+
+  const handleSessionSelect = (id: string, title: string) => {
+    router.push(`/chat?session_id=${id}`);
+  };
+
   return (
-    <>
-      <Navbar />
-      <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col items-center justify-start transition-colors duration-500 overflow-x-hidden relative">
-        
-        {/* Real Turkish Flag Video Background */}
+    <div className="flex h-screen overflow-hidden bg-[var(--bg)] transition-colors duration-500 relative">
+      <Sidebar
+        currentSessionId={null}
+        assistantType="permit"
+        onSessionSelect={handleSessionSelect}
+        onNewChat={() => router.push('/chat')}
+        onDeleteSession={() => {}} // History deletion mostly done in chat or dashboard
+        token={token}
+        mobileOpen={mobileMenuOpen}
+        onMobileClose={() => setMobileMenuOpen(false)}
+      />
+      <div className="flex-1 h-full overflow-y-auto relative slim-scroll block">
+        <Navbar isAppPage={true} onMobileMenuClick={() => setMobileMenuOpen(true)} />
+        <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col items-center justify-start overflow-x-hidden relative transition-colors duration-500">
+          
+          {/* Real Turkish Flag Video Background */}
         <div className="absolute inset-x-0 top-0 h-[52vh] md:h-[58vh] xl:h-[90vh] dark:bg-[#a00000] bg-gradient-to-br from-white via-red-50 to-red-100 pointer-events-none z-0 select-none overflow-hidden">
           <motion.div 
             initial={{ opacity: 0 }}
@@ -321,6 +342,7 @@ export default function Home() {
         </motion.p>
       </div>
     </footer>
-    </>
+      </div>
+    </div>
   );
 }

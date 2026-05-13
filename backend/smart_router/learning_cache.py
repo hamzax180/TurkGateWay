@@ -241,7 +241,8 @@ def learn(
     assistant_type: str,
     language: str = "en",
     intent_hint: Optional[str] = None,
-    dashboard_state: Optional[dict] = None
+    dashboard_state: Optional[dict] = None,
+    service_id: Optional[str] = None,  # Fix #2: namespace cache by service
 ) -> bool:
     """
     Save an AI-generated response into the permanent learned library.
@@ -286,8 +287,15 @@ def learn(
             print(f"[LearningCache] SKIP — Response VERY long and ends without punctuation (likely cut off)")
             return False
         # Otherwise, allow it (could be a short sentence without period)
-    # --- Classify the intent ---
+    # Fix #2: Namespace the intent with service_id so responses learned for one
+    # specific service (e.g. "permit:cafe:kadikoy") are never returned for a
+    # different service context (e.g. "student:register_uni").
+    # We prefix the intent key so generic queries like "how long does this take?"
+    # don't cross-contaminate between radically different service contexts.
     intent_key = intent_hint or _classify_intent(query, assistant_type)
+    # Only namespace generic "learned" bucket entries — known intents are already scoped by agent
+    if intent_key == "learned" and service_id:
+        intent_key = f"learned.{service_id.replace(':', '_')}"
     
     # --- ALL learned responses go to learned/{lang}.json ---
     filepath = _get_learned_file(assistant_type, language)
@@ -387,7 +395,8 @@ def find_learned_response(
     query: str,
     assistant_type: str,
     language: str = "en",
-    context_text: Optional[str] = None
+    context_text: Optional[str] = None,
+    service_id: Optional[str] = None,  # Fix #2: prefer same-service matches
 ) -> Optional[Tuple[str, Optional[dict]]]:
     """
         language: 'en', 'tr', or 'ar'

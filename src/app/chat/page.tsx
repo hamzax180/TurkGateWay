@@ -14,9 +14,36 @@ import { apiFetch } from '../utils/api';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import LoadingScreen from '../components/LoadingScreen';
+import OnboardingWizard from '../components/OnboardingWizard';
 
 type Role = 'assistant' | 'user';
 interface Msg { id: number; role: Role; content: string; }
+
+// ── Pre-written demo answers for Student Help Quick Topics — no API needed ──
+const CANNED_RESPONSES: Record<string, string> = {
+  // Quick Topics
+  "'How do I register for university?'": "🎓 **University Registration**\n\nCongratulations on your acceptance! 🎉 Registration happens in two phases:\n\n✅ **Action Steps:**\n1. **Online:** Pre-register via your university portal or YÖKSİS.\n2. **In-Person:** Submit your original physical documents to Student Affairs.\n\n💬 Which university are you enrolling in?",
+  "How do I register for university?": "🎓 **University Registration**\n\nCongratulations on your acceptance! 🎉 Registration happens in two phases:\n\n✅ **Action Steps:**\n1. **Online:** Pre-register via your university portal or YÖKSİS.\n2. **In-Person:** Submit your original physical documents to Student Affairs.\n\n💬 Which university are you enrolling in?",
+  "'I lost my student ID card.'": "🎓 **Lost Student ID?**\n\nDon't panic! Here is the exact process to get a replacement:\n\n✅ **Action Steps:**\n1. **Police Report:** Go to the nearest police station to get a loss declaration (Kayıp Tutanağı).\n2. **Student Affairs:** Take this report, a photo, and your enrollment certificate to your university.\n\n💬 Have you filed the police report yet?",
+  "I lost my student ID card.": "🎓 **Lost Student ID?**\n\nDon't panic! Here is the exact process to get a replacement:\n\n✅ **Action Steps:**\n1. **Police Report:** Go to the nearest police station to get a loss declaration (Kayıp Tutanağı).\n2. **Student Affairs:** Take this report, a photo, and your enrollment certificate to your university.\n\n💬 Have you filed the police report yet?",
+  "'How to get a student transport card?'": "🎓 **Student Transport Card**\n\nGetting a discounted transport card (like the Istanbulkart) is a massive money-saver! 🚌\n\n✅ **Action Steps:**\n1. Ensure your university has registered you on the YÖKSİS system.\n2. Apply online via the city's transport app or visit a main kiosk.\n\n💬 Which city are you studying in?",
+  "How to get a student transport card?": "🎓 **Student Transport Card**\n\nGetting a discounted transport card (like the Istanbulkart) is a massive money-saver! 🚌\n\n✅ **Action Steps:**\n1. Ensure your university has registered you on the YÖKSİS system.\n2. Apply online via the city's transport app or visit a main kiosk.\n\n💬 Which city are you studying in?",
+  "'Am I allowed to work as a student?'": "🎓 **International Student Work Permits**\n\nCan you work while studying? Yes, but with strict rules! 💼\n\n⚠️ **The Law:** Undergraduate students (Bachelors) can legally work part-time ONLY after completing their first year of study.\n\n💬 Are you currently in your first year?",
+  "Am I allowed to work as a student?": "🎓 **International Student Work Permits**\n\nCan you work while studying? Yes, but with strict rules! 💼\n\n⚠️ **The Law:** Undergraduate students (Bachelors) can legally work part-time ONLY after completing their first year of study.\n\n💬 Are you currently in your first year?",
+
+  // Suggestion Chips
+  "Student Visas": "🎓 **Student Visa Guide**\n\nYou must apply for a Student Visa (Öğrenci Vizesi) at the Turkish Embassy/Consulate in your home country before traveling.\n\n📄 **Key Requirements:**\n• Official Acceptance Letter from your university\n• Valid Passport (at least 6 months validity)\n• 2 Biometric Photos\n• Proof of sufficient funds & health insurance\n\n⏳ **Duration:** Typically **3 months (90 days)**. Once you arrive in Turkey, you must apply for your Resident ID (**Ikamet**) before this expires!\n\n💬 Need help finding the nearest Turkish consulate?",
+  "Renew Kimlik/ID": "🎓 **Student ID Renewal**\n\nTo renew your University ID (Kimlik), simply head to your faculty's **Student Affairs Office**.\n\n📄 **Bring with you:**\n• Your expired ID\n• 1 recent passport photo\n• Current enrollment certificate (Öğrenci Belgesi)\n\n💬 Have your documents ready? They usually print the new one in 3-5 days!",
+  "Best Universities": "🎓 **Turkey's Top Universities**\n\nTurkey hosts fantastic, globally ranked institutions! 🌟\n\nHere are the top most competitive:\n1. Boğaziçi University (Istanbul)\n2. METU (Ankara)\n3. Koç University (Istanbul)\n4. ITU (Istanbul)\n\n💬 Are you looking for Engineering, Medical, or Business programs?",
+  "Register Roadmap": "🎓 **University Registration**\n\nCongratulations on your acceptance! 🎉 Registration happens in two phases:\n\n✅ **Action Steps:**\n1. **Online:** Pre-register via your university portal or YÖKSİS.\n2. **In-Person:** Submit your original physical documents to Student Affairs.\n\n💬 Which university are you enrolling in?",
+  "Deadlines": "🎓 **University Deadlines**\n\nI can certainly help you with registration calendars! 🎓 Which university are you targeting? \n\nPlease type the name (e.g., **Boğaziçi, METU, Istanbul University, Altınbaş**) and I will find the specific deadline and build your registration roadmap!",
+  "Student Help": "🎓 **Student Support Center** 🆘\n\nI am designed to make your student life in Turkey seamless. \n\n🚀 **Quick Topics:**\n1. 'How do I register for university?'\n2. 'I lost my student ID card.'\n3. 'How to get a student transport card?'\n4. 'Am I allowed to work as a student?'\n\n💬 Is there a specific procedure you're stuck on right now?",
+  "yes": "🎓 **Diploma Equivalency (Denklik)**\n\n'Denklik' is the official recognition of your high school diploma by the Turkish Ministry of Education. It's mandatory for undergrads! 📜\n\n✅ **Action Steps:**\n1. Visit the e-Denklik online portal.\n2. Upload your apostilled diploma & transcripts.\n3. Book an appointment at the Ministry of Education (MEB).\n\n💬 Have you got your diploma apostilled by your home country?",
+  "Yes": "🎓 **Diploma Equivalency (Denklik)**\n\n'Denklik' is the official recognition of your high school diploma by the Turkish Ministry of Education. It's mandatory for undergrads! 📜\n\n✅ **Action Steps:**\n1. Visit the e-Denklik online portal.\n2. Upload your apostilled diploma & transcripts.\n3. Book an appointment at the Ministry of Education (MEB).\n\n💬 Have you got your diploma apostilled by your home country?",
+  "no": "🎓 **Apostille is Required!**\n\nIf you haven't apostilled your diploma, you must do it at the Ministry of Foreign Affairs in your **home country** or your country's Embassy in Turkey (if they provide this service).\n\n⚠️ **Important:** Turkish authorities cannot apostille foreign documents!\n\n💬 Would you like me to help you find your country's embassy in Turkey?",
+  "No": "🎓 **Apostille is Required!**\n\nIf you haven't apostilled your diploma, you must do it at the Ministry of Foreign Affairs in your **home country** or your country's Embassy in Turkey (if they provide this service).\n\n⚠️ **Important:** Turkish authorities cannot apostille foreign documents!\n\n💬 Would you like me to help you find your country's embassy in Turkey?"
+};
+
 
 export default function ChatPage() {
   const router = useRouter();
@@ -44,6 +71,7 @@ export default function ChatPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showGuestLimitModal, setShowGuestLimitModal] = useState(false);
   const [guestMsgCount, setGuestMsgCount] = useState(0);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,6 +79,11 @@ export default function ChatPage() {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Show onboarding instructions on every visit (testing mode — remove condition when done)
+  useEffect(() => {
+    setShowOnboarding(true);
   }, []);
 
   useEffect(() => {
@@ -663,6 +696,23 @@ export default function ChatPage() {
     const userMsg: Msg = { id: msgIdRef.current++, role: 'user', content: displayQ };
     setMsgs(p => [...p, userMsg]);
 
+    // ── Canned response check for quick topics — instant answer, no API call ──
+    const canned = CANNED_RESPONSES[q.trim()];
+    
+    if (canned && !file) {
+      const cannedId = msgIdRef.current++;
+      setVisibleChars(prev => ({ ...prev, [cannedId]: 0 }));
+      setMsgs(p => [...p, { id: cannedId, role: 'assistant', content: canned }]);
+      let chars = 0;
+      const interval = setInterval(() => {
+        chars += 15; // Fast animation for mobile
+        setVisibleChars(prev => ({ ...prev, [cannedId]: chars }));
+        if (chars >= canned.length) clearInterval(interval);
+      }, 30);
+      setBusy(false);
+      return;
+    }
+
     // Guest message limit logic
     if (!isAuthenticated) {
       const newCount = guestMsgCount + 1;
@@ -865,6 +915,16 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen overflow-hidden selection:bg-purple-500/30 relative bg-[var(--bg)] transition-colors duration-500">
+      <AnimatePresence>
+        {showOnboarding && (
+          <OnboardingWizard
+            onDismiss={() => {
+              localStorage.setItem('turkgateway_onboarding_done', 'true');
+              setShowOnboarding(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
       {/* Dynamic Background — uses CSS vars so it auto-adapts to dark mode */}
       <div className="absolute inset-0 bg-[var(--bg)] pointer-events-none transition-colors duration-500" />
       <Sidebar

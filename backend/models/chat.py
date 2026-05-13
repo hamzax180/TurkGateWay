@@ -17,6 +17,22 @@ class ChatSession(Base):
     assistant_type = Column(String, default="permit", nullable=True)
     is_favorite = Column(Boolean, default=False)
 
+    # ── Structured service state ────────────────────────────────────────────
+    # service_id  : compound key that uniquely identifies the confirmed service
+    #               e.g. "permit:cafe:kadikoy" | "student:register_uni:bogazici"
+    #               | "lawyer:company_formation" — set once the setup agent
+    #               collects enough info to build a roadmap.
+    # service_slots: JSON object with the individual slot values extracted from
+    #               the conversation, e.g.:
+    #               {"business_type": "cafe", "district": "kadikoy",
+    #                "university": null, "legal_topic": null}
+    # Both are intentionally kept separate from dashboard_state so that the
+    # smart router can load them with a single lightweight DB read at the
+    # START of every /agent/query call — before any AI or roadmap logic runs.
+    service_id    = Column(String, nullable=True, index=True)
+    service_slots = Column(Text,   nullable=True)  # JSON string
+    language      = Column(String, nullable=True, default="en")  # Fix #4: persist confirmed language
+
 
 class ChatMessage(Base):
     __tablename__ = "chat_messages"

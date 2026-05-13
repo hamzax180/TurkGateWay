@@ -18,17 +18,20 @@ const AGENT_DATA = {
   lawyer:  { color: '#f59e0b', shadow: 'rgba(245, 158, 11, 0.6)',  name: 'LEGAL'   },
 };
 
+const BRANDED = { name: 'TurkGateway', color: '#ef4444', shadow: 'rgba(239, 68, 68, 0.6)' };
+
 interface LoadingScreenProps {
   /** When provided, shows agent-specific branding (chat / agent switch).
    *  When omitted, shows TurkGateway brand (red). */
   agentType?: 'permit' | 'student' | 'lawyer';
+  branded?: boolean;
 }
 
-export default function LoadingScreen({ agentType }: LoadingScreenProps) {
+export default function LoadingScreen({ agentType, branded = false }: LoadingScreenProps) {
   const [isDark, setIsDark] = useState(false);
 
   // Pick brand (TurkGateway red) or agent-specific colors
-  const agent = agentType ? AGENT_DATA[agentType] : null;
+  const agent = branded ? BRANDED : (agentType ? AGENT_DATA[agentType] : null);
   const color  = agent?.color  ?? BRAND.color;
   const shadow = agent?.shadow ?? BRAND.shadow;
   const label  = agent?.name   ?? null; // null → show TURKGATEWAY wordmark

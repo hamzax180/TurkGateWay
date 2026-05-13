@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { useLanguage } from '../context/LanguageContext';
 import Footer from '../components/Footer';
 import LoadingScreen from '../components/LoadingScreen';
+import Sidebar from '../components/Sidebar';
 import { useAuth } from '../context/AuthContext';
 
 // --- Custom Select Component to prevent native OS upwards dropdown behavior ---
@@ -118,7 +119,8 @@ const DISTRICTS_OPTIONS = [
 export default function ServicesPage() {
   const { t, isRTL } = useLanguage();
   const router = useRouter();
-  const { isAuthenticated, setIsLoginModalOpen } = useAuth();
+  const { isAuthenticated, setIsLoginModalOpen, token } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<'permit' | 'student' | 'lawyer' | null>(null);
   const [loadingAgent, setLoadingAgent] = useState<'permit' | 'student' | 'lawyer'>('permit');
   const [isInitializing, setIsInitializing] = useState(false);
@@ -335,16 +337,31 @@ export default function ServicesPage() {
     }, 1800); // Increased for full loading screen effect
   };
 
+  const handleSessionSelect = (id: string, title: string) => {
+    router.push(`/chat?session_id=${id}`);
+  };
+
   return (
-    <>
+    <div className="flex h-screen overflow-hidden bg-[var(--bg)] transition-colors duration-500 relative">
+      <Sidebar
+        currentSessionId={null}
+        assistantType="permit"
+        onSessionSelect={handleSessionSelect}
+        onNewChat={() => router.push('/chat')}
+        onDeleteSession={() => {}}
+        token={token}
+        mobileOpen={mobileMenuOpen}
+        onMobileClose={() => setMobileMenuOpen(false)}
+      />
+      <div className="flex-1 h-full overflow-y-auto relative slim-scroll block">
       <AnimatePresence mode="wait">
         {(!isLoaded || isNavigating) && (
-          <LoadingScreen />
+          <LoadingScreen agentType={selectedAgent || loadingAgent} branded />
         )}
       </AnimatePresence>
 
-      <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] selection:bg-blue-500/30 font-sans transition-colors duration-500">
-        <Navbar />
+      <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] selection:bg-blue-500/30 font-sans transition-colors duration-500 overflow-x-hidden relative">
+        <Navbar isAppPage={true} onMobileMenuClick={() => setMobileMenuOpen(true)} />
 
         <div className="absolute inset-0 bg-[var(--bg)] -z-10 transition-colors duration-500" />
 
@@ -947,6 +964,7 @@ export default function ServicesPage() {
       {/* ── Minimalist Footer ── */}
       <Footer />
       </main>
-    </>
+      </div>
+    </div>
   );
 }
