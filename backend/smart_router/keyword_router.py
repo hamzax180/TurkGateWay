@@ -383,19 +383,20 @@ def detect_intent(
     _has_new_topic = any(s in text for s in _new_topic_signals)
     
     if context_text and len(text.split()) < 10 and not _has_new_topic:
-        # Extract potential domain keywords from context (assistant output)
-        # We only take the most relevant markers to avoid pollution
-        context_lower = context_text.lower()
-        clues = []
-        if "consulate" in context_lower or "embassy" in context_lower or "visa" in context_lower: clues.append("visa")
-        if "roadmap" in context_lower or "register" in context_lower: clues.append("register")
-        if "insurance" in context_lower or "sigorta" in context_lower: clues.append("insurance")
-        if "ikamet" in context_lower or "permit" in context_lower: clues.append("residence permit")
-        
-        if clues:
-            augmented_text = f"{' '.join(clues)} {text}"
-            print(f"[KeywordRouter] Context Clues: {clues} -> Augmented: '{augmented_text}'")
-            text = augmented_text
+        if assistant_type == "student":
+            # Extract potential domain keywords from context (assistant output)
+            # We only take the most relevant markers to avoid pollution
+            context_lower = context_text.lower()
+            clues = []
+            if "consulate" in context_lower or "embassy" in context_lower or "visa" in context_lower: clues.append("visa")
+            if "roadmap" in context_lower or "register" in context_lower: clues.append("register")
+            if "insurance" in context_lower or "sigorta" in context_lower: clues.append("insurance")
+            if "ikamet" in context_lower or "permit" in context_lower: clues.append("residence permit")
+            
+            if clues:
+                augmented_text = f"{' '.join(clues)} {text}"
+                print(f"[KeywordRouter] Context Clues: {clues} -> Augmented: '{augmented_text}'")
+                text = augmented_text
 
     # Phonetic/Shorthand Normalization
     normalization_map = {

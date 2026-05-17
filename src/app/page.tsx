@@ -129,8 +129,8 @@ export default function Home() {
         onMobileClose={() => setMobileMenuOpen(false)}
       />
       <div className="flex-1 h-full overflow-y-auto relative slim-scroll block">
-        <Navbar isAppPage={true} onMobileMenuClick={() => setMobileMenuOpen(true)} />
-        <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col items-center justify-start overflow-x-hidden relative transition-colors duration-500">
+        <Navbar isAppPage={true} transparentTop={true} onMobileMenuClick={() => setMobileMenuOpen(true)} />
+        <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col items-center justify-start overflow-x-hidden relative transition-colors duration-500 -mt-[64px]">
           
           {/* Real Turkish Flag Video Background */}
         <div className="absolute inset-x-0 top-0 h-[52vh] md:h-[58vh] xl:h-[90vh] dark:bg-[#a00000] bg-gradient-to-br from-white via-red-50 to-red-100 pointer-events-none z-0 select-none overflow-hidden">

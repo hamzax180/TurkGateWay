@@ -1082,7 +1082,7 @@ export default function ChatPage() {
         <div className="hidden md:block h-0 shrink-0" />
 
         {/* Gemini-Style Content Header */}
-        <div className="flex flex-col items-center justify-center pt-4 pb-2 md:pt-6 md:pb-4 shrink-0 z-30 relative px-4 text-center">
+        <div className="flex flex-col items-center justify-center pt-8 pb-2 md:pt-12 md:pb-4 xl:pt-16 shrink-0 z-30 relative px-4 text-center">
           <span className="font-bold text-[var(--text)] opacity-95 tracking-tight leading-tight" style={{ fontSize: 'clamp(16px, 1.5vw, 22px)' }}>
             {(() => {
               if (!sessionTitle || msgs.length === 0 || sessionTitle === t('chat_new')) return t('chat_new');
@@ -1178,7 +1178,8 @@ export default function ChatPage() {
         <div className="flex-1 flex flex-col min-h-0 relative">
 
           {isEmpty ? (
-            <div className="flex-1 flex flex-col xl:justify-center max-w-4xl xl:max-w-5xl mx-auto w-full px-5 md:px-6 xl:px-10 overflow-y-auto no-scrollbar">
+            <div className="flex-1 flex flex-col max-w-4xl xl:max-w-5xl mx-auto w-full px-5 md:px-6 xl:px-10 overflow-y-auto no-scrollbar">
+              <div className="my-auto flex flex-col w-full shrink-0 pt-2 pb-8">
               {/* Welcome Message — Cinematic AI Entrance */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -1364,26 +1365,26 @@ export default function ChatPage() {
                   className="grid grid-cols-2 lg:grid lg:grid-cols-3 xl:grid-cols-3 gap-2 md:gap-2 xl:gap-5 mt-4 md:mt-0 md:mb-2 xl:mt-8"
                 >
                   {(assistantType === 'student' ? [
-                    { emoji: "🪪", label: t('chat_sug_renew'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
-                    { emoji: "🏛️", label: t('chat_sug_uni'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
-                    { emoji: "🗺️", label: t('chat_sug_roadmap'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
-                    { emoji: "📅", label: t('chat_sug_deadlines'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
-                    { emoji: "🛂", label: t('chat_sug_visas'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
-                    { emoji: "🆘", label: t('chat_sug_shelp'), mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' }
+                    { emoji: "🏛️", label: "University Registration", mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                    { emoji: "🪪", label: "ID / İkamet", mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                    { emoji: "📜", label: "Denklik (Equivalency)", mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                    { emoji: "🛏️", label: "Dormitory & Housing", mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                    { emoji: "✈️", label: "Student Visa", mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' },
+                    { emoji: "🚌", label: "IstanbulKart", mesh: 'mesh-green', color: 'text-emerald-500', border: 'hover:border-emerald-400 hover:shadow-emerald-500/20 hover:bg-emerald-500/5' }
                   ] : assistantType === 'lawyer' ? [
-                    { emoji: "📑", label: t('chat_sug_contract'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
-                    { emoji: "🏗️", label: t('chat_sug_formation'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
-                    { emoji: "🤝", label: t('chat_sug_employ'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
-                    { emoji: "📊", label: t('chat_sug_times'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
-                    { emoji: "🏠", label: t('chat_sug_resid'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
-                    { emoji: "⚖️", label: t('chat_sug_dispute'), mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' }
+                    { emoji: "🏗️", label: "Company Formation", mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                    { emoji: "📑", label: "Contract Review", mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                    { emoji: "🤝", label: "Employment Law", mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                    { emoji: "⚖️", label: "Legal Disputes", mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                    { emoji: "🏠", label: "Residency & Visas", mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                    { emoji: "🏢", label: "Real Estate Law", mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' }
                   ] : [
-                    { emoji: "🏢", label: t('chat_suggestion_business'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
-                    { emoji: "📜", label: t('chat_suggestion_permit'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
-                    { emoji: "📍", label: t('chat_suggestion_location'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
-                    { emoji: "⏳", label: t('chat_suggestion_duration'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
-                    { emoji: "💰", label: t('chat_suggestion_cost'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
-                    { emoji: "❓", label: t('chat_suggestion_help'), mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' }
+                    { emoji: "☕", label: "Cafe & Restaurant", mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                    { emoji: "🛍️", label: "Retail Shop", mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                    { emoji: "💻", label: "Office & Tech", mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                    { emoji: "🏥", label: "Pharmacy", mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                    { emoji: "🩺", label: "Clinic", mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
+                    { emoji: "🏠", label: "Residence Permit", mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' }
                   ]).map((chip, i) => (
                     <div
                       key={i}
@@ -1510,6 +1511,7 @@ export default function ChatPage() {
                   </div>
                 </div>
               </motion.div>
+              </div> {/* Close my-auto wrapper */}
             </div>
           ) : (
             <div className={`flex-1 overflow-y-auto w-full max-w-4xl mx-auto px-4 md:px-8 py-10 space-y-12 pb-44 slim-scroll bg-[var(--bg)]/40 rounded-t-[40px]`} dir={isRTL ? 'rtl' : 'ltr'}>

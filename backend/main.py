@@ -1115,8 +1115,6 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
         
         # --- DEBUG TRACER ---
         import smart_router
-        with open("data/location_check.txt", "w") as f:
-            f.write(f"BRAIN_PATH: {smart_router.__file__}")
         print(f"🚀 [BRAIN LOCATION]: {smart_router.__file__}")
         
         if upload_file and upload_file.filename:
@@ -1284,7 +1282,12 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
         
         elif assistant_type in ("student", "lawyer"):
             # Redirect to Permit Agent for business queries
-            if any(k in q_lower for k in ["business", "company", "cafe", "restaurant", "permit", "shop", "open a", "start a", "license", "startup"]):
+            # Exclude specific intents that belong to student/lawyer
+            business_keywords = ["business", "company", "cafe", "restaurant", "permit", "shop", "open a", "start a", "license", "startup"]
+            _has_business_kw = any(k in q_lower for k in business_keywords)
+            _is_excluded = any(k in q_lower for k in ["residence permit", "ikamet", "student permit", "company formation", "form a company", "contract", "şirket kuruluşu", "şirket açılışı"])
+            
+            if _has_business_kw and not _is_excluded:
                 msg_content = "💼 It looks like you're planning to start a business! Please click the **Switch Assistant** dropdown at the top of the page and select **Permit Agent** so I can help you with your licensing roadmap and district-specific requirements."
                 if user:
                     assistant_msg = ChatMessage(session_id=session_id, role="assistant", content=msg_content)

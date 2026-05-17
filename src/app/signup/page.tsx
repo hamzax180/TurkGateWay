@@ -8,6 +8,7 @@ import { Loader2, X, ChevronDown } from 'lucide-react';
 import ThemeToggle from '@/app/components/ThemeToggle';
 import { useAuth } from '@/app/context/AuthContext';
 import { useLanguage } from '@/app/context/LanguageContext';
+import { BACKEND_BASE } from '@/app/utils/api';
 
 export default function SignupPage() {
     const { t, language } = useLanguage();
@@ -41,7 +42,7 @@ export default function SignupPage() {
         setError('');
 
         try {
-            const res = await fetch('http://localhost:8003/auth/register', {
+            const res = await fetch(`${BACKEND_BASE}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password, full_name: fullName }),

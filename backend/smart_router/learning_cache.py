@@ -106,7 +106,11 @@ def _load_json(filepath: str) -> dict:
 
 
 def _save_json(filepath: str, data: dict):
-    """Safely write a JSON file."""
+    """Safely write a JSON file. Skip on serverless platforms."""
+    # Vercel/Render have read-only filesystems (except /tmp)
+    if os.getenv("VERCEL") or os.getenv("RENDER"):
+        return
+
     try:
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         with open(filepath, "w", encoding="utf-8") as f:
@@ -160,7 +164,10 @@ def _classify_intent(query: str, assistant_type: str) -> str:
 # ---------------------------------------------------------------------------
 
 def _log_learning(query: str, agent: str, intent: str, language: str):
-    """Append to learning log for auditability."""
+    """Append to learning log for auditability. Skip on serverless platforms."""
+    if os.getenv("VERCEL") or os.getenv("RENDER"):
+        return
+
     try:
         log = _load_json(_LEARNING_LOG)
         if not isinstance(log, list):
@@ -186,8 +193,69 @@ def _log_learning(query: str, agent: str, intent: str, language: str):
 
 
 # ---------------------------------------------------------------------------
-# Database Persistence (saves learned responses to the database)
+# Database Persistence & Retrieval
 # ---------------------------------------------------------------------------
+
+def _load_from_database(normalized_query: str, assistant_type: str, language: str) -> Optional[Tuple[str, Optional[dict]]]:
+    """Retrieve a learned response from the database using fuzzy match or exact match."""
+    if not _SessionLocal:
+        return None
+    
+    try:
+        from models.chat import LearningResponse
+        db = _SessionLocal()
+        
+        # 1. Try Exact Match First
+        match = db.query(LearningResponse).filter(
+            LearningResponse.query == normalized_query,
+            LearningResponse.assistant_type == assistant_type,
+            LearningResponse.language == language
+        ).order_by(LearningResponse.usage_count.desc()).first()
+        
+        if match:
+            # Increment usage count (async-ish background update)
+            match.usage_count += 1
+            db.commit()
+            response_text = match.response
+            db.close()
+            return response_text, None
+
+        # 2. Fuzzy Match Fallback (for generic "learned" queries)
+        # We fetch last 100 learned entries for this agent and do in-memory fuzzy matching
+        # (Database-level fuzzy search with pg_trgm would be better, but this is cross-db safe)
+        candidates = db.query(LearningResponse).filter(
+            LearningResponse.assistant_type == assistant_type,
+            LearningResponse.language == language,
+            LearningResponse.intent.like("learned%")
+        ).order_by(LearningResponse.created_at.desc()).limit(100).all()
+        
+        db.close()
+        
+        if not candidates:
+            return None
+            
+        best_match = None
+        best_score = 0.0
+        
+        for c in candidates:
+            stored_q = c.query
+            if not stored_q: continue
+            
+            # Simple fuzzy logic
+            score = SequenceMatcher(None, normalized_query, stored_q).ratio()
+            if score > 0.85 and score > best_score:
+                best_score = score
+                best_match = c.response
+                
+        if best_match:
+            print(f"[LearningDB] 🎯 Found FUZZY match in DB (score={best_score:.2f})")
+            return best_match, None
+            
+        return None
+    except Exception as e:
+        print(f"[LearningDB] Error retrieving from database: {e}")
+        return None
+
 
 def _save_to_database(query: str, response: str, assistant_type: str, intent: str, language: str):
     """Save a learned response to the database for persistence and analytics."""
@@ -199,9 +267,11 @@ def _save_to_database(query: str, response: str, assistant_type: str, intent: st
         from models.chat import LearningResponse
         db = _SessionLocal()
         
+        norm_q = _normalize_query(query)
+        
         # Check if this exact query+response already exists in DB
         existing = db.query(LearningResponse).filter(
-            LearningResponse.query == _normalize_query(query),
+            LearningResponse.query == norm_q,
             LearningResponse.assistant_type == assistant_type,
             LearningResponse.intent == intent,
             LearningResponse.language == language
@@ -215,7 +285,7 @@ def _save_to_database(query: str, response: str, assistant_type: str, intent: st
         else:
             # Create new learning response record
             learning_record = LearningResponse(
-                query=_normalize_query(query)[:255],  # Limit to 255 chars for indexing
+                query=norm_q[:255],  # Limit to 255 chars for indexing
                 response=response,
                 assistant_type=assistant_type,
                 intent=intent,
@@ -531,6 +601,11 @@ def find_learned_response(
     if best_match_text:
         print(f"[LearningCache] 🎯 LEARNED HIT (score={best_score:.2f}) for: {query[:60]}")
         return best_match_text, best_match_state
+    
+    # --- Final Fallback: Database (essential for serverless envs like Vercel) ---
+    db_result = _load_from_database(normalized, assistant_type, language)
+    if db_result:
+        return db_result
     
     return None
 

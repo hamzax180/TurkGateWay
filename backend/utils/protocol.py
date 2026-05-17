@@ -95,6 +95,10 @@ def _detect_type(business_type: str) -> str:
     bt = business_type.lower()
     if "register_uni" in bt:
         return "student_register_uni"
+    if "student_kimlik" in bt:
+        return "student_kimlik"
+    if "student_renew" in bt:
+        return "student_renew"
     if any(k in bt for k in ["student", "öğrenci", "university", "kimlik", "degree", "academic", "bachelor", "master", "phd", "college"]):
         return "student"
     # Lawyer sub-types — checked before generic 'lawyer'
@@ -668,6 +672,35 @@ def _steps_student_renew(lang):
               {"en":"Bring your pink folder (Insurance, Contract, Student Cert, Photos, and Receipt) to your university or Göç İdaresi.","tr":"Pembe dosyanızı (Sigorta, Sözleşme, Öğrenci Belgesi, Fotoğraflar ve Dekont) teslim edin.","ar":"أحضر المجلد الوردي (التأمين، العقد، شهادة الطالب، الصور، والإيصال) إلى الجامعة أو إدارة الهجرة."}[lang]),
     ]
 
+def _steps_student_kimlik(lang):
+    """First-time Kimlik Application — 6 professional steps."""
+    return [
+        (1,  {"en":"Get Turkish Tax Number","tr":"Vergi Kimlik Numarası Al","ar":"الحصول على الرقم الضريبي"}[lang],
+              {"en":"Agent/Human","tr":"Ajan/İnsan","ar":"وكيل/بشري"}[lang],
+              {"en":"Visit tax office or ivd.gib.gov.tr online with passport. Required for insurance/bank.","tr":"Yerel vergi dairesi veya internet vergi dairesinden pasaportla alınır.","ar":"اذهب لمكتب الضرائب المحلي أو عبر الإنترنت مع الجواز."}[lang],
+              {"en":["Original Passport + photocopy","Notarized Turkish Address Document"],"tr":["Pasaport (asıl + fotokopi)","Noter Onaylı Adres Belgesi"],"ar":["جواز السفر الأصلي + صورة","وثيقة عنوان موثّقة"]}[lang]),
+        (2,  {"en":"Purchase Health Insurance (Yabancı Sağlık Sigortası)","tr":"Yabancı Sağlık Sigortası Yaptır","ar":"شراء التأمين الصحي"}[lang],
+              {"en":"Agent/Human","tr":"Ajan/İnsan","ar":"وكيل/بشري"}[lang],
+              {"en":"Must cover your 1-2 year stay period completely. SGK or Private accepted.","tr":"Tüm kalış sürenizi kapsayan sağlık sigortası yaptırın.","ar":"يجب أن يغطي فترة إقامتك بالكامل."}[lang],
+              {"en":["Passport","Turkish Tax Number (Vergi No)","Policy covering full stay period"],"tr":["Pasaport","Vergi Kimlik Numarası","Tüm kalış süresini kapsayan poliçe"],"ar":["جواز السفر","الرقم الضريبي التركي","وثيقة تأمين تغطي كامل مدة الإقامة"]}[lang]),
+        (3,  {"en":"Notarize Lease Agreement / Dormitory Doc","tr":"Kira/Yurt Belgesini Noter Onaylı Yap","ar":"توثيق عقد الإيجار / السكن"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Proof of address required. Owner must be present at notary or dorm letter needed.","tr":"Adres kanıtı zorunludur. Kira sözleşmesini onaylatın.","ar":"إثبات السكن مطلوب، مع توثيق كاتب العدل."}[lang],
+              {"en":["Notarized Lease Agreement (Kira Sözleşmesi)","Landlord ID copy","OR: Official KYK/Dorm Acceptance Letter"],"tr":["Noter Onaylı Kira Sözleşmesi","Ev Sahibi Kimlik Fotokopisi","VEYA: KYK/Yurt Kabul Belgesi"],"ar":["عقد إيجار موثّق لدى كاتب العدل","نسخة هوية المالك","أو: خطاب قبول السكن الجامعي"]}[lang]),
+        (4,  {"en":"Apply for Kimlik (e-İkamet system)","tr":"e-İkamet (Kimlik) Başvurusu Yap","ar":"تقديم طلب Kimlik (e-İkamet)"}[lang],
+              {"en":"Agent","tr":"Ajan","ar":"وكيل"}[lang],
+              {"en":"Fill forms at e-ikamet.goc.gov.tr. Reserve your appointment date.","tr":"e-ikamet.goc.gov.tr üzerinden randevu alıp formları doldurun.","ar":"املأ النماذج في e-ikamet.goc.gov.tr واحجز موعداً."}[lang],
+              {"en":["Valid Passport","Student Certificate (Öğrenci Belgesi)","Health Insurance Policy","Notarized Lease / Dorm Letter","4x Biometric Photos","Application fee payment receipt"],"tr":["Geçerli Pasaport","Öğrenci Belgesi","Sağlık Sigortası Poliçesi","Noter Onaylı Kira / Yurt Belgesi","4 Adet Biyometrik Fotoğraf","Başvuru ücreti makbuzu"],"ar":["جواز سفر ساري","شهادة الطالب","وثيقة التأمين الصحي","عقد الإيجار الموثّق / خطاب السكن","4 صور بيومترية","إيصال رسوم التقديم"]}[lang]),
+        (5,  {"en":"Attend Göç İdaresi Appointment","tr":"Göç İdaresi Randevusuna Git","ar":"حضور موعد إدارة الهجرة"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Present pink folder with 4 photos, student cert, insurance, address doc, passport.","tr":"4 biometrik fotoğraf, öğrenci belgesi, sigorta, adres ile gidin.","ar":"أحضر 4 صور حيوية، شهادة طالب، تأمين، إثبات سكن."}[lang],
+              {"en":["Original Passport + 2 photocopies","Student Certificate (Öğrenci Belgesi)","Health Insurance Policy (original)","Notarized Lease / Dorm Letter (original)","4 Biometric Photos (white background)","Printed e-İkamet Application Form","Application fee payment proof"],"tr":["Pasaport Aslı + 2 Fotokopisi","Öğrenci Belgesi (asıl)","Sağlık Sigortası Poliçesi (asıl)","Kira/Yurt Belgesi (noter onaylı asıl)","4 Biyometrik Fotoğraf (beyaz arka plan)","e-İkamet Başvuru Formu (çıktı)","Başvuru ücreti ödeme kanıtı"],"ar":["جواز السفر الأصلي + نسختان","شهادة الطالب الأصلية","وثيقة التأمين الصحي الأصلية","عقد الإيجار الموثّق الأصلي","4 صور بيومترية (خلفية بيضاء)","نموذج طلب e-İkamet المطبوع","إثبات دفع رسوم التقديم"]}[lang]),
+        (6,  {"en":"Receive Student ID (Kimlik)","tr":"Öğrenci Kimliğini Teslim Al","ar":"استلام هوية الطالب (Kimlik)"}[lang],
+              {"en":"Human","tr":"İnsan","ar":"بشري"}[lang],
+              {"en":"Card arrives via PTT mail to your registered address in 15-45 days.","tr":"Kimlik kartı PTT ile 15-45 gün içinde adresinize gelir.","ar":"تصل البطاقة عبر PTT إلى عنوانك خلال 15-45 يوماً."}[lang],
+              {"en":["Check PTT tracking (PTT Kargo No from appointment)","ID ready for delivery confirmation"],"tr":["PTT Takip No ile kargo takibi yapın","Teslimat için kimlik hazır bulundurun"],"ar":["متابعة الشحن عبر رقم PTT","إبراز الهوية عند الاستلام"]}[lang]),
+    ]
+
 def _steps_student_register_uni(lang):
     """University Registration / Enrollment — 5 professional steps."""
     return [
@@ -695,6 +728,7 @@ _BUILDERS = {
     "service":           _steps_service,
     "general":           _steps_general,
     "student":           _steps_student,
+    "student_kimlik":    _steps_student_kimlik,
     "student_register_uni": _steps_student_register_uni,
     "student_renew":     _steps_student_renew,
     "lawyer_contract":   _steps_lawyer_contract,

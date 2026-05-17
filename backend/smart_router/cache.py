@@ -71,7 +71,10 @@ def _load_from_disk() -> None:
 
 
 def _save_to_disk() -> None:
-    """Persist current in-memory cache to JSON file."""
+    """Persist current in-memory cache to JSON file. Skip on serverless."""
+    if os.getenv("VERCEL") or os.getenv("RENDER"):
+        return
+
     try:
         with open(_CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump(dict(_store), f, ensure_ascii=False, indent=2)

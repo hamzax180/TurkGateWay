@@ -8,6 +8,7 @@ import { Loader2, X, Apple, Mail, Phone } from 'lucide-react';
 import { useAuth } from '@/app/context/AuthContext';
 import { useLanguage } from '@/app/context/LanguageContext';
 import { useGoogleLogin } from '@react-oauth/google';
+import { BACKEND_BASE } from '@/app/utils/api';
 
 export default function LoginModal() {
     const { isLoginModalOpen, setIsLoginModalOpen, login } = useAuth();
@@ -28,7 +29,7 @@ export default function LoginModal() {
 
         try {
             if (step === 1) {
-                const res = await fetch('http://localhost:8003/auth/check-email', {
+                const res = await fetch(`${BACKEND_BASE}/auth/check-email`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email }),
@@ -44,7 +45,7 @@ export default function LoginModal() {
                 return;
             }
 
-            const res = await fetch('http://localhost:8003/auth/login', {
+            const res = await fetch(`${BACKEND_BASE}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password, mfa_code: mfaCode || undefined }),
@@ -75,7 +76,7 @@ export default function LoginModal() {
         onSuccess: async (tokenResponse) => {
             setLoading(true);
             try {
-                const res = await fetch('http://localhost:8003/auth/google', {
+                const res = await fetch(`${BACKEND_BASE}/auth/google`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id_token: tokenResponse.access_token, is_access_token: true }),

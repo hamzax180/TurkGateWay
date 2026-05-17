@@ -6,11 +6,12 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Menu, X, FileCheck, Sun, Moon, ShieldCheck } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import { BACKEND_BASE } from '@/app/utils/api';
 import Sidebar from './Sidebar';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 
-export default function Navbar({ isAppPage = false, onMobileMenuClick, extraContent }: { isAppPage?: boolean; onMobileMenuClick?: () => void; extraContent?: React.ReactNode }) {
+export default function Navbar({ isAppPage = false, transparentTop = false, onMobileMenuClick, extraContent }: { isAppPage?: boolean; transparentTop?: boolean; onMobileMenuClick?: () => void; extraContent?: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, token, logout, isAuthenticated, setIsLoginModalOpen } = useAuth();
@@ -40,7 +41,7 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
       }
       // Always sync from backend to get the real-time value
       try {
-        const res = await fetch(`http://localhost:8003/auth/me`, {
+        const res = await fetch(`${BACKEND_BASE}/auth/me`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -65,16 +66,18 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
     { href: '/chat', label: t('navbar_chat') },
     { href: '/services', label: t('navbar_services') || 'Services' },
     { href: '/dashboard', label: t('navbar_dashboard') },
-    { href: '/pricing', label: t('navbar_pricing') },
+    { href: '/pricing', label: t('navbar_pricing'), hideOnSmallLaptop: true },
     ...(isAdmin ? [{ href: '/admin/subscribers', label: t('navbar_subscribers') }] : []),
-    { href: '/download', label: t('navbar_download') === 'navbar_download' ? 'Download App' : t('navbar_download') || 'Download App' },
+    { href: '/download', label: t('navbar_download') === 'navbar_download' ? 'Download App' : t('navbar_download') || 'Download App', hideOnSmallLaptop: true },
   ];
 
 
   return (
     <>
     <header
-      className={`${isAppPage ? 'relative z-[20] w-full shrink-0 bg-[var(--surface)] border-b border-[var(--border)]/50' : 'fixed inset-x-0 top-0 z-[100] transition-all duration-300'} ${(isAppPage || scrolled) 
+      className={`${isAppPage ? 'relative z-[40] w-full shrink-0 border-b border-[var(--border)]/50' : 'fixed inset-x-0 top-0 z-[100] transition-all duration-300'} ${(transparentTop && !scrolled)
+          ? 'bg-transparent border-transparent shadow-none'
+          : (isAppPage || scrolled) 
           ? 'bg-[var(--nav-bg)] backdrop-blur-xl border-b border-[var(--border)] shadow-2xl' 
           : 'bg-transparent'
         }`}
@@ -95,13 +98,13 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
         {/* LEFT: Desktop Nav */}
         <div className="flex-1 hidden md:flex items-center justify-start">
           <nav className="flex items-center gap-0">
-            {links.map(({ href, label }) => {
+            {links.map(({ href, label, hideOnSmallLaptop }) => {
               const active = pathname === href;
               return (
                 <Link
                   key={href}
                   href={href}
-                  className={`relative rounded-lg transition-colors ${active ? 'text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
+                  className={`relative rounded-lg transition-colors ${hideOnSmallLaptop ? 'hidden xl:flex' : 'flex'} items-center ${active ? 'text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
                   style={{ padding: 'clamp(4px, 0.4vw, 8px) clamp(5px, 0.55vw, 12px)', fontSize: 'clamp(11px, 0.8vw, 14px)', fontWeight: 500 }}
                 >
                   {active && (
@@ -118,8 +121,8 @@ export default function Navbar({ isAppPage = false, onMobileMenuClick, extraCont
           </nav>
         </div>
 
-        {/* CENTER: Agent badge — shrink-0 so it stays its true size, centered between the flex-1 left/right sections */}
-        <div className="hidden md:flex items-center justify-center shrink-0 z-40 px-2">
+        {/* CENTER: Agent badge — standard flex now that left menu is responsive */}
+        <div className="flex items-center justify-center z-40 px-2 shrink-0">
           {extraContent}
         </div>
 

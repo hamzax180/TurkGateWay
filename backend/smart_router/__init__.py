@@ -352,9 +352,110 @@ async def smart_router_handle(
             "which district", "hangi ilçesinde", "في أي منطقة",
             "which university", "hangi üniversite", "في أي جامعة",
             "type the name", "planning to open", "açacaksın", "ستفتح",
-            "what type", "which type"
+            "what type", "which type", "which district in istanbul"
         ]
         _is_clarifying_for_roadmap = any(k in last_assistant_msg for k in _clarify_markers)
+
+    # --- PHASE 0.01: Suggestion Chip Interceptor ---
+    _CHIPS = {
+        "Cafe & Restaurant": ("permit", {
+            "en": "I am your Permit Agent. I see you want to open a **Cafe & Restaurant**. Which district in Istanbul are you planning to open it in so I can give you a roadmap?",
+            "tr": "Ben sizin Ruhsat Danışmanınızım. Bir **Kafe & Restoran** açmak istediğinizi görüyorum. Size bir yol haritası sunabilmem için İstanbul'un hangi ilçesinde açmayı planlıyorsunuz?",
+            "ar": "أنا مستشار التراخيص الخاص بك. أرى أنك تريد فتح **مقهى ومطعم**. في أي منطقة في إسطنبول تخطط لفتحه حتى أتمكن من إعطائك خريطة طريق؟"
+        }),
+        "Retail Shop": ("permit", {
+            "en": "I am your Permit Agent. I see you want to open a **Retail Shop**. Which district in Istanbul are you planning to open it in so I can give you a roadmap?",
+            "tr": "Ben sizin Ruhsat Danışmanınızım. Bir **Perakende Mağaza** açmak istediğinizi görüyorum. Size bir yol haritası sunabilmem için İstanbul'un hangi ilçesinde açmayı planlıyorsunuz?",
+            "ar": "أنا مستشار التراخيص الخاص بك. أرى أنك تريد فتح **متجر تجزئة**. في أي منطقة في إسطنبول تخطط لفتحه حتى أتمكن من إعطائك خريطة طريق؟"
+        }),
+        "Office & Tech": ("permit", {
+            "en": "I am your Permit Agent. I see you want to open an **Office / Tech Business**. Which district in Istanbul are you planning to open it in so I can give you a roadmap?",
+            "tr": "Ben sizin Ruhsat Danışmanınızım. Bir **Ofis / Teknoloji Şirketi** açmak istediğinizi görüyorum. Size bir yol haritası sunabilmem için İstanbul'un hangi ilçesinde açmayı planlıyorsunuz?",
+            "ar": "أنا مستشار التراخيص الخاص بك. أرى أنك تريد فتح **مكتب / شركة تقنية**. في أي منطقة في إسطنبول تخطط لفتحه حتى أتمكن من إعطائك خريطة طريق؟"
+        }),
+        "Pharmacy": ("permit", {
+            "en": "I am your Permit Agent. I see you want to open a **Pharmacy**. Which district in Istanbul are you planning to open it in so I can give you a roadmap?",
+            "tr": "Ben sizin Ruhsat Danışmanınızım. Bir **Eczane** açmak istediğinizi görüyorum. Size bir yol haritası sunabilmem için İstanbul'un hangi ilçesinde açmayı planlıyorsunuz?",
+            "ar": "أنا مستشار التراخيص الخاص بك. أرى أنك تريد فتح **صيدلية**. في أي منطقة في إسطنبول تخطط لفتحه حتى أتمكن من إعطائك خريطة طريق؟"
+        }),
+        "Clinic": ("permit", {
+            "en": "I am your Permit Agent. I see you want to open a **Clinic**. Which district in Istanbul are you planning to open it in so I can give you a roadmap?",
+            "tr": "Ben sizin Ruhsat Danışmanınızım. Bir **Klinik** açmak istediğinizi görüyorum. Size bir yol haritası sunabilmem için İstanbul'un hangi ilçesinde açmayı planlıyorsunuz?",
+            "ar": "أنا مستشار التراخيص الخاص بك. أرى أنك تريد فتح **عيادة طبية**. في أي منطقة في إسطنبول تخطط لفتحه حتى أتمكن من إعطائك خريطة طريق؟"
+        }),
+        "Bakery": ("permit", {
+            "en": "I am your Permit Agent. I see you want to open a **Bakery**. Which district in Istanbul are you planning to open it in so I can give you a roadmap?",
+            "tr": "Ben sizin Ruhsat Danışmanınızım. Bir **Fırın** açmak istediğinizi görüyorum. Size bir yol haritası sunabilmem için İstanbul'un hangi ilçesinde açmayı planlıyorsunuz?",
+            "ar": "أنا مستشار التراخيص الخاص بك. أرى أنك تريد فتح **مخبز**. في أي منطقة في إسطنبول تخطط لفتحه حتى أتمكن من إعطائك خريطة طريق؟"
+        }),
+
+        "University Registration": ("student", {
+            "en": "I am your Student Agent. I see you need help with **University Registration**. Which university are you planning to attend so I can give you a roadmap?",
+            "tr": "Ben sizin Öğrenci Danışmanınızım. **Üniversite Kaydı** konusunda yardıma ihtiyacınız olduğunu görüyorum. Size bir yol haritası sunabilmem için hangi üniversiteye gitmeyi planlıyorsunuz?",
+            "ar": "أنا مستشار الطلاب الخاص بك. أرى أنك بحاجة إلى مساعدة في **التسجيل الجامعي**. في أي جامعة تخطط للدراسة حتى أتمكن من إعطائك خريطة طريق؟"
+        }),
+        "Residence Permit": ("student", {
+            "en": "I am your Student Agent. I see you need help with a **Student Residence Permit (İkamet)**. Are you applying for the first time, or renewing?",
+            "tr": "Ben sizin Öğrenci Danışmanınızım. **Öğrenci İkamet İzni** konusunda yardıma ihtiyacınız olduğunu görüyorum. İlk kez mi başvuruyorsunuz yoksa yeniliyor musunuz?",
+            "ar": "أنا مستشار الطلاب الخاص بك. أرى أنك بحاجة إلى مساعدة في **تصريح إقامة الطالب (الإقامة)**. هل تتقدم بطلب لأول مرة أم تجدد؟"
+        }),
+        "ID Kimlik": ("student", {
+            "en": "I am your Student Agent. I see you need to **Renew or Get your Student ID (Kimlik)**. Which university do you attend?",
+            "tr": "Ben sizin Öğrenci Danışmanınızım. **Öğrenci Kimliğinizi (Kimlik) Yenilemeniz veya Almanız** gerektiğini görüyorum. Hangi üniversitede okuyorsunuz?",
+            "ar": "أنا مستشار الطلاب الخاص بك. أرى أنك بحاجة إلى **تجديد أو الحصول على بطاقة الطالب (Kimlik) الخاصة بك**. في أي جامعة تدرس؟"
+        }),
+        "Denklik (Equivalency)": ("student", {
+            "en": "I am your Student Agent. I see you need an **Equivalency (Denklik) Certificate**. Are you applying for high school or university equivalency?",
+            "tr": "Ben sizin Öğrenci Danışmanınızım. **Denklik Belgesine** ihtiyacınız olduğunu görüyorum. Lise için mi yoksa üniversite denkliği için mi başvuruyorsunuz?",
+            "ar": "أنا مستشار الطلاب الخاص بك. أرى أنك بحاجة إلى **شهادة معادلة (Denklik)**. هل تتقدم بطلب للحصول على معادلة الثانوية العامة أو الجامعة؟"
+        }),
+        "Dormitory & Housing": ("student", {
+            "en": "I am your Student Agent. I see you need help with **Dormitory & Housing**. Are you looking for a state dorm (KYK) or private housing?",
+            "tr": "Ben sizin Öğrenci Danışmanınızım. **Yurt & Konaklama** konusunda yardıma ihtiyacınız olduğunu görüyorum. Devlet yurdu (KYK) mu arıyorsunuz yoksa özel bir konaklama mı?",
+            "ar": "أنا مستشار الطلاب الخاص بك. أرى أنك بحاجة إلى مساعدة في **السكن الجامعي**. هل تبحث عن سكن حكومي (KYK) أو سكن خاص؟"
+        }),
+        "Student Visa": ("student", {
+            "en": "I am your Student Agent. I see you need a **Student Visa**. Have you already received your acceptance letter from a Turkish university?",
+            "tr": "Ben sizin Öğrenci Danışmanınızım. **Öğrenci Vizesine** ihtiyacınız olduğunu görüyorum. Bir Türk üniversitesinden kabul mektubunuzu aldınız mı?",
+            "ar": "أنا مستشار الطلاب الخاص بك. أرى أنك بحاجة إلى **تأشيرة طالب**. هل تلقيت بالفعل رسالة القبول من جامعة تركية؟"
+        }),
+
+        "Company Formation": ("lawyer", {
+            "en": "I am your Lawyer Agent. I see you need help with **Company Formation**. Are you planning to open a Limited (Ltd) or Joint Stock (A.Ş.) company?",
+            "tr": "Ben sizin Avukat Danışmanınızım. **Şirket Kuruluşu** konusunda yardıma ihtiyacınız olduğunu görüyorum. Limited (Ltd) mi yoksa Anonim Şirket (A.Ş.) mi açmayı planlıyorsunuz?",
+            "ar": "أنا مستشار المحاماة الخاص بك. أرى أنك بحاجة إلى مساعدة في **تأسيس شركة**. هل تخطط لفتح شركة ذات مسؤولية محدودة (Ltd) أو مساهمة (A.Ş.)؟"
+        }),
+        "Contract Review": ("lawyer", {
+            "en": "I am your Lawyer Agent. I see you need a **Contract Review**. What kind of contract is it? (e.g. Employment, Lease, Partnership)",
+            "tr": "Ben sizin Avukat Danışmanınızım. **Sözleşme İncelemesine** ihtiyacınız olduğunu görüyorum. Ne tür bir sözleşme? (örn. İş, Kira, Ortaklık)",
+            "ar": "أنا مستشار المحاماة الخاص بك. أرى أنك بحاجة إلى **مراجعة عقد**. ما نوع العقد؟ (مثلا التوظيف، الإيجار، الشراكة)"
+        }),
+        "Employment Law": ("lawyer", {
+            "en": "I am your Lawyer Agent. I see you have an **Employment Law** query. Are you an employer or an employee?",
+            "tr": "Ben sizin Avukat Danışmanınızım. **İş Hukuku** ile ilgili bir sorunuz olduğunu görüyorum. İşveren misiniz yoksa çalışan mı?",
+            "ar": "أنا مستشار المحاماة الخاص بك. أرى أن لديك استفسارًا في **قانون العمل**. هل أنت صاحب عمل أم موظف؟"
+        }),
+        "Legal Disputes": ("lawyer", {
+            "en": "I am your Lawyer Agent. I see you need help with **Legal Disputes**. Could you briefly describe the situation?",
+            "tr": "Ben sizin Avukat Danışmanınızım. **Hukuki Anlaşmazlıklar** konusunda yardıma ihtiyacınız olduğunu görüyorum. Durumu kısaca açıklayabilir misiniz?",
+            "ar": "أنا مستشار المحاماة الخاص بك. أرى أنك بحاجة إلى مساعدة في **النزاعات القانونية**. هل يمكنك وصف الموقف باختصار؟"
+        }),
+        "Residency & Visas": ("lawyer", {
+            "en": "I am your Lawyer Agent. I see you need legal help with **Residency & Visas**. What specific issue are you facing?",
+            "tr": "Ben sizin Avukat Danışmanınızım. **İkamet & Vizeler** konusunda hukuki yardıma ihtiyacınız olduğunu görüyorum. Karşılaştığınız özel sorun nedir?",
+            "ar": "أنا مستشار المحاماة الخاص بك. أرى أنك بحاجة إلى مساعدة قانونية في **الإقامة والتأشيرات**. ما هي المشكلة المحددة التي تواجهها؟"
+        }),
+        "Real Estate Law": ("lawyer", {
+            "en": "I am your Lawyer Agent. I see you need help with **Real Estate Law**. Are you buying, selling, or renting property?",
+            "tr": "Ben sizin Avukat Danışmanınızım. **Gayrimenkul Hukuku** konusunda yardıma ihtiyacınız olduğunu görüyorum. Mülk mü alıyorsunuz, satıyor musunuz yoksa kiralıyor musunuz?",
+            "ar": "أنا مستشار المحاماة الخاص بك. أرى أنك بحاجة إلى مساعدة في **قانون العقارات**. هل تشتري أم تبيع أم تستأجر عقارًا؟"
+        }),
+    }
+    if query in _CHIPS and assistant_type == _CHIPS[query][0]:
+        await wait_task
+        print(f"\n[Smart Router] 🚀 Intercepted suggestion chip: {query}")
+        msg = _CHIPS[query][1].get(language, _CHIPS[query][1]["en"])
+        return msg, None, "Suggestion Chip Interceptor"
 
     cached = response_cache.get(query, assistant_type, language)
     if cached and not _is_clarifying_for_roadmap:
@@ -819,19 +920,20 @@ async def smart_router_handle(
 
         if assistant_type == "permit":
             _BUSINESS_KEYWORDS = [
-                (["restaurant", "restoran", "lokanta", "dining", "dinner", "resteruant", "resteraunt"], "Restaurant", "Restoran", "\u0645\u0637\u0639\u0645"),
-                (["cafe", "kafe", "coffee shop", "kahve", "pastane", "tea house", "caffe", "cafee"], "Caf\u00e9", "Kafe", "\u0645\u0642\u0627\u0647\u064a"),
-                (["bakery", "f\u0131r\u0131n", "fir\u0131n", "bread", "pastry", "cafetaria"], "Bakery", "F\u0131r\u0131n", "\u0645\u062e\u0628\u0632"),
-                (["pharmacy", "eczane", "chemist", "drugstore"], "Pharmacy", "Eczane", "\u0635\u064a\u062f\u0644\u064a\u0629"),
-                (["barber", "berber", "hair salon", "kuaf\u00f6r", "kuafor", "beauty", "g\u00fczellik", "spa"], "Hair Salon / Beauty", "Kuaf\u00f6r / G\u00fczellik Salonu", "\u0635\u0627\u0644\u0648\u0646 \u062d\u0644\u0627\u0642\u0629 / \u062a\u062c\u0645\u064a\u0644"),
-                (["gym", "fitness", "spor salonu", "crossfit"], "Gym / Fitness Centre", "Spor Salonu / Fitness", "\u0635\u0627\u0644\u0629 \u0623\u0644\u0639\u0627\u0628 \u0631\u064a\u0627\u0636\u064a\u0629"),
-                (["clothing", "giyim", "boutique", "apparel", "fashion", "ma\u011faza", "d\u00fckkan"], "Clothing Store", "Giyim Ma\u011fazas\u0131", "\u0645\u062a\u062c\u0631 \u0645\u0644\u0627\u0628\u0633"),
-                (["retail", "shop", "store", "market", "grocery", "bakkal"], "Retail Shop", "Perakende Ma\u011faza", "\u0645\u062a\u062c\u0631 \u062a\u062c\u0632\u0626\u0629"),
-                (["office", "ofis", "consulting", "dan\u0131\u015fmanl\u0131k", "agency", "b\u00fcro"], "Office / Consultancy", "Ofis / Dan\u0131\u015fmanl\u0131k", "\u0645\u0643\u062a\u0628 / \u0627\u0633\u062a\u0634\u0627\u0631\u0627\u062a"),
-                (["tech", "software", "yaz\u0131l\u0131m", "startup"], "Tech / Software Company", "Teknoloji / Yaz\u0131l\u0131m \u015eirketi", "\u0634\u0631\u0643\u0629 \u062a\u0642\u0646\u064a\u0629 / \u0628\u0631\u0645\u062c\u064a\u0627\u062a"),
-                (["hotel", "hostel", "accommodation", "konaklama"], "Hotel / Accommodation", "Otel / Konaklama", "\u0641\u0646\u062f\u0642 / \u0625\u0642\u0627\u0645\u0629"),
-                (["clinic", "klinik", "medical", "dental", "doctor", "doktor", "di\u015f"], "Medical Clinic", "T\u0131bbi Klinik", "\u0639\u064a\u0627\u062f\u0629 \u0637\u0628\u064a\u0629"),
-                (["school", "okul", "education", "dershane", "kurs"], "Educational Centre", "E\u011fitim Merkezi", "\u0645\u0631\u0643\u0632 \u062a\u0639\u0644\u064a\u0645\u064a"),
+                (["restaurant", "restoran", "lokanta", "dining", "dinner", "resteruant", "resteraunt"], "Restaurant", "Restoran", "مطعم"),
+                (["cafe", "kafe", "coffee shop", "kahve", "pastane", "tea house", "caffe", "cafee"], "Café", "Kafe", "مقهى"),
+                (["bakery", "fırın", "firın", "bread", "pastry", "cafetaria"], "Bakery", "Fırın", "مخبز"),
+                (["pharmacy", "eczane", "chemist", "drugstore"], "Pharmacy", "Eczane", "صيدلية"),
+                (["barber", "berber", "hair salon", "kuaför", "kuafor", "beauty", "güzellik", "spa"], "Hair Salon / Beauty", "Kuaför / Güzellik Salonu", "صالون حلاقة / تجميل"),
+                (["gym", "fitness", "spor salonu", "crossfit"], "Gym / Fitness Centre", "Spor Salonu / Fitness", "صالة ألعاب رياضية"),
+                (["clothing", "giyim", "boutique", "apparel", "fashion", "mağaza", "dükkan"], "Clothing Store", "Giyim Mağazası", "متجر ملابس"),
+                (["retail", "shop", "store", "market", "grocery", "bakkal"], "Retail Shop", "Perakende Mağaza", "متجر تجزئة"),
+                (["office", "ofis", "consulting", "danışmanlık", "agency", "büro"], "Office / Consultancy", "Ofis / Danışmanlık", "مكتب / استشارات"),
+                (["tech", "software", "yazılım", "startup"], "Tech / Software Company", "Teknoloji / Yazılım Şirketi", "شركة تقنية / برمجيات"),
+                (["hotel", "hostel", "accommodation", "konaklama"], "Hotel / Accommodation", "Otel / Konaklama", "فندق / إقامة"),
+                (["clinic", "klinik", "medical", "dental", "doctor", "doktor", "diş"], "Medical Clinic", "Tıbbi Klinik", "عيادة طبية"),
+                (["school", "okul", "education", "dershane", "kurs"], "Educational Centre", "Eğitim Merkezi", "مركز تعليمي"),
+                (["residence", "ikamet", "touristic", "oturma", "lawyer_residency"], "lawyer_residency", "İkamet İzni", "تصريح الإقامة"),
             ]
             
             # Fix #3a: Pre-seed from confirmed session slots first.
@@ -1041,7 +1143,8 @@ async def smart_router_handle(
             no_district = district_display is None
             missing_items = []
             if business_type == "Business": missing_items.append("business")
-            if no_district: missing_items.append("district")
+            # Residence permits do not need a district to generate a roadmap
+            if no_district and business_type_en != "lawyer_residency": missing_items.append("district")
 
             # Fix #4: If the session already has a confirmed service_id, NEVER ask
             # clarifying questions — the user is in a follow-up conversation.
@@ -1085,15 +1188,26 @@ async def smart_router_handle(
             district = district_display
             mun_name = mun_name_en
 
-            if language == "tr":
-                permits, agencies, docs = [f"{district} \u0130\u015fyeri A\u00e7ma ve \u00c7al\u0131\u015fma Ruhsat\u0131"], [mun_name, "Vergi Dairesi"], ["Kimlik", "Kira S\u00f6zle\u015fmesi", "Vergi Levhas\u0131", "NACE Kodu Belgesi"]
-                summ, labels = f"M\u00fckemmel se\u00e7im! {district}'de {business_type} a\u00e7mak i\u00e7in bilmeniz gereken her \u015feyi haz\u0131rlad\u0131m. \ud83c\udf89 \u00d6nemli not: {district_note} A\u015fa\u011f\u0131daki yol haritas\u0131n\u0131 takip edin ve merak etti\u011finizi sorun!", {"ag": "Kurumlar", "dc": "Gerekli Belgeler", "st": "Ad\u0131mlar", "tm": "Tahmini S\u00fcre", "dy": "g\u00fcn"}
-            elif language == "ar":
-                permits, agencies, docs = [f"\u0631\u062e\u0635\u0629 \u0641\u062a\u062d \u0648\u062a\u0634\u063a\u064a\u0644 \u0645\u0646 \u0628\u0644\u062f\u064a\u0629 {district}"], [mun_name, "\u0645\u0643\u062a\u0628 \u0627\u0644\u0636\u0631\u0627\u0626\u0628 (Vergi Dairesi)"], ["\u0628\u0637\u0627\u0642\u062f \u0627\u0644\u0647\u0648\u064a\u0629/\u062c\u0648\u0627\u0632 \u0627\u0644\u0633\u0641\u0631", "\u0639\u0642\u062f \u0627\u0644\u0625\u064a\u062c\u0627\u0631 (\u0645\u0648\u062b\u0642)", "\u0627\u0644\u0644\u0648\u062d\u0629 \u0627\u0644\u0636\u0631\u0627\u0626\u0628\u064a\u0629 (Vergi Levhas\u0131)", "\u0648\u062b\u064a\u0642\u0629 \u0631\u0645\u0632 NACE"]
-                summ, labels = f"\u0627\u062e\u062a\u064a\u0627\u0631 \u0645\u0647\u0646\u064a \u0645\u0648\u0641\u0642! \u0644\u0642\u062f \u0642\u0645\u062a \u0628\u0625\u0639\u062f\u0627\u062f \u062e\u0631\u064a\u0637\u0629 \u0637\u0631\u064a\u0642 \u0645\u062a\u0643\u0627\u0645\u0644\u0629 \u0644\u0627\u0641\u062a\u062a\u0627\u062d **{business_type}** \u0641\u064a \u0645\u0646\u0637\u0642\u0629 **{district}**. \ud83c\udf89 \u0645\u0644\u0627\u062d\u0638\u0629 \u0647\u0627\u0645\u0629: {district_note} \u064a\u0631\u062c\u0649 \u0627\u062a\u0628\u0627\u0639 \u0627\u0644\u062e\u0637\u0648\u0627\u062a \u0623\u062f\u0646\u0627\u0647\u060b \u0648\u0623\u0646\u0627 \u0647\u0623\u064b \u0644\u0644\u0625\u062c\u0627\u0628\u0629 \u0639\u0644\u0649 \u0623\u064a \u0627\u0633\u062a\u0641\u0633\u0627\u0631 \u0642\u0627\u0646\u0648\u0646\u064a \u0623\u0648 \u0625\u062c\u0631\u0627\u0626\u064a.", {"ag": "\u0627\u0644\u0645\u0624\u0633\u0633\u0627\u062a \u0648\u0627\u0644\u0647\u064a\u0626\u0627\u062a", "dc": "\u0627\u0644\u0645\u0633\u062a\u0646\u062f\u0627\u062a \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629", "st": "\u062e\u0637\u0648\u0627\u062a \u0627\u0644\u0639\u0645\u0644", "tm": "\u0627\u0644\u062c\u062f\u0648\u0644 \u0627\u0644\u0632\u0645\u0646\u064a \u0627\u0644\u0645\u062a\u0648\u0642\u0639", "dy": "\u064a\u0648\u0645"}
+            if business_type_en == "lawyer_residency":
+                if language == "tr":
+                    permits, agencies, docs = ["İkamet İzni"], ["Göç İdaresi", "Nüfus Müdürlüğü"], ["Pasaport", "Biometrik Fotoğraf", "Adres Kaydı", "Sağlık Sigortası"]
+                    summ, labels = "Tebrikler! İkamet izni başvurunuz için ihtiyacınız olan her şeyi hazırladım. 🎉 Aşağıdaki adımları takip edebilirsiniz.", {"ag": "Kurumlar", "dc": "Gerekli Belgeler", "st": "Adımlar", "tm": "Tahmini Süre", "dy": "gün"}
+                elif language == "ar":
+                    permits, agencies, docs = ["تصريح الإقامة"], ["إدارة الهجرة", "مديرية النفوس"], ["جواز السفر", "صورة بيومترية", "قيد النفوس", "تأمين صحي"]
+                    summ, labels = "خيار موفق! لقد أعددت لك خريطة طريق متكاملة للتقديم على تصريح الإقامة. 🎉 يرجى اتباع الخطوات أدناه.", {"ag": "المؤسسات", "dc": "المستندات", "st": "الخطوات", "tm": "المدة", "dy": "يوم"}
+                else:
+                    permits, agencies, docs = ["Residence Permit"], ["Migration Directorate (Göç İdaresi)", "Civil Registry"], ["Passport", "Biometric Photo", "Address Registration", "Health Insurance"]
+                    summ, labels = "Great! I've put together your complete roadmap for applying for a Residence Permit! 🚀 Follow the steps below and feel free to ask me anything.", {"ag": "Agencies", "dc": "Documents", "st": "Steps", "tm": "Timeline", "dy": "days"}
             else:
-                permits, agencies, docs = [f"{district} Workplace Operating License"], [mun_name, "Tax Office (Vergi Dairesi)"], ["ID / Passport", "Lease Agreement", "Tax Plate", "NACE Code Certificate"]
-                summ, labels = f"Great choice \u2014 I've put together your complete roadmap for opening a {business_type} in {district}! \ud83d\ude80 \ud83d\udccd **{district} note:** {district_note} Follow the steps below and feel free to ask me anything along the way.", {"ag": "Institutions / Agencies", "dc": "Documents You'll Need", "st": "Your Action Steps", "tm": "Estimated Timeline", "dy": "days"}
+                if language == "tr":
+                    permits, agencies, docs = [f"{district} İşyeri Açma ve Çalışma Ruhsatı"], [mun_name, "Vergi Dairesi"], ["Kimlik", "Kira Sözleşmesi", "Vergi Levhası", "NACE Kodu Belgesi"]
+                    summ, labels = f"Mükemmel seçim! {district}'de {business_type} açmak için bilmeniz gereken her şeyi hazırladım. 🎉 Önemli not: {district_note} Aşağıdaki yol haritasını takip edin ve merak ettiğinizi sorun!", {"ag": "Kurumlar", "dc": "Gerekli Belgeler", "st": "Adımlar", "tm": "Tahmini Süre", "dy": "gün"}
+                elif language == "ar":
+                    permits, agencies, docs = [f"رخصة فتح وتشغيل من بلدية {district}"], [mun_name, "مكتب الضرائب (Vergi Dairesi)"], ["بطاقد الهوية/جواز السفر", "عقد الإيجار (موثق)", "اللوحة الضرائبية (Vergi Levhası)", "وثيقة رمز NACE"]
+                    summ, labels = f"اختيار مهني موفق! لقد قمت بإعداد خريطة طريق متكاملة لافتتاح **{business_type}** في منطقة **{district}**. 🎉 ملاحظة هامة: {district_note} يرجى اتباع الخطوات أدناه، وأنا هأً للإجابة على أي استفسار قانوني أو إجرائي.", {"ag": "المؤسسات والهيئات", "dc": "المستندات المطلوبة", "st": "خطوات العمل", "tm": "الجدول الزمني المتوقع", "dy": "يوم"}
+                else:
+                    permits, agencies, docs = [f"{district} Workplace Operating License"], [mun_name, "Tax Office (Vergi Dairesi)"], ["ID / Passport", "Lease Agreement", "Tax Plate", "NACE Code Certificate"]
+                    summ, labels = f"Great choice — I've put together your complete roadmap for opening a {business_type} in {district}! 🚀 📍 **{district} note:** {district_note} Follow the steps below and feel free to ask me anything along the way.", {"ag": "Institutions / Agencies", "dc": "Documents You'll Need", "st": "Your Action Steps", "tm": "Estimated Timeline", "dy": "days"}
 
             timeline = 30
             if any(kw in combined_context for kw in ["restaurant", "restoran", "cafe", "kafe", "bakery", "f\u0131r\u0131n", "fir\u0131n", "food", "g\u0131da"]):
@@ -1138,18 +1252,23 @@ async def smart_router_handle(
                 "apply for kimlik", "get kimlik", "want kimlik", "need kimlik",
                 "get id card", "id application", "kimlik application",
                 "student id", "first time id", "first kimlik", "obtain id",
-                "obtain kimlik", "new id", "new kimlik",
+                "obtain kimlik", "new id", "new kimlik", "first time"
             ])
             is_renew = (
-                "renew" in _q or "replace" in _q or "uzat" in _q or "\u062a\u062c\u062f\u064a\u062f" in _q
-            ) and "kimlik" not in _q
-            # First-time kimlik application → same 9-step roadmap as renewal
+                "renew" in _q or "replace" in _q or "uzat" in _q or "تجديد" in _q
+            ) and not _is_kimlik_new
+            
             if _is_kimlik_new:
-                is_renew = True
-            business_type, district, timeline = ("student_renew" if is_renew else "Student"), "Istanbul", (10 if is_renew else 30)
-            if language == "tr": permits, agencies, docs, summ = (["\u00d6\u011frenci \u0130kamet \u0130zni Uzatmas\u0131"], ["G\u00f6\u00e7 \u0130daresi", "Noter", "Sigorta \u015eirketi"], ["Sa\u011fl\u0131k Sigortas\u0131", "Noter Onayl\u0131 Kira S\u00f6zle\u015fmesi", "\u00d6\u011frenci Belgesi", "Biyometrik Foto\u011fraf"], "Sorun de\u011fil, hemen organize edelim! \ud83c\udf93 \u0130kamet yenileme s\u00fcreci birka\u00e7 ad\u0131mdan olu\u015fuyor.") if is_renew else (["\u00d6\u011frenci Kayd\u0131", "\u00d6\u011frenci \u0130kamet \u0130zni"], ["\u00d6\u011frenci \u0130\u015fleri", "G\u00f6\u00e7 \u0130daresi", "SGK"], ["Pasaport", "Kabul Mektubu", "Sa\u011fl\u0131k Sigortas\u0131"], "T\u00fcrkiye'de \u00f6\u011frenci olmak heyecan verici \u2014 tebrikler! \ud83c\udf93"); labels = {"ag":"Kurumlar", "dc":"Belgeler", "st":"Ad\u0111mlar", "tm":"Tahmini S\u00fcre", "dy":"g\u00fcn"}
-            elif language == "ar": permits, agencies, docs, summ = (["\u062a\u0645\u062f\u064a\u062f \u0625\u0642\u0627\u0645\u0629 \u0627\u0644\u0637\u0627\u0644\u0628"], ["\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0647\u062c\u0631\u0629", "\u0627\u0644\u0639\u062f\u0644 (\u0627\u0644\u0646\u0648\u062a\u0631)", "\u0634\u0631\u0643\u0629 \u0627\u0644\u062a\u0623\u0645\u064a\u0646"], ["\u0627\u0644\u062a\u0623\u0645\u064a\u0646 \u0627\u0644\u0635\u062d\u064a", "\u0639\u0642\u062f \u0625\u064a\u062c\u0627\u0631 \u0645\u0648\u062b\u0642", "\u0634\u0647\u0627\u062f\u0629 \u0637\u0627\u0644\u0628", "\u0635\u0648\u0631 \u0634\u062e\u0635\u064a\u0629"], "\u0644\u0627 \u062a\u0642\u0644\u0642\u060b \u0633\u0646\u0631\u062a\u0628 \u0643\u0644 \u0634\u064a\u0621! \ud83c\udf93") if is_renew else (["\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062c\u0627\u0645\u0639\u0629", "\u0625\u0642\u0627\u0645\u0629 \u0627\u0644\u0637\u0627\u0644\u0628"], ["\u0634\u0624\u0648\u0646 \u0627\u0644\u0637\u0644\u0627\u0628", "\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0627\u0647\u062c\u0631\u0629", "SGK"], ["\u062c\u0648\u0627\u0632 \u0627\u0644\u0633\u0641\u0631", "\u062e\u0637\u0627\u0628 \u0627\u0644\u0642\u0628\u0648\u0644", "\u0627\u0644\u062a\u0623\u0645\u064a\u0646 \u0627\u0644\u0635\u062d\u064a"], "\u062a\u0647\u0627\u0646\u064a\u0646\u0627 \u0639\u0644\u0649 \u0642\u0628\u0648\u0644\u0643 \u0641\u064a \u0627\u0644\u062c\u0627\u0645\u0639\u0629! \ud83c\udf93"); labels = {"ag":"\u0627\u0644\u0645\u0624\u0633\u0633\u0627\u062a", "dc":"\u0627\u0644\u0645\u0633\u062a\u0646\u062f\u0627\u062a", "st":"\u062e\u0637\u0648\u0627\u062a\u0643", "tm":"\u0627\u0644\u0645\u062f\u0629", "dy":"\u064a\u0648\u0645"}
-            else: permits, agencies, docs, summ = (["Student Residence Permit Extension"], ["Migration Office", "Notary Public", "Insurance Provider"], ["Health Insurance Policy", "Notarized Lease Agreement", "Student Certificate", "Photos"], "No stress \u2014 let's sort this out together! \ud83c\udf93") if is_renew else (["University Registration", "Student Residence Permit"], ["Student Affairs", "Migration Directorate", "SGK"], ["Passport", "Acceptance Letter", "Health Insurance"], "Welcome to Turkey \u2014 exciting times ahead! \ud83c\udf93"); labels = {"ag":"Agencies", "dc":"Documents", "st":"Steps", "tm":"Time", "dy":"days"}
+                business_type, district, timeline = "student_kimlik", "Istanbul", 30
+                if language == "tr": permits, agencies, docs, summ = (["İlk Kez Öğrenci İkamet İzni"], ["Göç İdaresi", "Vergi Dairesi", "Noter"], ["Pasaport", "Kira Sözleşmesi", "Öğrenci Belgesi"], "Harika! 🎓 İlk ikamet izni başvurunu birlikte kolayca halledeceğiz.")
+                elif language == "ar": permits, agencies, docs, summ = (["تصريح الإقامة الطلابي الأول"], ["إدارة الهجرة", "مكتب الضرائب", "الكاتب العدل"], ["الجواز", "عقد الإيجار", "شهادة الطالب"], "عظيم! 🎓 سنتولى أمر إقامتك الأولى معاً خطوة بخطوة.")
+                else: permits, agencies, docs, summ = (["First-Time Student Residence Permit"], ["Migration Office", "Tax Office", "Notary Public"], ["Passport", "Lease Agreement", "Student Certificate"], "Awesome! 🎓 We'll map out your first residence permit application together.")
+                labels = {"en": {"ag":"Agencies", "dc":"Documents", "st":"Steps", "tm":"Time", "dy":"days"}, "tr": {"ag":"Kurumlar", "dc":"Belgeler", "st":"Adımlar", "tm":"Tahmini Süre", "dy":"gün"}, "ar": {"ag":"المؤسسات", "dc":"المستندات", "st":"خطواتك", "tm":"المدة", "dy":"يوم"}}[language]
+            else:
+                business_type, district, timeline = ("student_renew" if is_renew else "Student"), "Istanbul", (10 if is_renew else 30)
+                if language == "tr": permits, agencies, docs, summ = (["Öğrenci İkamet İzni Uzatması"], ["Göç İdaresi", "Noter", "Sigorta Şirketi"], ["Sağlık Sigortası", "Noter Onaylı Kira Sözleşmesi", "Öğrenci Belgesi", "Biyometrik Fotoğraf"], "Sorun değil, hemen organize edelim! 🎓 İkamet yenileme süreci birkaç adımdan oluşuyor.") if is_renew else (["Öğrenci Kaydı", "Öğrenci İkamet İzni"], ["Öğrenci İşleri", "Göç İdaresi", "SGK"], ["Pasaport", "Kabul Mektubu", "Sağlık Sigortası"], "Türkiye'de öğrenci olmak heyecan verici — tebrikler! 🎓"); labels = {"ag":"Kurumlar", "dc":"Belgeler", "st":"Adımlar", "tm":"Tahmini Süre", "dy":"gün"}
+                elif language == "ar": permits, agencies, docs, summ = (["تمديد إقامة الطالب"], ["إدارة الهجرة", "العدل (النوتر)", "شركة التأمين"], ["التأمين الصحي", "عقد إيجار موثق", "شهادة طالب", "صور شخصية"], "لا تقلق، سنرتب كل شيء! 🎓") if is_renew else (["تسجيل الجامعة", "إقامة الطالب"], ["شؤون الطلاب", "إدارة الاهجرة", "SGK"], ["جواز السفر", "خطاب القبول", "التأمين الصحي"], "تهانينا على قبولك في الجامعة! 🎓"); labels = {"ag":"المؤسسات", "dc":"المستندات", "st":"خطواتك", "tm":"المدة", "dy":"يوم"}
+                else: permits, agencies, docs, summ = (["Student Residence Permit Extension"], ["Migration Office", "Notary Public", "Insurance Provider"], ["Health Insurance Policy", "Notarized Lease Agreement", "Student Certificate", "Photos"], "No stress — let's sort this out together! 🎓") if is_renew else (["University Registration", "Student Residence Permit"], ["Student Affairs", "Migration Directorate", "SGK"], ["Passport", "Acceptance Letter", "Health Insurance"], "Welcome to Turkey — exciting times ahead! 🎓"); labels = {"ag":"Agencies", "dc":"Documents", "st":"Steps", "tm":"Time", "dy":"days"}
 
         elif assistant_type == "lawyer":
             query_lower, hist_lower = query.lower(), combined_context
