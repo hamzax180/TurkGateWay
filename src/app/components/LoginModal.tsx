@@ -61,7 +61,15 @@ export default function LoginModal() {
             }
 
             const data = await res.json();
-            login(data.access_token, data.email, data.full_name, data.is_admin, data.token_balance);
+            login(
+                data.access_token,
+                data.email,
+                data.full_name,
+                data.is_admin,
+                data.token_balance,
+                data.subscription_status,
+                data.last_token_reset
+            );
             setIsLoginModalOpen(false);
         } catch (err: any) {
             const msg: string = err.message || '';
@@ -84,7 +92,15 @@ export default function LoginModal() {
 
                 if (!res.ok) throw new Error('Google Login failed');
                 const data = await res.json();
-                login(data.access_token, data.email, data.full_name, data.is_admin, data.token_balance);
+                login(
+                    data.access_token,
+                    data.email,
+                    data.full_name,
+                    data.is_admin,
+                    data.token_balance,
+                    data.subscription_status,
+                    data.last_token_reset
+                );
                 setIsLoginModalOpen(false);
             } catch (err: any) {
                 setError(err.message);

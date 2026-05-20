@@ -23,6 +23,40 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 import google.generativeai as genai
+# Workaround: some versions of the Google GenAI client may call
+# BaseApiClient.aclose() while an internal async HTTP client
+# was never initialized, causing AttributeError on shutdown.
+# Patch the BaseApiClient.aclose implementation to be resilient
+# across genai package variants (google.generativeai and google.genai).
+try:
+    # Try the deprecated package first
+    api_mod = getattr(genai, '_api_client', None)
+    if api_mod and hasattr(api_mod.BaseApiClient, 'aclose'):
+        _orig_aclose = api_mod.BaseApiClient.aclose
+        async def _safe_aclose(self):
+            try:
+                await _orig_aclose(self)
+            except AttributeError:
+                # Missing internal client, ignore during shutdown
+                return
+        api_mod.BaseApiClient.aclose = _safe_aclose
+except Exception:
+    pass
+
+try:
+    # Also support the newer `google.genai` package if present
+    import google.genai as genai_new  # type: ignore
+    api_mod2 = getattr(genai_new, '_api_client', None)
+    if api_mod2 and hasattr(api_mod2.BaseApiClient, 'aclose'):
+        _orig_aclose2 = api_mod2.BaseApiClient.aclose
+        async def _safe_aclose2(self):
+            try:
+                await _orig_aclose2(self)
+            except AttributeError:
+                return
+        api_mod2.BaseApiClient.aclose = _safe_aclose2
+except Exception:
+    pass
 from dotenv import load_dotenv
 import json
 from google.oauth2 import id_token
@@ -1237,7 +1271,7 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
                 db_session.title = None 
                 db.commit()
 
-            if db_session and not db_session.title:
+            if db_session and (not db_session.title or db_session.title == "New Chat"):
                 # Clean up the query for a nice title
                 clean = query_text.split('\n')[-1].strip() # Take last line if file attachment is first
                 clean = clean.rstrip('?.! ')
@@ -1743,6 +1777,714 @@ async def get_chat_history(session_id: str, user: DBUser = Depends(get_current_u
     
     messages = db.query(ChatMessage).filter(ChatMessage.session_id == session_id).order_by(ChatMessage.timestamp.asc()).all()
     return [{"role": m.role, "content": m.content, "id": m.id} for m in messages]
+
+class SaveMessageSchema(BaseModel):
+    role: str
+    content: str
+
+class SaveMessagesSchema(BaseModel):
+    messages: List[SaveMessageSchema]
+    service: Optional[str] = None
+    flow_type: Optional[str] = None
+
+def _get_mock_dashboard_state(service: str, flow_type: str) -> dict:
+    import datetime
+    service_norm = service.lower().strip()
+    flow_norm = flow_type.lower().strip()
+    is_new = (flow_norm == "new")
+
+    # Determine assistant type from service name
+    student_services = ["ikamet", "id /", "student visa", "denklik", "university registration", "dormitory", "housing", "istanbulkart"]
+    lawyer_services = ["company formation", "contract review", "employment law", "legal disputes", "residency & visas", "real estate law"]
+    is_student = any(k in service_norm for k in student_services)
+    is_lawyer = any(k in service_norm for k in lawyer_services)
+    assistant_type = "student" if is_student else ("lawyer" if is_lawyer else "permit")
+
+    title = ""
+    permits = []
+    agencies = []
+    documents = []
+    summary = ""
+    steps = []
+    assigned_agents = []
+
+    # ── STUDENT SERVICES ─────────────────────────────────────────────
+    if "ikamet" in service_norm or "id /" in service_norm or ("residence" in service_norm and is_student):
+        assigned_agents = ["Academic Agent", "Immigration Specialist"]
+        if is_new:
+            title = "Student Residence Permit — New Application (İlk Başvuru)"
+            permits = ["Student Residence Permit (Kimlik)"]
+            agencies = ["Göç İdaresi (Migration Office)", "Vergi Dairesi (Tax Office)", "Private Health Insurer"]
+            documents = ["Passport + Photocopy", "Student Visa entry stamp", "Öğrenci Belgesi (Student Certificate)", "Biometric Photos (x4)", "Health Insurance Policy", "Tax Number", "Proof of Address (Rental Agreement or Dormitory Document)", "Application Fee Receipt"]
+            summary = "Roadmap for obtaining your first Student Residence Permit (İkamet) in Turkey. Must be completed within 30 days of arrival."
+            steps = [
+                {"title": "Get Turkish Tax Number", "notes": "Visit ivd.gib.gov.tr to generate a tax number using your passport.", "docs": ["Passport"]},
+                {"title": "Obtain Health Insurance", "notes": "Purchase a valid Turkish private health insurance policy covering foreign students (min. 1 year).", "docs": ["Passport", "Tax Number"]},
+                {"title": "Fill e-İkamet Online Application", "notes": "Complete the registration form at e-ikamet.goc.gov.tr.", "docs": ["Passport", "Tax Number", "Health Insurance Policy", "Biometric Photos (x4)"]},
+                {"title": "Pay Application Fees", "notes": "Pay the card fee and residency fee online or at a state bank.", "docs": ["Tax Number"]},
+                {"title": "Attend Göç İdaresi Appointment", "notes": "Submit all physical documents at your designated Migration Office appointment.", "docs": ["Passport + Photocopy", "Student Visa entry stamp", "Öğrenci Belgesi", "Biometric Photos (x4)", "Health Insurance Policy", "Proof of Address", "Application Fee Receipt"]},
+                {"title": "Await Card Delivery", "notes": "Your residence permit card will be mailed to your registered address via PTT (7-14 business days).", "docs": []}
+            ]
+        else:
+            title = "Student Residence Permit — Renewal (Uzatma)"
+            permits = ["Student Residence Permit Renewal"]
+            agencies = ["Göç İdaresi (Migration Office)"]
+            documents = ["Current Residence Permit Card", "Passport + Photocopy", "Updated Öğrenci Belgesi", "Biometric Photos (x2)", "Renewed Health Insurance Policy", "Proof of Address", "Renewal Fee Receipt"]
+            summary = "Roadmap for renewing your existing Student Residence Permit (İkamet). Apply up to 60 days before expiration."
+            steps = [
+                {"title": "Obtain Renewed Health Insurance", "notes": "Purchase an updated private health insurance policy covering the renewal duration.", "docs": ["Passport"]},
+                {"title": "Request Updated Student Certificate", "notes": "Request a fresh Öğrenci Belgesi from your university registrars for the current semester.", "docs": []},
+                {"title": "Submit e-İkamet Renewal Online", "notes": "Fill the renewal form on e-ikamet.goc.gov.tr before your current card expires.", "docs": ["Current Residence Permit Card", "Passport", "Health Insurance Policy", "Biometric Photos (x2)"]},
+                {"title": "Pay Renewal Fees", "notes": "Pay the required card and residence fees online or at a tax office.", "docs": ["Current Residence Permit Card"]},
+                {"title": "Submit Document Folder", "notes": "Send or submit your document folder to Göç İdaresi as instructed in your application.", "docs": ["Current Residence Permit Card", "Passport + Photocopy", "Updated Öğrenci Belgesi", "Biometric Photos (x2)", "Renewed Health Insurance Policy", "Proof of Address", "Renewal Fee Receipt"]},
+                {"title": "Await Renewed Card", "notes": "Wait for the new residence card to be processed and shipped to your address.", "docs": []}
+            ]
+
+    elif "student visa" in service_norm or ("visa" in service_norm and is_student):
+        assigned_agents = ["Academic Agent", "Visa Specialist"]
+        if is_new:
+            title = "Turkish Student Visa — New Application"
+            permits = ["Student Visa (D-Type)"]
+            agencies = ["Turkish Embassy / Consulate", "Ministry of Foreign Affairs"]
+            documents = ["Valid Passport (6+ months validity)", "Official University Acceptance Letter", "Biometric Photos (x2)", "Completed Visa Application Form", "Proof of Sufficient Funds (Bank Statement)", "Health Insurance for Travel", "Flight Reservation", "Accommodation Proof in Turkey"]
+            summary = "Roadmap for obtaining a Turkish Student Visa from a Turkish Consulate or Embassy in your home country before traveling to Turkey."
+            steps = [
+                {"title": "Obtain University Acceptance Letter", "notes": "Get the official Kabul Mektubu from your Turkish university.", "docs": ["Official University Acceptance Letter"]},
+                {"title": "Locate Turkish Consulate / Embassy", "notes": "Find the nearest Turkish Embassy or Consulate and check their appointment availability.", "docs": []},
+                {"title": "Book Visa Appointment", "notes": "Book a visa interview appointment online at the consulate's website or visa.gov.tr.", "docs": ["Passport"]},
+                {"title": "Gather Supporting Documents", "notes": "Prepare proof of funds, travel insurance, accommodation booking, and return flight.", "docs": ["Proof of Sufficient Funds (Bank Statement)", "Health Insurance for Travel", "Accommodation Proof in Turkey", "Flight Reservation"]},
+                {"title": "Attend Consulate & Submit Application", "notes": "Attend your appointment, submit all documents, and pay the visa application fee.", "docs": ["Valid Passport (6+ months validity)", "Official University Acceptance Letter", "Biometric Photos (x2)", "Completed Visa Application Form", "Proof of Sufficient Funds (Bank Statement)", "Health Insurance for Travel", "Flight Reservation", "Accommodation Proof in Turkey"]},
+                {"title": "Await Processing & Collect Passport", "notes": "Processing takes 2-4 weeks. Collect your passport with the student visa sticker from the consulate.", "docs": []}
+            ]
+        else:
+            title = "Student Visa Renewal / İkamet Transition"
+            permits = ["Student Residence Permit (Transition from Visa)"]
+            agencies = ["Göç İdaresi (Migration Office)"]
+            documents = ["Passport with existing visa", "Öğrenci Belgesi (Student Certificate)", "Valid Health Insurance", "Proof of Funds"]
+            summary = "Inside Turkey, a student visa is not renewed — instead you transition to a Student Residence Permit (İkamet). This roadmap covers that transition."
+            steps = [
+                {"title": "Obtain Öğrenci Belgesi", "notes": "Get a current student certificate from your university registrars showing active enrollment.", "docs": []},
+                {"title": "Get Private Health Insurance", "notes": "Purchase a local Turkish private health insurance plan covering at least 1 year.", "docs": ["Passport"]},
+                {"title": "Apply for İkamet on e-İkamet Portal", "notes": "Register on e-ikamet.goc.gov.tr and submit the transition application from visa to residence permit.", "docs": ["Passport with existing visa", "Öğrenci Belgesi", "Health Insurance"]},
+                {"title": "Book Migration Office Appointment", "notes": "Select an appointment date at your local Göç İdaresi office.", "docs": []},
+                {"title": "Submit Documents & Get Card", "notes": "Attend the appointment and submit your original documents to receive your residence permit card.", "docs": ["Passport with existing visa", "Öğrenci Belgesi", "Health Insurance"]}
+            ]
+
+    elif "denklik" in service_norm or "equivalency" in service_norm:
+        assigned_agents = ["Academic Agent", "Document Specialist"]
+        if is_new:
+            title = "Diploma Equivalency — New Application (Denklik)"
+            permits = ["Diploma Equivalency Certificate (Denklik)"]
+            agencies = ["Ministry of National Education (MEB)", "Turkish Embassy / Consulate (abroad)", "Sworn Translator (Yeminli Tercüman)"]
+            documents = ["Original High School Diploma (Apostilled)", "Official High School Transcript (Apostilled)", "Notarized Turkish Translation of Diploma & Transcript", "Valid Passport + Photocopy", "University Acceptance Letter (if available)", "Biometric Photos (x2)"]
+            summary = "Roadmap for obtaining high school diploma equivalency (Denklik) from the Turkish Ministry of National Education (MEB). Required for university enrollment."
+            steps = [
+                {"title": "Apostille Diploma & Transcript", "notes": "Have your original diploma and transcript apostilled by the Ministry of Foreign Affairs in your home country.", "docs": ["Original High School Diploma (Apostilled)", "Official High School Transcript (Apostilled)"]},
+                {"title": "Translate & Notarize Documents", "notes": "Get all documents translated to Turkish by a sworn translator (Yeminli Tercüman) and notarized by a Turkish notary.", "docs": ["Original High School Diploma (Apostilled)", "Official High School Transcript (Apostilled)"]},
+                {"title": "Register on e-Denklik Portal", "notes": "Create an account on edenklik.meb.gov.tr and upload scanned copies of all documents.", "docs": ["Notarized Turkish Translation of Diploma & Transcript", "Passport + Photocopy"]},
+                {"title": "Book MEB Office Appointment", "notes": "Select an appointment date at an İlçe Milli Eğitim Müdürlüğü office near you in Turkey.", "docs": []},
+                {"title": "Submit Physical Documents", "notes": "Attend the appointment and present all original apostilled and translated documents for verification.", "docs": ["Original High School Diploma (Apostilled)", "Official High School Transcript (Apostilled)", "Notarized Turkish Translation of Diploma & Transcript", "Passport + Photocopy", "Biometric Photos (x2)"]},
+                {"title": "Collect Denklik Certificate", "notes": "Wait 2-4 weeks for MEB approval and download or collect your Denklik certificate.", "docs": []}
+            ]
+        else:
+            title = "Denklik Follow-up / Correction"
+            permits = ["Denklik Correction / Re-evaluation"]
+            agencies = ["Ministry of National Education (MEB)"]
+            documents = ["Previous Denklik application receipt", "Additional requested documents", "Corrected/re-apostilled documents", "Updated transcript"]
+            summary = "Roadmap for correcting, appealing, or providing missing documents for a pending or rejected Denklik application."
+            steps = [
+                {"title": "Check Application Status on Portal", "notes": "Log into edenklik.meb.gov.tr to see the status and any rejection notes or missing document requests.", "docs": []},
+                {"title": "Gather Requested Corrections", "notes": "Obtain the specifically requested corrections — re-apostilled documents, additional transcripts, etc.", "docs": ["Additional requested documents"]},
+                {"title": "Upload Corrected Documents", "notes": "Upload the corrected files to your open application on the e-Denklik portal.", "docs": ["Additional requested documents"]},
+                {"title": "Resubmit to MEB Office", "notes": "If a physical resubmission is required, bring corrected documents to the MEB office.", "docs": ["Additional requested documents", "Previous Denklik application receipt"]},
+                {"title": "Follow Up with MEB", "notes": "Contact MEB at +90 312 413 1475 if there is no response within 4 weeks of resubmission.", "docs": []}
+            ]
+
+    elif "university registration" in service_norm:
+        assigned_agents = ["Academic Agent"]
+        if is_new:
+            title = "University Registration — New Enrollment"
+            permits = ["Student Enrollment Confirmation"]
+            agencies = ["University Student Affairs (Öğrenci İşleri)", "YÖKSİS / ÖYS System"]
+            documents = ["Official Acceptance Letter (Kabul Mektubu)", "Denklik Certificate", "Valid Passport + Notarized Translation", "Biometric Photos (x6)", "Student Visa or Entry Stamp", "Health Certificate (from Turkish hospital)", "Tuition Payment Receipt"]
+            summary = "Roadmap for completing your first university enrollment in Turkey as an international student."
+            steps = [
+                {"title": "Obtain Denklik Certificate", "notes": "Complete your high school equivalency (Denklik) if not already done — it is mandatory for enrollment.", "docs": ["Denklik Certificate"]},
+                {"title": "Prepare All Required Documents", "notes": "Gather your acceptance letter, passport, biometric photos, and health certificate.", "docs": ["Official Acceptance Letter (Kabul Mektubu)", "Valid Passport + Notarized Translation", "Biometric Photos (x6)", "Student Visa or Entry Stamp"]},
+                {"title": "Visit Student Affairs Office", "notes": "Go to the Öğrenci İşleri (Student Affairs) office at your university with all original documents.", "docs": ["Official Acceptance Letter (Kabul Mektubu)", "Denklik Certificate", "Valid Passport + Notarized Translation", "Biometric Photos (x6)"]},
+                {"title": "Complete YÖKSİS / ÖYS Registration", "notes": "Register in the university's online student information system as directed by the registrars.", "docs": []},
+                {"title": "Pay Tuition Fees", "notes": "Complete the tuition payment and obtain your receipt.", "docs": ["Tuition Payment Receipt"]},
+                {"title": "Collect Student ID Card", "notes": "Get your student ID card (öğrenci kimlik kartı) from the Student Affairs office.", "docs": []},
+                {"title": "Download Öğrenci Belgesi", "notes": "Download your official Student Certificate (Öğrenci Belgesi) from the student portal — needed for İkamet and other processes.", "docs": []}
+            ]
+        else:
+            title = "University Re-Registration — Semester Renewal"
+            permits = ["Enrollment Continuation"]
+            agencies = ["University Student Affairs (Öğrenci İşleri)"]
+            documents = ["Student ID", "Updated Öğrenci Belgesi", "Tuition Payment Receipt"]
+            summary = "Roadmap for renewing your university enrollment for a new semester or academic year."
+            steps = [
+                {"title": "Log In to University Portal (ÖBS)", "notes": "Access your university's Student Information System (Öğrenci Bilgi Sistemi).", "docs": []},
+                {"title": "Select Courses for New Semester", "notes": "Confirm your course selections before the deadline.", "docs": []},
+                {"title": "Pay Tuition Fees", "notes": "Complete any outstanding tuition or fees for the new semester.", "docs": ["Tuition Payment Receipt"]},
+                {"title": "Download Updated Öğrenci Belgesi", "notes": "Download a fresh Student Certificate valid for the new semester — needed for İkamet renewal.", "docs": []},
+                {"title": "Renew Student ID if Expired", "notes": "Visit Student Affairs to renew your student ID card if it has expired.", "docs": []}
+            ]
+
+    elif "dormitory" in service_norm or "housing" in service_norm:
+        assigned_agents = ["Academic Agent", "Housing Specialist"]
+        if is_new:
+            title = "Student Housing — Finding Accommodation"
+            permits = ["Address Registration (Muhtarlık)"]
+            agencies = ["KYK (Yurt-Kur)", "University Housing Office", "Local Muhtarlık"]
+            documents = ["Öğrenci Belgesi", "Passport + Photocopy", "Rental Agreement or Dorm Acceptance Letter", "Proof of Enrollment"]
+            summary = "Roadmap for finding and securing student accommodation in Istanbul as an international student."
+            steps = [
+                {"title": "Apply for KYK Government Dorm", "notes": "Apply as soon as possible at yurtkur.gov.tr — these are the cheapest options and fill up fast.", "docs": ["Öğrenci Belgesi", "Passport + Photocopy"]},
+                {"title": "Apply for University Dorm Simultaneously", "notes": "Apply through your university's housing office at the same time as KYK.", "docs": ["Öğrenci Belgesi"]},
+                {"title": "Search Private Dorms / Apartments", "notes": "If KYK and university dorms are full, search sahibinden.com or emlakjet.com for private options.", "docs": []},
+                {"title": "Sign Rental Agreement", "notes": "Sign a notarized rental contract (kira kontratı) with your landlord.", "docs": ["Passport + Photocopy"]},
+                {"title": "Register Address at Muhtarlık", "notes": "Register your address at the local Muhtarlık (neighborhood office) — required for İkamet and banking.", "docs": ["Rental Agreement or Dorm Acceptance Letter", "Passport + Photocopy"]}
+            ]
+        else:
+            title = "Student Housing — Renewal or Change"
+            permits = ["Updated Address Registration"]
+            agencies = ["KYK / University Housing Office", "Local Muhtarlık", "Göç İdaresi"]
+            documents = ["New Rental Agreement or Dorm Letter", "Passport + Photocopy", "Updated Öğrenci Belgesi"]
+            summary = "Roadmap for renewing your current accommodation or moving to a new residence in Istanbul."
+            steps = [
+                {"title": "Apply for Dorm Renewal Before Deadline", "notes": "If staying in the same dorm, apply for the next term before deadlines.", "docs": []},
+                {"title": "Notify University of New Address", "notes": "Update your address in the university's student portal and at Student Affairs.", "docs": ["New Rental Agreement or Dorm Letter"]},
+                {"title": "Update Address at Muhtarlık", "notes": "Visit the local Muhtarlık of your new neighborhood to register your new address.", "docs": ["New Rental Agreement or Dorm Letter", "Passport + Photocopy"]},
+                {"title": "Update İkamet Address Records", "notes": "Notify Göç İdaresi of your new address — required to keep your residence permit valid.", "docs": ["Passport + Photocopy", "New Rental Agreement or Dorm Letter"]}
+            ]
+
+    elif "istanbulkart" in service_norm:
+        assigned_agents = ["Academic Agent"]
+        if is_new:
+            title = "Student IstanbulKart — New Application"
+            permits = ["Student IstanbulKart (Discounted Transport Card)"]
+            agencies = ["İBB (Istanbul Metropolitan Municipality)", "IstanbulKart Application Center"]
+            documents = ["Active Öğrenci Belgesi", "Valid Passport or Turkish ID", "Passport-size Photo (x1)"]
+            summary = "Roadmap for obtaining a Student IstanbulKart, which gives up to 50% discount on all Istanbul public transport."
+            steps = [
+                {"title": "Get Updated Öğrenci Belgesi", "notes": "Obtain a current student certificate from your university's Student Affairs office.", "docs": []},
+                {"title": "Locate IstanbulKart Application Center", "notes": "Find the nearest center (Metrokent, Üsküdar, Yenikapı, etc.) or apply online at istanbulkart.istanbul.", "docs": []},
+                {"title": "Submit Application & Documents", "notes": "Fill out the application form and submit your student certificate, ID, and photo.", "docs": ["Active Öğrenci Belgesi", "Valid Passport or Turkish ID", "Passport-size Photo (x1)"]},
+                {"title": "Receive Your Card", "notes": "Your Student IstanbulKart will arrive by post in 5-10 business days or can be collected in person.", "docs": []},
+                {"title": "Load Credit & Activate", "notes": "Load credit at any İBB top-up machine, Akbil point, or through the İstanbul Kart mobile app.", "docs": []}
+            ]
+        else:
+            title = "Student IstanbulKart — Renewal"
+            permits = ["Student Discount Re-validation"]
+            agencies = ["IstanbulKart Application Center"]
+            documents = ["Current IstanbulKart", "Updated Öğrenci Belgesi"]
+            summary = "Roadmap for renewing the student discount status on your existing IstanbulKart for the new academic year."
+            steps = [
+                {"title": "Get New Öğrenci Belgesi", "notes": "Download a fresh student certificate from your university portal showing current enrollment.", "docs": []},
+                {"title": "Visit IstanbulKart Center or Apply Online", "notes": "Go to an IstanbulKart center or use the istanbulkart.istanbul website.", "docs": ["Current IstanbulKart"]},
+                {"title": "Submit Updated Student Certificate", "notes": "Present or upload your current Öğrenci Belgesi to refresh your student discount status.", "docs": ["Updated Öğrenci Belgesi"]},
+                {"title": "Confirm Re-validation", "notes": "Your card will be re-validated for the new academic year within 1-3 business days.", "docs": []}
+            ]
+
+    # ── PERMIT SERVICES ─────────────────────────────────────────────
+    elif "cafe" in service_norm or "restaurant" in service_norm:
+        assigned_agents = ["Permit Agent", "Food Safety Specialist"]
+        if is_new:
+            title = "Cafe & Restaurant — New Business License"
+            permits = ["İşyeri Açma ve Çalışma Ruhsatı", "Gıda Sicil Belgesi", "İtfaiye (Fire Safety) Raporu", "Alkol Satış Ruhsatı (if applicable)"]
+            agencies = ["Local Belediye (Municipality)", "İtfaiye (Fire Department)", "Ministry of Agriculture (Gıda Sicil)", "TAPDK (Alcohol License)"]
+            documents = ["MERSİS Company Registration", "Notarized Lease Agreement", "Floor Plan (Mimarı Proje)", "Fire Safety Inspection Certificate", "Gıda Sicil Application", "Health Certificates for Staff", "Sign License Application"]
+            summary = "Complete roadmap for opening a new cafe or restaurant in Istanbul with all required permits and licenses."
+            steps = [
+                {"title": "Register Company on MERSİS", "notes": "Establish your company (LLC or sole trader) on the MERSİS portal and get your company number.", "docs": []},
+                {"title": "Sign Notarized Lease Agreement", "notes": "Rent commercial premises and get a notarized rental contract (kira kontratı).", "docs": ["Notarized Lease Agreement"]},
+                {"title": "Apply for İşyeri Ruhsatı at Belediye", "notes": "Submit your company registration, lease, and floor plan to the local municipality for the business license.", "docs": ["MERSİS Company Registration", "Notarized Lease Agreement", "Floor Plan (Mimarı Proje)"]},
+                {"title": "Get Fire Safety Certificate", "notes": "Book an İtfaiye (Fire Department) inspection and obtain the fire safety certificate.", "docs": []},
+                {"title": "Register Gıda Sicil (Food Safety)", "notes": "Register on the Ministry of Agriculture's Gıda Sicil portal for food business certification.", "docs": ["MERSİS Company Registration", "Lease Agreement"]},
+                {"title": "Apply for Alcohol License (if needed)", "notes": "Apply for Alkol Satış Ruhsatı through TAPDK if you will serve alcoholic beverages.", "docs": ["İşyeri Ruhsatı", "MERSİS Registration"]},
+                {"title": "Get Sign License (Tabela Ruhsatı)", "notes": "Apply for a sign license at the local Belediye if you will have outdoor signage.", "docs": []}
+            ]
+        else:
+            title = "Cafe & Restaurant — License Renewals"
+            permits = ["Annual License Renewals"]
+            agencies = ["Local Belediye", "İtfaiye", "TAPDK", "Ministry of Agriculture"]
+            documents = ["Current İşyeri Ruhsatı", "Fire Safety Certificate", "Gıda Sicil Certificate", "Alcohol License (if applicable)"]
+            summary = "Annual renewal checklist for cafe and restaurant licenses in Istanbul."
+            steps = [
+                {"title": "Renew İşyeri Ruhsatı at Belediye", "notes": "Submit renewal application at the local municipality before the expiry date.", "docs": ["Current İşyeri Ruhsatı"]},
+                {"title": "Renew Gıda Sicil Certificate", "notes": "Update your food safety registration with the Ministry of Agriculture.", "docs": []},
+                {"title": "Book Fire Safety Re-inspection", "notes": "Schedule a new İtfaiye inspection if the previous certificate has expired.", "docs": []},
+                {"title": "Renew Alcohol License", "notes": "Apply for Alkol Satış Ruhsatı renewal through the TAPDK portal if applicable.", "docs": []},
+                {"title": "Renew Sign License", "notes": "Check and renew your Tabela Ruhsatı at the local Belediye if it has expired.", "docs": []}
+            ]
+
+    elif "retail" in service_norm or "shop" in service_norm:
+        assigned_agents = ["Permit Agent", "Business Compliance Specialist"]
+        if is_new:
+            title = "Retail Shop — New Business License"
+            permits = ["İşyeri Açma ve Çalışma Ruhsatı", "Fire Safety Certificate", "Sign License (Tabela Ruhsatı)"]
+            agencies = ["Local Belediye", "İtfaiye", "Vergi Dairesi"]
+            documents = ["MERSİS Company Registration", "Notarized Lease Agreement", "Floor Plan", "Tax Registration Certificate", "Fire Safety Certificate"]
+            summary = "Complete roadmap for opening a new retail shop in Istanbul with all required permits."
+            steps = [
+                {"title": "Register on MERSİS", "notes": "Create your company on the MERSİS portal.", "docs": []},
+                {"title": "Register with Vergi Dairesi", "notes": "Open a tax account at the local Tax Office (Vergi Dairesi).", "docs": ["MERSİS Company Registration"]},
+                {"title": "Apply for İşyeri Ruhsatı at Belediye", "notes": "Submit company registration, lease, and floor plan to the municipality.", "docs": ["MERSİS Company Registration", "Notarized Lease Agreement", "Floor Plan"]},
+                {"title": "Get Fire Safety Certificate", "notes": "Book an İtfaiye inspection and obtain the fire safety certificate.", "docs": []},
+                {"title": "Apply for Sign License", "notes": "Apply for Tabela Ruhsatı at the local Belediye for any outdoor signage.", "docs": []},
+                {"title": "Register for e-Fatura / e-Arşiv", "notes": "Register for the electronic invoicing system as required by Turkish tax law.", "docs": ["Tax Registration Certificate"]}
+            ]
+        else:
+            title = "Retail Shop — Annual License Renewal"
+            permits = ["Annual Permit Renewals"]
+            agencies = ["Local Belediye", "İtfaiye"]
+            documents = ["Current İşyeri Ruhsatı", "Fire Safety Certificate"]
+            summary = "Annual renewal checklist for retail shop licenses in Istanbul."
+            steps = [
+                {"title": "Renew İşyeri Ruhsatı at Belediye", "notes": "Submit renewal before the expiry date.", "docs": ["Current İşyeri Ruhsatı"]},
+                {"title": "Renew Fire Safety Certificate", "notes": "Book a new İtfaiye inspection if needed.", "docs": []},
+                {"title": "Update MERSİS if Needed", "notes": "Update company details on MERSİS if address or partners changed.", "docs": []},
+                {"title": "Renew Sign License", "notes": "Renew Tabela Ruhsatı if applicable.", "docs": []}
+            ]
+
+    elif "office" in service_norm or "tech" in service_norm:
+        assigned_agents = ["Permit Agent", "Corporate Compliance Specialist"]
+        if is_new:
+            title = "Office & Tech Company — Formation & Setup"
+            permits = ["Company Registration (MERSİS)", "Tax Registration", "SGK Employer Registration", "İşyeri Ruhsatı (if physical office)"]
+            agencies = ["MERSİS (Trade Registry)", "Vergi Dairesi", "SGK (Social Security Institution)", "Local Belediye (if premises)"]
+            documents = ["Notarized Articles of Association", "Founding Partners' Passports + Notarized Translations", "Company Bank Account Statement (Capital Deposit)", "Tax Registration Certificate"]
+            summary = "Roadmap for forming and registering an office or tech company (LLC) in Istanbul, Turkey."
+            steps = [
+                {"title": "Reserve Company Name on MERSİS", "notes": "Check name availability and reserve it on the MERSİS portal.", "docs": []},
+                {"title": "Prepare Articles of Association", "notes": "Draft and sign Articles of Association (Şirket Ana Sözleşmesi) before a notary.", "docs": ["Notarized Articles of Association", "Founding Partners' Passports + Notarized Translations"]},
+                {"title": "Deposit Minimum Capital", "notes": "Open a company bank account and deposit the minimum capital (10,000 TL for LLC).", "docs": []},
+                {"title": "Register with Trade Registry via MERSİS", "notes": "Complete the online registration on MERSİS and the physical submission at the Trade Registry.", "docs": ["Notarized Articles of Association", "Company Bank Account Statement (Capital Deposit)"]},
+                {"title": "Register with Vergi Dairesi", "notes": "Obtain your company Tax Number and register for corporate tax and VAT.", "docs": ["Tax Registration Certificate"]},
+                {"title": "Register with SGK as Employer", "notes": "Register with the Social Security Institution (SGK) to hire employees legally.", "docs": []},
+                {"title": "Apply for İşyeri Ruhsatı (if needed)", "notes": "If you have a client-facing physical office, apply for the business operating license at the local Belediye.", "docs": []}
+            ]
+        else:
+            title = "Office & Tech — Annual Compliance Renewal"
+            permits = ["Annual Corporate Compliance"]
+            agencies = ["Vergi Dairesi", "Trade Registry", "SGK"]
+            documents = ["Annual Financial Statements", "SGK Records"]
+            summary = "Annual compliance checklist for office and tech companies in Istanbul."
+            steps = [
+                {"title": "File Annual Corporate Tax Returns", "notes": "Submit annual tax filings with the Vergi Dairesi by the deadline.", "docs": []},
+                {"title": "File Annual Financial Statements", "notes": "Submit audited or unaudited financial statements to the Trade Registry.", "docs": ["Annual Financial Statements"]},
+                {"title": "Update MERSİS Records", "notes": "Update company directors, address, or capital if anything changed.", "docs": []},
+                {"title": "Renew İşyeri Ruhsatı (if applicable)", "notes": "Renew the business operating license at the local Belediye.", "docs": []},
+                {"title": "Update SGK Employee Records", "notes": "Ensure all employee SGK registrations and declarations are current.", "docs": ["SGK Records"]}
+            ]
+
+    elif "pharmacy" in service_norm:
+        assigned_agents = ["Permit Agent", "Healthcare Compliance Specialist"]
+        if is_new:
+            title = "Pharmacy — Opening License"
+            permits = ["Pharmacy Opening Permit (Sağlık Bakanlığı)", "İşyeri Ruhsatı", "TEB Membership"]
+            agencies = ["Ministry of Health (Sağlık Bakanlığı)", "TEB (Turkish Pharmacists Association)", "Local Belediye"]
+            documents = ["Eczacı Ruhsatnamesi (Pharmacist License)", "Premises Floor Plan", "İşyeri Ruhsatı", "Fire Safety Certificate", "TEB Membership Certificate"]
+            summary = "Roadmap for opening a licensed pharmacy in Istanbul, Turkey."
+            steps = [
+                {"title": "Verify Pharmacist License", "notes": "Ensure your Eczacı Ruhsatnamesi is valid and recognized by the Turkish Ministry of Health.", "docs": ["Eczacı Ruhsatnamesi (Pharmacist License)"]},
+                {"title": "Join TEB & Local Chamber", "notes": "Register with the Turkish Pharmacists Association (TEB) and pay annual dues.", "docs": []},
+                {"title": "Find Compliant Premises", "notes": "Secure premises meeting Ministry requirements: min. 40m², specific distance rules from other pharmacies.", "docs": []},
+                {"title": "Apply for Ministry of Health Permit", "notes": "Submit your pharmacy opening application to Sağlık Bakanlığı.", "docs": ["Eczacı Ruhsatnamesi (Pharmacist License)", "Premises Floor Plan", "TEB Membership Certificate"]},
+                {"title": "Obtain İşyeri Ruhsatı", "notes": "Apply for the business license at the local Belediye.", "docs": ["Ministry of Health Permit"]},
+                {"title": "Get Fire Safety Certificate", "notes": "Book an İtfaiye inspection.", "docs": []},
+                {"title": "Install ECZANE BİS Software", "notes": "Install and configure the required pharmacy management software.", "docs": []}
+            ]
+        else:
+            title = "Pharmacy — Annual License Renewal"
+            permits = ["Annual Pharmacy Compliance"]
+            agencies = ["TEB", "Local Belediye", "Ministry of Health"]
+            documents = ["TEB Membership Certificate", "İşyeri Ruhsatı"]
+            summary = "Annual renewal checklist for pharmacy licenses in Istanbul."
+            steps = [
+                {"title": "Renew TEB Membership", "notes": "Pay annual TEB membership dues before the deadline.", "docs": []},
+                {"title": "Renew İşyeri Ruhsatı", "notes": "Submit renewal at the local Belediye.", "docs": ["İşyeri Ruhsatı"]},
+                {"title": "Update Ministry of Health Records", "notes": "Notify Sağlık Bakanlığı of any operational changes.", "docs": []},
+                {"title": "Update ECZANE BİS Software", "notes": "Ensure your pharmacy management software is up to date.", "docs": []}
+            ]
+
+    elif "clinic" in service_norm:
+        assigned_agents = ["Permit Agent", "Healthcare Compliance Specialist"]
+        if is_new:
+            title = "Medical Clinic — Opening Authorization"
+            permits = ["Özel Sağlık Kuruluşu Ruhsatı", "İşyeri Ruhsatı", "Fire Safety Certificate", "Medical Waste Disposal Authorization"]
+            agencies = ["Ministry of Health (Sağlık Bakanlığı)", "Local Belediye", "İtfaiye", "Specialty Medical Chamber"]
+            documents = ["Medical Specialty Certificate", "Premises Floor Plan", "Fire Safety Certificate", "Medical Waste Disposal Contract", "Staff Health Certificates"]
+            summary = "Roadmap for opening a private medical clinic in Istanbul with all required authorizations."
+            steps = [
+                {"title": "Verify Medical Specialty Certificate", "notes": "Confirm your specialty certificate (uzmanlık belgesi) is recognized by the Turkish Ministry of Health.", "docs": ["Medical Specialty Certificate"]},
+                {"title": "Apply for Sağlık Bakanlığı Authorization", "notes": "Submit a clinic opening application to the Ministry of Health.", "docs": ["Medical Specialty Certificate", "Premises Floor Plan"]},
+                {"title": "Prepare Compliant Premises", "notes": "Set up the clinic per Ministry specifications: minimum dimensions, required equipment, layout.", "docs": []},
+                {"title": "Get Fire Safety Certificate", "notes": "Book an İtfaiye inspection and obtain the fire safety certificate.", "docs": []},
+                {"title": "Sign Medical Waste Disposal Contract", "notes": "Engage a licensed medical waste disposal firm and obtain their contract.", "docs": ["Medical Waste Disposal Contract"]},
+                {"title": "Apply for İşyeri Ruhsatı at Belediye", "notes": "Submit the business license application with your Ministry authorization.", "docs": []},
+                {"title": "Register with Specialty Chamber", "notes": "Register with your specialty's professional chamber (e.g., Turkish Medical Association - TTB).", "docs": []}
+            ]
+        else:
+            title = "Medical Clinic — Annual License Renewal"
+            permits = ["Annual Clinic Compliance"]
+            agencies = ["Ministry of Health", "Local Belediye", "Specialty Chamber"]
+            documents = ["Ministry Authorization Certificate", "İşyeri Ruhsatı", "Medical Waste Contract"]
+            summary = "Annual renewal checklist for medical clinic authorizations in Istanbul."
+            steps = [
+                {"title": "Renew Ministry of Health Authorization", "notes": "Submit renewal at the Sağlık Bakanlığı.", "docs": ["Ministry Authorization Certificate"]},
+                {"title": "Renew İşyeri Ruhsatı", "notes": "Submit renewal at the local Belediye.", "docs": ["İşyeri Ruhsatı"]},
+                {"title": "Update Medical Waste Disposal Contract", "notes": "Renew the annual contract with your licensed waste disposal firm.", "docs": ["Medical Waste Contract"]},
+                {"title": "Renew Fire Safety Certificate", "notes": "Book a new İtfaiye inspection if the certificate has expired.", "docs": []},
+                {"title": "Submit Annual Report to Specialty Chamber", "notes": "File your annual professional report with TTB or your specialty chamber.", "docs": []}
+            ]
+
+    elif "residence permit" in service_norm and not is_student:
+        assigned_agents = ["Permit Agent", "Immigration Specialist"]
+        if is_new:
+            title = "Residence Permit — New Application (Work/Business)"
+            permits = ["Short-Term Residence Permit (Work / Business)"]
+            agencies = ["Göç İdaresi (Migration Office)", "Vergi Dairesi"]
+            documents = ["Valid Passport + Photocopy", "Biometric Photos (x4)", "Health Insurance Policy (1 year)", "Proof of Address", "Tax Number", "Application Fee Receipt", "Supporting Purpose Document (Work Contract / Business Registration)"]
+            summary = "Roadmap for obtaining a residence permit in Turkey for work or business purposes."
+            steps = [
+                {"title": "Get Tax Number", "notes": "Obtain a Turkish tax number from the Vergi Dairesi or online at ivd.gib.gov.tr.", "docs": []},
+                {"title": "Purchase Health Insurance", "notes": "Get a Turkish private health insurance policy for at least 1 year.", "docs": []},
+                {"title": "Prepare Purpose Documents", "notes": "Gather your work contract, business registration, or other document proving your reason for residency.", "docs": ["Supporting Purpose Document (Work Contract / Business Registration)"]},
+                {"title": "Apply on e-İkamet Portal", "notes": "Register and fill the application at e-ikamet.goc.gov.tr.", "docs": ["Valid Passport + Photocopy", "Biometric Photos (x4)", "Health Insurance Policy (1 year)", "Tax Number"]},
+                {"title": "Book Migration Office Appointment", "notes": "Select your appointment date at Göç İdaresi.", "docs": []},
+                {"title": "Attend Appointment & Submit Documents", "notes": "Bring all original documents to your appointment.", "docs": ["Valid Passport + Photocopy", "Biometric Photos (x4)", "Health Insurance Policy (1 year)", "Proof of Address", "Application Fee Receipt", "Supporting Purpose Document (Work Contract / Business Registration)"]},
+                {"title": "Receive İkamet Card by Mail", "notes": "Your residence permit card will be mailed within 2-4 weeks.", "docs": []}
+            ]
+        else:
+            title = "Residence Permit — Renewal"
+            permits = ["Residence Permit Renewal"]
+            agencies = ["Göç İdaresi (Migration Office)"]
+            documents = ["Current İkamet Card", "Passport + Photocopy", "Renewed Health Insurance", "Updated Proof of Address", "Renewal Fee Receipt"]
+            summary = "Roadmap for renewing a Turkish residence permit for work or business purposes."
+            steps = [
+                {"title": "Start Application 60 Days Early", "notes": "Apply on e-ikamet.goc.gov.tr up to 60 days before your current permit expires.", "docs": []},
+                {"title": "Renew Health Insurance", "notes": "Purchase an updated health insurance policy covering the renewal period.", "docs": []},
+                {"title": "Gather Updated Documents", "notes": "Collect updated proof of address, work documents, and photos.", "docs": ["Current İkamet Card", "Passport + Photocopy", "Updated Proof of Address"]},
+                {"title": "Book Migration Office Appointment", "notes": "Select your renewal appointment date at Göç İdaresi.", "docs": []},
+                {"title": "Attend Appointment & Submit", "notes": "Bring all original documents to your appointment.", "docs": ["Current İkamet Card", "Passport + Photocopy", "Renewed Health Insurance", "Updated Proof of Address", "Renewal Fee Receipt"]},
+                {"title": "Receive Renewed Card", "notes": "Your renewed residence permit card will be mailed within 2-4 weeks.", "docs": []}
+            ]
+
+    # ── LAWYER SERVICES ─────────────────────────────────────────────
+    elif "company formation" in service_norm:
+        assigned_agents = ["Legal Agent", "Corporate Compliance Specialist"]
+        if is_new:
+            title = "Company Formation — New LLC (LTD Şti)"
+            permits = ["Trade Registry Registration", "Tax Registration", "SGK Employer Registration"]
+            agencies = ["MERSİS / Trade Registry", "Vergi Dairesi", "SGK", "Notary"]
+            documents = ["Notarized Articles of Association", "Founding Partners' Passports + Notarized Translations", "Company Bank Account (Capital Deposit)", "Signature Declaration (İmza Beyannamesi)"]
+            summary = "Roadmap for forming a new Limited Company (LTD Şti) in Turkey via the MERSİS system."
+            steps = [
+                {"title": "Choose Company Type & Name", "notes": "Decide between LLC, Joint Stock, Branch Office, or Liaison Office. Check name availability on MERSİS.", "docs": []},
+                {"title": "Prepare Articles of Association", "notes": "Draft and sign the Articles of Association (Şirket Ana Sözleşmesi) before a Turkish notary.", "docs": ["Notarized Articles of Association", "Founding Partners' Passports + Notarized Translations"]},
+                {"title": "Deposit Minimum Capital", "notes": "Open a company bank account and deposit the minimum capital (10,000 TL for LLC, 50,000 TL for JSC).", "docs": ["Company Bank Account (Capital Deposit)"]},
+                {"title": "Register on MERSİS & Trade Registry", "notes": "Complete the online registration on MERSİS and submit physical documents to the Trade Registry.", "docs": ["Notarized Articles of Association"]},
+                {"title": "Obtain Tax Number & Register with Vergi Dairesi", "notes": "Get your company Tax Number and register for corporate tax (Kurumlar Vergisi) and VAT (KDV).", "docs": []},
+                {"title": "Register with SGK as Employer", "notes": "Register with SGK to legally employ staff and pay social security contributions.", "docs": []},
+                {"title": "Open Corporate Bank Account", "notes": "Open a dedicated corporate bank account separate from personal accounts.", "docs": []}
+            ]
+        else:
+            title = "Company Restructuring / Annual Compliance"
+            permits = ["Annual Corporate Filing"]
+            agencies = ["Trade Registry", "Vergi Dairesi", "SGK"]
+            documents = ["Annual Financial Statements", "Board Resolutions / AGM Minutes"]
+            summary = "Annual compliance roadmap for keeping your Turkish company in good legal standing."
+            steps = [
+                {"title": "File Annual Financial Statements", "notes": "Submit audited or unaudited financial statements to the Trade Registry by the deadline.", "docs": ["Annual Financial Statements"]},
+                {"title": "Hold Annual General Meeting (AGM)", "notes": "Hold the AGM and prepare minutes within 3 months of fiscal year end.", "docs": ["Board Resolutions / AGM Minutes"]},
+                {"title": "Update MERSİS Records", "notes": "Update directors, address, or capital on MERSİS if anything changed.", "docs": []},
+                {"title": "File Annual Corporate Tax Returns", "notes": "Submit corporate tax (Kurumlar Vergisi) return with the Vergi Dairesi.", "docs": []},
+                {"title": "Renew Operational Permits", "notes": "Renew any sector-specific business licenses or permits if applicable.", "docs": []}
+            ]
+
+    elif "contract review" in service_norm:
+        assigned_agents = ["Legal Agent", "Contract Specialist"]
+        if is_new:
+            title = "Contract Review — New Agreement"
+            permits = ["Notarized Contract (if applicable)"]
+            agencies = ["Turkish Notary (if notarization required)", "Legal Counsel"]
+            documents = ["Contract Draft", "Party Identification Documents", "Certified Turkish Translation (if contract is in foreign language)"]
+            summary = "Roadmap for reviewing and executing a new contract under Turkish law."
+            steps = [
+                {"title": "Identify Contract Type & Governing Law", "notes": "Determine the type (sales, service, employment, lease) and ensure Turkish law governs it for enforceability.", "docs": ["Contract Draft"]},
+                {"title": "Verify Party Identification", "notes": "Confirm all parties are legally identified with correct tax numbers and/or company registration numbers.", "docs": ["Party Identification Documents"]},
+                {"title": "Review Key Clauses", "notes": "Check payment terms, delivery, termination clauses, penalty provisions, and IP ownership.", "docs": []},
+                {"title": "Ensure Turkish Translation", "notes": "If the contract is in a foreign language, obtain a certified Turkish translation.", "docs": ["Certified Turkish Translation (if contract is in foreign language)"]},
+                {"title": "Notarize if Required", "notes": "For real estate, high-value transactions, or power of attorney, have the contract notarized.", "docs": []},
+                {"title": "Execute & Retain Copies", "notes": "All parties sign the contract, and each retains a certified original copy.", "docs": []}
+            ]
+        else:
+            title = "Contract Amendment / Renewal"
+            permits = ["Notarized Amendment (if needed)"]
+            agencies = ["Turkish Notary (if notarization required)"]
+            documents = ["Original Contract", "Amendment Addendum Draft"]
+            summary = "Roadmap for amending or renewing an existing contract under Turkish law."
+            steps = [
+                {"title": "Identify Changes Required", "notes": "List all terms that need to be changed, extended, or updated.", "docs": ["Original Contract"]},
+                {"title": "Draft Amendment Addendum", "notes": "Prepare a formal Amendment Addendum referencing the original contract and specifying all changes.", "docs": ["Amendment Addendum Draft"]},
+                {"title": "Have Both Parties Sign", "notes": "Execute the amendment with the same formality as the original contract.", "docs": []},
+                {"title": "Notarize the Amendment (if needed)", "notes": "If the original was notarized, the amendment must be notarized too.", "docs": []},
+                {"title": "Retain Updated Copies", "notes": "Store certified copies of both the original contract and the amendment.", "docs": []}
+            ]
+
+    elif "employment law" in service_norm:
+        assigned_agents = ["Legal Agent", "Labor Law Specialist"]
+        if is_new:
+            title = "Employment Law — Hiring New Employees"
+            permits = ["Employment Contract", "SGK Registration"]
+            agencies = ["SGK (Social Security Institution)", "Vergi Dairesi"]
+            documents = ["Written Employment Contract", "Employee Passport / ID", "SGK Registration Confirmation", "Payroll Records"]
+            summary = "Roadmap for legally hiring employees in Turkey under the Labor Law No. 4857."
+            steps = [
+                {"title": "Draft Employment Contract", "notes": "Prepare a written employment contract compliant with İş Kanunu (Labor Law No. 4857). Include job title, salary, working hours, and leave entitlements.", "docs": ["Written Employment Contract"]},
+                {"title": "Register Employee with SGK", "notes": "Register the employee with SGK before or on their first day of work — mandatory.", "docs": ["Employee Passport / ID"]},
+                {"title": "Set Up Payroll", "notes": "Establish payroll including income tax (Gelir Vergisi) withholding and SGK premium contributions.", "docs": []},
+                {"title": "Register on e-Bildirge", "notes": "Set up monthly SGK declarations through the e-Bildirge system.", "docs": []},
+                {"title": "Provide Signed Contract Copy", "notes": "Give the employee a signed copy of their employment contract.", "docs": ["Written Employment Contract"]},
+                {"title": "Comply with Minimum Wage", "notes": "Ensure the salary meets or exceeds the current minimum wage (check annually — typically updated each January).", "docs": []}
+            ]
+        else:
+            title = "Employment Law — Issue Resolution"
+            permits = ["Legal Compliance Review"]
+            agencies = ["İş Mahkemesi (Labor Court)", "SGK", "Arabuluculuk (Mediation)"]
+            documents = ["Employment Contract", "Payroll Records", "Termination Notice (if applicable)"]
+            summary = "Roadmap for resolving existing employment issues, disputes, or conducting termination correctly in Turkey."
+            steps = [
+                {"title": "Review Contract for Compliance", "notes": "Check current contracts against the latest minimum wage and leave law requirements.", "docs": ["Employment Contract"]},
+                {"title": "Calculate Correct Notice & Severance Pay", "notes": "If terminating, calculate the correct notice period (İhbar Tazminatı) and severance (Kıdem Tazminatı) by law.", "docs": ["Payroll Records"]},
+                {"title": "Attempt Mediation First", "notes": "For disputes, Turkish law requires mandatory mediation (Arabuluculuk) before filing in Labor Court.", "docs": []},
+                {"title": "File Dispute in İş Mahkemesi (if needed)", "notes": "If mediation fails, file the case in the Labor Court (İş Mahkemesi) within the legal statute of limitations.", "docs": []},
+                {"title": "Update SGK Records", "notes": "After any change in role, salary, or termination, immediately update the SGK records.", "docs": ["SGK Registration Confirmation"]}
+            ]
+
+    elif "legal disputes" in service_norm:
+        assigned_agents = ["Legal Agent", "Litigation Specialist"]
+        if is_new:
+            title = "Legal Dispute — Initiating a Case"
+            permits = ["Court Filing (Dava Dilekçesi)"]
+            agencies = ["Asliye Hukuk Mahkemesi / Ticaret Mahkemesi / İş Mahkemesi", "Turkish Bar Association (Attorney Selection)"]
+            documents = ["Evidence Documents (Contracts, Invoices, Communications)", "Court Petition (Dava Dilekçesi)", "Court Fee Receipt (Harç Makbuzu)", "Power of Attorney (if using an attorney)"]
+            summary = "Roadmap for initiating a legal case in the Turkish court system."
+            steps = [
+                {"title": "Consult a Licensed Turkish Attorney", "notes": "Engage a licensed Avukat (attorney) immediately to assess the merits of your case.", "docs": []},
+                {"title": "Collect All Evidence", "notes": "Gather all relevant evidence: contracts, invoices, email/WhatsApp communications, receipts.", "docs": ["Evidence Documents (Contracts, Invoices, Communications)"]},
+                {"title": "Identify the Correct Court", "notes": "Determine the appropriate court: Civil (Asliye Hukuk), Commercial (Ticaret), or Labor (İş Mahkemesi).", "docs": []},
+                {"title": "Draft Court Petition (Dava Dilekçesi)", "notes": "Your attorney prepares the court petition detailing your claims and requests.", "docs": ["Court Petition (Dava Dilekçesi)"]},
+                {"title": "Pay Court Fees (Harç)", "notes": "Pay the court filing fees (proportional to the claim value) at the courthouse treasury.", "docs": ["Court Fee Receipt (Harç Makbuzu)"]},
+                {"title": "Serve Opposing Party", "notes": "The court serves the petition on the opposing party, who then has a deadline to respond.", "docs": []},
+                {"title": "Attend Court Hearings", "notes": "Attend all scheduled hearings or authorize your attorney to represent you.", "docs": []}
+            ]
+        else:
+            title = "Legal Dispute — Appeal / Ongoing Case"
+            permits = ["Appeal Filing (İstinaf / Temyiz)"]
+            agencies = ["Bölge Adliye Mahkemesi (Appellate Court)", "Yargıtay (Court of Cassation)"]
+            documents = ["First Instance Court Decision", "Appeal Petition", "Appeal Fee Receipt"]
+            summary = "Roadmap for appealing or managing an ongoing legal dispute in Turkey."
+            steps = [
+                {"title": "Review Court Decision with Attorney", "notes": "Analyze the first instance court decision with your Turkish attorney.", "docs": ["First Instance Court Decision"]},
+                {"title": "Calculate Appeal Deadline", "notes": "The appeal window is typically 2 weeks from the service of the written decision.", "docs": []},
+                {"title": "File İstinaf Appeal", "notes": "File an appeal with the Regional Appellate Court (Bölge Adliye Mahkemesi) within the deadline.", "docs": ["Appeal Petition", "Appeal Fee Receipt"]},
+                {"title": "If Needed: File Temyiz at Yargıtay", "notes": "If the appellate court also rules against you, you may appeal to the Supreme Court of Appeals (Yargıtay).", "docs": []},
+                {"title": "Attend Appellate Hearings", "notes": "Attend all scheduled appellate hearings or keep your attorney authorized to represent you.", "docs": []}
+            ]
+
+    elif "residency" in service_norm and "visas" in service_norm:
+        assigned_agents = ["Legal Agent", "Immigration Specialist"]
+        if is_new:
+            title = "Residency & Visas — Legal Guidance"
+            permits = ["Residence Permit / Work Permit / Citizenship Application"]
+            agencies = ["Göç İdaresi (Migration Office)", "Ministry of Interior", "ÇSGB (Work Permit — Ministry of Labor)"]
+            documents = ["Valid Passport + Photocopy", "Health Insurance", "Proof of Address", "Financial Proof", "Purpose-specific documents (work contract, investment proof, etc.)"]
+            summary = "Legal roadmap for navigating residency and visa options in Turkey, including work permits, long-term residency, and citizenship."
+            steps = [
+                {"title": "Identify the Right Permit Type", "notes": "Consult a lawyer to determine the correct permit: Short-Term İkamet, Work Permit (Çalışma İzni), Long-Term İkamet (8 years), or Citizenship by Investment.", "docs": []},
+                {"title": "Gather Supporting Documents", "notes": "Collect passport, financial proof (bank statements), health insurance, proof of address, and purpose documents.", "docs": ["Valid Passport + Photocopy", "Health Insurance", "Proof of Address", "Financial Proof"]},
+                {"title": "Apply Through the Correct Portal", "notes": "Use e-ikamet.goc.gov.tr for residency, e-izin.csgb.gov.tr for work permits, or the Citizenship by Investment portal.", "docs": []},
+                {"title": "Book & Attend Migration Office Appointment", "notes": "Schedule and attend your appointment at Göç İdaresi with all original documents.", "docs": []},
+                {"title": "For Citizenship by Investment", "notes": "If pursuing citizenship through investment (400K USD real estate, 500K USD bank deposit), engage a specialized legal advisor and submit to Ministry of Interior.", "docs": ["Investment Proof"]}
+            ]
+        else:
+            title = "Residency Appeal / Extension"
+            permits = ["Administrative Appeal or Extension Filing"]
+            agencies = ["Göç İdaresi", "İdare Mahkemesi (Administrative Court — if denied)"]
+            documents = ["Denial Notice", "Updated Supporting Documents"]
+            summary = "Roadmap for appealing a denied residence permit or extending an existing one."
+            steps = [
+                {"title": "Review Denial Reason", "notes": "Carefully read the denial notice and consult a lawyer to understand the grounds for refusal.", "docs": ["Denial Notice"]},
+                {"title": "File Administrative Appeal", "notes": "File an administrative appeal (İtiraz) with Göç İdaresi within 60 days of the decision.", "docs": []},
+                {"title": "Gather Updated Documents", "notes": "Collect any missing or updated documents that address the denial reason.", "docs": ["Updated Supporting Documents"]},
+                {"title": "File in Administrative Court (if needed)", "notes": "If the administrative appeal is also rejected, file a case in the Administrative Court (İdare Mahkemesi).", "docs": []},
+                {"title": "For Extensions: Apply 60 Days Early", "notes": "For permit extensions, submit on e-ikamet.goc.gov.tr up to 60 days before expiry.", "docs": []}
+            ]
+
+    else:  # Real Estate Law or fallback
+        assigned_agents = ["Legal Agent", "Real Estate Specialist"]
+        if is_new:
+            title = "Real Estate — Property Transaction"
+            permits = ["Tapu (Title Deed) Transfer", "DASK Earthquake Insurance"]
+            agencies = ["Tapu Sicil Müdürlüğü (Land Registry Office)", "Licensed Property Appraiser", "Turkish Notary"]
+            documents = ["Property Valuation Report", "Title Deed (Tapu) Copy", "Tax Number (both parties)", "Notarized Power of Attorney (if using a lawyer)", "DASK Insurance Policy"]
+            summary = "Roadmap for purchasing property in Istanbul as a foreigner, including title deed transfer."
+            steps = [
+                {"title": "Engage a Turkish Real Estate Lawyer", "notes": "Hire a licensed Turkish real estate attorney (Gayrimenkul Avukatı) to protect your interests.", "docs": []},
+                {"title": "Conduct Title Deed (Tapu) Search", "notes": "Verify ownership, check for mortgages, liens, or restrictions at the Tapu Sicil Müdürlüğü.", "docs": ["Title Deed (Tapu) Copy"]},
+                {"title": "Order Official Property Valuation", "notes": "Commission an official valuation from a licensed appraiser — mandatory for foreign buyers.", "docs": ["Property Valuation Report"]},
+                {"title": "Sign Preliminary Sales Agreement", "notes": "Sign the Ön Sözleşme and pay deposit (typically 10%).", "docs": []},
+                {"title": "Apply for Military Clearance (if needed)", "notes": "If the property is in a restricted zone, apply for military clearance — can take 2-8 weeks.", "docs": []},
+                {"title": "Complete Transfer at Tapu Office", "notes": "Complete the official title deed transfer at the Tapu Sicil Müdürlüğü in the presence of both parties.", "docs": ["Property Valuation Report", "Tax Number (both parties)", "Notarized Power of Attorney (if using a lawyer)"]},
+                {"title": "Purchase DASK Earthquake Insurance", "notes": "DASK (Zorunlu Deprem Sigortası) is mandatory for all Turkish properties.", "docs": ["DASK Insurance Policy"]}
+            ]
+        else:
+            title = "Real Estate — Issue Resolution"
+            permits = ["Court Filing (if disputed)"]
+            agencies = ["Sulh Hukuk Mahkemesi / Asliye Hukuk Mahkemesi", "Turkish Notary"]
+            documents = ["Original Title Deed", "Rental Agreement (if tenant dispute)", "Evidence of the Issue"]
+            summary = "Roadmap for resolving real estate legal issues including tenant disputes, title conflicts, and lease renewals."
+            steps = [
+                {"title": "Consult Real Estate Lawyer", "notes": "Consult your Turkish real estate lawyer on the specific nature of the dispute.", "docs": []},
+                {"title": "Identify Correct Court", "notes": "Tenant disputes: Sulh Hukuk Mahkemesi. Title disputes: Asliye Hukuk Mahkemesi.", "docs": []},
+                {"title": "Gather Evidence", "notes": "Collect all relevant documents: contracts, payment records, communications.", "docs": ["Original Title Deed", "Rental Agreement (if tenant dispute)", "Evidence of the Issue"]},
+                {"title": "File Case in Appropriate Court", "notes": "Your lawyer files the case (dava dilekçesi) with the correct court and pays court fees.", "docs": []},
+                {"title": "Attend Hearings", "notes": "Attend scheduled hearings with your legal representative.", "docs": []},
+                {"title": "Renew DASK Insurance Annually", "notes": "Ensure your DASK earthquake insurance is renewed each year.", "docs": []}
+            ]
+
+    mapped_steps = []
+    for i, s in enumerate(steps):
+        mapped_steps.append({
+            "id": i + 1,
+            "title": s["title"],
+            "responsible": "Human/Agent",
+            "status": "pending",
+            "notes": s["notes"],
+            "docs": s["docs"]
+        })
+
+    if not assigned_agents:
+        assigned_agents = ["AI Agent", "Compliance Specialist"]
+
+    return {
+        "assistant_type": assistant_type,
+        "last_updated": datetime.datetime.now().isoformat(),
+        "execution_plan": {
+            "steps": mapped_steps,
+            "assigned_agents": assigned_agents
+        },
+        "permit_plan": {
+            "permits": permits,
+            "agencies": agencies,
+            "documents": documents
+        },
+        "combined_result": {
+            "permits": permits,
+            "agencies": agencies,
+            "documents": documents,
+            "steps": [{"title": s["title"], "description": s["notes"], "documents": s["docs"]} for s in steps],
+            "timeline_days": 30,
+            "summary": summary,
+            "location": "Istanbul",
+            "business_type": assistant_type
+        }
+    }
+
+@app.post("/chat/history/{session_id}/message")
+async def save_chat_message(
+    session_id: str, 
+    payload: SaveMessageSchema, 
+    user: Optional[DBUser] = Depends(get_current_user_optional), 
+    db: Session = Depends(get_db)
+):
+    if user:
+        session = db.query(ChatSession).filter(ChatSession.id == session_id, ChatSession.user_id == user.id).first()
+        if not session:
+            session = ChatSession(id=session_id, user_id=user.id, title="New Chat")
+            db.add(session)
+            db.commit()
+        
+        msg = ChatMessage(session_id=session_id, role=payload.role, content=payload.content)
+        db.add(msg)
+        
+        if payload.role == "user" and (not session.title or session.title == "New Chat"):
+            clean = payload.content.strip()
+            if len(clean) > 35:
+                clean = clean[:32] + "..."
+            session.title = clean if clean else "New Consultation"
+            
+        db.commit()
+        return {"status": "success", "session_title": session.title}
+    else:
+        print(f"[Guest Privacy] Manually saving message to in-memory store for {session_id}")
+        if session_id not in guest_chat_histories:
+            guest_chat_histories[session_id] = []
+        guest_chat_histories[session_id].append({"role": payload.role, "content": payload.content})
+        return {"status": "success", "session_title": "New Chat"}
+
+@app.post("/chat/history/{session_id}/messages")
+async def save_chat_messages(
+    session_id: str, 
+    payload: SaveMessagesSchema, 
+    user: Optional[DBUser] = Depends(get_current_user_optional), 
+    db: Session = Depends(get_db)
+):
+    dashboard_data = None
+    if payload.service and payload.flow_type:
+        dashboard_data = _get_mock_dashboard_state(payload.service, payload.flow_type)
+
+    if user:
+        session = db.query(ChatSession).filter(ChatSession.id == session_id, ChatSession.user_id == user.id).first()
+        if not session:
+            session = ChatSession(id=session_id, user_id=user.id, title="New Chat")
+            db.add(session)
+            db.commit()
+            
+        for m in payload.messages:
+            msg = ChatMessage(session_id=session_id, role=m.role, content=m.content)
+            db.add(msg)
+            
+        if not session.title or session.title == "New Chat":
+            first_user_msg = next((m for m in payload.messages if m.role == "user"), None)
+            if first_user_msg:
+                clean = first_user_msg.content.strip()
+                if len(clean) > 35:
+                    clean = clean[:32] + "..."
+                session.title = clean if clean else "New Consultation"
+            elif payload.service:
+                session.title = payload.service
+                
+        if dashboard_data:
+            session.dashboard_state = json.dumps(dashboard_data)
+            user.latest_dashboard_state = json.dumps(dashboard_data)
+
+        db.commit()
+        return {"status": "success", "session_title": session.title}
+    else:
+        print(f"[Guest Privacy] Manually saving batch messages to in-memory store for {session_id}")
+        if session_id not in guest_chat_histories:
+            guest_chat_histories[session_id] = []
+        for m in payload.messages:
+            guest_chat_histories[session_id].append({"role": m.role, "content": m.content})
+            
+        session_title = "New Chat"
+        first_user_msg = next((m for m in payload.messages if m.role == "user"), None)
+        if first_user_msg:
+            clean = first_user_msg.content.strip()
+            if len(clean) > 35:
+                clean = clean[:32] + "..."
+            session_title = clean if clean else "New Consultation"
+        elif payload.service:
+            session_title = payload.service
+            
+        if dashboard_data:
+            guest_dashboard_states[session_id] = json.dumps(dashboard_data)
+            
+        return {"status": "success", "session_title": session_title}
 
 @app.delete("/chat/history/{session_id}")
 async def clear_chat_history(session_id: str, token: Optional[str] = None, db: Session = Depends(get_db)):

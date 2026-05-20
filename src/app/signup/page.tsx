@@ -62,7 +62,15 @@ export default function SignupPage() {
             }
 
             const data = await res.json();
-            login(data.access_token, data.email, data.full_name, data.is_admin, data.token_balance);
+            login(
+                data.access_token,
+                data.email,
+                data.full_name,
+                data.is_admin,
+                data.token_balance,
+                data.subscription_status,
+                data.last_token_reset
+            );
             router.push('/dashboard');
         } catch (err: any) {
             // Only go back to step 1 for email-related errors (e.g. already registered)
@@ -105,6 +113,18 @@ export default function SignupPage() {
                                     <div className="h-4 w-1/2 bg-gray-100 dark:bg-white/5 rounded-full" />
                                 </div>
                             </div>
+                            <div className="flex gap-4 flex-row-reverse">
+                                <div className="h-10 w-10 rounded-full bg-black/5 dark:bg-white/5 shrink-0" />
+                                <div className="space-y-2 flex-1 flex flex-col items-end">
+                                    <div className="h-4 w-2/3 bg-gray-200 dark:bg-white/10 rounded-full" />
+                                    <div className="h-4 w-1/3 bg-gray-100 dark:bg-white/5 rounded-full" />
+                                </div>
+                            </div>
+                        </div>
+                        {/* Fake Input */}
+                        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 w-full max-w-2xl h-16 bg-white dark:bg-[#171717] rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm flex items-center px-6 gap-4">
+                            <div className="h-6 w-6 rounded-md bg-gray-100 dark:bg-white/5" />
+                            <div className="h-4 w-48 bg-gray-100 dark:bg-white/10 rounded-full" />
                         </div>
                     </div>
                 </div>
@@ -115,21 +135,21 @@ export default function SignupPage() {
             <motion.div
                 initial={{ opacity: 0, scale: 0.98, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                className="w-full max-w-[480px] bg-white dark:bg-[#0f0f0f] rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-gray-100 dark:border-white/[0.08] relative overflow-hidden z-10"
+                className="w-full max-w-[400px] bg-white dark:bg-[#0f0f0f] rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-gray-100 dark:border-white/[0.08] relative overflow-hidden z-10"
             >
-                <div className="px-10 py-12 flex flex-col items-center">
+                <div className="px-8 py-8 flex flex-col items-center">
                     {/* Close Button */}
                     <button 
                         onClick={() => router.push('/')}
-                        className="absolute top-6 right-6 p-2 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+                        className="absolute top-4 right-4 p-2 text-gray-400 hover:text-black dark:hover:text-white transition-colors"
                     >
                         <X size={20} />
                     </button>
 
-                    <h1 className="text-[32px] font-semibold text-gray-900 dark:text-white tracking-tight mb-4 text-center">
+                    <h1 className="text-[32px] font-semibold text-gray-900 dark:text-white tracking-tight mb-3 text-center">
                         {step === 1 ? t('auth_signup_title') : 'Enter password'}
                     </h1>
-                    <p className="text-[15px] text-gray-600 dark:text-gray-400 text-center mb-10 px-4 leading-relaxed">
+                    <p className="text-[15px] text-gray-600 dark:text-gray-400 text-center mb-6 px-4 leading-relaxed">
                         {step === 1 
                             ? t('auth_signup_subtitle')
                             : `Signing up as ${email}`}
@@ -192,7 +212,7 @@ export default function SignupPage() {
                         </p>
 
                         {/* Legal Footer Section from Screenshot */}
-                        <div className="mt-12 text-center">
+                        <div className="mt-6 text-center">
                              <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
                                 By joining TurkGateway, you agree to our <Link href="/terms" className="underline hover:text-black dark:hover:text-white">Terms</Link> and have read our <Link href="/privacy" className="underline hover:text-black dark:hover:text-white">Privacy Policy</Link>.
                              </p>

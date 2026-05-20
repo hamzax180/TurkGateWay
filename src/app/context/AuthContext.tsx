@@ -4,9 +4,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiFetch } from '../utils/api';
 
 interface AuthContextType {
-    user: { email: string; fullName?: string; isAdmin?: boolean; tokenBalance?: number; subscriptionStatus?: string } | null;
+    user: { email: string; fullName?: string; isAdmin?: boolean; tokenBalance?: number; subscriptionStatus?: string; lastTokenReset?: string | null } | null;
     token: string | null;
-    login: (token: string, email: string, fullName?: string, isAdmin?: boolean, tokenBalance?: number, subscriptionStatus?: string) => void;
+    login: (token: string, email: string, fullName?: string, isAdmin?: boolean, tokenBalance?: number, subscriptionStatus?: string, lastTokenReset?: string | null) => void;
     logout: () => void;
     isAuthenticated: boolean;
     setTokenBalance: (balance: number) => void;
@@ -32,12 +32,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const savedUser = localStorage.getItem('permitops_user');
             const savedName = localStorage.getItem('permitops_name');
             const savedIsAdmin = localStorage.getItem('permitops_is_admin') === 'true';
+            const savedTokenBalance = localStorage.getItem('permitops_token_balance');
+            const savedSubscriptionStatus = localStorage.getItem('permitops_subscription_status') || undefined;
+            const savedLastTokenReset = localStorage.getItem('permitops_last_token_reset') || null;
             if (savedToken && savedUser) {
                 // Set state from localStorage immediately for fast hydration
                 setToken(savedToken);
-                setUser({ email: savedUser, fullName: savedName || getFallbackName(savedUser), isAdmin: savedIsAdmin });
+                setUser({
+                    email: savedUser,
+                    fullName: savedName || getFallbackName(savedUser),
+                    isAdmin: savedIsAdmin,
+                    tokenBalance: savedTokenBalance ? Number(savedTokenBalance) : undefined,
+                    subscriptionStatus: savedSubscriptionStatus,
+                    lastTokenReset: savedLastTokenReset,
+                });
 
-                // Then verify and sync is_admin from backend in the background
+                // Then verify and sync auth state from backend in the background
                 try {
                     const res = await apiFetch(`/auth/me`, {
                         headers: {
@@ -81,14 +91,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => window.removeEventListener('storage', handleStorage);
     }, []);
 
-    const login = (token: string, email: string, fullName?: string, isAdmin?: boolean, tokenBalance?: number, subscriptionStatus?: string) => {
+    const login = (token: string, email: string, fullName?: string, isAdmin?: boolean, tokenBalance?: number, subscriptionStatus?: string, lastTokenReset?: string | null) => {
         const name = fullName || getFallbackName(email);
         setToken(token);
-        setUser({ email, fullName: name, isAdmin: !!isAdmin, tokenBalance, subscriptionStatus, lastTokenReset: null });
+        setUser({ email, fullName: name, isAdmin: !!isAdmin, tokenBalance, subscriptionStatus, lastTokenReset: lastTokenReset || null });
         localStorage.setItem('permitops_token', token);
         localStorage.setItem('permitops_user', email);
         localStorage.setItem('permitops_name', name);
         localStorage.setItem('permitops_is_admin', isAdmin ? 'true' : 'false');
+        if (tokenBalance !== undefined && tokenBalance !== null) {
+            localStorage.setItem('permitops_token_balance', String(tokenBalance));
+        } else {
+            localStorage.removeItem('permitops_token_balance');
+        }
+        if (subscriptionStatus) {
+            localStorage.setItem('permitops_subscription_status', subscriptionStatus);
+        } else {
+            localStorage.removeItem('permitops_subscription_status');
+        }
+        if (lastTokenReset) {
+            localStorage.setItem('permitops_last_token_reset', lastTokenReset);
+        } else {
+            localStorage.removeItem('permitops_last_token_reset');
+        }
     };
 
     const setTokenBalance = (balance: number) => {
@@ -102,6 +127,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('permitops_user');
         localStorage.removeItem('permitops_name');
         localStorage.removeItem('permitops_is_admin');
+        localStorage.removeItem('permitops_token_balance');
+        localStorage.removeItem('permitops_subscription_status');
+        localStorage.removeItem('permitops_last_token_reset');
     };
 
     return (
