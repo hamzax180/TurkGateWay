@@ -102,6 +102,8 @@ class Token(BaseModel):
     full_name: Optional[str] = None
     is_admin: Optional[bool] = False
     token_balance: Optional[int] = 25
+    subscription_status: Optional[str] = "free"
+    last_token_reset: Optional[str] = None
 
 class APIKeyResponse(BaseModel):
     api_key: str

@@ -962,7 +962,7 @@ async def smart_router_handle(
                         break
             if business_type_en == "Business":
                 for kw_list, en_n, tr_n, ar_n in _BUSINESS_KEYWORDS:
-                    hist_lower = user_history_text.lower()
+                    hist_lower = history_text.lower() if history_text else user_history_text.lower()
                     if any(kw in hist_lower for kw in kw_list):
                         business_type_en, business_type_tr, business_type_ar = en_n, tr_n, ar_n
                         break

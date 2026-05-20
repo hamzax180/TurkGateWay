@@ -266,7 +266,16 @@ async def register(request: Request, user: UserCreate, db: Session = Depends(get
     db.refresh(new_user)
     
     access_token = create_access_token(data={"sub": new_user.email})
-    return {"access_token": access_token, "token_type": "bearer", "email": new_user.email, "full_name": new_user.full_name, "is_admin": new_user.is_admin, "token_balance": new_user.token_balance}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "email": new_user.email,
+        "full_name": new_user.full_name,
+        "is_admin": new_user.is_admin,
+        "token_balance": new_user.token_balance,
+        "subscription_status": new_user.subscription_status,
+        "last_token_reset": new_user.last_token_reset.isoformat() if new_user.last_token_reset else None,
+    }
 
 @app.post("/auth/login", response_model=Token)
 @limiter.limit("10/minute", key_func=user_id_key)
@@ -284,7 +293,16 @@ async def login(request: Request, user: UserLogin, db: Session = Depends(get_db)
             raise HTTPException(status_code=401, detail="Invalid MFA code")
     
     access_token = create_access_token(data={"sub": db_user.email})
-    return {"access_token": access_token, "token_type": "bearer", "email": db_user.email, "full_name": db_user.full_name, "is_admin": db_user.is_admin, "token_balance": db_user.token_balance}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "email": db_user.email,
+        "full_name": db_user.full_name,
+        "is_admin": db_user.is_admin,
+        "token_balance": db_user.token_balance,
+        "subscription_status": db_user.subscription_status,
+        "last_token_reset": db_user.last_token_reset.isoformat() if db_user.last_token_reset else None,
+    }
 
 @app.post("/auth/google", response_model=Token)
 async def google_login(data: dict, db: Session = Depends(get_db)):
@@ -340,7 +358,9 @@ async def google_login(data: dict, db: Session = Depends(get_db)):
             "email": user.email,
             "full_name": user.full_name,
             "is_admin": user.is_admin,
-            "token_balance": user.token_balance
+            "token_balance": user.token_balance,
+            "subscription_status": user.subscription_status,
+            "last_token_reset": user.last_token_reset.isoformat() if user.last_token_reset else None,
         }
     except Exception as e:
         print(f"Google Login Error: {e}")
@@ -1435,7 +1455,6 @@ async def agent_query(request: Request, db: Session = Depends(get_db), user: Opt
                 # If the dashboard state is already built, this is ALWAYS a follow-up conversational question.
                 # Running the orchestrator again would maliciously overwrite their dashboard.
                 has_state = False
-                import json
                 if db_session and db_session.dashboard_state:
                     state_obj = json.loads(db_session.dashboard_state)
                     if state_obj.get("combined_result") is not None:
@@ -2143,9 +2162,37 @@ async def get_admin_subscribers(db: Session = Depends(get_db), current_user: DBU
             "full_name": u.full_name,
             "subscription_status": u.subscription_status,
             "subscription_reference_code": u.subscription_reference_code,
+            "token_balance": u.token_balance,
             "is_admin": u.is_admin
         } for u in users
     ]
+
+@app.post("/admin/users/{user_id}/upgrade")
+async def admin_upgrade_user_to_premium(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(get_current_user)
+):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    user = db.query(DBUser).filter(DBUser.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.subscription_status = "active"
+    user.subscription_reference_code = user.subscription_reference_code or "manual-upgrade"
+    user.token_balance = 100
+    user.last_token_reset = None
+    db.commit()
+
+    return {
+        "status": "success",
+        "user_id": user.id,
+        "email": user.email,
+        "subscription_status": user.subscription_status,
+        "token_balance": user.token_balance
+    }
 
 if __name__ == "__main__":
     import uvicorn
