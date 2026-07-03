@@ -16,6 +16,8 @@ jobs:
       actions: read
       contents: read
       security-events: write
+    env:
+      CODEQL_EXTRACTOR_JAVASCRIPT_DISABLE_TYPE_RESOLUTION: true
 
     strategy:
       fail-fast: false
@@ -25,15 +27,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Install Dependencies
-        run: npm ci
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
