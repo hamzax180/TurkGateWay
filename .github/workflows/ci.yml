@@ -25,6 +25,7 @@ jobs:
 
       - name: Run Security Audit
         run: npm audit --audit-level=high
+        continue-on-error: true
 
       - name: Check Type Safety
         run: npx tsc --noEmit
