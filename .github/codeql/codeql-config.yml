@@ -1,0 +1,12 @@
+name: "CodeQL Next.js Scan Config"
+
+paths:
+  - src
+
+paths-ignore:
+  - 'node_modules'
+  - '.next'
+  - 'desktop'
+  - 'scripts'
+  - 'scratch'
+  - 'drizzle'
