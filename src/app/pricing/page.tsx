@@ -198,14 +198,14 @@ export default function PricingPage() {
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans selection:bg-blue-500/30">
       <Navbar />
 
-      <main className="pt-32 pb-24 relative z-10 px-6 overflow-hidden">
+      <main className="pt-24 md:pt-32 pb-24 relative z-10 px-2 md:px-6 overflow-hidden">
         {/* Glow Effects */}
         <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none -z-10" />
         <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px] pointer-events-none -z-10" />
         
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl text-[var(--text)] mb-8 font-serif tracking-tight" style={{ fontFamily: 'Georgia, serif' }}>
+        <div className="text-center mb-6 md:mb-12">
+          <h1 className="text-3xl md:text-5xl text-[var(--text)] mb-4 md:mb-8 font-serif tracking-tight" style={{ fontFamily: 'Georgia, serif' }}>
             Plan prices
           </h1>
           
@@ -227,116 +227,120 @@ export default function PricingPage() {
 
         {/* Pricing Cards */}
         {billingPlan === 'individual' ? (
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-          
+        <div className="max-w-5xl mx-auto grid grid-cols-3 gap-1.5 md:gap-6">
+
           {/* Free Card */}
-          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl p-8 flex flex-col">
-            <div className="mb-6 h-16 flex items-start">
-              <div className="flex items-center gap-4">
-                <div className="relative shrink-0 h-16 w-16 rounded-2xl flex items-center justify-center bg-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.5)]">
-                  <Cpu size={32} className="text-white animate-pulse" />
+          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl md:rounded-2xl p-2.5 md:p-8 flex flex-col">
+            <div className="mb-2 md:mb-6 md:h-16 flex items-start">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4">
+                <div className="relative shrink-0 h-9 w-9 md:h-16 md:w-16 rounded-lg md:rounded-2xl flex items-center justify-center bg-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.5)]">
+                  <Cpu className="text-white animate-pulse w-4 h-4 md:w-8 md:h-8" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-base font-bold text-[var(--text)]">Monthly</span>
-                  <span className="text-xs text-[var(--muted)]">Standard plan</span>
+                  <span className="text-xs md:text-base font-bold text-[var(--text)]">Monthly</span>
+                  <span className="text-[10px] md:text-xs text-[var(--muted)] hidden md:block">Standard plan</span>
                 </div>
               </div>
             </div>
-            <h2 className="text-2xl font-semibold text-[var(--text)] mb-1">Free</h2>
-            <p className="text-sm text-[var(--muted)] mb-6">Meet TurkGateway</p>
-            
-            <div className="text-3xl font-semibold text-[var(--text)] mb-8">₺0</div>
-            
-            <button disabled className="w-full py-2.5 rounded-lg border border-[var(--border)] text-[var(--muted)] font-medium text-sm mb-8 bg-[var(--surface-2)]">
-              Use TurkGateway for free
-            </button>
+            <h2 className="text-lg md:text-2xl font-semibold text-[var(--text)] mb-1">Free</h2>
+            <p className="text-[11px] md:text-sm text-[var(--muted)] mb-2 md:mb-6 leading-snug min-h-[2.25rem] md:min-h-0">Meet TurkGateway</p>
 
-            <div className="space-y-4 text-[13px] text-[var(--muted)] flex-1 border-t border-[var(--border)] pt-6">
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>Chat on web, iOS, and Android</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>Basic access to all 3 AI Agents</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>Standard residency & permit roadmaps</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>Multi-language support (EN, TR, AR)</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>Built-in web search for legal updates</span></div>
+            <div className="flex items-baseline gap-1.5 md:gap-2 mb-2.5 md:mb-8 min-h-[1.75rem] md:min-h-0">
+              <div className="text-2xl md:text-3xl font-semibold text-[var(--text)]">₺0</div>
+            </div>
+
+            <button disabled className="w-full py-2 md:py-2.5 rounded-lg border border-[var(--border)] text-[var(--muted)] font-medium text-[11px] md:text-sm mb-2 bg-[var(--surface-2)] leading-tight">
+              Use for free
+            </button>
+            <p className="text-[8px] md:text-[9px] text-center mb-2 md:mb-5 font-medium opacity-0 select-none" aria-hidden="true">Free forever</p>
+
+            <div className="space-y-1 md:space-y-4 text-[11px] md:text-[13px] text-[var(--muted)] flex-1 border-t border-[var(--border)] pt-2.5 md:pt-6">
+              <p className="font-semibold text-[var(--text)] text-[10px] md:text-xs mb-2">Includes:</p>
+              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>Web, iOS &amp; Android</span></div>
+              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>All 3 AI Agents</span></div>
+              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>Residency &amp; permit roadmaps</span></div>
+              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>EN, TR, AR languages</span></div>
+              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>Web search for legal updates</span></div>
             </div>
           </div>
 
           {/* Pro Card */}
-          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl p-8 flex flex-col relative">
-            <div className="mb-6 h-16 flex justify-between items-start">
-              <div className="flex items-center gap-4">
-                <div className="relative shrink-0 h-16 w-16 rounded-2xl flex items-center justify-center bg-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.5)]">
-                  <Cpu size={32} className="text-white animate-pulse" />
+          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl md:rounded-2xl p-2.5 md:p-8 flex flex-col relative">
+            <div className="mb-2 md:mb-6 md:h-16 flex justify-between items-start">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4">
+                <div className="relative shrink-0 h-9 w-9 md:h-16 md:w-16 rounded-lg md:rounded-2xl flex items-center justify-center bg-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.5)]">
+                  <Cpu className="text-white animate-pulse w-4 h-4 md:w-8 md:h-8" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-base font-bold text-[var(--text)]">Monthly</span>
-                  <span className="text-xs text-[var(--muted)]">Best value</span>
+                  <span className="text-xs md:text-base font-bold text-[var(--text)]">Monthly</span>
+                  <span className="text-[10px] md:text-xs text-[var(--muted)] hidden md:block">Best value</span>
                 </div>
               </div>
             </div>
-            
-            <h2 className="text-2xl font-semibold text-[var(--text)] mb-1">Premium</h2>
-            <p className="text-sm text-[var(--muted)] mb-6">Advanced AI guidance for Turkish procedures</p>
-            
-            <div className="flex items-baseline gap-2 mb-8">
-              <div className="text-3xl font-semibold text-[var(--text)]">₺{premiumMonthly}</div>
-              <div className="text-[10px] text-[var(--muted)] flex flex-col">
+
+            <h2 className="text-lg md:text-2xl font-semibold text-[var(--text)] mb-1">Premium</h2>
+            <p className="text-[11px] md:text-sm text-[var(--muted)] mb-2 md:mb-6 leading-snug min-h-[2.25rem] md:min-h-0">Advanced AI for Turkish procedures</p>
+
+            <div className="flex items-baseline gap-1.5 md:gap-2 mb-2.5 md:mb-8 min-h-[1.75rem] md:min-h-0">
+              <div className="text-2xl md:text-3xl font-semibold text-[var(--text)]">₺{premiumMonthly}</div>
+              <div className="text-[9px] md:text-[10px] text-[var(--muted)] flex flex-col">
                 <span>TL / month</span>
-                <span>billed monthly</span>
+                <span className="hidden md:block">billed monthly</span>
               </div>
             </div>
-            
-            <button onClick={() => setCheckoutPlan('premium')} className="w-full py-2.5 rounded-lg bg-[var(--text)] text-[var(--bg)] font-semibold text-sm mb-2 hover:opacity-90 transition-opacity">
-              Get Premium plan
-            </button>
-            <p className="text-[9px] text-[var(--muted)] text-center mb-5 font-medium">No commitment · Cancel anytime</p>
 
-            <div className="space-y-4 text-[13px] text-[var(--muted)] flex-1 border-t border-[var(--border)] pt-6">
-              <p className="font-semibold text-[var(--text)] text-xs mb-2">Everything in Free and:</p>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span className="font-medium text-[var(--text)]">Desktop App (Zero latency & Voice mode)</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>100 AI Tokens Monthly</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>Automated document review & translation</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>AI Agent filling & generating official docs</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>Advanced legal deep-dives</span></div>
+            <button onClick={() => setCheckoutPlan('premium')} className="w-full py-2 md:py-2.5 rounded-lg bg-[var(--text)] text-[var(--bg)] font-semibold text-[11px] md:text-sm mb-2 hover:opacity-90 transition-opacity leading-tight">
+              Get Premium
+            </button>
+            <p className="text-[8px] md:text-[9px] text-[var(--muted)] text-center mb-2 md:mb-5 font-medium">No commitment · Cancel anytime</p>
+
+            <div className="space-y-1 md:space-y-4 text-[11px] md:text-[13px] text-[var(--muted)] flex-1 border-t border-[var(--border)] pt-2.5 md:pt-6">
+              <p className="font-semibold text-[var(--text)] text-[10px] md:text-xs mb-2">Everything in Free and:</p>
+              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span className="font-medium text-[var(--text)]">Desktop App + Voice mode</span></div>
+              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>100 AI Tokens / month</span></div>
+              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>Doc review &amp; translation</span></div>
+              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>Auto-fill official docs</span></div>
+              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>Advanced legal deep-dives</span></div>
             </div>
           </div>
 
           {/* Max Card */}
-          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl p-8 flex flex-col">
-            <div className="mb-6 h-16 flex items-start">
-              <div className="flex items-center gap-4">
-                <div className="relative shrink-0 h-16 w-16 rounded-2xl flex items-center justify-center bg-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.5)]">
-                  <Cpu size={32} className="text-white animate-pulse" />
+          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl md:rounded-2xl p-2.5 md:p-8 flex flex-col">
+            <div className="mb-2 md:mb-6 md:h-16 flex items-start">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4">
+                <div className="relative shrink-0 h-9 w-9 md:h-16 md:w-16 rounded-lg md:rounded-2xl flex items-center justify-center bg-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.5)]">
+                  <Cpu className="text-white animate-pulse w-4 h-4 md:w-8 md:h-8" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-base font-bold text-[var(--text)]">Yearly</span>
-                  <span className="text-xs text-[var(--muted)]">Maximum power</span>
+                  <span className="text-xs md:text-base font-bold text-[var(--text)]">Yearly</span>
+                  <span className="text-[10px] md:text-xs text-[var(--muted)] hidden md:block">Maximum power</span>
                 </div>
               </div>
             </div>
-            
-            <h2 className="text-2xl font-semibold text-[var(--text)] mb-1">Max</h2>
-            <p className="text-sm text-[var(--muted)] mb-6">Unlimited tokens forever</p>
-            
-            <div className="flex items-baseline gap-2 mb-8">
-              <div className="text-3xl font-semibold text-[var(--text)]">₺{maxYearly}</div>
-              <div className="text-[10px] text-[var(--muted)] flex flex-col">
+
+            <h2 className="text-lg md:text-2xl font-semibold text-[var(--text)] mb-1">Max</h2>
+            <p className="text-[11px] md:text-sm text-[var(--muted)] mb-2 md:mb-6 leading-snug min-h-[2.25rem] md:min-h-0">Unlimited tokens forever</p>
+
+            <div className="flex items-baseline gap-1.5 md:gap-2 mb-2.5 md:mb-8 min-h-[1.75rem] md:min-h-0">
+              <div className="text-2xl md:text-3xl font-semibold text-[var(--text)]">₺{maxYearly}</div>
+              <div className="text-[9px] md:text-[10px] text-[var(--muted)] flex flex-col">
                 <span>TL / year</span>
-                <span>billed annually</span>
+                <span className="hidden md:block">billed annually</span>
               </div>
             </div>
 
-            <button onClick={() => setCheckoutPlan('max')} className="w-full py-2.5 rounded-lg bg-[var(--text)] text-[var(--bg)] font-semibold text-sm mb-2 hover:opacity-90 transition-opacity">
-              Get Max plan
+            <button onClick={() => setCheckoutPlan('max')} className="w-full py-2 md:py-2.5 rounded-lg bg-[var(--text)] text-[var(--bg)] font-semibold text-[11px] md:text-sm mb-2 hover:opacity-90 transition-opacity leading-tight">
+              Get Max
             </button>
-            <p className="text-[9px] text-[var(--muted)] text-center mb-5 font-medium">No commitment · Cancel anytime</p>
+            <p className="text-[8px] md:text-[9px] text-[var(--muted)] text-center mb-2 md:mb-5 font-medium">No commitment · Cancel anytime</p>
 
-            <div className="space-y-4 text-[13px] text-[var(--muted)] flex-1 border-t border-[var(--border)] pt-6">
-              <p className="font-semibold text-[var(--text)] text-xs mb-2">Everything in Premium, plus:</p>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span className="font-medium text-[var(--text)] text-blue-400">Unlimited tokens forever</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>Full application management & submission</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>Unlimited AI Agent consultations</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>Dedicated account manager</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>VIP priority processing</span></div>
+            <div className="space-y-1 md:space-y-4 text-[11px] md:text-[13px] text-[var(--muted)] flex-1 border-t border-[var(--border)] pt-2.5 md:pt-6">
+              <p className="font-semibold text-[var(--text)] text-[10px] md:text-xs mb-2">Everything in Premium, plus:</p>
+              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span className="font-medium text-[var(--text)] text-blue-400">Unlimited tokens forever</span></div>
+              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>Full app management</span></div>
+              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>Unlimited consultations</span></div>
+              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>Dedicated manager</span></div>
+              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>VIP priority processing</span></div>
             </div>
           </div>
 

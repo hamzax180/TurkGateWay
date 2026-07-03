@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, MessageSquare, Trash2, Menu, Settings, HelpCircle, History, Zap, Search, X, Star, MoreVertical, ChevronRight, LayoutDashboard, Home, LogOut, Building2, GraduationCap, Scale } from 'lucide-react';
+import { Plus, MessageSquare, Trash2, Menu, Settings, HelpCircle, History, Zap, Search, X, Star, MoreVertical, ChevronRight, LayoutDashboard, Home, LogOut, Building2, GraduationCap, Scale, Briefcase, Download, CreditCard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
@@ -158,7 +158,7 @@ export default function Sidebar({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
               className="fixed inset-0 bg-black/50 z-[200] md:hidden"
               onClick={onMobileClose}
             />
@@ -167,8 +167,8 @@ export default function Sidebar({
               initial={{ x: isRTL ? '100%' : '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: isRTL ? '100%' : '-100%' }}
-              transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-              className={`fixed top-0 ${isRTL ? 'right-0' : 'left-0'} h-full w-[85vw] max-w-[340px] z-[210] md:hidden shadow-2xl overflow-hidden backdrop-blur-sm`}
+              transition={{ type: 'spring', stiffness: 460, damping: 42, mass: 0.8 }}
+              className={`fixed top-0 ${isRTL ? 'right-0' : 'left-0'} h-full w-[85vw] max-w-[340px] z-[210] md:hidden shadow-2xl overflow-hidden backdrop-blur-sm will-change-transform`}
             >
               <SidebarInner
                 isMobile
@@ -269,14 +269,15 @@ const SidebarInner = React.memo(({
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.05,
-        delayChildren: 0.1,
+        staggerChildren: isMobile ? 0 : 0.05,
+        delayChildren: 0,
+        duration: 0.15,
       }
     },
     exit: {
       opacity: 0,
       transition: {
-        duration: 0.2,
+        duration: 0.12,
         ease: 'easeIn' as const
       }
     }
@@ -286,11 +287,11 @@ const SidebarInner = React.memo(({
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { duration: 0.3 }
+      transition: { duration: isMobile ? 0.15 : 0.3 }
     },
     exit: {
       opacity: 0,
-      transition: { duration: 0.15 }
+      transition: { duration: 0.1 }
     }
   };
 
@@ -303,25 +304,7 @@ const SidebarInner = React.memo(({
       className="h-full flex flex-col bg-[var(--surface)] dark:bg-[var(--surface)]/80 dark:backdrop-blur-xl border-r border-[var(--border)]"
     >
       {/* Search bar */}
-      {isMobile ? (
-        <motion.div variants={itemVariants} className="p-3 shrink-0">
-          <div className="flex items-center gap-2.5 bg-[var(--surface-2)] rounded-full px-4 py-2.5 border border-[var(--border)]">
-            <Search size={16} className="text-[var(--muted)] shrink-0" />
-            <input
-              type="text"
-              placeholder={t('chat_placeholder_alt')}
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="flex-1 bg-transparent text-[15px] text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none"
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="text-[var(--muted)]">
-                <X size={14} />
-              </button>
-            )}
-          </div>
-        </motion.div>
-      ) : (
+      {isMobile ? null : (
         <div className="p-2.5 mb-0 shrink-0">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
@@ -333,65 +316,70 @@ const SidebarInner = React.memo(({
         </div>
       )}
 
-      {/* New Chat */}
-      <motion.div variants={itemVariants} className={`${isMobile ? 'px-3 mb-1' : 'px-3 mb-2'} shrink-0`}>
-        <button
-          onClick={() => { onNewChat(); if (isMobile) onMobileClose?.(); }}
-          title={t('sidebar_new_chat')}
-          className={`group flex items-center justify-start gap-3 transition-all duration-300 ${isMobile
-            ? 'w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)]'
-            : `h-12 rounded-2xl bg-[var(--surface-1)] hover:bg-[var(--surface-2)] border border-[var(--border)] shadow-sm hover:shadow-md overflow-hidden ${isExpanded ? 'w-full px-5' : 'w-11 px-3'}`
-            }`}
-        >
-          <Plus size={isMobile ? 20 : 22} className={isMobile ? "text-[var(--text)] shrink-0" : "text-[var(--accent)] shrink-0"} />
-          {showLabels && (
-            <span className="text-[15px] font-semibold text-[var(--text)] whitespace-nowrap">
-              {t('sidebar_new_chat')}
-            </span>
-          )}
-        </button>
-      </motion.div>
+      {/* New Chat — desktop (stays at top) */}
+      {!isMobile && (
+        <motion.div variants={itemVariants} className="px-3 mb-2 shrink-0">
+          <button
+            onClick={() => { onNewChat(); }}
+            title={t('sidebar_new_chat')}
+            className={`group flex items-center justify-start gap-3 transition-all duration-300 h-12 rounded-2xl bg-[var(--surface-1)] hover:bg-[var(--surface-2)] border border-[var(--border)] shadow-sm hover:shadow-md overflow-hidden ${isExpanded ? 'w-full px-5' : 'w-11 px-3'}`}
+          >
+            <Plus size={22} className="text-[var(--accent)] shrink-0" />
+            {showLabels && (
+              <span className="text-[15px] font-semibold text-[var(--text)] whitespace-nowrap">
+                {t('sidebar_new_chat')}
+              </span>
+            )}
+          </button>
+        </motion.div>
+      )}
 
-      {/* Home (mobile Gemini style) */}
+      {/* Mobile nav group: Home → Dashboard → Services → Download → New Chat */}
       {isMobile && (
-        <motion.div variants={itemVariants} className="px-3 mb-1 shrink-0">
+        <motion.div variants={itemVariants} className="px-3 pt-1 pb-1 shrink-0 space-y-1">
           <Link href="/" className="block">
             <button className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)] transition-all">
               <Home size={20} className="text-[var(--text)] shrink-0" />
               <span className={`text-[15px] font-medium text-[var(--text)] ${isRTL ? 'text-right' : 'text-left'}`}>{t('sidebar_home')}</span>
             </button>
           </Link>
-        </motion.div>
-      )}
 
-      {/* Dashboard (mobile Gemini style) */}
-      {isMobile && (
-        <motion.div variants={itemVariants} className="px-3 mb-1 shrink-0">
           <Link href="/dashboard" className="block">
             <button className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)] transition-all">
               <LayoutDashboard size={20} className="text-[var(--text)] shrink-0" />
               <span className={`text-[15px] font-medium text-[var(--text)] ${isRTL ? 'text-right' : 'text-left'}`}>{t('sidebar_dashboard')}</span>
             </button>
           </Link>
-        </motion.div>
-      )}
 
-      {/* My stuff (mobile Gemini style) */}
-      {isMobile && (
-        <motion.div variants={itemVariants} className="px-3 mb-1 shrink-0">
-          <button className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)] transition-all">
-            <Star size={20} className="text-[var(--text)] shrink-0" />
-            <span className={`text-[15px] font-medium text-[var(--text)] ${isRTL ? 'text-right' : 'text-left'}`}>{t('sidebar_my_stuff')}</span>
-          </button>
-        </motion.div>
-      )}
+          <Link href="/services" className="block">
+            <button className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)] transition-all">
+              <Briefcase size={20} className="text-[var(--text)] shrink-0" />
+              <span className={`text-[15px] font-medium text-[var(--text)] ${isRTL ? 'text-right' : 'text-left'}`}>{t('navbar_services') || 'Services'}</span>
+            </button>
+          </Link>
 
-      {/* Gems (mobile Gemini style) */}
-      {isMobile && (
-        <motion.div variants={itemVariants} className="px-3 mb-1 shrink-0">
-          <button className="group flex items-center justify-between w-full px-4 py-2.5 rounded-xl hover:bg-[var(--surface-2)] transition-all">
-            <span className="text-[15px] font-bold text-[var(--text)]">{t('sidebar_gems')}</span>
-            <ChevronRight size={16} className={`${isRTL ? 'rotate-180' : ''} text-[var(--muted)]`} />
+          <Link href="/download" className="block">
+            <button className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)] transition-all">
+              <Download size={20} className="text-[var(--text)] shrink-0" />
+              <span className={`text-[15px] font-medium text-[var(--text)] ${isRTL ? 'text-right' : 'text-left'}`}>{t('navbar_download') === 'navbar_download' ? 'Download' : t('navbar_download')}</span>
+            </button>
+          </Link>
+
+          <Link href="/pricing" className="block">
+            <button className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)] transition-all">
+              <CreditCard size={20} className="text-[var(--text)] shrink-0" />
+              <span className={`text-[15px] font-medium text-[var(--text)] ${isRTL ? 'text-right' : 'text-left'}`}>{t('navbar_pricing') || 'Prices'}</span>
+            </button>
+          </Link>
+
+          {/* New Chat — mobile (placed under the nav links, desktop card effect) */}
+          <button
+            onClick={() => { onNewChat(); onMobileClose?.(); }}
+            title={t('sidebar_new_chat')}
+            className="group flex items-center gap-3 w-full h-12 px-5 rounded-2xl bg-[var(--surface-1)] hover:bg-[var(--surface-2)] border border-[var(--border)] shadow-sm hover:shadow-md overflow-hidden transition-all duration-300 mt-1"
+          >
+            <Plus size={22} className="text-[var(--accent)] shrink-0" />
+            <span className={`text-[15px] font-semibold text-[var(--text)] whitespace-nowrap ${isRTL ? 'text-right' : 'text-left'}`}>{t('sidebar_new_chat')}</span>
           </button>
         </motion.div>
       )}
@@ -594,6 +582,18 @@ const SidebarInner = React.memo(({
           </div>
         )}
 
+        {/* Help */}
+        {isMobile && (
+          <Link href="/help" className="block" onClick={onMobileClose}>
+            <div className="group flex items-center gap-3 py-2 px-3 rounded-full hover:bg-[var(--surface-2)] cursor-pointer transition-all" title={t('sidebar_help')}>
+              <HelpCircle size={17} className="text-[var(--text)] group-hover:text-[var(--text)] transition-all shrink-0" />
+              {showLabels && (
+                <span className="text-[13px] font-semibold text-[var(--text)]">{t('sidebar_help')}</span>
+              )}
+            </div>
+          </Link>
+        )}
+
         {/* Settings & help */}
         <Link href="/settings" className="block" onClick={isMobile ? onMobileClose : undefined}>
           <div className="group flex items-center gap-3 py-2 px-3 rounded-full hover:bg-[var(--surface-2)] cursor-pointer transition-all" title={t('sidebar_settings')}>
@@ -616,7 +616,6 @@ const SidebarInner = React.memo(({
           <>
             {[
               { icon: HelpCircle, label: t('sidebar_help'), color: 'text-[var(--muted)]', href: '/help' },
-              { icon: History, label: t('sidebar_activity'), color: 'text-[var(--muted)]', href: '/dashboard' },
             ].map((item, idx) => (
               <Link href={item.href} key={idx} className="block">
                 <div

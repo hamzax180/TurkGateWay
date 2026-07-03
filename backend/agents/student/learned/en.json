@@ -1,12 +1,12 @@
-{
+﻿{
   "learned": [
     {
       "q": "where can i see",
-      "r": "You can check the status of your application on the e-İkamet system website where you submitted it."
+      "r": "You can check the status of your application on the e-─░kamet system website where you submitted it."
     },
     {
       "q": "dashboard",
-      "r": "You can log in to your account on the e-İkamet system website, and your application status will be displayed on your personal dashboard or application tracking section."
+      "r": "You can log in to your account on the e-─░kamet system website, and your application status will be displayed on your personal dashboard or application tracking section."
     },
     {
       "q": "no stress",
@@ -14,13 +14,13 @@
     },
     {
       "q": "what about id application in turkey",
-      "r": "After you arrive in Turkey, the **agent will fill out the Student Residence Permit (İkamet İzni) application for you** on the e-İkamet system. This permit acts as your official ID card (Kimlik) in Turkey.\n\nHere's a brief overview:\n1.  **Online Application:** The agent fills out the online application form on the e-İkamet system (e-ikamet.goc.gov.tr) on your behalf.\n2.  **Appointment:** The agent schedules your appointment at the Provincial Directorate of Migration Management (Göç İdaresi).\n3.  **Document Submission:** You gather the required documents and submit them in person at your appointment.\n4.  **Card Delivery:** If approved, your residence permit card will be mailed to your address in Turkey."
+      "r": "After you arrive in Turkey, the **agent will fill out the Student Residence Permit (─░kamet ─░zni) application for you** on the e-─░kamet system. This permit acts as your official ID card (Kimlik) in Turkey.\n\nHere's a brief overview:\n1.  **Online Application:** The agent fills out the online application form on the e-─░kamet system (e-ikamet.goc.gov.tr) on your behalf.\n2.  **Appointment:** The agent schedules your appointment at the Provincial Directorate of Migration Management (G├╢├º ─░daresi).\n3.  **Document Submission:** You gather the required documents and submit them in person at your appointment.\n4.  **Card Delivery:** If approved, your residence permit card will be mailed to your address in Turkey."
     }
   ],
   "student_renew": [
     {
       "q": "where can i see",
-      "r": "You can check the status of your application on the e-İkamet system website where you submitted it.",
+      "r": "You can check the status of your application on the e-─░kamet system website where you submitted it.",
       "intent": "student_renew",
       "s": {
         "business_profile": {
@@ -56,7 +56,7 @@
               "title": "University Office Enrollment",
               "responsible": "Human",
               "status": "pending",
-              "notes": "Complete tuition payments. Receive official 'Öğrenci Belgesi' (Student Certificate).",
+              "notes": "Complete tuition payments. Receive official '├û─ƒrenci Belgesi' (Student Certificate).",
               "docs": [
                 "Acceptance Letter",
                 "Passport",
@@ -68,7 +68,7 @@
             },
             {
               "id": 4,
-              "title": "Purchase Health Insurance (Yabancı Sağlık Sigortası)",
+              "title": "Purchase Health Insurance (Yabanc─▒ Sa─ƒl─▒k Sigortas─▒)",
               "responsible": "Agent/Human",
               "status": "pending",
               "notes": "Must cover your 1-2 year stay period completely. SGK or Private accepted.",
@@ -85,20 +85,20 @@
               "status": "pending",
               "notes": "Proof of address required. Owner must be present at notary or dorm letter needed.",
               "docs": [
-                "Notarized Lease Agreement (Kira Sözleşmesi)",
+                "Notarized Lease Agreement (Kira S├╢zle┼ƒmesi)",
                 "Landlord ID copy",
                 "OR: Official KYK/Dorm Acceptance Letter"
               ]
             },
             {
               "id": 6,
-              "title": "Apply for Kimlik (e-İkamet system)",
+              "title": "Apply for Kimlik (e-─░kamet system)",
               "responsible": "Agent",
               "status": "pending",
               "notes": "Fill forms at e-ikamet.goc.gov.tr. Reserve your appointment date.",
               "docs": [
                 "Valid Passport",
-                "Student Certificate (Öğrenci Belgesi)",
+                "Student Certificate (├û─ƒrenci Belgesi)",
                 "Health Insurance Policy",
                 "Notarized Lease / Dorm Letter",
                 "4x Biometric Photos",
@@ -107,17 +107,17 @@
             },
             {
               "id": 7,
-              "title": "Attend Göç İdaresi Appointment",
+              "title": "Attend G├╢├º ─░daresi Appointment",
               "responsible": "Human",
               "status": "pending",
               "notes": "Present pink folder with 4 photos, student cert, insurance, address doc, passport.",
               "docs": [
                 "Original Passport + 2 photocopies",
-                "Student Certificate (Öğrenci Belgesi)",
+                "Student Certificate (├û─ƒrenci Belgesi)",
                 "Health Insurance Policy (original)",
                 "Notarized Lease / Dorm Letter (original)",
                 "4 Biometric Photos (white background)",
-                "Printed e-İkamet Application Form",
+                "Printed e-─░kamet Application Form",
                 "Application fee payment proof"
               ]
             },
@@ -187,7 +187,7 @@
             },
             {
               "title": "University Office Enrollment",
-              "description": "Complete tuition payments. Receive official 'Öğrenci Belgesi' (Student Certificate).",
+              "description": "Complete tuition payments. Receive official '├û─ƒrenci Belgesi' (Student Certificate).",
               "documents": [
                 "Acceptance Letter",
                 "Passport",
@@ -198,7 +198,7 @@
               ]
             },
             {
-              "title": "Purchase Health Insurance (Yabancı Sağlık Sigortası)",
+              "title": "Purchase Health Insurance (Yabanc─▒ Sa─ƒl─▒k Sigortas─▒)",
               "description": "Must cover your 1-2 year stay period completely. SGK or Private accepted.",
               "documents": [
                 "Passport",
@@ -210,17 +210,17 @@
               "title": "Notarize Lease Agreement / Dormitory Doc",
               "description": "Proof of address required. Owner must be present at notary or dorm letter needed.",
               "documents": [
-                "Notarized Lease Agreement (Kira Sözleşmesi)",
+                "Notarized Lease Agreement (Kira S├╢zle┼ƒmesi)",
                 "Landlord ID copy",
                 "OR: Official KYK/Dorm Acceptance Letter"
               ]
             },
             {
-              "title": "Apply for Kimlik (e-İkamet system)",
+              "title": "Apply for Kimlik (e-─░kamet system)",
               "description": "Fill forms at e-ikamet.goc.gov.tr. Reserve your appointment date.",
               "documents": [
                 "Valid Passport",
-                "Student Certificate (Öğrenci Belgesi)",
+                "Student Certificate (├û─ƒrenci Belgesi)",
                 "Health Insurance Policy",
                 "Notarized Lease / Dorm Letter",
                 "4x Biometric Photos",
@@ -228,15 +228,15 @@
               ]
             },
             {
-              "title": "Attend Göç İdaresi Appointment",
+              "title": "Attend G├╢├º ─░daresi Appointment",
               "description": "Present pink folder with 4 photos, student cert, insurance, address doc, passport.",
               "documents": [
                 "Original Passport + 2 photocopies",
-                "Student Certificate (Öğrenci Belgesi)",
+                "Student Certificate (├û─ƒrenci Belgesi)",
                 "Health Insurance Policy (original)",
                 "Notarized Lease / Dorm Letter (original)",
                 "4 Biometric Photos (white background)",
-                "Printed e-İkamet Application Form",
+                "Printed e-─░kamet Application Form",
                 "Application fee payment proof"
               ]
             },
@@ -250,7 +250,7 @@
             }
           ],
           "timeline_days": 10,
-          "summary": "No stress — let's sort this out together! 🎓",
+          "summary": "No stress ΓÇö let's sort this out together! ≡ƒÄô",
           "location": "Istanbul",
           "business_type": "student_renew"
         },
@@ -264,7 +264,7 @@
     },
     {
       "q": "dashboard",
-      "r": "You can log in to your account on the e-İkamet system website, and your application status will be displayed on your personal dashboard or application tracking section.",
+      "r": "You can log in to your account on the e-─░kamet system website, and your application status will be displayed on your personal dashboard or application tracking section.",
       "intent": "student_renew",
       "s": {
         "business_profile": {
@@ -300,7 +300,7 @@
               "title": "University Office Enrollment",
               "responsible": "Human",
               "status": "pending",
-              "notes": "Complete tuition payments. Receive official 'Öğrenci Belgesi' (Student Certificate).",
+              "notes": "Complete tuition payments. Receive official '├û─ƒrenci Belgesi' (Student Certificate).",
               "docs": [
                 "Acceptance Letter",
                 "Passport",
@@ -312,7 +312,7 @@
             },
             {
               "id": 4,
-              "title": "Purchase Health Insurance (Yabancı Sağlık Sigortası)",
+              "title": "Purchase Health Insurance (Yabanc─▒ Sa─ƒl─▒k Sigortas─▒)",
               "responsible": "Agent/Human",
               "status": "pending",
               "notes": "Must cover your 1-2 year stay period completely. SGK or Private accepted.",
@@ -329,20 +329,20 @@
               "status": "pending",
               "notes": "Proof of address required. Owner must be present at notary or dorm letter needed.",
               "docs": [
-                "Notarized Lease Agreement (Kira Sözleşmesi)",
+                "Notarized Lease Agreement (Kira S├╢zle┼ƒmesi)",
                 "Landlord ID copy",
                 "OR: Official KYK/Dorm Acceptance Letter"
               ]
             },
             {
               "id": 6,
-              "title": "Apply for Kimlik (e-İkamet system)",
+              "title": "Apply for Kimlik (e-─░kamet system)",
               "responsible": "Agent",
               "status": "pending",
               "notes": "Fill forms at e-ikamet.goc.gov.tr. Reserve your appointment date.",
               "docs": [
                 "Valid Passport",
-                "Student Certificate (Öğrenci Belgesi)",
+                "Student Certificate (├û─ƒrenci Belgesi)",
                 "Health Insurance Policy",
                 "Notarized Lease / Dorm Letter",
                 "4x Biometric Photos",
@@ -351,17 +351,17 @@
             },
             {
               "id": 7,
-              "title": "Attend Göç İdaresi Appointment",
+              "title": "Attend G├╢├º ─░daresi Appointment",
               "responsible": "Human",
               "status": "pending",
               "notes": "Present pink folder with 4 photos, student cert, insurance, address doc, passport.",
               "docs": [
                 "Original Passport + 2 photocopies",
-                "Student Certificate (Öğrenci Belgesi)",
+                "Student Certificate (├û─ƒrenci Belgesi)",
                 "Health Insurance Policy (original)",
                 "Notarized Lease / Dorm Letter (original)",
                 "4 Biometric Photos (white background)",
-                "Printed e-İkamet Application Form",
+                "Printed e-─░kamet Application Form",
                 "Application fee payment proof"
               ]
             },
@@ -431,7 +431,7 @@
             },
             {
               "title": "University Office Enrollment",
-              "description": "Complete tuition payments. Receive official 'Öğrenci Belgesi' (Student Certificate).",
+              "description": "Complete tuition payments. Receive official '├û─ƒrenci Belgesi' (Student Certificate).",
               "documents": [
                 "Acceptance Letter",
                 "Passport",
@@ -442,7 +442,7 @@
               ]
             },
             {
-              "title": "Purchase Health Insurance (Yabancı Sağlık Sigortası)",
+              "title": "Purchase Health Insurance (Yabanc─▒ Sa─ƒl─▒k Sigortas─▒)",
               "description": "Must cover your 1-2 year stay period completely. SGK or Private accepted.",
               "documents": [
                 "Passport",
@@ -454,17 +454,17 @@
               "title": "Notarize Lease Agreement / Dormitory Doc",
               "description": "Proof of address required. Owner must be present at notary or dorm letter needed.",
               "documents": [
-                "Notarized Lease Agreement (Kira Sözleşmesi)",
+                "Notarized Lease Agreement (Kira S├╢zle┼ƒmesi)",
                 "Landlord ID copy",
                 "OR: Official KYK/Dorm Acceptance Letter"
               ]
             },
             {
-              "title": "Apply for Kimlik (e-İkamet system)",
+              "title": "Apply for Kimlik (e-─░kamet system)",
               "description": "Fill forms at e-ikamet.goc.gov.tr. Reserve your appointment date.",
               "documents": [
                 "Valid Passport",
-                "Student Certificate (Öğrenci Belgesi)",
+                "Student Certificate (├û─ƒrenci Belgesi)",
                 "Health Insurance Policy",
                 "Notarized Lease / Dorm Letter",
                 "4x Biometric Photos",
@@ -472,15 +472,15 @@
               ]
             },
             {
-              "title": "Attend Göç İdaresi Appointment",
+              "title": "Attend G├╢├º ─░daresi Appointment",
               "description": "Present pink folder with 4 photos, student cert, insurance, address doc, passport.",
               "documents": [
                 "Original Passport + 2 photocopies",
-                "Student Certificate (Öğrenci Belgesi)",
+                "Student Certificate (├û─ƒrenci Belgesi)",
                 "Health Insurance Policy (original)",
                 "Notarized Lease / Dorm Letter (original)",
                 "4 Biometric Photos (white background)",
-                "Printed e-İkamet Application Form",
+                "Printed e-─░kamet Application Form",
                 "Application fee payment proof"
               ]
             },
@@ -494,7 +494,7 @@
             }
           ],
           "timeline_days": 10,
-          "summary": "No stress — let's sort this out together! 🎓",
+          "summary": "No stress ΓÇö let's sort this out together! ≡ƒÄô",
           "location": "Istanbul",
           "business_type": "student_renew"
         },
@@ -544,7 +544,7 @@
               "title": "University Office Enrollment",
               "responsible": "Human",
               "status": "pending",
-              "notes": "Complete tuition payments. Receive official 'Öğrenci Belgesi' (Student Certificate).",
+              "notes": "Complete tuition payments. Receive official '├û─ƒrenci Belgesi' (Student Certificate).",
               "docs": [
                 "Acceptance Letter",
                 "Passport",
@@ -556,7 +556,7 @@
             },
             {
               "id": 4,
-              "title": "Purchase Health Insurance (Yabancı Sağlık Sigortası)",
+              "title": "Purchase Health Insurance (Yabanc─▒ Sa─ƒl─▒k Sigortas─▒)",
               "responsible": "Agent/Human",
               "status": "pending",
               "notes": "Must cover your 1-2 year stay period completely. SGK or Private accepted.",
@@ -573,20 +573,20 @@
               "status": "pending",
               "notes": "Proof of address required. Owner must be present at notary or dorm letter needed.",
               "docs": [
-                "Notarized Lease Agreement (Kira Sözleşmesi)",
+                "Notarized Lease Agreement (Kira S├╢zle┼ƒmesi)",
                 "Landlord ID copy",
                 "OR: Official KYK/Dorm Acceptance Letter"
               ]
             },
             {
               "id": 6,
-              "title": "Apply for Kimlik (e-İkamet system)",
+              "title": "Apply for Kimlik (e-─░kamet system)",
               "responsible": "Agent",
               "status": "pending",
               "notes": "Fill forms at e-ikamet.goc.gov.tr. Reserve your appointment date.",
               "docs": [
                 "Valid Passport",
-                "Student Certificate (Öğrenci Belgesi)",
+                "Student Certificate (├û─ƒrenci Belgesi)",
                 "Health Insurance Policy",
                 "Notarized Lease / Dorm Letter",
                 "4x Biometric Photos",
@@ -595,17 +595,17 @@
             },
             {
               "id": 7,
-              "title": "Attend Göç İdaresi Appointment",
+              "title": "Attend G├╢├º ─░daresi Appointment",
               "responsible": "Human",
               "status": "pending",
               "notes": "Present pink folder with 4 photos, student cert, insurance, address doc, passport.",
               "docs": [
                 "Original Passport + 2 photocopies",
-                "Student Certificate (Öğrenci Belgesi)",
+                "Student Certificate (├û─ƒrenci Belgesi)",
                 "Health Insurance Policy (original)",
                 "Notarized Lease / Dorm Letter (original)",
                 "4 Biometric Photos (white background)",
-                "Printed e-İkamet Application Form",
+                "Printed e-─░kamet Application Form",
                 "Application fee payment proof"
               ]
             },
@@ -675,7 +675,7 @@
             },
             {
               "title": "University Office Enrollment",
-              "description": "Complete tuition payments. Receive official 'Öğrenci Belgesi' (Student Certificate).",
+              "description": "Complete tuition payments. Receive official '├û─ƒrenci Belgesi' (Student Certificate).",
               "documents": [
                 "Acceptance Letter",
                 "Passport",
@@ -686,7 +686,7 @@
               ]
             },
             {
-              "title": "Purchase Health Insurance (Yabancı Sağlık Sigortası)",
+              "title": "Purchase Health Insurance (Yabanc─▒ Sa─ƒl─▒k Sigortas─▒)",
               "description": "Must cover your 1-2 year stay period completely. SGK or Private accepted.",
               "documents": [
                 "Passport",
@@ -698,17 +698,17 @@
               "title": "Notarize Lease Agreement / Dormitory Doc",
               "description": "Proof of address required. Owner must be present at notary or dorm letter needed.",
               "documents": [
-                "Notarized Lease Agreement (Kira Sözleşmesi)",
+                "Notarized Lease Agreement (Kira S├╢zle┼ƒmesi)",
                 "Landlord ID copy",
                 "OR: Official KYK/Dorm Acceptance Letter"
               ]
             },
             {
-              "title": "Apply for Kimlik (e-İkamet system)",
+              "title": "Apply for Kimlik (e-─░kamet system)",
               "description": "Fill forms at e-ikamet.goc.gov.tr. Reserve your appointment date.",
               "documents": [
                 "Valid Passport",
-                "Student Certificate (Öğrenci Belgesi)",
+                "Student Certificate (├û─ƒrenci Belgesi)",
                 "Health Insurance Policy",
                 "Notarized Lease / Dorm Letter",
                 "4x Biometric Photos",
@@ -716,15 +716,15 @@
               ]
             },
             {
-              "title": "Attend Göç İdaresi Appointment",
+              "title": "Attend G├╢├º ─░daresi Appointment",
               "description": "Present pink folder with 4 photos, student cert, insurance, address doc, passport.",
               "documents": [
                 "Original Passport + 2 photocopies",
-                "Student Certificate (Öğrenci Belgesi)",
+                "Student Certificate (├û─ƒrenci Belgesi)",
                 "Health Insurance Policy (original)",
                 "Notarized Lease / Dorm Letter (original)",
                 "4 Biometric Photos (white background)",
-                "Printed e-İkamet Application Form",
+                "Printed e-─░kamet Application Form",
                 "Application fee payment proof"
               ]
             },
@@ -738,7 +738,7 @@
             }
           ],
           "timeline_days": 10,
-          "summary": "No stress — let's sort this out together! 🎓",
+          "summary": "No stress ΓÇö let's sort this out together! ≡ƒÄô",
           "location": "Istanbul",
           "business_type": "student_renew"
         },
@@ -754,7 +754,7 @@
   "student": [
     {
       "q": "what about id application in turkey",
-      "r": "After you arrive in Turkey, you will apply for a **Student Residence Permit (İkamet İzni)**. This permit acts as your official ID card (Kimlik) in Turkey.\n\nHere's a brief overview:\n1.  **Online Application:** You'll start by filling out an online application form on the e-İkamet system (e-ikamet.goc.gov.tr).\n2.  **Appointment:** Schedule an appointment at the Provincial Directorate of Migration Management (Göç İdaresi).\n3.  **Document Submission:** Gather all required documents and submit them in person at your appointment.\n4.  **Card Delivery:** If approved, your residence permit card will be mailed to your address in Turkey.",
+      "r": "After you arrive in Turkey, you will apply for a **Student Residence Permit (─░kamet ─░zni)**. This permit acts as your official ID card (Kimlik) in Turkey.\n\nHere's a brief overview:\n1.  **Online Application:** You'll start by filling out an online application form on the e-─░kamet system (e-ikamet.goc.gov.tr).\n2.  **Appointment:** Schedule an appointment at the Provincial Directorate of Migration Management (G├╢├º ─░daresi).\n3.  **Document Submission:** Gather all required documents and submit them in person at your appointment.\n4.  **Card Delivery:** If approved, your residence permit card will be mailed to your address in Turkey.",
       "intent": "student",
       "s": {
         "business_profile": {
@@ -796,7 +796,7 @@
               "title": "Travel to Turkey and Apply for a Residence Permit",
               "responsible": "Human/Agent",
               "status": "pending",
-              "notes": "After arriving in Turkey with your student visa, you must apply for a Student Residence Permit (İkamet İzni) with the Directorate General of Migration Management within one month of your arrival. This is crucial for your legal stay in Turkey.",
+              "notes": "After arriving in Turkey with your student visa, you must apply for a Student Residence Permit (─░kamet ─░zni) with the Directorate General of Migration Management within one month of your arrival. This is crucial for your legal stay in Turkey.",
               "docs": [
                 "Student Visa (from your passport)",
                 "Passport",
@@ -891,7 +891,7 @@
             },
             {
               "title": "Travel to Turkey and Apply for a Residence Permit",
-              "description": "After arriving in Turkey with your student visa, you must apply for a Student Residence Permit (İkamet İzni) with the Directorate General of Migration Management within one month of your arrival. This is crucial for your legal stay in Turkey.",
+              "description": "After arriving in Turkey with your student visa, you must apply for a Student Residence Permit (─░kamet ─░zni) with the Directorate General of Migration Management within one month of your arrival. This is crucial for your legal stay in Turkey.",
               "documents": [
                 "Student Visa (from your passport)",
                 "Passport",
@@ -915,7 +915,7 @@
             }
           ],
           "timeline_days": 30,
-          "summary": "Great question! Here's your complete guide to getting a Turkish Student Visa 🎓. It involves getting accepted by a university, applying for the visa at a Turkish consulate in your home country, and then applying for a residence permit once you arrive in Turkey. Don't worry, I'm here to help you through each step!",
+          "summary": "Great question! Here's your complete guide to getting a Turkish Student Visa ≡ƒÄô. It involves getting accepted by a university, applying for the visa at a Turkish consulate in your home country, and then applying for a residence permit once you arrive in Turkey. Don't worry, I'm here to help you through each step!",
           "location": "Turkey",
           "business_type": "student"
         },

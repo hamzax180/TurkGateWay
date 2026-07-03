@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import MobileToc from '../components/MobileToc';
 
 const sections = [
   { id: 'kvkk',      label: 'KVKK Compliance',     icon: Shield,      color: 'emerald' },
@@ -47,8 +48,10 @@ export default function PrivacyPage() {
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] selection:bg-emerald-500/30">
-      <Navbar />
+    <div className="flex flex-col h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)] selection:bg-emerald-500/30">
+    <main id="privacy-scroll" className="flex-1 flex flex-col min-w-0 relative overflow-y-auto slim-scroll">
+      <Navbar isAppPage />
+      <MobileToc sections={sections} activeSection={activeSection} onSelect={scrollTo} C={C} scrollContainerId="privacy-scroll" />
 
       {/* Ambient glow — only visible in dark */}
       <div className="fixed inset-0 pointer-events-none z-0 hidden dark:block">
@@ -85,27 +88,38 @@ export default function PrivacyPage() {
       </div>
 
       {/* Body */}
-      <div className="relative z-10 max-w-6xl mx-auto px-6 py-16 flex gap-12">
+      <div className="relative z-10 max-w-6xl mx-auto px-6 py-16 flex flex-col lg:flex-row gap-8 lg:gap-12">
 
-        {/* Sticky TOC */}
-        <aside className="hidden lg:block w-56 shrink-0">
-          <div className="sticky top-28 space-y-1">
-            <p className="text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--muted)] opacity-60 mb-4">Contents</p>
+        {/* TOC — sticky sidebar on desktop, stacked + animated on mobile */}
+        <motion.aside
+          id="toc-full"
+          className="w-full lg:w-56 lg:shrink-0"
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: '-60px' }}
+          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.05, delayChildren: 0.05 } } }}
+        >
+          <div className="lg:sticky lg:top-28 space-y-1 border-b border-[var(--border)] pb-6 mb-2 lg:border-0 lg:pb-0 lg:mb-0">
+            <motion.p
+              variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } }}
+              className="text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--muted)] opacity-60 mb-4"
+            >Contents</motion.p>
             {sections.map(({ id, label, color }) => {
               const c = C[color];
               const isActive = activeSection === id;
               return (
-                <button key={id} onClick={() => scrollTo(id)}
-                  className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                <motion.button key={id} onClick={() => scrollTo(id)}
+                  variants={{ hidden: { opacity: 0, x: -16 }, show: { opacity: 1, x: 0 } }}
+                  className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-200 ${
                     isActive ? `${c.light} ${c.text} border ${c.border}` : 'text-[var(--muted)] hover:bg-[var(--surface-2)]'
                   }`}>
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? c.dot : 'bg-[var(--muted)] opacity-40'}`} />
                   {label}
-                </button>
+                </motion.button>
               );
             })}
           </div>
-        </aside>
+        </motion.aside>
 
         {/* Content */}
         <div className="flex-1 space-y-20 min-w-0 pb-96">
@@ -279,6 +293,14 @@ export default function PrivacyPage() {
       </div>
 
       <Footer />
+    </main>
+
+      <style jsx global>{`
+        .slim-scroll::-webkit-scrollbar { width: 6px; }
+        .slim-scroll::-webkit-scrollbar-track { background: transparent; }
+        .slim-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        .slim-scroll::-webkit-scrollbar-thumb:hover { background: var(--border-2); }
+      `}</style>
     </div>
   );
 }

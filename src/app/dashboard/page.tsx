@@ -214,6 +214,20 @@ export default function Dashboard() {
           return await fetchState(retryCount + 1);
         }
       }
+
+      // Fallback: use locally-saved workflow (guest users / offline)
+      try {
+        const cached = localStorage.getItem('permitops_guest_workflow');
+        if (cached) {
+          const localData = JSON.parse(cached);
+          if (localData?.execution_plan?.steps?.length > 0) {
+            setData(localData);
+            if (localData.assistant_type) setActiveAssistantType(localData.assistant_type);
+            return true;
+          }
+        }
+      } catch (_) { /* ignore parse errors */ }
+
       return false;
     } catch (e) {
       console.error("Failed to fetch dashboard data", e);
@@ -567,7 +581,6 @@ export default function Dashboard() {
           >
             <Menu size={22} />
           </button>
-          <span className="text-[17px] font-semibold text-[var(--text)] tracking-tight">Dashboard</span>
           <div className="flex items-center gap-2">
             {user ? (
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-[13px] font-bold shadow-md">
@@ -760,7 +773,7 @@ export default function Dashboard() {
                               }`} />
                               {activeAssistantType === 'student' ? 'Student Agent'
                                 : activeAssistantType === 'lawyer' ? 'Legal Agent'
-                                : 'Permit Agent'}
+                                : 'Business Agent'}
                             </span>
                           </div>
                           <p className="text-[var(--muted)] text-sm italic">Gathering info for the bot</p>
@@ -958,7 +971,7 @@ export default function Dashboard() {
                     if (loc.startsWith('lawyer.')) return t('dashboard_legal_title');
                     if (loc && (loc.includes('student') || loc.includes('renew') || loc.includes('uni'))) return t('dashboard_student_title');
                     if (loc && (loc.includes('lawyer') || loc.includes('legal'))) return t('dashboard_legal_title');
-                    return t('dashboard_title') || 'Permit Dashboard';
+                    return t('dashboard_title') || 'Business Dashboard';
                   })()}
                 </h1>
                 <div className="flex items-center gap-4 py-2">
@@ -988,8 +1001,8 @@ export default function Dashboard() {
               </div>
 
               <div className="flex items-center gap-2.5 md:gap-3 shrink-0">
-                {/* Subscription Status Badge */}
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                {/* Subscription Status Badge — mobile only */}
+                <span className={`lg:hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
                   data?.subscription_status === 'active'
                     ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
                     : 'bg-red-500/10 border-red-500/20 text-red-400'
@@ -998,17 +1011,19 @@ export default function Dashboard() {
                   {data?.subscription_status === 'active' ? t('dashboard_premium') : t('dashboard_free_plan')}
                 </span>
 
+                {/* Upgrade button — mobile only */}
                 {data?.subscription_status !== 'active' && (
                   <button
                     onClick={handleSubscribe}
                     disabled={isSubscribing}
-                    className="btn btn-indigo !h-10 !px-5 !text-[11px] !rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                    className="lg:hidden btn btn-indigo !h-10 !px-5 !text-[11px] !rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
                   >
                     {isSubscribing ? <RefreshCw size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
                     <span className="uppercase tracking-wide">{isSubscribing ? t('dashboard_starting') : t('dashboard_upgrade')}</span>
                   </button>
                 )}
 
+                {/* Refresh — desktop only */}
                 <button
                   onClick={refresh}
                   className="btn btn-outline !h-10 !w-10 !p-0 !text-sm lg:flex hidden items-center justify-center !rounded-full hover:bg-[var(--surface-2)] border-[var(--border)] transition-all"
@@ -1017,7 +1032,8 @@ export default function Dashboard() {
                   <RefreshCw size={15} className={loading ? 'animate-spin' : 'text-[var(--muted)]'} />
                 </button>
 
-                <Link href="/chat">
+                {/* Ask AI — mobile only */}
+                <Link href="/chat" className="lg:hidden">
                   <button className="btn btn-purple !h-10 !px-6 !text-[11px] flex items-center gap-2 !rounded-full group shadow-xl hover:shadow-purple-500/30 hover:scale-[1.03] active:scale-95 transition-all">
                     <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                     <span className="uppercase tracking-wide">{t('dashboard_ask_ai')}</span>
@@ -1131,12 +1147,12 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="relative space-y-4">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-1 md:gap-4 relative">
                   {(showAllSteps ? steps : steps.slice(0, 3)).map((s, i) => (
-                    <div key={i} className="relative">
-                      {/* Timeline Connector Line */}
+                    <div key={i} className={`relative ${expanded === i ? 'col-span-2 md:col-span-1' : ''}`}>
+                      {/* Timeline Connector Line (single-column / desktop only) */}
                       {i < ((showAllSteps ? steps : steps.slice(0, 3)).length - 1) && (
-                        <div className={`workflow-connector ${s.status === 'completed' ? 'workflow-connector-done' : s.status === 'in-progress' ? 'workflow-connector-active' : ''}`} />
+                        <div className={`hidden md:block workflow-connector ${s.status === 'completed' ? 'workflow-connector-done' : s.status === 'in-progress' ? 'workflow-connector-active' : ''}`} />
                       )}
 
                       <motion.div
@@ -1150,9 +1166,9 @@ export default function Dashboard() {
                               'step-card-pending'
                           }`}
                       >
-                        <div className="p-5 flex items-start gap-6">
+                        <div className={`p-3 md:p-5 flex gap-2.5 md:gap-6 ${expanded === i ? 'items-start' : 'items-center md:items-start'}`}>
                           <div className="shrink-0 relative z-20">
-                            <div className={`step-num h-10 w-10 !text-[13px] !font-black !rounded-2xl !bg-[var(--surface-2)] !border-[var(--border)] shadow-inner transition-all duration-300 ${s.status === 'completed' ? 'step-num-completed shadow-lg shadow-emerald-500/20 !bg-emerald-500 !text-white scale-110' :
+                            <div className={`step-num h-8 w-8 md:h-10 md:w-10 !text-[11px] md:!text-[13px] !font-black !rounded-xl md:!rounded-2xl !bg-[var(--surface-2)] !border-[var(--border)] shadow-inner transition-all duration-300 ${s.status === 'completed' ? 'step-num-completed shadow-lg shadow-emerald-500/20 !bg-emerald-500 !text-white scale-110' :
                                 s.status === 'in-progress' ? 'step-num-inprogress shadow-lg shadow-purple-500/20 !bg-purple-500 !text-white animate-pulse scale-110' :
                                   expanded === i ? '!bg-indigo-500 !text-white' : ''
                               }`}>
@@ -1161,11 +1177,11 @@ export default function Dashboard() {
                           </div>
 
                           <div className="flex-1 min-w-0 pt-0.5">
-                            <div className="flex items-center justify-between mb-2 gap-2">
-                              <h3 className={`text-[14px] font-bold tracking-normal truncate pr-4 transition-colors uppercase font-inter ${expanded === i ? 'text-indigo-500' : 'text-[var(--text)]'}`}>
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2 gap-1.5 md:gap-2">
+                              <h3 className={`font-bold tracking-tight transition-colors uppercase font-inter md:pr-4 md:text-[14px] ${expanded === i ? 'text-[13px] md:truncate' : 'text-[11px] leading-tight line-clamp-2 md:line-clamp-none md:truncate'} ${expanded === i ? 'text-indigo-500' : 'text-[var(--text)]'}`}>
                                 {s.title}
                               </h3>
-                              <div className="flex items-center gap-2 shrink-0">
+                              <div className={`items-center gap-2 shrink-0 ${expanded === i ? 'flex flex-wrap' : 'hidden md:flex'}`}>
                                 {(s.responsible.includes('Agent') || s.responsible.includes('Ajan') || s.responsible.includes('وكيل')) ? (
                                   <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)] group">
                                     <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}>
@@ -1187,12 +1203,12 @@ export default function Dashboard() {
                                 </div>
                               </div>
                             </div>
-                            <p className={`text-[12px] text-[var(--muted)] leading-relaxed transition-all duration-300 font-inter font-bold ${expanded === i ? 'line-clamp-none opacity-100' : 'line-clamp-1 opacity-90 group-hover:opacity-100'}`}>
+                            <p className={`text-[12px] text-[var(--muted)] leading-relaxed transition-all duration-300 font-inter font-bold ${expanded === i ? 'line-clamp-none opacity-100' : 'hidden md:block md:line-clamp-1 opacity-90 group-hover:opacity-100'}`}>
                               {s.summary}
                             </p>
                           </div>
 
-                          <ChevronDown size={20} className={`shrink-0 text-[var(--muted)] opacity-30 mt-1.5 transition-transform duration-500 ${expanded === i ? 'rotate-180 opacity-100 text-indigo-500' : ''}`} />
+                          <ChevronDown size={18} className={`shrink-0 text-[var(--muted)] opacity-30 transition-transform duration-500 md:!w-5 md:!h-5 ${expanded === i ? 'rotate-180 opacity-100 text-indigo-500 mt-1.5' : 'mt-0 md:mt-1.5'}`} />
                         </div>
 
                         <AnimatePresence>
@@ -1204,7 +1220,7 @@ export default function Dashboard() {
                               transition={{ duration: 0.22, ease: 'easeInOut' }}
                               className="overflow-hidden"
                             >
-                              <div className="px-4 pb-4 pt-3 border-t border-[var(--border)] space-y-4">
+                              <div className="px-3 md:px-5 pb-4 pt-3 border-t border-[var(--border)] space-y-4">
                                 {/* Manual instructions box */}
                                 <div className="rounded-xl bg-[var(--surface-2)] border border-[var(--border)] p-3">
                                   <p className="text-[13px] text-[var(--text)] opacity-80 leading-relaxed font-inter font-medium">{s.detail}</p>
@@ -1223,14 +1239,14 @@ export default function Dashboard() {
                                 )}
 
                                 {s.status !== 'completed' && (
-                                  <div className="flex flex-wrap gap-2 items-center pt-1">
+                                  <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:items-center pt-1">
                                     {(s.responsible.includes('Agent') || s.responsible.includes('Ajan') || s.responsible.includes('وكيل')) ? (
                                       <>
                                         {/* Large Premium e-devlet Button */}
                                         <button
                                           onClick={(e) => { e.stopPropagation(); automateStep(s.id); }}
                                           disabled={uploading}
-                                          className="relative flex items-center gap-3 px-4 py-3 bg-[#E30A17] hover:bg-[#C20914] text-white rounded-xl shadow-[0_4px_20px_rgba(227,10,23,0.4)] hover:shadow-[0_6px_28px_rgba(227,10,23,0.6)] transition-all active:scale-95 hover:scale-[1.02] border border-white/10 group disabled:opacity-50 flex-1 sm:flex-none overflow-hidden"
+                                          className="relative flex items-center justify-center sm:justify-start gap-3 px-4 py-3 bg-[#E30A17] hover:bg-[#C20914] text-white rounded-xl shadow-[0_4px_20px_rgba(227,10,23,0.4)] hover:shadow-[0_6px_28px_rgba(227,10,23,0.6)] transition-all active:scale-95 hover:scale-[1.02] border border-white/10 group disabled:opacity-50 w-full sm:w-auto overflow-hidden"
                                           title="Launch Registration Bot via e-devlet"
                                         >
                                           {/* Shimmer overlay */}
@@ -1266,7 +1282,7 @@ export default function Dashboard() {
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           onClick={(e) => e.stopPropagation()}
-                                          className="btn btn-outline !py-2 !px-3.5 !text-xs flex items-center gap-1.5 !rounded-lg"
+                                          className="btn btn-outline !py-2.5 !px-3.5 !text-xs flex items-center justify-center gap-1.5 !rounded-lg w-full sm:w-auto"
                                         >
                                           <ExternalLink size={11} />
                                           {language === 'ar' ? 'افعلها يدوياً' : language === 'tr' ? 'Manuel Yap' : 'Do Manually →'}

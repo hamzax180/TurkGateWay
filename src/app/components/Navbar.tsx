@@ -67,7 +67,7 @@ export default function Navbar({ isAppPage = false, transparentTop = false, onMo
     { href: '/services', label: t('navbar_services') || 'Services' },
     { href: '/dashboard', label: t('navbar_dashboard') },
     { href: '/pricing', label: t('navbar_pricing'), hideOnSmallLaptop: true },
-    ...(isAdmin ? [{ href: '/admin/subscribers', label: t('navbar_subscribers') }] : []),
+    ...(isAdmin ? [{ href: '/admin', label: t('navbar_subscribers') }] : []),
     { href: '/download', label: t('navbar_download') === 'navbar_download' ? 'Download App' : t('navbar_download') || 'Download App', hideOnSmallLaptop: true },
   ];
 

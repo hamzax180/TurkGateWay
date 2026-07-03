@@ -116,6 +116,39 @@ const DISTRICTS_OPTIONS = [
 ].map(d => ({ label: d, value: d }));
 
 
+// Per-agent visual theme for the Explore-AI-Agents cards (full class strings so
+// Tailwind's JIT picks them up). Drives the glow, accent line, feature chips and
+// the gradient launch button.
+const AGENT_THEME: Record<string, {
+  glow: string; topLine: string; iconGlow: string;
+  chip: string; accentText: string; dot: string; btn: string;
+}> = {
+  permit: {
+    glow: 'hover:shadow-[0_40px_90px_-30px_rgba(26,115,232,0.55)]',
+    topLine: 'from-[#1a73e8] to-[#4285f4]',
+    iconGlow: 'shadow-[0_0_45px_rgba(66,133,244,0.6)]',
+    chip: 'bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-300',
+    accentText: 'text-blue-500', dot: 'bg-blue-500',
+    btn: 'bg-gradient-to-r from-[#1a73e8] to-[#4285f4] shadow-[0_10px_30px_-6px_rgba(26,115,232,0.5)]',
+  },
+  student: {
+    glow: 'hover:shadow-[0_40px_90px_-30px_rgba(15,157,88,0.55)]',
+    topLine: 'from-[#0f9d58] to-[#34a853]',
+    iconGlow: 'shadow-[0_0_45px_rgba(52,168,83,0.6)]',
+    chip: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-300',
+    accentText: 'text-emerald-500', dot: 'bg-emerald-500',
+    btn: 'bg-gradient-to-r from-[#0f9d58] to-[#34a853] shadow-[0_10px_30px_-6px_rgba(15,157,88,0.5)]',
+  },
+  lawyer: {
+    glow: 'hover:shadow-[0_40px_90px_-30px_rgba(242,153,0,0.5)]',
+    topLine: 'from-[#f29900] to-[#fbbc04]',
+    iconGlow: 'shadow-[0_0_45px_rgba(251,188,4,0.6)]',
+    chip: 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-300',
+    accentText: 'text-amber-500', dot: 'bg-amber-500',
+    btn: 'bg-gradient-to-r from-[#f29900] to-[#fbbc04] shadow-[0_10px_30px_-6px_rgba(242,153,0,0.5)]',
+  },
+};
+
 export default function ServicesPage() {
   const { t, isRTL } = useLanguage();
   const router = useRouter();
@@ -403,57 +436,65 @@ export default function ServicesPage() {
 
         {/* Mobile: Horizontal snap-scroll cards */}
         <div className="md:hidden flex gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-4 px-1">
-          {services.map((service, index) => (
+          {services.map((service) => {
+            const theme = AGENT_THEME[service.id] ?? AGENT_THEME.permit;
+            const available = service.status === 'Available';
+            return (
             <div
               key={service.id}
-              className="snap-center flex-shrink-0 w-[72vw] rounded-[24px] overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-xl flex flex-col"
+              className="snap-center flex-shrink-0 w-[82vw] max-w-[310px] rounded-[24px] overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-xl flex flex-col relative"
             >
-              <div className={`h-[100px] w-full relative flex items-center justify-center overflow-hidden ${service.gradient}`}>
+              <div className={`absolute top-0 inset-x-0 h-[3px] z-30 bg-gradient-to-r ${theme.topLine}`} />
+              <div className={`h-[110px] w-full relative flex items-center justify-center overflow-hidden ${service.gradient}`}>
+                <div className="absolute -top-8 -left-6 w-28 h-28 rounded-full bg-white/20 blur-2xl" />
                 <motion.div
-                  animate={{ skewX: [-20, -20], x: ['-200%', '200%'] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full z-0"
+                  animate={{ x: ['-220%', '220%'] }}
+                  transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute inset-y-0 -skew-x-12 w-1/2 bg-gradient-to-r from-transparent via-white/25 to-transparent z-0"
                 />
-                <div className="relative z-10 p-3 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-xl shadow-xl">
+                <div className={`relative z-10 p-3 bg-white/15 backdrop-blur-2xl border border-white/30 rounded-xl ${theme.iconGlow}`}>
                   {service.icon}
                 </div>
-                {service.status !== 'Available' && (
-                  <div className="absolute top-3 right-3 z-20">
-                    <span className="px-2 py-0.5 rounded-full bg-black/40 text-[8px] font-black text-white uppercase tracking-widest">
-                      {t('services_status_soon')}
-                    </span>
-                  </div>
-                )}
+                <div className="absolute top-3 right-3 z-20">
+                  <span className={`px-2 py-0.5 rounded-full backdrop-blur-md border text-[8px] font-black uppercase tracking-widest flex items-center gap-1 ${available ? 'bg-white/15 border-white/30 text-white' : 'bg-black/40 border-white/10 text-white/90'}`}>
+                    <span className={`w-1 h-1 rounded-full ${available ? 'bg-emerald-300 animate-pulse' : 'bg-white/50'}`} />
+                    {available ? t('services_status_active') : t('services_status_soon')}
+                  </span>
+                </div>
               </div>
               <div className="p-4 flex flex-col flex-1">
-                <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-sm font-black font-[Outfit] tracking-tight">{service.title}</h3>
-                  {service.status === 'Available' && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                  )}
-                </div>
+                <h3 className="text-sm font-black font-[Outfit] tracking-tight mb-1">{service.title}</h3>
                 <p className="text-[11px] text-[var(--muted)] font-medium leading-[1.4] mb-3 line-clamp-2">{service.description}</p>
-                {service.status === 'Available' ? (
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {service.features.slice(0, 2).map((f, i) => (
+                    <span key={i} className={`px-2 py-0.5 rounded-full border text-[9px] font-bold ${theme.chip}`}>
+                      {f}
+                    </span>
+                  ))}
+                </div>
+                {available ? (
                   <button
                     onClick={(e) => { e.stopPropagation(); handleStartProtocol(service.id); }}
-                    className="mt-auto py-2.5 px-4 rounded-[14px] bg-[var(--text)] text-[var(--bg)] font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 hover:bg-red-600 hover:text-white"
+                    className={`mt-auto py-2.5 px-4 rounded-[14px] text-white font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 flex items-center justify-center gap-1.5 ${theme.btn}`}
                   >
                     {t('services_launch_agent')}
+                    <ArrowRight size={13} />
                   </button>
                 ) : (
-                  <button disabled className="mt-auto py-2.5 px-4 rounded-[14px] bg-[var(--text)]/[0.04] text-[var(--text)] opacity-40 font-black uppercase text-[10px] tracking-widest border border-[var(--border)] cursor-not-allowed">
-                    Coming Soon
+                  <button disabled className="mt-auto py-2.5 px-4 rounded-[14px] bg-[var(--text)]/[0.04] text-[var(--text)] opacity-40 font-black uppercase text-[10px] tracking-widest border border-[var(--border)] cursor-not-allowed flex items-center justify-center gap-1.5">
+                    <Lock size={11} /> {t('services_status_soon')}
                   </button>
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Desktop: Auto-scrolling carousel */}
         <div
           className="hidden md:block carousel-container relative max-w-6xl mx-auto overflow-hidden py-4"
-          style={{ height: '420px' }}
+          style={{ height: '480px' }}
         >
           {/* Fade edges — themed */}
           <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[var(--bg)] to-transparent z-10 pointer-events-none transition-all duration-500" />
@@ -461,74 +502,82 @@ export default function ServicesPage() {
 
           {/* Smooth Moving Track — pure CSS animation, pauses on hover via CSS */}
           <div className="carousel-track flex items-center gap-[180px] w-max">
-            {[...services, ...services, ...services].map((service, index) => (
+            {[...services, ...services, ...services].map((service, index) => {
+              const theme = AGENT_THEME[service.id] ?? AGENT_THEME.permit;
+              const available = service.status === 'Available';
+              return (
               <div
                 key={`${service.id}-${index}`}
-                style={{
-                  width: `${CARD_W}px`,
-                  flexShrink: 0
-                }}
-                onClick={() => { }}
-                className={`backdrop-blur-3xl border rounded-[28px] overflow-hidden flex flex-col group cursor-pointer hover:scale-[1.02] transition-all duration-300 relative ${service.status === 'Available'
-                  ? 'bg-[var(--surface)] border-[var(--border)] shadow-xl'
-                  : 'bg-[var(--surface)] border-[var(--border)] shadow-lg'
-                  }`}
+                style={{ width: `${CARD_W}px`, flexShrink: 0 }}
+                className={`group relative flex flex-col rounded-[28px] overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-xl transition-all duration-500 hover:-translate-y-2 ${theme.glow}`}
               >
-                <div className={`h-[150px] w-full relative flex items-center justify-center overflow-hidden transition-all duration-500 ${service.gradient}`}>
-                  {/* Premium scanning streak */}
+                {/* Accent gradient hairline at the very top */}
+                <div className={`absolute top-0 inset-x-0 h-[3px] z-30 bg-gradient-to-r ${theme.topLine}`} />
+
+                <div className={`h-[160px] w-full relative flex items-center justify-center overflow-hidden ${service.gradient}`}>
+                  {/* Soft floating mesh orbs */}
+                  <div className="absolute -top-10 -left-8 w-36 h-36 rounded-full bg-white/20 blur-2xl" />
+                  <div className="absolute -bottom-12 -right-8 w-40 h-40 rounded-full bg-black/10 blur-2xl" />
+                  {/* Subtle grid */}
+                  <div className="absolute inset-0 opacity-[0.10]" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '22px 22px' }} />
+                  {/* Scanning streak */}
                   <motion.div
-                    animate={{ skewX: [-20, -20], x: ['-200%', '200%'] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full z-0"
+                    animate={{ x: ['-220%', '220%'] }}
+                    transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute inset-y-0 -skew-x-12 w-1/2 bg-gradient-to-r from-transparent via-white/25 to-transparent z-0"
                   />
 
-                  <div className="relative z-10 p-5 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-xl group-hover:scale-110 transition-transform duration-500">
-                    {service.icon}
+                  {/* Status pill */}
+                  <div className="absolute top-4 right-4 z-20">
+                    <span className={`px-3 py-1 rounded-full backdrop-blur-md border text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 ${available ? 'bg-white/15 border-white/30 text-white' : 'bg-black/35 border-white/10 text-white/90'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${available ? 'bg-emerald-300 animate-pulse' : 'bg-white/50'}`} />
+                      {available ? t('services_status_active') : t('services_status_soon')}
+                    </span>
                   </div>
 
-                  {service.status !== 'Available' && (
-                    <div className="absolute top-4 right-4 z-20">
-                      <span className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-[9px] font-black text-white uppercase tracking-widest">
-                        {t('services_status_soon')}
-                      </span>
-                    </div>
-                  )}
+                  {/* Floating glowing icon tile */}
+                  <motion.div
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                    className={`relative z-10 p-5 rounded-[22px] bg-white/15 backdrop-blur-2xl border border-white/30 ${theme.iconGlow} group-hover:scale-110 transition-transform duration-500`}
+                  >
+                    {service.icon}
+                  </motion.div>
                 </div>
 
                 <div className="p-6 flex flex-col flex-1">
-                  <div className="flex items-center justify-between mb-3 text-[var(--text)]">
-                    <h3 className="text-lg font-black font-[Outfit] tracking-tight">{service.title}</h3>
-                    {service.status === 'Available' ? (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">{t('services_status_active')}</span>
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">{t('services_status_waitlist')}</span>
-                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-400/40" />
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-[13px] text-[var(--muted)] font-medium leading-[1.5] mb-6 line-clamp-2">
+                  <h3 className="text-lg font-black font-[Outfit] tracking-tight text-[var(--text)] mb-2">{service.title}</h3>
+                  <p className="text-[13px] text-[var(--muted)] font-medium leading-[1.5] mb-4 line-clamp-2">
                     {service.description}
                   </p>
 
-                  {service.status === 'Available' ? (
+                  {/* Feature chips */}
+                  <div className="flex flex-wrap gap-1.5 mb-6">
+                    {service.features.slice(0, 3).map((f, i) => (
+                      <span key={i} className={`px-2.5 py-1 rounded-full border text-[10px] font-bold ${theme.chip}`}>
+                        {f}
+                      </span>
+                    ))}
+                  </div>
+
+                  {available ? (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleStartProtocol(service.id); }}
-                      className="mt-auto py-3.5 px-6 rounded-[20px] bg-[var(--text)] text-[var(--bg)] font-black uppercase text-[11px] tracking-widest shadow-xl transition-all active:scale-95 hover:bg-red-600 hover:text-white"
+                      className={`mt-auto group/btn relative overflow-hidden py-3.5 px-6 rounded-[18px] text-white font-black uppercase text-[11px] tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 ${theme.btn}`}
                     >
-                      {t('services_launch_agent')}
+                      <span className="relative z-10">{t('services_launch_agent')}</span>
+                      <ArrowRight size={15} className="relative z-10 group-hover/btn:translate-x-1 transition-transform" />
+                      <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
                     </button>
                   ) : (
-                    <button disabled className="mt-auto w-full py-3.5 px-6 rounded-[20px] bg-[var(--text)]/[0.04] text-[var(--text)] opacity-40 font-black uppercase text-[11px] tracking-widest border border-[var(--border)] cursor-not-allowed">
-                      Coming Soon
+                    <button disabled className="mt-auto w-full py-3.5 px-6 rounded-[18px] bg-[var(--text)]/[0.04] text-[var(--text)] opacity-40 font-black uppercase text-[11px] tracking-widest border border-[var(--border)] cursor-not-allowed flex items-center justify-center gap-2">
+                      <Lock size={13} /> {t('services_status_soon')}
                     </button>
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -707,8 +756,7 @@ export default function ServicesPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              className="bg-[var(--surface-2)] rounded-[20px] md:rounded-[24px] p-3 md:p-5 lg:p-6 shadow-2xl relative overflow-hidden group border border-[var(--border)] transition-colors duration-500"
-              style={{ minHeight: 'auto' }}
+              className="bg-[var(--surface-2)] rounded-[20px] md:rounded-[24px] p-3 md:p-5 lg:p-6 shadow-2xl relative overflow-hidden group border border-[var(--border)] transition-colors duration-500 min-h-[380px] md:min-h-[440px] lg:min-h-[480px]"
             >
               {/* Graph Paper Background */}
               <div className="absolute inset-0 opacity-[0.03] pointer-events-none dark:opacity-[0.05]"
@@ -827,52 +875,52 @@ export default function ServicesPage() {
           </div>
 
           {/* TurkGateway Does the Work Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center mb-48">
+          <div className="grid grid-cols-2 gap-3 lg:gap-20 items-center mb-20 lg:mb-48">
             <motion.div
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
-              className="order-2 lg:order-1 bg-gradient-to-br from-[#4f46e5] to-[#3730a3] rounded-[44px] p-12 shadow-2xl relative overflow-hidden border border-white/10"
+              className="order-1 bg-gradient-to-br from-[#4f46e5] to-[#3730a3] rounded-2xl lg:rounded-[44px] p-2.5 lg:p-12 shadow-2xl relative overflow-hidden border border-white/10"
             >
-              <div className="bg-[var(--surface)] rounded-3xl p-8 shadow-xl max-w-md mx-auto relative z-10 border border-[var(--border)] transition-colors duration-500">
-                <div className="flex items-center justify-between mb-8">
-                  <h4 className="text-lg font-bold text-[var(--text)] transition-colors duration-500">Progress</h4>
-                  <ChevronDown size={20} className="text-[var(--muted)]" />
+              <div className="bg-[var(--surface)] rounded-xl lg:rounded-3xl p-3 lg:p-8 shadow-xl max-w-md mx-auto relative z-10 border border-[var(--border)] transition-colors duration-500">
+                <div className="flex items-center justify-between mb-3 lg:mb-8">
+                  <h4 className="text-sm lg:text-lg font-bold text-[var(--text)] transition-colors duration-500">Progress</h4>
+                  <ChevronDown size={16} className="text-[var(--muted)]" />
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-2.5 lg:space-y-6">
                   {[
                     { label: 'Connect to e-Devlet Portal', status: 'done' },
                     { label: 'Verify Criminal Record (Adli Sicil)', status: 'active' },
                     { label: 'Download digital signatures', status: 'pending' },
                     { label: 'Submit Work Permit Form', status: 'pending' }
                   ].map((step, i) => (
-                    <div key={i} className="flex items-center gap-4">
+                    <div key={i} className="flex items-center gap-2 lg:gap-4">
                       {step.status === 'done' ? (
-                        <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white">
-                          <CheckCircle2 size={14} />
+                        <div className="w-4 h-4 lg:w-6 lg:h-6 rounded-full bg-blue-600 flex items-center justify-center text-white shrink-0">
+                          <CheckCircle2 className="w-2.5 h-2.5 lg:w-3.5 lg:h-3.5" />
                         </div>
                       ) : step.status === 'active' ? (
-                        <div className="w-6 h-6 rounded-full border-2 border-blue-600 flex items-center justify-center text-blue-600 text-[10px] font-bold">
+                        <div className="w-4 h-4 lg:w-6 lg:h-6 rounded-full border-2 border-blue-600 flex items-center justify-center text-blue-600 text-[8px] lg:text-[10px] font-bold shrink-0">
                           2
                         </div>
                       ) : (
-                        <div className="w-6 h-6 rounded-full border-2 border-[var(--border)] flex items-center justify-center text-[var(--muted)] text-[10px] font-bold">
+                        <div className="w-4 h-4 lg:w-6 lg:h-6 rounded-full border-2 border-[var(--border)] flex items-center justify-center text-[var(--muted)] text-[8px] lg:text-[10px] font-bold shrink-0">
                           {i + 1}
                         </div>
                       )}
-                      <span className={`text-sm font-semibold tracking-tight transition-colors duration-500 ${step.status === 'pending' ? 'text-[var(--muted)]' : 'text-[var(--text)]'}`}>
+                      <span className={`text-[10px] lg:text-sm font-semibold tracking-tight leading-tight transition-colors duration-500 ${step.status === 'pending' ? 'text-[var(--muted)]' : 'text-[var(--text)]'}`}>
                         {step.label}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-12 pt-6 border-t border-[var(--border)] flex items-center justify-between">
-                  <span className="text-xs font-bold text-[var(--muted)] uppercase tracking-widest">Target Folder</span>
+                <div className="mt-4 lg:mt-12 pt-3 lg:pt-6 border-t border-[var(--border)] flex items-center justify-between">
+                  <span className="text-[8px] lg:text-xs font-bold text-[var(--muted)] uppercase tracking-widest">Target Folder</span>
                   <div className="flex gap-2">
-                    <FileText size={16} className="text-[var(--muted)] opacity-50" />
-                    <ChevronDown size={16} className="text-[var(--muted)] opacity-50" />
+                    <FileText size={14} className="text-[var(--muted)] opacity-50" />
+                    <ChevronDown size={14} className="text-[var(--muted)] opacity-50" />
                   </div>
                 </div>
               </div>
@@ -891,36 +939,36 @@ export default function ServicesPage() {
               viewport={{ once: true }}
               className="order-1 lg:order-2"
             >
-              <h2 className="text-4xl md:text-5xl font-black text-[var(--text)] font-[Outfit] mb-6 tracking-tighter transition-colors duration-500">
+              <h2 className="text-xl lg:text-5xl font-black text-[var(--text)] font-[Outfit] mb-2 lg:mb-6 tracking-tighter leading-tight transition-colors duration-500">
                 {t('services_ai_does_work')}
               </h2>
-              <p className="text-[var(--muted)] text-lg leading-relaxed mb-8 max-w-lg transition-colors duration-500">
+              <p className="text-[11px] lg:text-lg text-[var(--muted)] leading-snug lg:leading-relaxed mb-0 lg:mb-8 max-w-lg transition-colors duration-500">
                 {t('services_ai_desc')}
               </p>
             </motion.div>
           </div>
 
           {/* You're in Control Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+          <div className="grid grid-cols-2 gap-3 lg:gap-20 items-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-4xl md:text-5xl font-black text-[var(--text)] font-[Outfit] mb-6 tracking-tighter transition-colors duration-500">
+              <h2 className="text-xl lg:text-5xl font-black text-[var(--text)] font-[Outfit] mb-2 lg:mb-6 tracking-tighter leading-tight transition-colors duration-500">
                 {t('services_control_title')}
               </h2>
-              <p className="text-[var(--muted)] text-lg leading-relaxed mb-8 max-w-lg transition-colors duration-500">
+              <p className="text-[11px] lg:text-lg text-[var(--muted)] leading-snug lg:leading-relaxed mb-3 lg:mb-8 max-w-lg transition-colors duration-500">
                 {t('services_control_desc')}
               </p>
-              <div className="flex gap-8">
-                <div className="flex items-center gap-3">
-                  <Lock className="text-blue-500" size={20} />
-                  <span className="text-xs font-bold text-[var(--text)] uppercase tracking-widest transition-colors duration-500">{t('services_encryption')}</span>
+              <div className="flex flex-col lg:flex-row gap-2 lg:gap-8">
+                <div className="flex items-center gap-2 lg:gap-3">
+                  <Lock className="text-blue-500 w-4 h-4 lg:w-5 lg:h-5 shrink-0" />
+                  <span className="text-[9px] lg:text-xs font-bold text-[var(--text)] uppercase tracking-widest transition-colors duration-500">{t('services_encryption')}</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Eye className="text-blue-500" size={20} />
-                  <span className="text-xs font-bold text-[var(--text)] uppercase tracking-widest transition-colors duration-500">{t('services_privacy')}</span>
+                <div className="flex items-center gap-2 lg:gap-3">
+                  <Eye className="text-blue-500 w-4 h-4 lg:w-5 lg:h-5 shrink-0" />
+                  <span className="text-[9px] lg:text-xs font-bold text-[var(--text)] uppercase tracking-widest transition-colors duration-500">{t('services_privacy')}</span>
                 </div>
               </div>
             </motion.div>
@@ -929,7 +977,7 @@ export default function ServicesPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              className="bg-gradient-to-br from-[#d48c9b] to-[#c97486] rounded-[44px] p-12 shadow-2xl relative overflow-hidden aspect-[4/3] flex items-center justify-center"
+              className="bg-gradient-to-br from-[#d48c9b] to-[#c97486] rounded-2xl lg:rounded-[44px] p-3 lg:p-12 shadow-2xl relative overflow-hidden lg:aspect-[4/3] flex items-center justify-center"
             >
               {/* Pattern */}
               <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at center, #000 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
@@ -938,21 +986,21 @@ export default function ServicesPage() {
                 initial={{ y: 20, opacity: 0 }}
                 whileInView={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.2 }}
-                className="bg-[var(--surface)] rounded-2xl p-8 shadow-2xl max-w-xs relative z-10 text-center border border-[var(--border)] transition-colors duration-500"
+                className="bg-[var(--surface)] rounded-xl lg:rounded-2xl p-3 lg:p-8 shadow-2xl max-w-xs relative z-10 text-center border border-[var(--border)] transition-colors duration-500"
               >
-                <div className="mb-4 flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-4">
-                    <Fingerprint size={28} />
+                <div className="mb-2 lg:mb-4 flex flex-col items-center">
+                  <div className="w-8 h-8 lg:w-12 lg:h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-2 lg:mb-4">
+                    <Fingerprint className="w-4 h-4 lg:w-7 lg:h-7" />
                   </div>
-                  <h4 className="text-sm font-bold text-[var(--text)] mb-2">{t('services_allow_files')}</h4>
-                  <p className="text-[11px] text-[var(--muted)] font-medium leading-relaxed">
+                  <h4 className="text-[11px] lg:text-sm font-bold text-[var(--text)] mb-1 lg:mb-2 leading-tight">{t('services_allow_files')}</h4>
+                  <p className="text-[9px] lg:text-[11px] text-[var(--muted)] font-medium leading-snug lg:leading-relaxed">
                     {t('services_allow_desc')}
                   </p>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <button className="w-full py-2.5 rounded-xl bg-gray-900 text-white text-[11px] font-bold">{t('services_allow_access')}</button>
-                  <button className="w-full py-2.5 rounded-xl border border-[var(--border)] text-[var(--muted)] text-[11px] font-bold">{t('services_always_allow')}</button>
-                  <button className="w-full py-2.5 rounded-xl text-[var(--muted)] text-[11px] font-bold">{t('settings_cancel')}</button>
+                <div className="flex flex-col gap-1.5 lg:gap-2">
+                  <button className="w-full py-1.5 lg:py-2.5 rounded-lg lg:rounded-xl bg-gray-900 text-white text-[9px] lg:text-[11px] font-bold">{t('services_allow_access')}</button>
+                  <button className="w-full py-1.5 lg:py-2.5 rounded-lg lg:rounded-xl border border-[var(--border)] text-[var(--muted)] text-[9px] lg:text-[11px] font-bold">{t('services_always_allow')}</button>
+                  <button className="w-full py-1.5 lg:py-2.5 rounded-lg lg:rounded-xl text-[var(--muted)] text-[9px] lg:text-[11px] font-bold">{t('settings_cancel')}</button>
                 </div>
               </motion.div>
             </motion.div>

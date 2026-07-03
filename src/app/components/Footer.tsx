@@ -26,7 +26,7 @@ export default function Footer() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--muted)] opacity-30"
+          className="text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--muted)] opacity-30 text-center"
         >
           © 2026 TurkGateWay • POWERED BY{' '}
           <a

@@ -1,114 +1,114 @@
-{
+﻿{
     "greeting": [
-        "Tekrar hoş geldin, **{name}**! 👋 Bugün sana nasıl yardımcı olabilirim?",
-        "Merhaba **{name}**! 🏢 Sana nasıl yardım edebilirim?",
-        "Selam **{name}**! Bugün senin için ne yapabiliriz?"
+        "Tekrar ho┼ƒ geldin, **{name}**! ≡ƒæï Bug├╝n sana nas─▒l yard─▒mc─▒ olabilirim?",
+        "Merhaba **{name}**! ≡ƒÅó Sana nas─▒l yard─▒m edebilirim?",
+        "Selam **{name}**! Bug├╝n senin i├ºin ne yapabiliriz?"
     ],
     "farewell": [
-        "Hoşça kalın! İstediğiniz zaman tekrar gelebilirsiniz.",
-        "Kendine iyi bak, {name}! Her şeyde bol şans.",
-        "Görüşmek üzere! Bir şeye ihtiyacınız olursa çekinmeyin.",
-        "Şimdilik elveda! İhtiyacınız olduğunda buradayız.",
-        "Güle güle! Başarılar dilerim."
+        "Ho┼ƒ├ºa kal─▒n! ─░stedi─ƒiniz zaman tekrar gelebilirsiniz.",
+        "Kendine iyi bak, {name}! Her ┼ƒeyde bol ┼ƒans.",
+        "G├╢r├╝┼ƒmek ├╝zere! Bir ┼ƒeye ihtiyac─▒n─▒z olursa ├ºekinmeyin.",
+        "┼₧imdilik elveda! ─░htiyac─▒n─▒z oldu─ƒunda buraday─▒z.",
+        "G├╝le g├╝le! Ba┼ƒar─▒lar dilerim."
     ],
     "thanks": [
-        "Rica ederim! Yardım edebileceğim başka bir şey olursa haber verin.",
-        "Yardımcı olabildiğime sevindim! Başka bir sorunuz var mı?",
-        "Her zaman! Daha fazla bilgi isterseniz sormaktan çekinmeyin.",
-        "Memnuniyetle! Başka bir şey?",
-        "Sorun değil! İstediğinizi sorabilirsiniz."
+        "Rica ederim! Yard─▒m edebilece─ƒim ba┼ƒka bir ┼ƒey olursa haber verin.",
+        "Yard─▒mc─▒ olabildi─ƒime sevindim! Ba┼ƒka bir sorunuz var m─▒?",
+        "Her zaman! Daha fazla bilgi isterseniz sormaktan ├ºekinmeyin.",
+        "Memnuniyetle! Ba┼ƒka bir ┼ƒey?",
+        "Sorun de─ƒil! ─░stedi─ƒinizi sorabilirsiniz."
     ],
     "trust": [
-        "Ben doğru ve yardımcı bilgi sağlamak için tasarlanmış bir yapay zeka asistanıyım. Karmaşık veya kritik konular için her zaman resmi bir uzmana danışmanızı öneririm. Bu konuda başka sorunuz var mı?",
-        "Veri setlerime dayanarak en güncel bilgileri sağlamak için elimden gelenin en iyisini yapıyorum. Net olmayan bir şey olursa lütfen bildirin!",
-        "Güven çok önemlidir. Yanıtlarım mevcut verilere dayanmaktadır, ancak kritik detayları bir profesyonelle doğrulamak her zaman akıllıca bir adımdır.",
-        "Sağladığımız bilgilerin doğruluğu konusunda son derece titiz davranıyoruz. Resmi işlemlere başlamadan önce yetkili makamlardan nihai onay almanız önerilir.",
-        "Görevim, güncel yasalar ve yönetmelikler ışığında işleri sizin için basitleştirmektir. Daha fazla netlik istediğiniz bir konu var mı?"
+        "Ben do─ƒru ve yard─▒mc─▒ bilgi sa─ƒlamak i├ºin tasarlanm─▒┼ƒ bir yapay zeka asistan─▒y─▒m. Karma┼ƒ─▒k veya kritik konular i├ºin her zaman resmi bir uzmana dan─▒┼ƒman─▒z─▒ ├╢neririm. Bu konuda ba┼ƒka sorunuz var m─▒?",
+        "Veri setlerime dayanarak en g├╝ncel bilgileri sa─ƒlamak i├ºin elimden gelenin en iyisini yap─▒yorum. Net olmayan bir ┼ƒey olursa l├╝tfen bildirin!",
+        "G├╝ven ├ºok ├╢nemlidir. Yan─▒tlar─▒m mevcut verilere dayanmaktad─▒r, ancak kritik detaylar─▒ bir profesyonelle do─ƒrulamak her zaman ak─▒ll─▒ca bir ad─▒md─▒r.",
+        "Sa─ƒlad─▒─ƒ─▒m─▒z bilgilerin do─ƒrulu─ƒu konusunda son derece titiz davran─▒yoruz. Resmi i┼ƒlemlere ba┼ƒlamadan ├╢nce yetkili makamlardan nihai onay alman─▒z ├╢nerilir.",
+        "G├╢revim, g├╝ncel yasalar ve y├╢netmelikler ─▒┼ƒ─▒─ƒ─▒nda i┼ƒleri sizin i├ºin basitle┼ƒtirmektir. Daha fazla netlik istedi─ƒiniz bir konu var m─▒?"
     ],
     "billing": {
         "price": [
-            "Planlarımız sabit aylık bir ücretle başlar — tam döküm için 'fiyatlandırma' yazabilirsiniz.",
-            "Fiyatlandırma plan seviyenize bağlıdır. Seçenekleri gözden geçirmemi ister misiniz?",
-            "Bireyler ve işletmeler için esnek planlarımız var. Ne arıyorsunuz?",
-            "Abonelik maliyetlerimiz plana göre değişir — bunları karşılaştırmamı ister misiniz?",
-            "Maliyet ihtiyacınız olan özelliklere bağlıdır. İsterseniz her planı anlatabilirim!"
+            "Planlar─▒m─▒z sabit ayl─▒k bir ├╝cretle ba┼ƒlar ΓÇö tam d├╢k├╝m i├ºin 'fiyatland─▒rma' yazabilirsiniz.",
+            "Fiyatland─▒rma plan seviyenize ba─ƒl─▒d─▒r. Se├ºenekleri g├╢zden ge├ºirmemi ister misiniz?",
+            "Bireyler ve i┼ƒletmeler i├ºin esnek planlar─▒m─▒z var. Ne ar─▒yorsunuz?",
+            "Abonelik maliyetlerimiz plana g├╢re de─ƒi┼ƒir ΓÇö bunlar─▒ kar┼ƒ─▒la┼ƒt─▒rmam─▒ ister misiniz?",
+            "Maliyet ihtiyac─▒n─▒z olan ├╢zelliklere ba─ƒl─▒d─▒r. ─░sterseniz her plan─▒ anlatabilirim!"
         ],
         "refund": [
-            "İadeler genellikle 5 iş günü içinde orijinal ödeme yönteminize yapılır.",
-            "İadeleri 5 iş günü içinde işleme alıyoruz. İnceleyebileceğim belirli bir sipariş veya fatura var mı?",
-            "İade politikamız, ödemeden sonraki 14 gün içinde yapılan talepleri kapsar. İşlemi başlatmamı ister misiniz?",
-            "İadeler 5 iş günü içinde ödeme yönteminize geri döner — endişelenmeyin.",
-            "İade konusunda yardımcı olmaktan mutluluk duyarım. Detayları çekebilmem için hesap e-postanızı paylaşabilir misiniz?"
+            "─░adeler genellikle 5 i┼ƒ g├╝n├╝ i├ºinde orijinal ├╢deme y├╢nteminize yap─▒l─▒r.",
+            "─░adeleri 5 i┼ƒ g├╝n├╝ i├ºinde i┼ƒleme al─▒yoruz. ─░nceleyebilece─ƒim belirli bir sipari┼ƒ veya fatura var m─▒?",
+            "─░ade politikam─▒z, ├╢demeden sonraki 14 g├╝n i├ºinde yap─▒lan talepleri kapsar. ─░┼ƒlemi ba┼ƒlatmam─▒ ister misiniz?",
+            "─░adeler 5 i┼ƒ g├╝n├╝ i├ºinde ├╢deme y├╢nteminize geri d├╢ner ΓÇö endi┼ƒelenmeyin.",
+            "─░ade konusunda yard─▒mc─▒ olmaktan mutluluk duyar─▒m. Detaylar─▒ ├ºekebilmem i├ºin hesap e-postan─▒z─▒ payla┼ƒabilir misiniz?"
         ],
         "invoice": [
-            "Faturaları hesap panelinizdeki Faturalandırma > Faturalar bölümünden indirebilirsiniz.",
-            "Faturalar her ödemeden sonra otomatik olarak e-postayla gönderilir. Tekrar gönderilmesine ihtiyacınız var mı?",
-            "Tüm faturalarınız panelinizin Faturalandırma bölümündedir.",
-            "Her ödemeden sonra PDF faturaları e-postayla gönderiyoruz. Suret isterseniz bildirin.",
-            "Fatura geçmişiniz hesap panelinizdedir. Oraya gitmenize rehberlik edeyim mi?"
+            "Faturalar─▒ hesap panelinizdeki Faturaland─▒rma > Faturalar b├╢l├╝m├╝nden indirebilirsiniz.",
+            "Faturalar her ├╢demeden sonra otomatik olarak e-postayla g├╢nderilir. Tekrar g├╢nderilmesine ihtiyac─▒n─▒z var m─▒?",
+            "T├╝m faturalar─▒n─▒z panelinizin Faturaland─▒rma b├╢l├╝m├╝ndedir.",
+            "Her ├╢demeden sonra PDF faturalar─▒ e-postayla g├╢nderiyoruz. Suret isterseniz bildirin.",
+            "Fatura ge├ºmi┼ƒiniz hesap panelinizdedir. Oraya gitmenize rehberlik edeyim mi?"
         ],
         "subscription": [
-            "Aboneliğinizi Hesap Ayarları sayfasından yönetebilir, yükseltebilir veya iptal edebilirsiniz.",
-            "Abonelik değişiklikleri anında yürürlüğe girer. Ne yapmak isterseniz — yükseltmek, düşürmek veya iptal etmek?",
-            "Kontrol sizde — abonelikler hesap üzerinden her zaman değiştirilebilir.",
-            "İptal etmek için Hesap > Abonelik bölümüne gidip 'Planı İptal Et'e basmanız yeterlidir. Düşürmek ister misiniz?",
-            "Planınız aylık olarak yenilenir. Bir sonraki ödeme tarihini kontrol etmemi ister misiniz?"
+            "Aboneli─ƒinizi Hesap Ayarlar─▒ sayfas─▒ndan y├╢netebilir, y├╝kseltebilir veya iptal edebilirsiniz.",
+            "Abonelik de─ƒi┼ƒiklikleri an─▒nda y├╝r├╝rl├╝─ƒe girer. Ne yapmak isterseniz ΓÇö y├╝kseltmek, d├╝┼ƒ├╝rmek veya iptal etmek?",
+            "Kontrol sizde ΓÇö abonelikler hesap ├╝zerinden her zaman de─ƒi┼ƒtirilebilir.",
+            "─░ptal etmek i├ºin Hesap > Abonelik b├╢l├╝m├╝ne gidip 'Plan─▒ ─░ptal Et'e basman─▒z yeterlidir. D├╝┼ƒ├╝rmek ister misiniz?",
+            "Plan─▒n─▒z ayl─▒k olarak yenilenir. Bir sonraki ├╢deme tarihini kontrol etmemi ister misiniz?"
         ]
     },
     "support": {
         "error": [
-            "Teknik bir aksaklık gibi görünüyor! Bir ekran görüntüsü veya tam hata mesajını paylaşabilir misiniz?",
-            "Buna bir bakayım — hangi sayfada ve hangi hatayı görüyorsunuz?",
-            "Bunun için üzgünüm! Hata göründüğünde ne yapmaya çalışıyordunuz?",
-            "Hatalar genellikle hızlıca çözülebilir. Mesajda ne yazıyor?",
-            "Bu doğru görünmüyor. Hangi tarayıcıyı veya cihazı kullanıyorsunuz?"
+            "Teknik bir aksakl─▒k gibi g├╢r├╝n├╝yor! Bir ekran g├╢r├╝nt├╝s├╝ veya tam hata mesaj─▒n─▒ payla┼ƒabilir misiniz?",
+            "Buna bir bakay─▒m ΓÇö hangi sayfada ve hangi hatay─▒ g├╢r├╝yorsunuz?",
+            "Bunun i├ºin ├╝zg├╝n├╝m! Hata g├╢r├╝nd├╝─ƒ├╝nde ne yapmaya ├ºal─▒┼ƒ─▒yordunuz?",
+            "Hatalar genellikle h─▒zl─▒ca ├º├╢z├╝lebilir. Mesajda ne yaz─▒yor?",
+            "Bu do─ƒru g├╢r├╝nm├╝yor. Hangi taray─▒c─▒y─▒ veya cihaz─▒ kullan─▒yorsunuz?"
         ],
         "not_working": [
-            "Bir şeyin çalışmamasına üzüldüm. Hangi özellik etkilendi?",
-            "Bu doğru değil! Hangi kısım düzgün davranmıyor? İnceleyelim.",
-            "Bunu çözmeye yardımcı olayım — tam olarak ne çalışmıyor?",
-            "Bu her seferinde mi oluyor yoksa sadece ara sıra mı? Bu, sorunu daraltmama yardımcı olur.",
-            "Bunu bildirdiğiniz için teşekkürler! Çalışmayı durdurmadan önce ne yaptığınızı anlatabilir misiniz?"
+            "Bir ┼ƒeyin ├ºal─▒┼ƒmamas─▒na ├╝z├╝ld├╝m. Hangi ├╢zellik etkilendi?",
+            "Bu do─ƒru de─ƒil! Hangi k─▒s─▒m d├╝zg├╝n davranm─▒yor? ─░nceleyelim.",
+            "Bunu ├º├╢zmeye yard─▒mc─▒ olay─▒m ΓÇö tam olarak ne ├ºal─▒┼ƒm─▒yor?",
+            "Bu her seferinde mi oluyor yoksa sadece ara s─▒ra m─▒? Bu, sorunu daraltmama yard─▒mc─▒ olur.",
+            "Bunu bildirdi─ƒiniz i├ºin te┼ƒekk├╝rler! ├çal─▒┼ƒmay─▒ durdurmadan ├╢nce ne yapt─▒─ƒ─▒n─▒z─▒ anlatabilir misiniz?"
         ],
         "slow": [
-            "Yavaş deneyim için özür dileriz! Sayfayı yenilemeyi veya tarayıcı önbelleğini temizlemeyi deneyin.",
-            "Performans sorunları birkaç nedenden kaynaklanabilir — yavaş bir bağlantıda veya ortak bir ağda mısınız?",
-            "Sert bir yenileme (Ctrl+Shift+R) yapmayı deneyin — bu genellikle sorunları çözer.",
-            "Yavaşlık tüm sayfalarda mı yoksa sadece belirli bir bölümde mi?",
-            "Buna bakacağız. Bu arada, yardımcı olup olmayacağını görmek için farklı bir tarayıcı deneyin."
+            "Yava┼ƒ deneyim i├ºin ├╢z├╝r dileriz! Sayfay─▒ yenilemeyi veya taray─▒c─▒ ├╢nbelle─ƒini temizlemeyi deneyin.",
+            "Performans sorunlar─▒ birka├º nedenden kaynaklanabilir ΓÇö yava┼ƒ bir ba─ƒlant─▒da veya ortak bir a─ƒda m─▒s─▒n─▒z?",
+            "Sert bir yenileme (Ctrl+Shift+R) yapmay─▒ deneyin ΓÇö bu genellikle sorunlar─▒ ├º├╢zer.",
+            "Yava┼ƒl─▒k t├╝m sayfalarda m─▒ yoksa sadece belirli bir b├╢l├╝mde mi?",
+            "Buna bakaca─ƒ─▒z. Bu arada, yard─▒mc─▒ olup olmayaca─ƒ─▒n─▒ g├╢rmek i├ºin farkl─▒ bir taray─▒c─▒ deneyin."
         ]
     },
     "help_options": [
-        "Size şu konularda yardımcı olabilirim: ① Şirket kuruluşu ve ruhsatlar, ② Öğrenci işleri ve ikamet, ③ Hukuki danışmanlık ve uyuşmazlıklar. Hangisini seçersiniz?",
-        "Türkiye'de iş, eğitim veya hukuk ile ilgili her şeyi sorabilirsiniz. Hizmetinizdeyim!",
-        "Belirli bir bilgi mi arıyorsunuz? Ruhsat alma, üniversite belgeleri veya sözleşme inceleme adımlarında size rehberlik edebilirim.",
-        "İlgi alanınızı seçin: 🏠 Gayrimenkul ve Yasalar, 🎓 Üniversite ve Burslar, 💼 İş Kurulumu ve Vergiler. Nasıl başlayalım?",
-        "Türkiye'deki yerel uzmanınızım. e-Devlet sistemini anlama, göç randevuları veya üniversite arama konularında yardımcı olabilirim. Bugün neye ihtiyacımız var?"
+        "Size ┼ƒu konularda yard─▒mc─▒ olabilirim: Γæá ┼₧irket kurulu┼ƒu ve ruhsatlar, Γæí ├û─ƒrenci i┼ƒleri ve ikamet, Γæó Hukuki dan─▒┼ƒmanl─▒k ve uyu┼ƒmazl─▒klar. Hangisini se├ºersiniz?",
+        "T├╝rkiye'de i┼ƒ, e─ƒitim veya hukuk ile ilgili her ┼ƒeyi sorabilirsiniz. Hizmetinizdeyim!",
+        "Belirli bir bilgi mi ar─▒yorsunuz? Ruhsat alma, ├╝niversite belgeleri veya s├╢zle┼ƒme inceleme ad─▒mlar─▒nda size rehberlik edebilirim.",
+        "─░lgi alan─▒n─▒z─▒ se├ºin: ≡ƒÅá Gayrimenkul ve Yasalar, ≡ƒÄô ├£niversite ve Burslar, ≡ƒÆ╝ ─░┼ƒ Kurulumu ve Vergiler. Nas─▒l ba┼ƒlayal─▒m?",
+        "T├╝rkiye'deki yerel uzman─▒n─▒z─▒m. e-Devlet sistemini anlama, g├╢├º randevular─▒ veya ├╝niversite arama konular─▒nda yard─▒mc─▒ olabilirim. Bug├╝n neye ihtiyac─▒m─▒z var?"
     ],
     "feedback": [
-        "Geri bildiriminizi duymaktan her zaman mutluluk duyarız! Bugün asistanla deneyiminiz nasıldı?",
-        "TurkGateway'i kullandığınız için teşekkürler. Geliştirmek için önerileriniz var mı?",
-        "Görüşleriniz bizim için çok değerli. Aradığınızı bulabildiniz mi?",
-        "Değerlendirmeniz gelişmemize yardımcı olur. Yanıtlar sizin için açık ve yararlı mıydı?",
-        "Her zaman daha iyisi için çalışıyoruz. Gelecekte görmek istediğiniz bir özellik var mı?"
+        "Geri bildiriminizi duymaktan her zaman mutluluk duyar─▒z! Bug├╝n asistanla deneyiminiz nas─▒ld─▒?",
+        "TurkGateway'i kulland─▒─ƒ─▒n─▒z i├ºin te┼ƒekk├╝rler. Geli┼ƒtirmek i├ºin ├╢nerileriniz var m─▒?",
+        "G├╢r├╝┼ƒleriniz bizim i├ºin ├ºok de─ƒerli. Arad─▒─ƒ─▒n─▒z─▒ bulabildiniz mi?",
+        "De─ƒerlendirmeniz geli┼ƒmemize yard─▒mc─▒ olur. Yan─▒tlar sizin i├ºin a├º─▒k ve yararl─▒ m─▒yd─▒?",
+        "Her zaman daha iyisi i├ºin ├ºal─▒┼ƒ─▒yoruz. Gelecekte g├╢rmek istedi─ƒiniz bir ├╢zellik var m─▒?"
     ],
     "smalltalk": [
-        "Çok iyiyim, sorduğun için teşekkürler! 😊 Sen nasılsın?",
-        "Gayet iyi! Sana yardım etmeye hazırım. Günün nasıl geçiyor?",
-        "Harikayım! 👋 İnsanlara yardım etmek beni mutlu ediyor. Sen nasıl hissediyorsun?",
-        "Süper gidiyor! Senin tarafta işler nasıl?"
+        "├çok iyiyim, sordu─ƒun i├ºin te┼ƒekk├╝rler! ≡ƒÿè Sen nas─▒ls─▒n?",
+        "Gayet iyi! Sana yard─▒m etmeye haz─▒r─▒m. G├╝n├╝n nas─▒l ge├ºiyor?",
+        "Harikay─▒m! ≡ƒæï ─░nsanlara yard─▒m etmek beni mutlu ediyor. Sen nas─▒l hissediyorsun?",
+        "S├╝per gidiyor! Senin tarafta i┼ƒler nas─▒l?"
     ],
     "identity": [
-        "Ben TurkGateway AI — Türkiye'de iş, hukuk ve öğrencilik hayatında sana yol gösteren kişisel asistanınım! Beni Türk bürokrasisini bilen bir arkadaşın gibi düşün 😄",
-        "Güzel soru! Üç alanda uzmanlaşmış bir yapay zeka danışmanıyım: işletme ruhsatları, hukuki danışmanlık ve öğrenci hizmetleri.",
-        "Türkiye'deki dijital rehberinim! İster iş kur, ister hukuki süreçleri yönet, ister üniversiteye kayıt ol — her konuda yanındayım."
+        "Ben TurkGateway AI ΓÇö T├╝rkiye'de i┼ƒ, hukuk ve ├╢─ƒrencilik hayat─▒nda sana yol g├╢steren ki┼ƒisel asistan─▒n─▒m! Beni T├╝rk b├╝rokrasisini bilen bir arkada┼ƒ─▒n gibi d├╝┼ƒ├╝n ≡ƒÿä",
+        "G├╝zel soru! ├£├º alanda uzmanla┼ƒm─▒┼ƒ bir yapay zeka dan─▒┼ƒman─▒y─▒m: i┼ƒletme ruhsatlar─▒, hukuki dan─▒┼ƒmanl─▒k ve ├╢─ƒrenci hizmetleri.",
+        "T├╝rkiye'deki dijital rehberinim! ─░ster i┼ƒ kur, ister hukuki s├╝re├ºleri y├╢net, ister ├╝niversiteye kay─▒t ol ΓÇö her konuda yan─▒nday─▒m."
     ],
     "capabilities": [
-        "Birçok konuda yardımcı olabilirim!\n\n🏢 **İşletme Ruhsatları** — Kafe, dükkan, ofis açma süreçleri\n⚖️ **Hukuki Ajanlık** — Sözleşme inceleme, şirket kuruluşu, iş davaları\n🎓 **Öğrenci Hizmetleri** — Üniversite kayıt, ikamet, burslar\n\nBana neye ihtiyacın olduğunu söyle, hemen başlayalım!",
-        "Kısacası Türkiye'deki her türlü bürokratik işlemi açık ve basit adımlara dönüştüren uzmanınınım. Ruhsat mı, hukuk mu, üniversite mi — adım adım seninleyim."
+        "Bir├ºok konuda yard─▒mc─▒ olabilirim!\n\n≡ƒÅó **─░┼ƒletme Ruhsatlar─▒** ΓÇö Kafe, d├╝kkan, ofis a├ºma s├╝re├ºleri\nΓÜû∩╕Å **Hukuki Ajanl─▒k** ΓÇö S├╢zle┼ƒme inceleme, ┼ƒirket kurulu┼ƒu, i┼ƒ davalar─▒\n≡ƒÄô **├û─ƒrenci Hizmetleri** ΓÇö ├£niversite kay─▒t, ikamet, burslar\n\nBana neye ihtiyac─▒n oldu─ƒunu s├╢yle, hemen ba┼ƒlayal─▒m!",
+        "K─▒sacas─▒ T├╝rkiye'deki her t├╝rl├╝ b├╝rokratik i┼ƒlemi a├º─▒k ve basit ad─▒mlara d├╢n├╝┼ƒt├╝ren uzman─▒n─▒n─▒m. Ruhsat m─▒, hukuk mu, ├╝niversite mi ΓÇö ad─▒m ad─▒m seninleyim."
     ],
     "correction": [
-        "Anladım! Benim hatam. Notlarımı güncelleyeyim. Doğru bilgi neydi?",
-        "Ah, anlıyorum! Açıklama için teşekkürler. Bunu düzeltelim. Doğru detayı tekrarlayabilir misiniz?"
+        "Anlad─▒m! Benim hatam. Notlar─▒m─▒ g├╝ncelleyeyim. Do─ƒru bilgi neydi?",
+        "Ah, anl─▒yorum! A├º─▒klama i├ºin te┼ƒekk├╝rler. Bunu d├╝zeltelim. Do─ƒru detay─▒ tekrarlayabilir misiniz?"
     ]
 }

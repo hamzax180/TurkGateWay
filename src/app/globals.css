@@ -1338,3 +1338,130 @@ body {
     transform: scale(1);
   }
 }
+
+/* ─── Video Styling (Background Videos) ─── */
+video {
+  display: block;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+/* ★ THE iOS FIX — the big center play button on iPhone is this specific
+   pseudo-element. The generic ::-webkit-media-controls rule does NOT hide it. */
+video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* The large center overlay play button (also iOS / Chrome) */
+video::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+  -webkit-appearance: none !important;
+  opacity: 0 !important;
+}
+
+video::-webkit-media-controls-overlay-enclosure {
+  display: none !important;
+}
+
+/* Comprehensively hide ALL video controls across all browsers */
+video::-webkit-media-controls {
+  display: none !important;
+}
+
+video::-webkit-media-controls-panel {
+  display: none !important;
+}
+
+video::-webkit-media-controls-play-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-current-time-display {
+  display: none !important;
+}
+
+video::-webkit-media-controls-time-remaining-display {
+  display: none !important;
+}
+
+video::-webkit-media-controls-timeline {
+  display: none !important;
+}
+
+video::-webkit-media-controls-mute-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-toggle-closed-captions-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-fullscreen-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-download-button {
+  display: none !important;
+}
+
+/* Firefox controls */
+video::-moz-media-controls {
+  display: none !important;
+}
+
+/* IE/Edge */
+video::-ms-media-controls {
+  display: none !important;
+}
+
+/* Hide all pseudo-elements related to controls */
+video::cue {
+  display: none !important;
+}
+
+/* Video element itself - ensure no overlays */
+.bg-video-hidden {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+/* Disable default video behavior on touch */
+video {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Video placeholder styles - smooth fade transition */
+.video-hero-placeholder,
+.video-section-placeholder {
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity;
+}
+
+/* GPU acceleration */
+@supports (transform: translateZ(0)) {
+  video {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  video {
+    image-rendering: auto;
+  }
+
+  .video-hero-placeholder,
+  .video-section-placeholder {
+    transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}

@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight, CheckCircle, Bot, Globe, Database,
@@ -15,6 +15,7 @@ import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import TypewriterText from './components/TypewriterText';
+import Footer from './components/Footer';
 
 /* ── Animation Variants ── */
 const fade: Variants = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
@@ -58,9 +59,32 @@ const howItWorksSteps = (t: any) => [
   }
 ];
 
-const FlipCard = ({ step, i, isRTL, t }: { step: any; i: number; isRTL: boolean; t: any }) => {
+const FlipCard = ({ step, i, isRTL, t, openIndex, setOpenIndex }: { step: any; i: number; isRTL: boolean; t: any; openIndex: number | null; setOpenIndex: (v: number | null) => void }) => {
   const [isFlipped, setIsFlipped] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
+  // Detect mobile so the "grow" pop only fires on small screens
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
+  // On mobile only one card is open at a time (opening one auto-closes the rest);
+  // desktop keeps independent flipping.
+  const flipped = isMobile ? openIndex === i : isFlipped;
+  const handleToggle = () => {
+    if (isMobile) {
+      setOpenIndex(openIndex === i ? null : i);
+    } else {
+      setIsFlipped(!isFlipped);
+    }
+  };
+
+  // Mushroom-pop: the active card springs bigger and sits above its neighbors
+  const popScale = isMobile && flipped ? 1.22 : 1;
 
   return (
     <motion.div
@@ -68,24 +92,28 @@ const FlipCard = ({ step, i, isRTL, t }: { step: any; i: number; isRTL: boolean;
       initial={{ opacity: 0, y: 30 }}
       viewport={{ once: true }}
       transition={{ delay: i * 0.15, duration: 0.8, ease: "easeOut" }}
-      className="relative w-full h-[240px] md:h-[400px] cursor-pointer group [perspective:1200px]"
-      onClick={() => setIsFlipped(!isFlipped)}
+      style={{ zIndex: isMobile && flipped ? 30 : 1 }}
+      className="relative w-full h-[160px] md:h-[400px] cursor-pointer group [perspective:1200px]"
+      onClick={handleToggle}
     >
       <motion.div
         className="w-full h-full relative [transform-style:preserve-3d]"
-        animate={{ rotateY: isFlipped ? 180 : 0 }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} // Smooth snappy curve
+        animate={{ rotateY: flipped ? 180 : 0, scale: popScale }}
+        transition={{
+          rotateY: { duration: 0.8, ease: [0.16, 1, 0.3, 1] }, // Smooth snappy curve
+          scale: { type: 'spring', stiffness: 430, damping: 11, mass: 0.7 }, // Bouncy "shroom" overshoot
+        }}
       >
         {/* Front */}
-        <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] flex flex-col justify-center items-center text-center rounded-[32px] bg-gradient-to-br from-white/10 to-white/0 backdrop-blur-md border border-white/20 p-6 md:p-10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:bg-white/10 hover:border-white/30 transition-all duration-500">
-          <h4 className="text-2xl md:text-5xl font-medium text-white drop-shadow-md tracking-tight leading-[1.1] mb-3 md:mb-6">{step.title}</h4>
-          
+        <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] flex flex-col justify-center items-center text-center rounded-2xl md:rounded-[32px] bg-gradient-to-br from-white/10 to-white/0 backdrop-blur-md border border-white/20 p-2.5 md:p-10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:bg-white/10 hover:border-white/30 transition-all duration-500">
+          <h4 className="text-sm md:text-5xl font-medium text-white drop-shadow-md tracking-tight leading-tight mb-0 md:mb-6">{step.title}</h4>
+
 
         </div>
 
         {/* Back */}
-        <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] flex flex-col justify-center items-center text-center rounded-[32px] bg-gradient-to-br from-[#1a1a2e]/40 to-[#16213e]/40 backdrop-blur-2xl border border-white/20 p-6 md:p-10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all duration-500">
-          <p className="text-[14px] md:text-[22px] text-white/90 leading-relaxed font-light">
+        <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] flex flex-col justify-center items-center text-center rounded-2xl md:rounded-[32px] bg-gradient-to-br from-[#1a1a2e]/40 to-[#16213e]/40 backdrop-blur-2xl border border-white/20 p-2.5 md:p-10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all duration-500">
+          <p className="text-[9px] md:text-[22px] text-white/90 leading-snug md:leading-relaxed font-light">
             {step.desc}
           </p>
         </div>
@@ -99,7 +127,8 @@ export default function Home() {
   const { user, token } = useAuth();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
+  const [openCard, setOpenCard] = useState<number | null>(null); // single-open flip cards (mobile)
+
   const stepsData = howItWorksSteps(t);
   const featureData = featuresData(t);
   const statsDisplay = statsData(t);
@@ -134,7 +163,7 @@ export default function Home() {
           
           {/* Real Turkish Flag Video Background */}
         <div className="absolute inset-x-0 top-0 h-[52vh] md:h-[58vh] xl:h-[90vh] dark:bg-[#a00000] bg-gradient-to-br from-white via-red-50 to-red-100 pointer-events-none z-0 select-none overflow-hidden">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 2 }}
@@ -146,12 +175,31 @@ export default function Home() {
               muted
               playsInline
               preload="auto"
+              disablePictureInPicture
+              controlsList="nofullscreen nodownload"
               src="/turkeyflag.mp4"
-              className="absolute inset-0 w-full h-full object-cover object-[50%_25%] scale-110 md:scale-105 dark:brightness-100 brightness-[1.2] grayscale-[0.2]"
+              onContextMenu={(e) => e.preventDefault()}
+              onLoadedData={(e) => {
+                try {
+                  (e.currentTarget as HTMLVideoElement).play().catch(() => {});
+                } catch (err) {}
+              }}
+              onPlaying={(e) => {
+                const placeholder = (e.currentTarget as HTMLVideoElement).parentElement?.querySelector('.video-hero-placeholder') as HTMLElement;
+                if (placeholder) {
+                  placeholder.style.opacity = '0';
+                  placeholder.style.pointerEvents = 'none';
+                }
+              }}
+              className="absolute inset-0 w-full h-full object-cover object-[50%_25%] scale-110 md:scale-105 dark:brightness-100 brightness-[1.2] grayscale-[0.2] bg-video-hidden z-0"
+              style={{ WebkitPlaysinline: 'true', WebkitBackfaceVisibility: 'hidden' } as any}
             />
-            
+
+            {/* Placeholder ON TOP of video — covers iOS native play button until playback actually starts */}
+            <div className="video-hero-placeholder absolute inset-0 w-full h-full bg-white dark:bg-black transition-opacity duration-700 opacity-100 z-20 pointer-events-none" />
+
             {/* Silk Texture Simulation Overlay (kept for added luxury feel) */}
-            <div className="absolute inset-0 opacity-10 cloth-shimmer" />
+            <div className="absolute inset-0 opacity-10 cloth-shimmer z-10" />
           </motion.div>
 
           {/* Depth Overlays — Added -1px bottom to bleed over any sub-pixel gaps */}
@@ -282,32 +330,42 @@ export default function Home() {
             muted
             playsInline
             preload="auto"
+            disablePictureInPicture
+            controlsList="nofullscreen nodownload"
             src="/how_it_works.mp4"
-            className="w-full h-full object-cover"
+            onContextMenu={(e) => e.preventDefault()}
+            onLoadedData={(e) => {
+              try {
+                (e.currentTarget as HTMLVideoElement).play().catch(() => {});
+              } catch (err) {}
+            }}
+            onPlaying={(e) => {
+              const placeholder = (e.currentTarget as HTMLVideoElement).parentElement?.querySelector('.video-section-placeholder') as HTMLElement;
+              if (placeholder) {
+                placeholder.style.opacity = '0';
+                placeholder.style.pointerEvents = 'none';
+              }
+            }}
+            className="absolute inset-0 w-full h-full object-cover bg-video-hidden z-0"
+            style={{ WebkitPlaysinline: 'true', WebkitBackfaceVisibility: 'hidden' } as any}
           />
+
+          {/* Placeholder ON TOP of video — covers iOS native play button until playback actually starts */}
+          <div className="video-section-placeholder absolute inset-0 w-full h-full bg-white dark:bg-black transition-opacity duration-700 opacity-100 z-20 pointer-events-none" />
+
           {/* Sharp Gradual Transitions (The Split) */}
-          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[var(--bg)] to-transparent z-10" />
+          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[var(--bg)] to-transparent z-30" />
         </div>
 
         <div className="max-w-6xl mx-auto relative z-10 px-6 text-center">
-          <div className="mb-24 space-y-6">
-            <h2 className="text-3xl md:text-7xl font-medium text-white drop-shadow-[0_6px_10px_rgba(0,0,0,0.9)] tracking-tight leading-tight max-w-4xl mx-auto">{t('process_subtitle')}</h2>
+          <div className="mb-10 md:mb-24 space-y-6">
+            <h2 className="text-2xl md:text-7xl font-medium text-white drop-shadow-[0_6px_10px_rgba(0,0,0,0.9)] tracking-tight leading-tight max-w-4xl mx-auto">{t('process_subtitle')}</h2>
           </div>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1, duration: 1 }}
-            className="md:hidden flex items-center justify-center gap-3 mb-10 text-white font-bold text-base tracking-[0.2em] uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
-          >
-            <span>{t('scroll_right') || 'Scroll Right'}</span>
-            <ArrowRight size={20} className="animate-pulse text-white" />
-          </motion.div>
- 
-          <div className="flex overflow-x-auto pb-6 md:grid md:grid-cols-3 md:gap-16 snap-x snap-mandatory no-scrollbar gap-3 px-2 md:px-0">
+          <div className="grid grid-cols-3 gap-2 md:gap-16 px-1 md:px-0">
             {stepsData.map((step, i) => (
-              <div key={i} className="min-w-[75vw] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
-                <FlipCard step={step} i={i} isRTL={isRTL} t={t} />
+              <div key={i}>
+                <FlipCard step={step} i={i} isRTL={isRTL} t={t} openIndex={openCard} setOpenIndex={setOpenCard} />
               </div>
             ))}
           </div>
@@ -316,32 +374,7 @@ export default function Home() {
     </main>
 
     {/* ── Minimalist Footer ── */}
-    <footer className="w-full py-12 border-t border-white/5 bg-[var(--surface)] relative z-10">
-      <div className="max-w-6xl mx-auto px-6 flex flex-col items-center gap-8">
-        <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-4">
-          <Link href="/terms" className="text-[11px] font-semibold tracking-[0.2em] uppercase text-[var(--muted)] hover:text-[var(--text)] transition-colors">Terms</Link>
-          <Link href="/privacy" className="text-[11px] font-semibold tracking-[0.2em] uppercase text-[var(--muted)] hover:text-[var(--text)] transition-colors">Privacy</Link>
-          <Link href="/help" className="text-[11px] font-semibold tracking-[0.2em] uppercase text-[var(--muted)] hover:text-[var(--text)] transition-colors">Help</Link>
-        </div>
-        
-        <motion.p 
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="text-[10px] font-bold tracking-[0.3em] uppercase text-[var(--muted)] opacity-30"
-        >
-          © 2026 TurkGateWay • POWERED BY{' '}
-          <a 
-            href="https://webocontrol.com" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="inline-block hover:opacity-100 transition-opacity"
-          >
-            <span>WEBO</span><span className="text-red-600">CONTROL</span>
-          </a>
-        </motion.p>
-      </div>
-    </footer>
+    <Footer />
       </div>
     </div>
   );

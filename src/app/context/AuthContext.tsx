@@ -26,6 +26,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return email.split('@')[0].split(/[._-]/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
     };
 
+    const logout = () => {
+        setToken(null);
+        setUser(null);
+        localStorage.removeItem('permitops_token');
+        localStorage.removeItem('permitops_user');
+        localStorage.removeItem('permitops_name');
+        localStorage.removeItem('permitops_is_admin');
+        localStorage.removeItem('permitops_token_balance');
+        localStorage.removeItem('permitops_subscription_status');
+        localStorage.removeItem('permitops_last_token_reset');
+    };
+
     useEffect(() => {
         const load = async () => {
             const savedToken = localStorage.getItem('permitops_token');
@@ -120,17 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(prev => prev ? { ...prev, tokenBalance: balance } : null);
     };
 
-    const logout = () => {
-        setToken(null);
-        setUser(null);
-        localStorage.removeItem('permitops_token');
-        localStorage.removeItem('permitops_user');
-        localStorage.removeItem('permitops_name');
-        localStorage.removeItem('permitops_is_admin');
-        localStorage.removeItem('permitops_token_balance');
-        localStorage.removeItem('permitops_subscription_status');
-        localStorage.removeItem('permitops_last_token_reset');
-    };
+
 
     return (
         <AuthContext.Provider value={{ 

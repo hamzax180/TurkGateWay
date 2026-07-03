@@ -40,7 +40,9 @@ export default function LoadingScreen({ agentType, branded = false }: LoadingScr
     const dark =
       document.documentElement.classList.contains('dark') ||
       localStorage.getItem('theme') === 'dark';
-    setIsDark(dark);
+    requestAnimationFrame(() => {
+      setIsDark(dark);
+    });
   }, []);
 
   return (

@@ -10,6 +10,7 @@ import {
 import Link from 'next/link';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
+import MobileToc from '../components/MobileToc';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import Footer from '../components/Footer';
@@ -26,20 +27,20 @@ const C: Record<string, { bg: string; border: string; text: string; dot: string;
 };
 
 export default function DocumentationPage() {
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const { token } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('architecture');
 
   const sections = [
-    { id: 'architecture', title: 'System Architecture', icon: Network,       color: 'blue'    },
-    { id: 'smart-router', title: 'Smart Router & Context', icon: Cpu,           color: 'amber'   },
-    { id: 'permit-api',   title: 'Permit Agent',           icon: Building2,     color: 'emerald' },
-    { id: 'student',      title: 'Student Agent',          icon: GraduationCap, color: 'purple'  },
-    { id: 'legal-engine', title: 'Legal Agent',            icon: Scale,         color: 'orange'  },
-    { id: 'terms',        title: 'Terms of Service',       icon: FileText,      color: 'rose'    },
-    { id: 'privacy',      title: 'Privacy Policy',         icon: Lock,          color: 'indigo'  },
-    { id: 'resources',    title: 'Resource Center',        icon: Globe,         color: 'emerald' },
+    { id: 'architecture', title: t('docs_sec_architecture'), icon: Network,       color: 'blue'    },
+    { id: 'smart-router', title: t('docs_sec_router'),       icon: Cpu,           color: 'amber'   },
+    { id: 'permit-api',   title: t('docs_sec_permit'),       icon: Building2,     color: 'emerald' },
+    { id: 'student',      title: t('docs_sec_student'),      icon: GraduationCap, color: 'purple'  },
+    { id: 'legal-engine', title: t('docs_sec_legal'),        icon: Scale,         color: 'orange'  },
+    { id: 'terms',        title: t('docs_sec_terms'),        icon: FileText,      color: 'rose'    },
+    { id: 'privacy',      title: t('docs_sec_privacy'),      icon: Lock,          color: 'indigo'  },
+    { id: 'resources',    title: t('docs_sec_resources'),    icon: Globe,         color: 'emerald' },
   ];
 
   useEffect(() => {
@@ -67,7 +68,7 @@ export default function DocumentationPage() {
   };
 
   return (
-    <div className="flex h-screen bg-[var(--bg)] text-[var(--text)] selection:bg-blue-500/30 font-sans overflow-hidden transition-colors duration-500">
+    <div className="flex h-screen bg-[var(--bg)] text-[var(--text)] selection:bg-blue-500/30 font-sans overflow-hidden transition-colors duration-500" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Background Decor */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/5 blur-[120px] rounded-full" />
@@ -91,18 +92,43 @@ export default function DocumentationPage() {
         onMobileClose={() => setMobileMenuOpen(false)}
       />
 
-      <main className="flex-1 flex flex-col min-w-0 relative overflow-y-auto slim-scroll z-10">
+      <main id="docs-scroll" className="flex-1 flex flex-col min-w-0 relative overflow-y-auto slim-scroll z-10">
         <Navbar isAppPage onMobileMenuClick={() => setMobileMenuOpen(true)} />
 
-        <div className="w-full relative px-6 md:px-16 py-16 flex flex-col lg:flex-row gap-12 max-w-[1400px] mx-auto">
+        {/* Mobile floating Contents bar — pins under navbar on scroll (matches Terms/Privacy) */}
+        <MobileToc
+          sections={sections.map(s => ({ id: s.id, label: s.title, color: s.color }))}
+          activeSection={activeSection}
+          onSelect={scrollTo}
+          C={C}
+          scrollContainerId="docs-scroll"
+        />
 
-          {/* Sidebar Nav (Desktop) */}
-          <aside className="hidden lg:block w-56 shrink-0 h-fit sticky top-16">
-            <div className="space-y-1">
-              <Link href="/help" className="flex items-center gap-2 text-sm font-bold text-[var(--muted)] hover:text-[var(--text)] transition-colors mb-10 group">
-                <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Back to Help Center
-              </Link>
-              <p className="text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--muted)] opacity-60 mb-4">Contents</p>
+        {/* Page Header — full width, above Contents + content (matches Terms/Privacy) */}
+        <div className="w-full relative px-6 md:px-16 pt-16 max-w-[1400px] mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            <Link href="/help" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--muted)] hover:text-[var(--text)] transition-colors mb-6 group">
+              <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> {t('docs_back')}
+            </Link>
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-8 bg-gradient-to-br from-[var(--text)] to-[var(--text)]/60 bg-clip-text text-transparent">
+              {t('docs_title')}
+            </h1>
+            <p className="text-xl text-[var(--muted)] leading-relaxed max-w-2xl font-medium">
+              {t('docs_subtitle')}
+            </p>
+          </motion.div>
+        </div>
+
+        <div className="w-full relative px-6 md:px-16 pt-10 pb-16 flex flex-col lg:flex-row gap-12 max-w-[1400px] mx-auto">
+
+          {/* Contents Nav — stacked at top on mobile, sticky sidebar on desktop */}
+          <aside id="toc-full" className="w-full lg:w-56 lg:shrink-0 h-fit lg:sticky lg:top-16">
+            <div className="space-y-1 border-b border-[var(--border)] pb-6 mb-2 lg:border-0 lg:pb-0 lg:mb-0">
+              <p className="text-[10px] font-bold tracking-[0.25em] uppercase text-[var(--muted)] opacity-60 mb-4">{isRTL ? 'المحتويات' : t('docs_sec_architecture') === 'بنية النظام' ? 'المحتويات' : 'Contents'}</p>
               {sections.map(section => {
                 const c = C[section.color];
                 const isActive = activeSection === section.id;
@@ -129,23 +155,6 @@ export default function DocumentationPage() {
 
           {/* Main Content */}
           <article className="flex-1 max-w-4xl space-y-32 pb-32">
-
-            {/* Header */}
-            <motion.div
-              initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-            >
-              <Link href="/help" className="lg:hidden inline-flex items-center gap-2 text-sm font-bold text-[var(--muted)] hover:text-[var(--text)] transition-colors mb-6 group">
-                <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Back to Help Center
-              </Link>
-              <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-8 bg-gradient-to-br from-[var(--text)] to-[var(--text)]/60 bg-clip-text text-transparent">
-                TurkGateway AI Infrastructure
-              </h1>
-              <p className="text-xl text-[var(--muted)] leading-relaxed max-w-2xl font-medium">
-                Explore the technical architecture, routing mechanisms, and data pipelines powering our specialized Agentic AI platform for Turkish bureaucracy.
-              </p>
-            </motion.div>
 
             {/* Architecture Section */}
             <section id="architecture" className="scroll-mt-24">
@@ -225,13 +234,13 @@ export default function DocumentationPage() {
               </div>
             </section>
 
-            {/* Permit Agent */}
+            {/* Business Agent */}
             <section id="permit-api" className="scroll-mt-24">
               <h2 className="text-3xl font-bold mb-10 flex items-center gap-4 border-b border-[var(--border)] pb-6">
-                <Building2 className="text-[var(--accent)]" size={28} /> Permit Agent Architecture
+                <Building2 className="text-[var(--accent)]" size={28} /> Business Agent Architecture
               </h2>
               <p className="text-[var(--text)]/80 text-lg leading-relaxed mb-10 font-medium">
-                The Permit Agent is a high-precision system specialized in commercial real estate, business formation, and municipal licensing. It handles the complex licensing process across Istanbul's 39 districts.
+                The Business Agent is a high-precision system specialized in commercial real estate, business formation, and municipal licensing. It handles the complex licensing process across Istanbul's 39 districts.
               </p>
 
               <div className="grid grid-cols-1 gap-8">

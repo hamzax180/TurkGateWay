@@ -5,7 +5,7 @@
  * - Auto reset after 10 seconds so it retries eventually
  */
 
-const BACKEND_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8003';
+const BACKEND_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 const OFFLINE_COOLDOWN_MS = 10_000;
 
 let backendOfflineSince: number | null = null;

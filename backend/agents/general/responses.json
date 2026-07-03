@@ -1,47 +1,47 @@
-{
+﻿{
     "greeting": [
-        "Welcome back, **{name}**! 👋 How can I assist you today?",
-        "Hello **{name}**! 🏢 How can I help you?",
+        "Welcome back, **{name}**! ≡ƒæï How can I assist you today?",
+        "Hello **{name}**! ≡ƒÅó How can I help you?",
         "Hi **{name}**! What can we do for you today?"
     ],
     "farewell": [
-        "Goodbye, {name}! You know where to find me if you ever need anything. Take care! 👋",
-        "See you later! Wishing you the best of luck with everything — you've got this! 💪",
-        "Bye for now! Don't be a stranger — I'm always here whenever you need a hand.",
+        "Goodbye, {name}! You know where to find me if you ever need anything. Take care! ≡ƒæï",
+        "See you later! Wishing you the best of luck with everything ΓÇö you've got this! ≡ƒÆ¬",
+        "Bye for now! Don't be a stranger ΓÇö I'm always here whenever you need a hand.",
         "Take care out there! It was great chatting with you. Come back anytime!",
-        "Goodbye! May everything go smoothly for you. I'll be right here if you need me again! 😊",
-        "Catch you later, {name}! Remember, no question is too small — always happy to help.",
-        "All the best! 🌟 Drop by anytime, whether it's a big question or just to say hi."
+        "Goodbye! May everything go smoothly for you. I'll be right here if you need me again! ≡ƒÿè",
+        "Catch you later, {name}! Remember, no question is too small ΓÇö always happy to help.",
+        "All the best! ≡ƒîƒ Drop by anytime, whether it's a big question or just to say hi."
     ],
     "thanks": [
-        "You're very welcome! That's exactly what I'm here for. Anything else I can help with? 😊",
+        "You're very welcome! That's exactly what I'm here for. Anything else I can help with? ≡ƒÿè",
         "Happy to help! Don't hesitate to come back if anything else pops up.",
         "Anytime! I'm glad we could sort that out together. Got any other questions?",
         "No problem at all! It makes my day when I can help. What else is on your mind?",
-        "Glad I could help! Remember, I'm here 24/7 whenever you need me. 💪",
+        "Glad I could help! Remember, I'm here 24/7 whenever you need me. ≡ƒÆ¬",
         "That means a lot, thank you! Is there anything else you'd like to tackle while we're at it?",
-        "You're welcome! Helping you is literally my favorite thing to do. 😄 What's next?"
+        "You're welcome! Helping you is literally my favorite thing to do. ≡ƒÿä What's next?"
     ],
     "trust": [
-        "That's a really smart question to ask! My answers are based on real Turkish regulations and procedures. For anything high-stakes like signing a contract, I'd always recommend double-checking with a licensed professional too. Better safe than sorry! 😊",
-        "I totally get the concern — trust is earned, not assumed. I pull my info from verified Turkish legal and municipal sources, but laws can change. For critical decisions, a quick check with an official source never hurts.",
+        "That's a really smart question to ask! My answers are based on real Turkish regulations and procedures. For anything high-stakes like signing a contract, I'd always recommend double-checking with a licensed professional too. Better safe than sorry! ≡ƒÿè",
+        "I totally get the concern ΓÇö trust is earned, not assumed. I pull my info from verified Turkish legal and municipal sources, but laws can change. For critical decisions, a quick check with an official source never hurts.",
         "Great instinct to verify! I'm designed to be as accurate as possible, but I'm an AI, not a licensed attorney. I'll always give you my best guidance, and I'll tell you honestly when something is outside my scope.",
-        "I appreciate you asking! I base my responses on current Turkish regulations and procedures. That said, for legal or financial decisions with big consequences, pairing my guidance with a professional's sign-off is the gold standard. 🏆",
-        "Honestly? I'm confident in my information, but I'll never pretend to be infallible. If something feels off, let me know and I'll dig deeper. The best outcomes happen when we work together! 🤝"
+        "I appreciate you asking! I base my responses on current Turkish regulations and procedures. That said, for legal or financial decisions with big consequences, pairing my guidance with a professional's sign-off is the gold standard. ≡ƒÅå",
+        "Honestly? I'm confident in my information, but I'll never pretend to be infallible. If something feels off, let me know and I'll dig deeper. The best outcomes happen when we work together! ≡ƒñ¥"
     ],
     "billing": {
         "price": [
-            "Our plans start at a flat monthly fee — reply 'pricing' for the full breakdown.",
+            "Our plans start at a flat monthly fee ΓÇö reply 'pricing' for the full breakdown.",
             "Pricing depends on your plan tier. Want me to walk you through the options?",
             "We have flexible plans for individuals and businesses. What are you looking for?",
-            "Our subscription costs vary by plan — want me to compare them for you?",
+            "Our subscription costs vary by plan ΓÇö want me to compare them for you?",
             "The cost depends on which features you need. I can walk you through each plan if you'd like!"
         ],
         "refund": [
             "Refunds are typically processed within 5 business days to your original payment method.",
             "We process refunds within 5 working days. Got a specific order or invoice I can look into?",
             "Our refund policy covers requests made within 14 days of the charge. Would you like me to initiate one?",
-            "Refunds go back to your original payment method within 5 business days — no worries there.",
+            "Refunds go back to your original payment method within 5 business days ΓÇö no worries there.",
             "Happy to help with a refund. Can you share your account email so I can pull up the details?"
         ],
         "invoice": [
@@ -53,8 +53,8 @@
         ],
         "subscription": [
             "You can manage, upgrade, or cancel your subscription from the Account Settings page.",
-            "Subscription changes take effect immediately. What would you like to do — upgrade, downgrade, or cancel?",
-            "You're in control — subscriptions can be changed anytime from your account.",
+            "Subscription changes take effect immediately. What would you like to do ΓÇö upgrade, downgrade, or cancel?",
+            "You're in control ΓÇö subscriptions can be changed anytime from your account.",
             "To cancel, just head to Account > Subscription and hit 'Cancel Plan'. Want to keep it and just downgrade instead?",
             "Your plan renews monthly. Want me to check when the next charge is?"
         ]
@@ -62,7 +62,7 @@
     "support": {
         "error": [
             "Sounds like a technical hiccup! Could you share a screenshot or the exact error message?",
-            "Let me look into that — what error are you seeing and on which page?",
+            "Let me look into that ΓÇö what error are you seeing and on which page?",
             "Sorry about that! Can you tell me what you were trying to do when the error appeared?",
             "Errors can usually be fixed quickly. What does the message say?",
             "That doesn't sound right. What browser or device are you using?"
@@ -70,35 +70,35 @@
         "not_working": [
             "Sorry to hear something's not working. What feature is affected?",
             "That's not right! Tell me which part isn't behaving and I'll dig in.",
-            "Let me help get that sorted — what exactly isn't working for you?",
+            "Let me help get that sorted ΓÇö what exactly isn't working for you?",
             "Is this happening every time, or just occasionally? That'll help me narrow it down.",
             "Thanks for flagging that! Can you walk me through what you did before it stopped working?"
         ],
         "slow": [
             "Sorry for the slow experience! Try refreshing the page or clearing your browser cache.",
-            "Performance issues can be caused by a few things — are you on a slow connection or a shared network?",
-            "Try a hard refresh (Ctrl+Shift+R) — that usually clears things up.",
+            "Performance issues can be caused by a few things ΓÇö are you on a slow connection or a shared network?",
+            "Try a hard refresh (Ctrl+Shift+R) ΓÇö that usually clears things up.",
             "Is it slow on all pages or just one specific section?",
             "We'll look into it. In the meantime, try a different browser to see if it helps."
         ]
     },
     "smalltalk": [
-        "I'm doing great, thanks for asking! 😊 How are things on your end?",
+        "I'm doing great, thanks for asking! ≡ƒÿè How are things on your end?",
         "All good here! Ready to help whenever you are. How's your day going?",
         "I'm doing really well, thanks! What's going on with you?",
         "Honestly? Never been better! What can I do for you today?",
-        "Doing fantastic, thanks for checking in! 👋 What's on your mind?",
+        "Doing fantastic, thanks for checking in! ≡ƒæï What's on your mind?",
         "Can't complain! Life's good when you get to help people. How about you?"
     ],
     "identity": [
-        "I'm TurkGateway AI — your personal assistant for navigating business, legal, and student life in Turkey! Think of me as that friend who always knows how Turkish bureaucracy works. 😄",
-        "I'm an AI-powered agent built specifically for Turkey. I can help with business permits, legal questions, and student procedures. I'm not a generic chatbot — I specialize in making Turkey easy for you!",
+        "I'm TurkGateway AI ΓÇö your personal assistant for navigating business, legal, and student life in Turkey! Think of me as that friend who always knows how Turkish bureaucracy works. ≡ƒÿä",
+        "I'm an AI-powered agent built specifically for Turkey. I can help with business permits, legal questions, and student procedures. I'm not a generic chatbot ΓÇö I specialize in making Turkey easy for you!",
         "Great question! I'm TurkGateway's AI assistant, and I specialize in three areas: business permits, legal agent, and student services in Turkey. Consider me your local expert!"
     ],
     "capabilities": [
-        "I can help you with quite a lot! Here's the breakdown:\n\n🏢 **Business Permits** — Opening a cafe, shop, office, or any business in Istanbul\n⚖️ **Legal Advice** — Contract reviews, company formation, employment disputes\n🎓 **Student Services** — University registration, residence permits, scholarships\n\nJust tell me what you need and we'll dive right in!",
-        "Think of me as your all-in-one Turkey agent! I specialize in:\n• Navigating the permit process for any business type\n• Reviewing contracts and setting up companies\n• Helping students with visas, housing, and uni registration\n\nWhat sounds relevant to you?",
-        "Here's what I do best: I take the confusing world of Turkish bureaucracy and turn it into clear, step-by-step action plans. Whether it's a business license, a legal question, or getting enrolled at a university — I'll walk you through it."
+        "I can help you with quite a lot! Here's the breakdown:\n\n≡ƒÅó **Business Permits** ΓÇö Opening a cafe, shop, office, or any business in Istanbul\nΓÜû∩╕Å **Legal Advice** ΓÇö Contract reviews, company formation, employment disputes\n≡ƒÄô **Student Services** ΓÇö University registration, residence permits, scholarships\n\nJust tell me what you need and we'll dive right in!",
+        "Think of me as your all-in-one Turkey agent! I specialize in:\nΓÇó Navigating the permit process for any business type\nΓÇó Reviewing contracts and setting up companies\nΓÇó Helping students with visas, housing, and uni registration\n\nWhat sounds relevant to you?",
+        "Here's what I do best: I take the confusing world of Turkish bureaucracy and turn it into clear, step-by-step action plans. Whether it's a business license, a legal question, or getting enrolled at a university ΓÇö I'll walk you through it."
     ],
     "correction": [
         "Got it! My mistake. Let me update my notes. What was the correct information?",
