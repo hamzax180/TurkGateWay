@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, MessageSquare, Trash2, Menu, Settings, HelpCircle, History, Zap, Search, X, Star, MoreVertical, ChevronRight, LayoutDashboard, Home, LogOut, Building2, GraduationCap, Scale, Briefcase, Download, CreditCard } from 'lucide-react';
+import { Plus, MessageSquare, Trash2, Menu, Settings, HelpCircle, History, Zap, Search, X, Star, MoreVertical, ChevronRight, LayoutDashboard, Home, LogOut, Building2, GraduationCap, Scale, Briefcase, Download, CreditCard, Cpu } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
 import { apiFetch } from '../utils/api';
+import { isAgentDisabled } from '@/lib/agents-config';
 
 interface ChatSession {
   id: string;
@@ -59,7 +60,10 @@ export default function Sidebar({
     if (!token) return;
     try {
       setLoading(true);
-      const res = await apiFetch(`/chat/sessions`);
+      // Ask for this agent only. The server applies its row limit after the
+      // filter, so each agent gets its own 100 rather than competing for one
+      // shared list where the least-recently-used agent silently drops off.
+      const res = await apiFetch(`/chat/sessions?assistant_type=${assistantType}`);
       if (res?.ok) {
         const data = await res.json();
         setSessions(data);
@@ -73,7 +77,11 @@ export default function Sidebar({
 
   useEffect(() => {
     fetchSessions();
-  }, [token, currentSessionId, refreshTrigger]);
+    // assistantType is a dependency now: the list is fetched per agent, so
+    // switching agents has to go back to the server rather than re-filtering
+    // a list that never contained the other agent's chats.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, currentSessionId, refreshTrigger, assistantType]);
 
   const getDisplayTitle = (title: string, sType?: string) => {
     if (!title) return t('chat_new');
@@ -119,7 +127,14 @@ export default function Sidebar({
           initial={false}
           animate={{ width: isExpanded ? 'clamp(220px, 19vw, 265px)' : 'clamp(52px, 5vw, 68px)' }}
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-          className="hidden md:flex h-full flex-col shrink-0 relative z-50 border-r border-[var(--border)] overflow-hidden"
+          // h-screen + sticky, not h-full. h-full resolves against the parent,
+          // and the home page's container is min-h-screen (it scrolls) rather
+          // than h-screen — so h-full collapsed to auto there, the inner flex-1
+          // had no height to fill, and the footer floated up mid-panel with
+          // dead space beneath it. Sticky also keeps the rail in view while the
+          // page scrolls; on the pages already using an h-screen overflow-hidden
+          // container there is nothing to scroll, so it behaves as before.
+          className="hidden md:flex h-screen sticky top-0 flex-col shrink-0 relative z-50 border-r border-[var(--border)] overflow-hidden"
         >
           <SidebarInner
             isMobile={false}
@@ -303,16 +318,31 @@ const SidebarInner = React.memo(({
       variants={containerVariants}
       className="h-full flex flex-col bg-[var(--surface)] dark:bg-[var(--surface)]/80 dark:backdrop-blur-xl border-r border-[var(--border)]"
     >
-      {/* Search bar */}
+      {/* Toggle + brand share a row — the wordmark sits beside the control
+          that shows and hides it, rather than taking a band of its own. The
+          chip is the red sibling of the Cpu agent chips, so the sidebar is
+          anchored by the same silicon language the agents use. */}
       {isMobile ? null : (
-        <div className="p-2.5 mb-0 shrink-0">
+        <div className="flex items-center gap-2 p-2.5 mb-0 shrink-0">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-2 rounded-full hover:bg-[var(--surface-2)] text-[var(--text)] transition-colors"
+            className="p-2 rounded-full hover:bg-[var(--surface-2)] text-[var(--text)] transition-colors shrink-0"
             title="Toggle menu"
           >
             <Menu size={20} />
           </button>
+
+          {showLabels && (
+            <Link href="/" className="flex items-center gap-2 no-underline min-w-0" title="TurkGateway">
+              <span className="cs-chip h-7 w-7 rounded-lg flex items-center justify-center shrink-0">
+                <Cpu size={14} className="relative z-10 text-white" />
+              </span>
+              <span className="font-claude text-[15px] font-semibold tracking-[-0.02em] whitespace-nowrap">
+                <span className="text-red-500">TURK</span>
+                <span className="text-[var(--text)]">GATEWAY</span>
+              </span>
+            </Link>
+          )}
         </div>
       )}
 
@@ -335,6 +365,23 @@ const SidebarInner = React.memo(({
       )}
 
       {/* Mobile nav group: Home → Dashboard → Services → Download → New Chat */}
+      {/* Brand — mobile. The drawer opens with no header of its own, so the
+          wordmark sits at the top here the way it does beside the desktop
+          toggle, using the same red chip as the agents. */}
+      {isMobile && (
+        <motion.div variants={itemVariants} className="px-4 pt-3 pb-2 shrink-0">
+          <Link href="/" className="flex items-center gap-2.5 no-underline" title="TurkGateway">
+            <span className="cs-chip h-8 w-8 rounded-lg flex items-center justify-center shrink-0">
+              <Cpu size={16} className="relative z-10 text-white" />
+            </span>
+            <span className="font-claude text-[16px] font-semibold tracking-[-0.02em] whitespace-nowrap">
+              <span className="text-red-500">TURK</span>
+              <span className="text-[var(--text)]">GATEWAY</span>
+            </span>
+          </Link>
+        </motion.div>
+      )}
+
       {isMobile && (
         <motion.div variants={itemVariants} className="px-3 pt-1 pb-1 shrink-0 space-y-1">
           <Link href="/" className="block">
@@ -344,10 +391,10 @@ const SidebarInner = React.memo(({
             </button>
           </Link>
 
-          <Link href="/dashboard" className="block">
+          <Link href="/applications" className="block">
             <button className="group flex items-center gap-3 w-full px-4 py-3 rounded-xl hover:bg-[var(--surface-2)] transition-all">
               <LayoutDashboard size={20} className="text-[var(--text)] shrink-0" />
-              <span className={`text-[15px] font-medium text-[var(--text)] ${isRTL ? 'text-right' : 'text-left'}`}>{t('sidebar_dashboard')}</span>
+              <span className={`text-[15px] font-medium text-[var(--text)] ${isRTL ? 'text-right' : 'text-left'}`}>{t('navbar_applications')}</span>
             </button>
           </Link>
 
@@ -391,20 +438,29 @@ const SidebarInner = React.memo(({
             { id: 'permit', label: t('assistant_permit'), icon: Building2, color: 'text-[var(--accent)]' },
             { id: 'student', label: t('assistant_student'), icon: GraduationCap, color: 'text-[var(--accent)]' },
             { id: 'lawyer', label: t('assistant_lawyer'), icon: Scale, color: 'text-[var(--accent)]' },
-          ].map(tab => (
+          ].map(tab => {
+            const disabled = isAgentDisabled(tab.id);
+            return (
             <button
               key={tab.id}
+              disabled={disabled}
+              title={disabled ? t('agent_disabled_note') : undefined}
               onClick={() => {
+                if (disabled) return;
                 if (typeof onSwitchAssistant === 'function') {
                   onSwitchAssistant(tab.id as any);
                 }
               }}
-              className={`flex-1 py-1.5 rounded-lg flex flex-col items-center justify-center gap-0.5 transition-all outline-none ${assistantType === tab.id ? 'bg-[var(--surface-1)] shadow-sm text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
+              className={`flex-1 py-1.5 rounded-lg flex flex-col items-center justify-center gap-0.5 transition-all outline-none ${disabled ? 'opacity-35 cursor-not-allowed text-[var(--muted)]' : assistantType === tab.id ? 'bg-[var(--surface-1)] shadow-sm text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
             >
-              <tab.icon size={13} className={assistantType === tab.id ? tab.color : 'opacity-50'} />
+              <tab.icon size={13} className={!disabled && assistantType === tab.id ? tab.color : 'opacity-50'} />
               <span className="text-[9px] font-bold whitespace-nowrap leading-none">{tab.label}</span>
+              <span className="text-[7px] font-black uppercase tracking-widest leading-none opacity-70">
+                {disabled ? t('services_status_disabled') : ' '}
+              </span>
             </button>
-          ))}
+            );
+          })}
         </motion.div>
       )}
 
@@ -470,7 +526,7 @@ const SidebarInner = React.memo(({
                         e.stopPropagation();
                         onToggleFavorite(s.id);
                       }}
-                      title={language === 'ar' ? 'تفضيل' : language === 'tr' ? 'Favorilere Ekle' : 'Favorite'}
+                      title={language === 'ar' ? 'تفضيل' : language === 'tr' ? 'Favorilere Ekle' : language === 'tk' ? 'Halanýanlara goş' : 'Favorite'}
                       className={`p-1.5 rounded-lg transition-all ${s.is_favorite ? 'text-amber-500 bg-amber-500/10' : 'text-[var(--muted)] hover:text-amber-500 hover:bg-amber-500/10'}`}
                     >
                       <Star size={16} fill={s.is_favorite ? "currentColor" : "none"} />
@@ -480,7 +536,7 @@ const SidebarInner = React.memo(({
                         e.stopPropagation();
                         onDeleteSession(s.id);
                       }}
-                      title={language === 'ar' ? 'حذف الدردشة' : language === 'tr' ? 'Sohbeti Sil' : 'Delete Chat'}
+                      title={language === 'ar' ? 'حذف الدردشة' : language === 'tr' ? 'Sohbeti Sil' : language === 'tk' ? 'Söhbetdeşligi poz' : 'Delete Chat'}
                       className="p-1.5 rounded-lg transition-all text-[var(--muted)] hover:text-red-500 hover:bg-red-500/10"
                     >
                       <Trash2 size={16} />
@@ -532,7 +588,7 @@ const SidebarInner = React.memo(({
                       e.stopPropagation();
                       onToggleFavorite(s.id);
                     }}
-                    title={language === 'ar' ? 'تفضيل' : language === 'tr' ? 'Favorilere Ekle' : 'Favorite'}
+                    title={language === 'ar' ? 'تفضيل' : language === 'tr' ? 'Favorilere Ekle' : language === 'tk' ? 'Halanýanlara goş' : 'Favorite'}
                     className={`p-1.5 rounded-lg transition-all ${s.is_favorite ? 'text-amber-500 bg-amber-500/10' : 'text-[var(--muted)] hover:text-amber-500 hover:bg-amber-500/10'}`}
                   >
                     <Star size={16} fill={s.is_favorite ? "currentColor" : "none"} />
@@ -542,7 +598,7 @@ const SidebarInner = React.memo(({
                       e.stopPropagation();
                       onDeleteSession(s.id);
                     }}
-                    title={language === 'ar' ? 'حذف الدردشة' : language === 'tr' ? 'Sohbeti Sil' : 'Delete Chat'}
+                    title={language === 'ar' ? 'حذف الدردشة' : language === 'tr' ? 'Sohbeti Sil' : language === 'tk' ? 'Söhbetdeşligi poz' : 'Delete Chat'}
                     className="p-1.5 rounded-lg transition-all text-[var(--muted)] hover:text-red-500 hover:bg-red-500/10"
                   >
                     <Trash2 size={16} />

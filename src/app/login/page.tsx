@@ -38,7 +38,8 @@ export default function LoginPage() {
                     if (res.status === 404) {
                         throw new Error(t('auth_email_not_found'));
                     }
-                    throw new Error('Verification failed');
+                    const data = await res.json().catch(() => null);
+                    throw new Error(data?.detail || 'Verification failed');
                 }
                 setStep(2);
                 return;
@@ -69,7 +70,7 @@ export default function LoginPage() {
                 data.subscription_status,
                 data.last_token_reset
             );
-            router.push('/dashboard');
+            router.push('/applications');
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -110,7 +111,7 @@ export default function LoginPage() {
                     data.subscription_status,
                     data.last_token_reset
                 );
-                router.push('/dashboard');
+                router.push('/applications');
             } catch (err: any) {
                 setError(err.message);
             } finally {

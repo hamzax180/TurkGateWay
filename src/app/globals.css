@@ -3,40 +3,93 @@
 
 @import "tailwindcss";
 
-/* ─── Flexible Theme Tokens ─── */
-:root {
-  --bg: #f8faff;
-  --bg-rgb: 248, 250, 255;
-  --surface: #ffffff;
-  --surface-rgb: 255, 255, 255;
-  --surface-1: #ffffff;
-  --surface-2: #f0f4f9;
-  --surface-2-rgb: 240, 244, 249;
-  --border: rgba(0, 0, 0, 0.08);
-  --border-2: rgba(0, 0, 0, 0.12);
-  --accent: #1a73e8;
-  --accent-rgb: 26, 115, 232;
-  --text: #171a1c;
-  --muted: #5f6368;
-  --radius: 20px;
-  --nav-bg: rgba(248, 250, 255, 0.85);
+/* Warm the built-in palette at the source.
+   ~200 places across the app hardcode `bg-white`, `text-gray-600`,
+   `border-gray-200` and friends. Rewriting each one would be a large, risky
+   diff that drifts the moment someone adds another; overriding the scale means
+   every existing and future use lands warm automatically.
+   These are the same hues as the tokens above, so utilities and CSS variables
+   cannot disagree. */
+@theme {
+  --color-white: #fffdfa;
+
+  --color-gray-50:  #faf8f4;
+  --color-gray-100: #f3eee5;
+  --color-gray-200: #e8e1d5;
+  --color-gray-300: #d8cfc0;
+  --color-gray-400: #a99f8e;
+  --color-gray-500: #857c6d;
+  --color-gray-600: #6b6357;
+  --color-gray-700: #4e483f;
+  --color-gray-800: #322e28;
+  --color-gray-900: #1d1a15;
+  --color-gray-950: #100d0a;
+
+  /* slate/neutral/zinc are used interchangeably in a few places — keep them
+     on the same warm ramp so they don't reintroduce a cool cast. */
+  --color-slate-50:  #faf8f4;
+  --color-slate-100: #f3eee5;
+  --color-slate-200: #e8e1d5;
+  --color-slate-300: #d8cfc0;
+  --color-slate-400: #a99f8e;
+  --color-slate-500: #857c6d;
+  --color-slate-600: #6b6357;
+  --color-slate-700: #4e483f;
+  --color-slate-800: #322e28;
+  --color-slate-900: #1d1a15;
+
+  --color-neutral-50:  #faf8f4;
+  --color-neutral-100: #f3eee5;
+  --color-neutral-200: #e8e1d5;
+  --color-neutral-800: #322e28;
+  --color-neutral-900: #1d1a15;
 }
 
+/* ─── Flexible Theme Tokens ─── */
+/* Warm white.
+   The page sits on warm paper and cards float slightly lighter on top of it —
+   the opposite of the old cool scheme, where a blue-tinted page (#f8faff) sat
+   under pure-white cards. Greys are warm too: a neutral grey next to cream
+   reads as dirty, and pure-black borders reintroduce the cold cast the rest of
+   the palette is trying to lose. */
+:root {
+  --bg: #faf8f4;
+  --bg-rgb: 250, 248, 244;
+  --surface: #fffdfa;
+  --surface-rgb: 255, 253, 250;
+  --surface-1: #fffdfa;
+  --surface-2: #f3eee5;
+  --surface-2-rgb: 243, 238, 229;
+  --border: rgba(66, 52, 34, 0.10);
+  --border-2: rgba(66, 52, 34, 0.16);
+  --accent: #1a73e8;
+  --accent-rgb: 26, 115, 232;
+  --text: #1d1a15;
+  --muted: #6b6357;
+  --radius: 20px;
+  --nav-bg: rgba(250, 248, 244, 0.85);
+}
+
+/* ─── Dark mode: warm black ─────────────────────────────────────────────────
+   Not neutral black — charcoal with a brown/amber cast, so the dark theme
+   keeps the same warmth as the paper-toned light theme instead of turning
+   cold. Text and borders are warm white, never pure white, for the same
+   reason. */
 .dark {
-  --bg: #000000;
-  --bg-rgb: 0, 0, 0;
-  --surface: #000000;
-  --surface-rgb: 0, 0, 0;
-  --surface-1: #000000;
-  --surface-2: #111111;
-  --surface-2-rgb: 26, 26, 26;
-  --border: rgba(255, 255, 255, 0.12);
-  --border-2: rgba(255, 255, 255, 0.2);
+  --bg: #100d0a;
+  --bg-rgb: 16, 13, 10;
+  --surface: #16120d;
+  --surface-rgb: 22, 18, 13;
+  --surface-1: #16120d;
+  --surface-2: #201a14;
+  --surface-2-rgb: 32, 26, 20;
+  --border: rgba(255, 241, 222, 0.10);
+  --border-2: rgba(255, 241, 222, 0.18);
   --accent: #4285f4;
   --accent-rgb: 66, 133, 244;
-  --text: #ffffff;
-  --muted: #a0a0a0;
-  --nav-bg: rgba(0, 0, 0, 0.85);
+  --text: #f5efe6;
+  --muted: #a69a89;
+  --nav-bg: rgba(16, 13, 10, 0.85);
 }
 
 html[data-scroll-behavior="smooth"] {
@@ -90,6 +143,75 @@ body {
 [lang="ar"] body,
 [dir="rtl"] body {
   font-family: 'Alexandria', 'Google Sans', sans-serif;
+}
+
+/* ─── Claude-style wordmark ──────────────────────────────────────────────────
+   Claude's site typeface (Styrene) is proprietary, so it is listed first for
+   systems that have it and Outfit — the closest freely available geometric
+   sibling, already loaded — carries the look everywhere else. */
+.font-claude {
+  font-family: 'Styrene A', 'Styrene B', 'Outfit', 'Google Sans', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* ─── Cloth-like flag sway ───────────────────────────────────────────────────
+   Flags sway like cloth in still air — a few degrees on a long cycle. The old
+   three-layer effect (3D wave + morphing trailing edge + white glint sweep)
+   was what made the flags read as smeared and washed out; a single gentle
+   rotation keeps them alive without distorting the artwork. */
+@keyframes flag-sway {
+  0%, 100% { transform: rotateY(-2.2deg) skewY(0.5deg); }
+  50%      { transform: rotateY(2.2deg)  skewY(-0.5deg); }
+}
+
+.flag-sway {
+  transform-origin: 6% 50%;
+  animation: flag-sway 9s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flag-sway { animation: none; }
+}
+
+/* ─── Customer-service chip ──────────────────────────────────────────────────
+   The red sibling of the Cpu agent chips: the same rounded-square silicon
+   look — etched grid, bright edge, light sweep — so live support reads as part
+   of the same agent family instead of a plain icon tile. Reuses the
+   `chip-shine` keyframe the neural chips already animate with. */
+.cs-chip {
+  position: relative;
+  background: linear-gradient(145deg, #f05252, #b91c1c);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow:
+    0 6px 18px rgba(239, 68, 68, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+}
+
+.cs-chip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent 92%, rgba(255, 255, 255, 0.16) 92%),
+    linear-gradient(0deg, transparent 92%, rgba(255, 255, 255, 0.16) 92%);
+  background-size: 7px 7px;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.cs-chip::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-25deg);
+  animation: chip-shine 4s ease-in-out infinite;
+  pointer-events: none;
 }
 
 /* ─── Utility Components ─── */
@@ -332,7 +454,7 @@ body {
   }
 
   .dark .glass-card {
-    background: rgba(30, 31, 32, 0.7);
+    background: rgba(30, 25, 20, 0.7);
   }
 
   .glass-card:hover {
@@ -352,11 +474,11 @@ body {
   }
 
   .dark .glass-mesh {
-    background: rgba(30, 31, 32, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(30, 25, 20, 0.55);
+    border: 1px solid rgba(255, 241, 222, 0.06);
     box-shadow:
       0 8px 32px rgba(0, 0, 0, 0.4),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+      inset 0 0 0 1px rgba(255, 241, 222, 0.02);
   }
 
   /* ----- Premium Glow ----- */
@@ -788,8 +910,8 @@ body {
 /* HDR Premium Glowing Card */
 .cyber-hologram {
   position: relative;
-  background: #0d0d0d;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #12100c;
+  border: 1px solid rgba(255, 241, 222, 0.1);
   border-radius: 28px;
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -907,10 +1029,10 @@ body {
   text-transform: uppercase;
 }
 
-.dark .agent-chip {
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(12px);
-}
+  .dark .agent-chip {
+    background: rgba(16, 13, 10, 0.5);
+    backdrop-filter: blur(12px);
+  }
 
 .agent-chip-active {
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), var(--surface-2));
@@ -926,13 +1048,13 @@ body {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04), inset 0 0 15px rgba(239, 68, 68, 0.02);
 }
 
-.dark .neural-chip {
-  background: linear-gradient(145deg, rgba(239, 68, 68, 0.08), rgba(0, 0, 0, 0.9));
-  border-color: rgba(239, 68, 68, 0.3);
-  box-shadow:
-    0 10px 40px rgba(0, 0, 0, 0.6),
-    inset 0 0 20px rgba(239, 68, 68, 0.08);
-}
+  .dark .neural-chip {
+    background: linear-gradient(145deg, rgba(239, 68, 68, 0.08), rgba(22, 18, 13, 0.92));
+    border-color: rgba(239, 68, 68, 0.3);
+    box-shadow:
+      0 10px 40px rgba(0, 0, 0, 0.6),
+      inset 0 0 20px rgba(239, 68, 68, 0.08);
+  }
 
 .neural-chip::before {
   content: '';
@@ -1110,7 +1232,7 @@ body {
 
 /* ─── Deep Mesh (Premium Background) ─── */
 .deep-mesh {
-  background-color: #000000;
+  background-color: #100d0a;
   background-image:
     radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
     radial-gradient(at 100% 0%, rgba(239, 68, 68, 0.05) 0px, transparent 50%),
@@ -1121,7 +1243,7 @@ body {
 }
 
 .dark .deep-mesh {
-  background-color: #000000;
+  background-color: #100d0a;
 }
 
 /* Agent Showroom Marquee */
@@ -1292,7 +1414,7 @@ body {
 
 /* Glass Overlay */
 .glass-overlay {
-  background: radial-gradient(circle at center, rgba(15, 15, 15, 0.8) 0%, rgba(0, 0, 0, 0.95) 100%);
+  background: radial-gradient(circle at center, rgba(24, 20, 15, 0.8) 0%, rgba(16, 13, 10, 0.95) 100%);
   backdrop-filter: blur(80px);
   -webkit-backdrop-filter: blur(80px);
 }
@@ -1465,3 +1587,74 @@ video {
     transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
+/* ─── Auth canvas (sign-up) ─────────────────────────────────────────────────
+   Dark mode gets its hierarchy for free: a near-white card on warm black is
+   pure figure-and-ground. Light mode had none — the page (#faf8f4) and the
+   card (#fffdfa) are six values apart, so the card dissolved and the only
+   thing separating them was a shadow tuned for dark (0.4 black), which on
+   paper reads as a grey smudge rather than depth.
+
+   The fix deepens the canvas, never the card: the card stays #fffdfa in both
+   themes, and light mode gets a warm ground to sit on. Written as descendant
+   rules off `.dark` rather than Tailwind `dark:` utilities, because the
+   `dark:` variant is not wired to this app's class toggle — it follows the
+   OS setting, so `dark:` utilities silently never fire here. */
+.auth-canvas {
+  background: radial-gradient(
+    ellipse 100% 80% at 50% -10%,
+    #f7f2e9 0%,
+    #ece5d7 55%,
+    #e1d8c7 100%
+  );
+}
+
+.dark .auth-canvas {
+  background: radial-gradient(
+    ellipse 100% 80% at 50% -10%,
+    #17130e 0%,
+    #100d0a 55%,
+    #0a0806 100%
+  );
+}
+
+/* Warm, layered shadow instead of flat black — depth on paper comes from a
+   soft wide falloff plus a tight contact shadow, not from opacity. */
+.auth-card {
+  border-color: rgba(66, 52, 34, 0.10);
+  box-shadow:
+    0 18px 50px rgba(66, 52, 34, 0.18),
+    0 2px 8px rgba(66, 52, 34, 0.06);
+}
+
+.dark .auth-card {
+  border-color: rgba(255, 241, 222, 0.08);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+/* The ghosted app preview behind the auth card.
+   Dark mode gets its read for free again: warm-light blocks on warm black lift
+   clearly through the veil. Light mode used the *same* blocks (the dark:
+   variants never fire), so #e8e1d5 blocks sat on a #ece5d7 ground — a delta of
+   four — and the white veil flattened the remainder to nothing.
+
+   Light therefore needs the mirror image: blocks darker than the ground rather
+   than lighter, and a higher layer opacity to survive the veil. The numbers
+   are chosen so the composited block-to-ground contrast lands near dark's,
+   which is what makes the two themes feel like one design. */
+.auth-preview        { opacity: 0.55; }
+.dark .auth-preview  { opacity: 0.20; }
+
+.auth-skel-1         { background-color: #857c6d; }
+.dark .auth-skel-1   { background-color: #e8e1d5; }
+
+.auth-skel-2         { background-color: #a99f8e; }
+.dark .auth-skel-2   { background-color: #f3eee5; }
+
+.auth-skel-card      { background-color: #fffdfa; border-color: rgba(66, 52, 34, 0.16); }
+.dark .auth-skel-card{ background-color: #fffdfa; border-color: #e8e1d5; }
+
+.auth-skel-divider       { border-color: rgba(66, 52, 34, 0.16); }
+.dark .auth-skel-divider { border-color: #e8e1d5; }
+
+.auth-veil       { background-color: rgba(255, 253, 250, 0.40); }
+.dark .auth-veil { background-color: rgba(255, 253, 250, 0.40); }

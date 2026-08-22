@@ -7,6 +7,8 @@ import {
   AlertTriangle, CreditCard, XCircle, Globe, ChevronRight, Check
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import MobileMenuButton from '../components/MobileMenuButton';
+import BackButton from '../components/BackButton';
 import Footer from '../components/Footer';
 import MobileToc from '../components/MobileToc';
 
@@ -50,6 +52,7 @@ export default function TermsPage() {
     <div className="flex flex-col h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)] selection:bg-blue-500/30">
     <main id="terms-scroll" className="flex-1 flex flex-col min-w-0 relative overflow-y-auto slim-scroll">
       <Navbar isAppPage />
+      <MobileMenuButton />
       <MobileToc sections={sections} activeSection={activeSection} onSelect={scrollTo} C={C} scrollContainerId="terms-scroll" />
 
       <div className="fixed inset-0 pointer-events-none z-0 hidden dark:block">
@@ -60,12 +63,13 @@ export default function TermsPage() {
       {/* Hero */}
       <div className="relative z-10 border-b border-[var(--border)]">
         <div className="max-w-6xl mx-auto px-6 py-24 md:py-28">
+          <BackButton className="mb-8" />
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-6 text-[var(--text)] leading-none">
               Terms of<br />Service
             </h1>
             <p className="text-lg text-[var(--muted)] leading-relaxed max-w-2xl mb-10">
-              Please read these terms carefully before using the TurkGateway Agentic AI Platform. By accessing our services, you agree to be bound by these conditions.
+              Please read these terms carefully before using the TurkGateway Agentic AI Agency. By accessing our services, you agree to be bound by these conditions.
             </p>
 
             <div className="mt-8 flex items-center gap-3 text-xs text-[var(--muted)] opacity-60">
@@ -115,14 +119,14 @@ export default function TermsPage() {
 
           <Section id="acceptance" color="blue" icon={FileText} title="1. Acceptance of Terms">
             <p className="text-[var(--muted)] leading-relaxed mb-4">
-              TurkGateway (&quot;the Service&quot;) provides AI-driven administrative assistance for Turkish bureaucracy. By creating an account or using the platform, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and our Privacy Policy.
+              TurkGateway (&quot;the Service&quot;) provides AI-driven administrative assistance for Turkish bureaucracy. By creating an account or using the agency, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and our Privacy Policy.
             </p>
             <p className="text-[var(--muted)] leading-relaxed mb-6">
               If you are using the Service on behalf of a company or legal entity, you represent that you have the authority to bind such entity to these terms. Minors under 18 may not use the Service without verifiable parental consent.
             </p>
             <div className={`p-4 rounded-xl ${C.blue.light} border ${C.blue.border}`}>
               <p className={`${C.blue.text} text-sm`}>
-                <strong>Continued use</strong> of the platform after any Terms update constitutes acceptance of the revised terms. We recommend reviewing this page periodically.
+                <strong>Continued use</strong> of the agency after any Terms update constitutes acceptance of the revised terms. We recommend reviewing this page periodically.
               </p>
             </div>
           </Section>
@@ -165,7 +169,7 @@ export default function TermsPage() {
                 { label: 'No reverse engineering', desc: 'You may not attempt to reverse-engineer our Agentic workflows, Smart Router logic, or proprietary AI models.' },
                 { label: 'Account security',       desc: 'You are responsible for maintaining the confidentiality of your account credentials and all activity under your account.' },
                 { label: 'Accurate information',   desc: 'You must provide truthful information. Knowingly false inputs that trigger automated actions are your sole responsibility.' },
-                { label: 'No automation abuse',    desc: 'You may not script or automate interactions with our platform beyond the provided RPA features.' },
+                { label: 'No automation abuse',    desc: 'You may not script or automate interactions with our agency beyond the provided RPA features.' },
               ].map(({ label, desc }) => (
                 <div key={label} className="flex items-start gap-3 p-4 rounded-xl bg-[var(--surface-1)] border border-[var(--border)]">
                   <div className={`w-5 h-5 rounded-full ${C.emerald.light} flex items-center justify-center shrink-0 mt-0.5`}>
@@ -236,12 +240,12 @@ export default function TermsPage() {
 
           <Section id="ip" color="cyan" icon={Lock} title="6. Intellectual Property">
             <p className="text-[var(--muted)] leading-relaxed mb-4">
-              All content on the TurkGateway platform — including AI model weights, Smart Router logic, workflow schemas, UI design, and documentation — is the exclusive intellectual property of TurkGateway and protected under Turkish and international copyright law.
+              All content on TurkGateway — including AI model weights, Smart Router logic, workflow schemas, UI design, and documentation — is the exclusive intellectual property of TurkGateway and protected under Turkish and international copyright law.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
                 { own: 'You own',  items: ['Your personal data', 'Your uploaded documents', 'Roadmaps you export', 'Conversation history'] },
-                { own: 'We own',   items: ['AI model logic', 'Platform code & design', 'Proprietary workflows', 'TurkGateway brand assets'] },
+                { own: 'We own',   items: ['AI model logic', 'Software code & design', 'Proprietary workflows', 'TurkGateway brand assets'] },
               ].map(({ own, items }) => (
                 <div key={own} className="p-4 rounded-xl bg-[var(--surface-1)] border border-[var(--border)]">
                   <p className="text-[var(--text)] font-bold text-sm mb-3">{own}</p>

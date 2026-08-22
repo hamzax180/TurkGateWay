@@ -2,13 +2,23 @@ export const runtime = 'nodejs';
 
 import { db } from '@/lib/db';
 import { users } from '@/lib/schema';
-import { signToken } from '@/lib/auth';
+import { hashPassword, signToken } from '@/lib/auth';
 import { tokenPayload } from '@/lib/user-helper';
+import { rateLimit, clientKey } from '@/lib/rate-limit';
+import { randomBytes } from 'crypto';
 import { sql } from 'drizzle-orm';
 
 export async function POST(req: Request) {
   try {
     const { access_token, id_token, is_access_token } = await req.json();
+
+    const { success } = await rateLimit(clientKey(req, 'google'), 10, 60);
+    if (!success) {
+      return Response.json(
+        { detail: 'Too many attempts. Please try again in a minute.' },
+        { status: 429 },
+      );
+    }
 
     // The frontend sends the OAuth ACCESS token under `id_token` with is_access_token=true.
     // Resolve which kind of token we actually received.
@@ -32,6 +42,15 @@ export async function POST(req: Request) {
       );
       if (resp.ok) {
         const data = await resp.json();
+        // An ID token from ANY Google app would pass without this check — the
+        // audience must be our own client id. Configured? Enforce it.
+        const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+        if (clientId && data.aud !== clientId) {
+          return Response.json({ detail: 'Invalid Google token' }, { status: 401 });
+        }
+        if (data.email_verified === false) {
+          return Response.json({ detail: 'Google account email is not verified' }, { status: 401 });
+        }
         googleUser = { email: data.email, name: data.name, sub: data.sub };
       }
     }
@@ -45,14 +64,21 @@ export async function POST(req: Request) {
     // Upsert user (case-insensitive match so we don't duplicate an existing account)
     let [user] = await db.select().from(users).where(sql`lower(${users.email}) = ${email}`);
     if (!user) {
+      // A real bcrypt hash of random bytes, not a literal — password login
+      // must fail cleanly for Google-only accounts.
+      const placeholder = await hashPassword(randomBytes(24).toString('hex'));
       [user] = await db.insert(users).values({
         email,
-        hashed_password: 'google-oauth',
+        hashed_password: placeholder,
         full_name: googleUser.name ?? null,
         subscription_status: 'free',
         token_balance: 25,
         last_token_reset: new Date(),
       }).returning();
+    }
+
+    if (user.is_active === false) {
+      return Response.json({ detail: 'This account has been disabled' }, { status: 403 });
     }
 
     const jwt = await signToken({ sub: String(user.id), email: user.email });

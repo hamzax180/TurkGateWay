@@ -1,64 +1,55 @@
 /**
  * rag.ts
- * RAG (Retrieval-Augmented Generation) system.
- * Ports backend/smart_router/rag.py to Next.js.
+ * Retrieval half of the RAG pipeline: embed the query with DashScope's
+ * text-embedding-v3, then search knowledge_chunks via pgvector cosine distance.
  *
- * Uses Google text-embedding-004 to embed queries,
- * then searches knowledge_chunks via pgvector cosine similarity.
+ * Generation lives in agent-router.ts — retrieved chunks are injected into the
+ * Qwen system prompt rather than answered by a separate model call.
  */
 
 import { neon } from '@neondatabase/serverless';
+import { QWEN_BASE_URL, QWEN_EMBED_MODEL, QWEN_EMBED_DIMENSIONS, hasQwenKey } from './qwen';
 
 const sql = neon(process.env.DATABASE_URL!);
 
-const EMBED_MODEL = 'models/text-embedding-004';
 const SIMILARITY_THRESHOLD = 0.35;
 
 // ── Embedding ────────────────────────────────────────────────────────────────
 
-export async function embedText(text: string): Promise<number[]> {
-  if (!process.env.GEMINI_API_KEY) return [];
+/**
+ * DashScope's OpenAI-compatible /embeddings endpoint. `dimensions` is requested
+ * explicitly so vectors match the knowledge_chunks vector(768) column.
+ */
+async function embed(text: string): Promise<number[]> {
+  if (!hasQwenKey()) return [];
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/${EMBED_MODEL}:embedContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: EMBED_MODEL,
-          content: { parts: [{ text }] },
-          taskType: 'RETRIEVAL_QUERY',
-        }),
-      }
-    );
-    const data = await res.json() as { embedding?: { values?: number[] } };
-    return data?.embedding?.values ?? [];
-  } catch {
+    const res = await fetch(`${QWEN_BASE_URL}/embeddings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.DASHSCOPE_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: QWEN_EMBED_MODEL,
+        input: text,
+        dimensions: QWEN_EMBED_DIMENSIONS,
+        encoding_format: 'float',
+      }),
+    });
+    if (!res.ok) {
+      console.error('[rag] embedding failed:', res.status, await res.text().catch(() => ''));
+      return [];
+    }
+    const data = (await res.json()) as { data?: Array<{ embedding?: number[] }> };
+    return data?.data?.[0]?.embedding ?? [];
+  } catch (e) {
+    console.error('[rag] embedding error:', e);
     return [];
   }
 }
 
-export async function embedDocument(text: string): Promise<number[]> {
-  if (!process.env.GEMINI_API_KEY) return [];
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/${EMBED_MODEL}:embedContent?key=${process.env.GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: EMBED_MODEL,
-          content: { parts: [{ text }] },
-          taskType: 'RETRIEVAL_DOCUMENT',
-        }),
-      }
-    );
-    const data = await res.json() as { embedding?: { values?: number[] } };
-    return data?.embedding?.values ?? [];
-  } catch {
-    return [];
-  }
-}
+export const embedText = embed;
+export const embedDocument = embed;
 
 // ── Retrieval ─────────────────────────────────────────────────────────────────
 
@@ -76,7 +67,7 @@ export async function retrieveChunks(
   topK = 3,
 ): Promise<RagChunk[]> {
   void language; // reserved for future language-filtered retrieval
-  const embedding = await embedText(query);
+  const embedding = await embed(query);
   if (!embedding.length) return [];
 
   try {
@@ -109,51 +100,5 @@ export async function retrieveChunks(
       }));
   } catch {
     return [];
-  }
-}
-
-// ── Generation ────────────────────────────────────────────────────────────────
-
-export async function generateRagResponse(
-  query: string,
-  agentType: string,
-  language: string,
-  chunks: RagChunk[],
-): Promise<string | null> {
-  void agentType; // reserved for agent-specific prompting
-  if (!chunks.length || !process.env.GEMINI_API_KEY) return null;
-
-  const context = chunks
-    .map((c, i) => `[Source ${i + 1}: ${c.title}]\n${c.chunkText}`)
-    .join('\n\n');
-
-  const langName = language === 'tr' ? 'Turkish' : language === 'ar' ? 'Arabic' : 'English';
-
-  const prompt = `You are an expert assistant. Answer the user's question using ONLY the provided context. Be conversational and helpful.
-
-CONTEXT:
-${context}
-
-USER QUESTION: ${query}
-
-RULES:
-- Respond in ${langName}
-- Use **bold** for key terms, bullet points for lists
-- Be concise (2-3 paragraphs max)
-- If context doesn't fully answer, say what you know and ask a clarifying question
-- End with a follow-up question`;
-
-  try {
-    const { createGoogleGenerativeAI } = await import('@ai-sdk/google');
-    const { generateText } = await import('ai');
-    const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
-    const { text } = await generateText({
-      model: google('gemini-2.0-flash-exp'),
-      prompt,
-      maxOutputTokens: 400,
-    });
-    return text;
-  } catch {
-    return null;
   }
 }

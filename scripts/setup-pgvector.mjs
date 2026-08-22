@@ -58,7 +58,9 @@ async function main() {
   `;
   console.log('✅ Vector index created');
 
-  console.log('\n🎉 pgvector setup complete! Now run: node scripts/seed-knowledge.mjs');
+  console.log('\n🎉 pgvector setup complete!');
+  console.log('   If knowledge_chunks already holds rows embedded with another model,');
+  console.log('   re-embed them with: node scripts/reembed-knowledge.mjs');
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

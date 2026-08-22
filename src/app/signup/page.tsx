@@ -27,6 +27,7 @@ export default function SignupPage() {
         { code: 'en', label: t('footer_english') },
         { code: 'tr', label: t('footer_turkish') },
         { code: 'ar', label: t('footer_arabic') },
+        { code: 'tk', label: t('footer_turkmen') },
     ];
 
     const currentLanguageLabel = languages.find(l => l.code === language)?.label || 'Language';
@@ -71,7 +72,7 @@ export default function SignupPage() {
                 data.subscription_status,
                 data.last_token_reset
             );
-            router.push('/dashboard');
+            router.push('/applications');
         } catch (err: any) {
             // Only go back to step 1 for email-related errors (e.g. already registered)
             // Network errors ("Failed to fetch") should stay on step 2 so the user can retry
@@ -90,16 +91,16 @@ export default function SignupPage() {
     };
 
     return (
-        <main className="min-h-screen bg-[var(--bg)] flex items-center justify-center p-4 font-sans selection:bg-black selection:text-white transition-colors duration-500 relative overflow-hidden">
+        <main className="auth-canvas min-h-screen flex items-center justify-center p-4 font-sans selection:bg-black selection:text-white transition-colors duration-500 relative overflow-hidden">
             {/* ── Immersive Chat Background Preview ── */}
-            <div className="absolute inset-0 z-0 opacity-20 dark:opacity-10 pointer-events-none select-none">
+            <div className="auth-preview absolute inset-0 z-0 pointer-events-none select-none">
                 <div className="h-full w-full flex">
                     {/* Fake Sidebar */}
-                    <div className="w-64 border-r border-gray-200 dark:border-white/5 p-6 space-y-4">
-                        <div className="h-8 w-32 bg-gray-200 dark:bg-white/10 rounded-lg animate-pulse" />
+                    <div className="auth-skel-divider w-64 border-r p-6 space-y-4">
+                        <div className="auth-skel-1 h-8 w-32 rounded-lg animate-pulse" />
                         <div className="space-y-2 pt-8">
                             {[1, 2, 3, 4].map(i => (
-                                <div key={i} className="h-10 w-full bg-gray-100 dark:bg-white/5 rounded-xl" />
+                                <div key={i} className="auth-skel-2 h-10 w-full rounded-xl" />
                             ))}
                         </div>
                     </div>
@@ -107,35 +108,35 @@ export default function SignupPage() {
                     <div className="flex-1 flex flex-col items-center justify-center p-12">
                         <div className="w-full max-w-2xl space-y-8">
                             <div className="flex gap-4">
-                                <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-white/10 shrink-0" />
+                                <div className="auth-skel-1 h-10 w-10 rounded-full shrink-0" />
                                 <div className="space-y-2 flex-1">
-                                    <div className="h-4 w-3/4 bg-gray-200 dark:bg-white/10 rounded-full" />
-                                    <div className="h-4 w-1/2 bg-gray-100 dark:bg-white/5 rounded-full" />
+                                    <div className="auth-skel-1 h-4 w-3/4 rounded-full" />
+                                    <div className="auth-skel-2 h-4 w-1/2 rounded-full" />
                                 </div>
                             </div>
                             <div className="flex gap-4 flex-row-reverse">
-                                <div className="h-10 w-10 rounded-full bg-black/5 dark:bg-white/5 shrink-0" />
+                                <div className="auth-skel-2 h-10 w-10 rounded-full shrink-0" />
                                 <div className="space-y-2 flex-1 flex flex-col items-end">
-                                    <div className="h-4 w-2/3 bg-gray-200 dark:bg-white/10 rounded-full" />
-                                    <div className="h-4 w-1/3 bg-gray-100 dark:bg-white/5 rounded-full" />
+                                    <div className="auth-skel-1 h-4 w-2/3 rounded-full" />
+                                    <div className="auth-skel-2 h-4 w-1/3 rounded-full" />
                                 </div>
                             </div>
                         </div>
                         {/* Fake Input */}
-                        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 w-full max-w-2xl h-16 bg-white dark:bg-[#171717] rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm flex items-center px-6 gap-4">
-                            <div className="h-6 w-6 rounded-md bg-gray-100 dark:bg-white/5" />
-                            <div className="h-4 w-48 bg-gray-100 dark:bg-white/10 rounded-full" />
+                        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 auth-skel-card w-full max-w-2xl h-16 rounded-2xl border shadow-sm flex items-center px-6 gap-4">
+                            <div className="auth-skel-2 h-6 w-6 rounded-md" />
+                            <div className="auth-skel-2 h-4 w-48 rounded-full" />
                         </div>
                     </div>
                 </div>
                 {/* Overlay Blur */}
-                <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-[10px]" />
+                <div className="auth-veil absolute inset-0 backdrop-blur-[10px]" />
             </div>
 
             <motion.div
                 initial={{ opacity: 0, scale: 0.98, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                className="w-full max-w-[400px] bg-white dark:bg-[#0f0f0f] rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.4)] border border-gray-100 dark:border-white/[0.08] relative overflow-hidden z-10"
+                className="auth-card w-full max-w-[400px] bg-white rounded-[24px] border relative overflow-hidden z-10"
             >
                 <div className="px-8 py-8 flex flex-col items-center">
                     {/* Close Button */}

@@ -33,6 +33,12 @@ jobs:
       - name: Run Linter
         run: npm run lint
 
+      # Pure-logic tests: TOTP against RFC 6238 vectors, money conversion,
+      # rate-limit tiers, plan invariants. No database or network, so this
+      # needs no secrets and cannot flake.
+      - name: Run Tests
+        run: npm test
+
       - name: Build Application
         run: npm run build
         env:

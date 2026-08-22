@@ -1,6 +1,6 @@
 import { db } from './db';
 import { users } from './schema';
-import { eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { verifyToken, extractToken } from './auth';
 
 /** Returns the authenticated user or null (for optional-auth routes). */
@@ -9,7 +9,12 @@ export async function getOptionalUser(req: Request) {
   if (!token) return null;
   const payload = await verifyToken(token);
   if (!payload?.sub) return null;
-  const [user] = await db.select().from(users).where(eq(users.id, Number(payload.sub)));
+  const [user] = await db
+    .select()
+    .from(users)
+    // IS NOT FALSE (rather than = true) so legacy rows with NULL is_active
+    // keep working — only explicitly deactivated accounts are locked out.
+    .where(and(eq(users.id, Number(payload.sub)), sql`${users.is_active} IS NOT FALSE`));
   return user ?? null;
 }
 

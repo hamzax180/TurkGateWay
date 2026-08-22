@@ -8,6 +8,8 @@ import {
   Layers, MessageSquare, ListTodo, Lock, Fingerprint, Eye, MousePointer2
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import MobileMenuButton from '../components/MobileMenuButton';
+import BackButton from '../components/BackButton';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '../context/LanguageContext';
@@ -15,6 +17,7 @@ import Footer from '../components/Footer';
 import LoadingScreen from '../components/LoadingScreen';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../context/AuthContext';
+import { isAgentDisabled } from '@/lib/agents-config';
 
 // --- Custom Select Component to prevent native OS upwards dropdown behavior ---
 const CustomSelect = ({
@@ -285,7 +288,7 @@ export default function ServicesPage() {
         t('services_feat_fire'),
         t('services_feat_municipal'),
       ],
-      status: 'Available',
+      status: 'Disabled',
     },
     {
       id: 'student',
@@ -313,9 +316,13 @@ export default function ServicesPage() {
         t('services_feat_disputes'),
         t('services_feat_compliance'),
       ],
-      status: 'Coming Soon',
+      status: 'Disabled',
     },
   ];
+
+  // Locked cards read either "Disabled" (switched off) or "Coming Soon" (not built yet)
+  const lockedLabel = (status: string) =>
+    status === 'Disabled' ? t('services_status_disabled') : t('services_status_soon');
 
   // Wrapping carousel logic
   const extendedServices = [...services, ...services]; // 6 items to enable smooth endless sliding
@@ -329,6 +336,7 @@ export default function ServicesPage() {
       setIsLoginModalOpen(true);
       return;
     }
+    if (isAgentDisabled(id)) return;
     if (id === 'permit' || id === 'student' || id === 'lawyer') {
       setSelectedAgent(id as 'permit' | 'student' | 'lawyer');
     }
@@ -366,7 +374,7 @@ export default function ServicesPage() {
 
     // Brief delay for cinematic effect before navigation
     setTimeout(() => {
-      router.push('/dashboard');
+      router.push('/applications');
     }, 1800); // Increased for full loading screen effect
   };
 
@@ -395,6 +403,7 @@ export default function ServicesPage() {
 
       <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] selection:bg-blue-500/30 font-sans transition-colors duration-500 overflow-x-hidden relative">
         <Navbar isAppPage={true} onMobileMenuClick={() => setMobileMenuOpen(true)} />
+        <MobileMenuButton onClick={() => setMobileMenuOpen(true)} />
 
         <div className="absolute inset-0 bg-[var(--bg)] -z-10 transition-colors duration-500" />
 
@@ -420,6 +429,10 @@ export default function ServicesPage() {
         {/* Soft Background Glints */}
         <div className="absolute top-[5%] left-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[160px] -z-20" />
         <div className="absolute bottom-[10%] right-[-15%] w-[500px] h-[500px] bg-magenta-500/10 rounded-full blur-[160px] -z-20" />
+
+        <div className="max-w-4xl mx-auto mb-6 relative">
+          <BackButton />
+        </div>
 
         <motion.div
           initial={{ opacity: 0, y: 15 }}
@@ -458,7 +471,7 @@ export default function ServicesPage() {
                 <div className="absolute top-3 right-3 z-20">
                   <span className={`px-2 py-0.5 rounded-full backdrop-blur-md border text-[8px] font-black uppercase tracking-widest flex items-center gap-1 ${available ? 'bg-white/15 border-white/30 text-white' : 'bg-black/40 border-white/10 text-white/90'}`}>
                     <span className={`w-1 h-1 rounded-full ${available ? 'bg-emerald-300 animate-pulse' : 'bg-white/50'}`} />
-                    {available ? t('services_status_active') : t('services_status_soon')}
+                    {available ? t('services_status_active') : lockedLabel(service.status)}
                   </span>
                 </div>
               </div>
@@ -482,7 +495,7 @@ export default function ServicesPage() {
                   </button>
                 ) : (
                   <button disabled className="mt-auto py-2.5 px-4 rounded-[14px] bg-[var(--text)]/[0.04] text-[var(--text)] opacity-40 font-black uppercase text-[10px] tracking-widest border border-[var(--border)] cursor-not-allowed flex items-center justify-center gap-1.5">
-                    <Lock size={11} /> {t('services_status_soon')}
+                    <Lock size={11} /> {lockedLabel(service.status)}
                   </button>
                 )}
               </div>
@@ -531,7 +544,7 @@ export default function ServicesPage() {
                   <div className="absolute top-4 right-4 z-20">
                     <span className={`px-3 py-1 rounded-full backdrop-blur-md border text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 ${available ? 'bg-white/15 border-white/30 text-white' : 'bg-black/35 border-white/10 text-white/90'}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${available ? 'bg-emerald-300 animate-pulse' : 'bg-white/50'}`} />
-                      {available ? t('services_status_active') : t('services_status_soon')}
+                      {available ? t('services_status_active') : lockedLabel(service.status)}
                     </span>
                   </div>
 
@@ -571,7 +584,7 @@ export default function ServicesPage() {
                     </button>
                   ) : (
                     <button disabled className="mt-auto w-full py-3.5 px-6 rounded-[18px] bg-[var(--text)]/[0.04] text-[var(--text)] opacity-40 font-black uppercase text-[11px] tracking-widest border border-[var(--border)] cursor-not-allowed flex items-center justify-center gap-2">
-                      <Lock size={13} /> {t('services_status_soon')}
+                      <Lock size={13} /> {lockedLabel(service.status)}
                     </button>
                   )}
                 </div>

@@ -44,6 +44,14 @@ export const memCache = {
       ttl: opts?.ex ?? LRU_DEFAULT_TTL,
     });
   },
+
+  /**
+   * Needed by the shared-state helpers below: releasing a claimed slot has to
+   * actually free it, and an LRU that can only expire on a timer cannot.
+   */
+  del(key: string): void {
+    _lru.delete(key);
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -102,6 +110,153 @@ export const redis = {
     memCache.set(key, strVal, opts);
   },
 };
+
+/**
+ * Primitives the cache helpers above do not need, but shared state does.
+ *
+ * `claim` is the important one: it is the only way to hand out a resource —
+ * a support agent, say — correctly when several server instances are running.
+ * A read-then-write cannot do it, because two instances can both read "free"
+ * before either writes. SET NX decides it in one atomic step at Redis.
+ *
+ * Without Upstash configured these fall back to the in-process map, which is
+ * correct for a single instance (local dev) and no worse than what they
+ * replace anywhere else.
+ */
+export const redisState = {
+  /**
+   * Take `key` only if nobody holds it. Returns true if we got it.
+   * The TTL means a crashed holder releases automatically.
+   */
+  async claim(key: string, value: string, ttlSeconds: number): Promise<boolean> {
+    const client = getUpstash();
+    if (client) {
+      try {
+        const res = await client.set(key, value, { nx: true, ex: ttlSeconds });
+        return res === 'OK';
+      } catch {
+        // Fall through — better to serve with weaker guarantees than to fail.
+      }
+    }
+    if (memCache.get(key) !== null) return false;
+    memCache.set(key, value, { ex: ttlSeconds });
+    return true;
+  },
+
+  async get(key: string): Promise<string | null> {
+    const client = getUpstash();
+    if (client) {
+      try {
+        const val = await client.get<string>(key);
+        return val ?? null;
+      } catch {
+        /* fall through */
+      }
+    }
+    return memCache.get(key);
+  },
+
+  /** Refresh the TTL on something we already hold — the heartbeat. */
+  async renew(key: string, value: string, ttlSeconds: number): Promise<void> {
+    const client = getUpstash();
+    if (client) {
+      try {
+        await client.set(key, value, { ex: ttlSeconds });
+        return;
+      } catch {
+        /* fall through */
+      }
+    }
+    memCache.set(key, value, { ex: ttlSeconds });
+  },
+
+  /**
+   * Renew only if `value` is still the holder.
+   *
+   * A plain SET would let a late heartbeat take a key back after it had
+   * expired and been claimed by somebody else — the holder would be silently
+   * overwritten and two callers would believe they own the same slot. The
+   * GET-then-SET version of this check has the same race in a wider window,
+   * so the comparison and the write have to happen together at Redis.
+   *
+   * Returns false when we no longer hold it, which is the caller's signal to
+   * stop pretending it does.
+   */
+  async renewIfHeld(key: string, value: string, ttlSeconds: number): Promise<boolean> {
+    const client = getUpstash();
+    if (client) {
+      try {
+        const res = await client.eval(
+          `if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('EXPIRE', KEYS[1], ARGV[2]) else return 0 end`,
+          [key],
+          [value, String(ttlSeconds)],
+        );
+        return Number(res) === 1;
+      } catch {
+        /* fall through */
+      }
+    }
+    if (memCache.get(key) !== value) return false;
+    memCache.set(key, value, { ex: ttlSeconds });
+    return true;
+  },
+
+  async release(key: string): Promise<void> {
+    const client = getUpstash();
+    if (client) {
+      try {
+        await client.del(key);
+        return;
+      } catch {
+        /* fall through */
+      }
+    }
+    memCache.del(key);
+  },
+
+  /**
+   * Release only our own claim. Same reasoning as renewIfHeld: releasing a key
+   * that expired and was re-claimed would hand somebody else's slot away.
+   */
+  async releaseIfHeld(key: string, value: string): Promise<void> {
+    const client = getUpstash();
+    if (client) {
+      try {
+        await client.eval(
+          `if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) else return 0 end`,
+          [key],
+          [value],
+        );
+        return;
+      } catch {
+        /* fall through */
+      }
+    }
+    if (memCache.get(key) === value) memCache.del(key);
+  },
+
+  /** Monotonic counter, used for queue positions. */
+  async increment(key: string, ttlSeconds: number): Promise<number> {
+    const client = getUpstash();
+    if (client) {
+      try {
+        const n = await client.incr(key);
+        if (n === 1) await client.expire(key, ttlSeconds);
+        return n;
+      } catch {
+        /* fall through */
+      }
+    }
+    const current = Number(memCache.get(key) ?? '0') + 1;
+    memCache.set(key, String(current), { ex: ttlSeconds });
+    return current;
+  },
+};
+
+/** True when shared state is actually shared, rather than per-process. */
+export function hasSharedState(): boolean {
+  return hasUpstash;
+}
 
 export const CACHE_TTL = 60 * 60 * 6; // 6 hours
 

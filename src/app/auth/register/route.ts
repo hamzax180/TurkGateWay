@@ -4,12 +4,13 @@ import { db } from '@/lib/db';
 import { users } from '@/lib/schema';
 import { hashPassword, signToken } from '@/lib/auth';
 import { tokenPayload } from '@/lib/user-helper';
+import { rateLimit, clientKey } from '@/lib/rate-limit';
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 const schema = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string().min(8).max(128),
   full_name: z.string().optional(),
 });
 
@@ -19,6 +20,15 @@ export async function POST(req: Request) {
     const parsed = schema.parse(body);
     const email = parsed.email.toLowerCase().trim();
     const { password, full_name } = parsed;
+
+    // Same brute-force guard as login (10/minute, per client + email).
+    const { success } = await rateLimit(clientKey(req, email), 10, 60);
+    if (!success) {
+      return Response.json(
+        { detail: 'Too many attempts. Please try again in a minute.' },
+        { status: 429 },
+      );
+    }
 
     // Case-insensitive duplicate check so the same email can't register twice with different casing
     const existing = await db.select().from(users).where(sql`lower(${users.email}) = ${email}`);

@@ -4,6 +4,9 @@
 .env.local
 .env*.local
 
+# Visa applicant PII — never commit this, it holds passport-level data
+scripts/visa-booking-assistant/applicant.json
+
 # dependencies
 /node_modules
 /.pnp
@@ -36,6 +39,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -73,3 +77,12 @@ response_dump.json
 
 # Agent folders
 .claude/
+
+# Database exports taken before destructive migrations — may contain user data.
+backups/
+
+# Outreach send history — a contact record, not source.
+scripts/university-outreach/sent_log.json
+
+# İkamet assistant applicant data — passport-level PII, never commit.
+scripts/ikamet-assistant/applicant.json

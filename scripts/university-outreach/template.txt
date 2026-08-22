@@ -1,0 +1,32 @@
+Subject: Recruitment partnership enquiry — TurkGateway ({{university}})
+
+Dear {{greeting}},
+
+My name is [YOUR NAME] and I am writing from TurkGateway, a Turkiye-based
+platform that supports international students through university applications,
+student visas and residence permit (ikamet) procedures.
+
+We work with students who are looking specifically at Turkish foundation
+universities. We handle the steps that usually slow an application down —
+document checklists, denklik and equivalency questions, visa appointments and
+post-arrival ikamet registration — so the students who reach your admissions
+team arrive with complete files.
+
+I would like to ask whether {{university}} works with recruitment partners,
+and if so, who I should speak to regarding your agent agreement and commission
+terms for the {{intake}} intake.
+
+If you have a standard partnership application form or information pack, I
+would be glad to complete it and provide any documentation you require.
+
+Thank you for your time.
+
+Kind regards,
+[YOUR NAME]
+[YOUR TITLE], TurkGateway
+international@turkgateway.com
+https://turkgateway.com
+
+--
+If you would prefer not to receive further messages from us, reply with
+"unsubscribe" and we will remove {{email}} from our list.

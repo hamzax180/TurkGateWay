@@ -1,0 +1,364 @@
+<!doctype html>
+<!--
+  Offline stand-in for an e-İkamet form page, used by test.mjs.
+
+  It exists so the assistant can be exercised end to end — document matching,
+  field filling, and above all the never-operate guarantee — without sending a
+  single request to goc.gov.tr.
+
+  It is built from the live DOM of the Uzatma entry page, not from a guess at
+  it, and that changed what it needed to be. The earlier version of this file
+  used plain <select> elements, and the real portal does not contain a single
+  one: every dropdown is a Kendo UI widget mounted on an <input> that Kendo
+  then hides, with a wrapper painted over the top. So the fixture passed while
+  the live run left three mandatory dropdowns on "Please select...". A fixture
+  that models a shape the target never has is not a test.
+
+  What is reproduced here, because each one broke something for real:
+
+    · dropdowns are display:none <input>s behind a visible .k-widget wrapper
+    · the country list is server-paged — 30 of 40 loaded, so the applicant's
+      own country is NOT in the list until it is searched for
+    · the form submits from an MVVM view model, updated only when the widget
+      fires `change`; writing the input's value alone submits nothing
+    · the province answer's code is 0, which a "0 means placeholder" rule
+      reads as unanswered
+    · the phone is a Kendo MaskedTextBox, not a plain input with a mask
+
+  Ids, names and label text are copied from the live page.
+-->
+<html lang="en">
+  <head><meta charset="utf-8"><title>İkamet İzni Başvuru Formu</title>
+    <style>
+      .k-widget { display: inline-block; width: 260px; height: 34px; border: 1px solid #ccc; }
+      .k-input { display: block; padding: 6px; }
+    </style>
+  </head>
+  <body>
+    <h1>Entry to Application for the Extension of the Duration of Residence Permit</h1>
+
+    <form id="ikamet">
+      <p><label for="uzatmaIlDegistir">I wish to change my province of residence.</label>
+         <input type="text" id="uzatmaIlDegistir" name="UzatmaIlDegistir"
+                data-role="dropdownlist" data-text-field="aciklama" data-value-field="kod"
+                data-option-label="Please select..." data-list="evetHayir"></p>
+
+      <p><label for="ad">The First Two Letters of Your Name.</label>
+         <input type="text" id="ad" name="Ad" maxlength="2" class="form-control text-box-uppercase"></p>
+
+      <p><label for="soyad">The First Two Letters of Your Last Name</label>
+         <input type="text" id="soyad" name="Soyad" maxlength="2" class="form-control text-box-uppercase"></p>
+
+      <p><label for="uyruk">Country of Nationality</label>
+         <input type="text" id="uyruk" name="Uyruk"
+                data-role="dropdownlist" data-text-field="aciklama" data-value-field="kod"
+                data-option-label="Please select..." data-list="ulke" data-page-size="30"></p>
+
+      <p><label for="yabanciKimlikNo">Foreigners ID No</label>
+         <input type="text" id="yabanciKimlikNo" name="YabanciKimlikNo"></p>
+
+      <p><label for="belgeSeri">Residence Permit Card Serial Number</label>
+         <input type="text" id="belgeSeri" name="BelgeSeri" maxlength="3"></p>
+
+      <p><label for="belgeNo">Residence Permit Card Number</label>
+         <input type="text" id="belgeNo" name="BelgeNo"></p>
+
+      <p><label for="iletisim_tercih">Communication Preference</label>
+         <input type="text" id="iletisim_tercih" name="Iletisim.Tercih"
+                data-role="dropdownlist" data-text-field="aciklama" data-value-field="kod"
+                data-option-label="Please select..." data-list="iletisimTercih"></p>
+
+      <p><label for="iletisim_eMail">e-mail Address</label>
+         <input type="email" id="iletisim_eMail" name="Iletisim.EMail"></p>
+
+      <p><label for="iletisim_cepTelefon">Cell Phone</label>
+         <input type="tel" id="iletisim_cepTelefon" name="Iletisim.CepTelefon"
+                data-role="maskedtextbox" data-mask="(999) 000-00-00"></p>
+
+      <p><label for="CaptchaInputText">Enter the characters you see in the image to the space near the image.</label>
+         <input type="text" id="CaptchaInputText" name="CaptchaInputText"></p>
+
+      <!-- Fields from later steps of the same application, so one fixture
+           covers the whole flow the assistant walks. -->
+
+      <!-- "Personal Information 1", the step reached from the verification
+           e-mail. Its labels are copied from the live wizard. The interesting
+           one is Previous Surname: the portal's own tooltip says to leave it
+           blank unless the surname changed, and it sits directly beneath a
+           Name box holding three given names — the exact setup in which a
+           helpful guess does damage. -->
+      <p><label for="pi_ad">Name</label><input type="text" id="pi_ad" name="PiAd"></p>
+      <p><label for="pi_soyad">His/her Last Name</label>
+         <input type="text" id="pi_soyad" name="PiSoyad"></p>
+      <p><label for="pi_onceki">Previous Surname</label>
+         <input type="text" id="pi_onceki" name="PiOncekiSoyad"></p>
+      <p><label for="pi_baba">Father's Name</label>
+         <input type="text" id="pi_baba" name="PiBabaAdi"></p>
+      <p><label for="pi_anne">Mother's Name</label>
+         <input type="text" id="pi_anne" name="PiAnneAdi"></p>
+
+      <p><label>Pasaport Numarası <input type="text" name="passportNo"></label></p>
+      <p><label>Doğum Tarihi <input type="date" name="dob"></label></p>
+      <p><label>Anne Adı <input type="text" name="motherName"></label></p>
+      <p><label>Baba Adı <input type="text" name="fatherName"></label></p>
+
+      <p><label for="passportType">Pasaport Türü</label>
+         <input type="text" id="passportType" name="PasaportTur"
+                data-role="dropdownlist" data-text-field="aciklama" data-value-field="kod"
+                data-option-label="Seçiniz" data-list="pasaportTur"></p>
+
+      <fieldset>
+        <legend>Cinsiyet</legend>
+        <label><input type="radio" name="gender" value="E"> Erkek</label>
+        <label><input type="radio" name="gender" value="K"> Kadın</label>
+      </fieldset>
+
+      <h2>Belgeler</h2>
+      <p><label>Pasaport Fotokopisi <input type="file" name="doc_passport"></label></p>
+      <p><label>BİYOMETRİK FOTOĞRAF <input type="file" name="doc_photo"></label></p>
+      <p><label>Sağlık Sigortası <input type="file" name="doc_insurance"></label></p>
+      <p><label>Öğrenci Belgesi <input type="file" name="doc_student"></label></p>
+      <p><label>Kira Sözleşmesi <input type="file" name="doc_address"></label></p>
+      <p><label>Harç Dekontu <input type="file" name="doc_fee"></label></p>
+      <p><label>Diğer Belge <input type="file" name="doc_other"></label></p>
+
+      <!-- The things the assistant must never touch. -->
+      <p>
+        <label for="uzatmaGecisOkudumAnladim">
+          <input type="checkbox" id="uzatmaGecisOkudumAnladim" name="UzatmaGecisOkudumAnladim">
+          I READ, UNDERSTOOD
+        </label>
+      </p>
+      <p>
+        <button type="button" id="ileri">Resume</button>
+        <button type="button" id="kaydet">KAYDET</button>
+        <input type="submit" id="basvuru" value="BAŞVURU YAP">
+      </p>
+    </form>
+
+    <script>
+      // ── A jQuery + Kendo stand-in ────────────────────────────────────────
+      //
+      // Only the surface the assistant actually drives is implemented, and it
+      // is implemented with the same asynchrony the real thing has: a filtered
+      // data source answers on a later turn, exactly as a server would, so the
+      // adapter's wait-for-change path is genuinely exercised rather than
+      // accidentally satisfied by a synchronous reply.
+      (function () {
+        function Q(el) { this[0] = el; this.length = el ? 1 : 0; }
+        Q.prototype.data = function (key) {
+          const store = this[0].__kdata || (this[0].__kdata = {});
+          return key === undefined ? store : store[key];
+        };
+        Q.prototype.val = function () { return this[0].value; };
+        Q.prototype.is = function () { return true; };
+        const jq = (el) => new Q(el);
+        jq.fn = Q.prototype;
+        window.jQuery = window.$ = jq;
+
+        // What the form would actually POST. Kendo MVVM writes into this on a
+        // widget's change event and nowhere else, which is the whole point:
+        // an assistant that sets input.value directly leaves this empty.
+        window.__model = {};
+
+        function DataSource(rows, opts) {
+          this._all = rows;
+          this.options = {
+            pageSize: opts.pageSize || rows.length,
+            serverPaging: rows.length > (opts.pageSize || rows.length),
+            serverFiltering: rows.length > (opts.pageSize || rows.length),
+          };
+          this._data = rows.slice(0, this.options.pageSize);
+          this._once = [];
+        }
+        DataSource.prototype.data = function () { return this._data; };
+        DataSource.prototype.total = function () { return this._all.length; };
+        DataSource.prototype.one = function (ev, fn) { if (ev === 'change') this._once.push(fn); };
+        DataSource.prototype.filter = function (f) {
+          const self = this;
+          // A round trip, not a function call. Answering synchronously would
+          // hide any missing await in the caller.
+          setTimeout(function () {
+            if (!f || !f.value) {
+              self._data = self._all.slice(0, self.options.pageSize);
+            } else {
+              const needle = String(f.value).toLowerCase();
+              self._data = self._all.filter((r) =>
+                String(r[f.field]).toLowerCase().includes(needle),
+              );
+            }
+            const fns = self._once;
+            self._once = [];
+            fns.forEach((fn) => fn());
+          }, 50);
+        };
+
+        const LISTS = {
+          evetHayir: [
+            // The correct answer here has the code 0 — a real trap for any
+            // rule that reads 0 as "nothing chosen".
+            { kod: 0, aciklama: 'No' },
+            { kod: 1, aciklama: 'Yes' },
+          ],
+          iletisimTercih: [
+            { kod: 2, aciklama: 'Cell Phone' },
+            { kod: 1, aciklama: 'e-Mail' },
+          ],
+          pasaportTur: [
+            { kod: 1, aciklama: 'Umuma Mahsus Pasaport' },
+            { kod: 2, aciklama: 'Hususi Pasaport' },
+          ],
+          // Alphabetical, and deliberately longer than one page: with a page
+          // size of 30 the applicant's own country is not in the loaded data
+          // at all. Choosing it requires asking the server, which is exactly
+          // what defeated the previous version.
+          ulke: [
+            'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Argentina',
+            'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahrain', 'Bangladesh',
+            'Belarus', 'Belgium', 'Bolivia', 'Brazil', 'Bulgaria', 'Cambodia',
+            'Cameroon', 'Canada', 'Chad', 'Chile', 'China', 'Colombia', 'Croatia',
+            'Cuba', 'Cyprus', 'Denmark', 'Ecuador', 'Egypt', 'Estonia', 'Ethiopia',
+            'Finland', 'France', 'Georgia', 'Germany', 'Ghana', 'Greece',
+            'Saudi Arabia', 'Turkey', 'Yemen',
+          ].map((name, i) => ({ kod: 100 + i, aciklama: name })),
+        };
+
+        function wrap(input, className) {
+          const wrapper = document.createElement('span');
+          wrapper.className = 'k-widget k-dropdown k-header form-control';
+          input.parentNode.insertBefore(wrapper, input);
+          wrapper.appendChild(input);
+          const shown = document.createElement('span');
+          shown.className = 'k-input';
+          wrapper.appendChild(shown);
+          input.style.display = 'none';
+          return { wrapper, shown };
+        }
+
+        function DropDownList(input) {
+          const rows = LISTS[input.getAttribute('data-list')] || [];
+          const pageSize = Number(input.getAttribute('data-page-size')) || rows.length;
+          const parts = wrap(input);
+          const optionLabel = input.getAttribute('data-option-label') || '';
+
+          this.element = jq(input);
+          this.wrapper = jq(parts.wrapper);
+          this.options = {
+            dataTextField: input.getAttribute('data-text-field'),
+            dataValueField: input.getAttribute('data-value-field'),
+            optionLabel: optionLabel,
+          };
+          this.dataSource = new DataSource(rows, { pageSize });
+          this._value = '';
+          this._text = optionLabel;
+          parts.shown.textContent = optionLabel;
+
+          const self = this;
+          this.value = function (v) {
+            if (v === undefined) return self._value;
+            // Kendo resolves the value against everything it knows about,
+            // including items fetched by an earlier search — not only what is
+            // in the current page.
+            const row = self.dataSource._all.find((r) => String(r.kod) === String(v));
+            if (!row) return self._value;
+            self._value = String(row.kod);
+            self._text = row.aciklama;
+            return self._value;
+          };
+          this.text = function () { return self._text; };
+          this.trigger = function (ev) {
+            if (ev !== 'change') return;
+            // The two things a change does: repaint what the applicant sees,
+            // and write into the model the form posts.
+            parts.shown.textContent = self._text;
+            input.value = self._value;
+            window.__model[input.name] = self._value;
+          };
+        }
+
+        function MaskedTextBox(input) {
+          const mask = input.getAttribute('data-mask') || '';
+          const slots = (mask.match(/[09]/g) || []).length;
+          const self = this;
+          this.element = jq(input);
+          this.wrapper = jq(input);
+          this.options = { mask: mask };
+          this._digits = '';
+
+          const render = () => {
+            if (!self._digits) { input.value = ''; return; }
+            const d = self._digits.padEnd(slots, '_');
+            let out = '';
+            let i = 0;
+            for (const ch of mask) out += /[09]/.test(ch) ? d[i++] : ch;
+            input.value = out;
+          };
+
+          this.value = function (v) {
+            if (v === undefined) return input.value;
+            // A mask takes the characters it was defined for and no others,
+            // and it takes only as many as it has slots. Anything longer is
+            // truncated — which is how a number written with a country code
+            // used to end up as a plausible-looking wrong number.
+            self._digits = String(v).replace(/\D/g, '').slice(0, slots);
+            render();
+            return input.value;
+          };
+          this.trigger = function (ev) {
+            if (ev !== 'change') return;
+            window.__model[input.name] = input.value;
+          };
+
+          // Real typing goes through the mask a key at a time.
+          input.addEventListener('keydown', (e) => {
+            if (e.key.length === 1 && /[0-9]/.test(e.key)) {
+              e.preventDefault();
+              if (self._digits.length < slots) self._digits += e.key;
+              render();
+            } else if (e.key === 'Backspace') {
+              e.preventDefault();
+              self._digits = self._digits.slice(0, -1);
+              render();
+            }
+          });
+          // A programmatic value-set — a Playwright fill() — does not go
+          // through the mask, and the widget rejects what it did not build.
+          input.addEventListener('input', () => {
+            if (input.value === '') { self._digits = ''; return; }
+            if (/^[()\d\s_-]*$/.test(input.value) && input.value.includes('_') === false
+                && input.value.replace(/\D/g, '').length === slots) return;
+            render();
+          });
+        }
+
+        for (const input of document.querySelectorAll('input[data-role=dropdownlist]')) {
+          input.__kdata = { kendoDropDownList: new DropDownList(input) };
+        }
+        for (const input of document.querySelectorAll('input[data-role=maskedtextbox]')) {
+          input.__kdata = { kendoMaskedTextBox: new MaskedTextBox(input) };
+        }
+
+        // Plain inputs are MVVM-bound too, on their own change event.
+        for (const input of document.querySelectorAll('input:not([data-role])')) {
+          if (input.type === 'file' || input.type === 'submit') continue;
+          input.addEventListener('change', () => {
+            window.__model[input.name] = input.type === 'checkbox' ? input.checked : input.value;
+          });
+        }
+      })();
+
+      // Records any activation of the controls that must stay untouched, so
+      // the test can assert on real events rather than on inspection alone.
+      window.__violations = [];
+      for (const id of ['uzatmaGecisOkudumAnladim', 'ileri', 'kaydet', 'basvuru']) {
+        document.getElementById(id).addEventListener('click', () => {
+          window.__violations.push(id);
+        });
+      }
+      document.getElementById('ikamet').addEventListener('submit', (e) => {
+        e.preventDefault();
+        window.__violations.push('form-submit');
+      });
+    </script>
+  </body>
+</html>

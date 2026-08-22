@@ -1,28 +1,27 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Menu, X, FileCheck, Sun, Moon, ShieldCheck } from 'lucide-react';
-import ThemeToggle from './ThemeToggle';
+import { ShieldCheck } from 'lucide-react';
 import { BACKEND_BASE } from '@/app/utils/api';
-import Sidebar from './Sidebar';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 
-export default function Navbar({ isAppPage = false, transparentTop = false, onMobileMenuClick, extraContent }: { isAppPage?: boolean; transparentTop?: boolean; onMobileMenuClick?: () => void; extraContent?: React.ReactNode }) {
+/**
+ * Desktop-only top bar.
+ *
+ * Hidden below `md`: on mobile it rendered as a 64px strip holding nothing but
+ * a hamburger, so it is not rendered at all there. `onMobileMenuClick` is kept
+ * in the signature because several pages still pass it and own the drawer it
+ * used to trigger — this component simply no longer draws that trigger.
+ */
+export default function Navbar({ isAppPage = false, transparentTop = false, extraContent }: { isAppPage?: boolean; transparentTop?: boolean; onMobileMenuClick?: () => void; extraContent?: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, token, logout, isAuthenticated, setIsLoginModalOpen } = useAuth();
+  const { user, logout, isAuthenticated, setIsLoginModalOpen } = useAuth();
   const [scrolled, setScrolled] = useState(false);
-  const [open, setOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 16);
@@ -65,7 +64,8 @@ export default function Navbar({ isAppPage = false, transparentTop = false, onMo
     { href: '/', label: t('navbar_home') },
     { href: '/chat', label: t('navbar_chat') },
     { href: '/services', label: t('navbar_services') || 'Services' },
-    { href: '/dashboard', label: t('navbar_dashboard') },
+    // /dashboard is gone. Login, signup, payment success and the roadmap
+    // hand-off all land on /applications now.
     { href: '/pricing', label: t('navbar_pricing'), hideOnSmallLaptop: true },
     ...(isAdmin ? [{ href: '/admin', label: t('navbar_subscribers') }] : []),
     { href: '/download', label: t('navbar_download') === 'navbar_download' ? 'Download App' : t('navbar_download') || 'Download App', hideOnSmallLaptop: true },
@@ -75,7 +75,7 @@ export default function Navbar({ isAppPage = false, transparentTop = false, onMo
   return (
     <>
     <header
-      className={`${isAppPage ? 'relative z-[40] w-full shrink-0 border-b border-[var(--border)]/50' : 'fixed inset-x-0 top-0 z-[100] transition-all duration-300'} ${(transparentTop && !scrolled)
+      className={`hidden md:block ${isAppPage ? 'relative z-[40] w-full shrink-0 border-b border-[var(--border)]/50' : 'fixed inset-x-0 top-0 z-[100] transition-all duration-300'} ${(transparentTop && !scrolled)
           ? 'bg-transparent border-transparent shadow-none'
           : (isAppPage || scrolled) 
           ? 'bg-[var(--nav-bg)] backdrop-blur-xl border-b border-[var(--border)] shadow-2xl' 
@@ -83,18 +83,6 @@ export default function Navbar({ isAppPage = false, transparentTop = false, onMo
         }`}
     >
       <div className="w-full px-4 md:px-6 flex items-center" style={{ height: '64px', gap: 0 }}>
-        {/* Mobile Menu Toggle */}
-        <button
-          className="md:hidden p-2 text-gray-400 hover:text-white transition-colors"
-          onClick={() => {
-            if (onMobileMenuClick) onMobileMenuClick();
-            else setOpen(!open);
-          }}
-          aria-label="Toggle menu"
-        >
-          {open ? <X size={20} /> : <Menu size={20} />}
-        </button>
-
         {/* LEFT: Desktop Nav */}
         <div className="flex-1 hidden md:flex items-center justify-start">
           <nav className="flex items-center gap-0">
@@ -126,6 +114,7 @@ export default function Navbar({ isAppPage = false, transparentTop = false, onMo
           {extraContent}
         </div>
 
+
         {/* RIGHT: User Actions */}
         <div className="flex-1 hidden md:flex items-center justify-end gap-2 relative z-50">
           {isAuthenticated ? (
@@ -146,6 +135,18 @@ export default function Navbar({ isAppPage = false, transparentTop = false, onMo
                 </div>
               )}
               <span className="text-xs font-bold text-[var(--muted)] uppercase tracking-widest transition-colors duration-500">{user?.fullName || user?.email}</span>
+              {/* Signed-in only, and sitting next to sign out rather than in
+                  the public nav — it is account content, not a landing page. */}
+              <Link
+                href="/applications"
+                className={`px-3 py-2 text-sm font-medium no-underline transition-colors ${
+                  pathname === '/applications'
+                    ? 'text-[var(--text)]'
+                    : 'text-[var(--muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                {t('navbar_applications')}
+              </Link>
               <button
                 onClick={logout}
                 className="px-4 py-2 text-sm font-medium text-red-400 hover:text-red-300 transition-colors"
@@ -186,26 +187,6 @@ export default function Navbar({ isAppPage = false, transparentTop = false, onMo
       </div>
     </header>
 
-    {/* Mobile Drawer (Universal Sidebar) — rendered OUTSIDE header */}
-    <Sidebar
-      currentSessionId={null}
-      assistantType={mounted ? (localStorage.getItem('permitops_active_agent') || 'permit') : 'permit'}
-      onSessionSelect={(id: string) => {
-        localStorage.setItem('permitops_active_session_id', id);
-        router.push('/chat');
-      }}
-      onNewChat={() => { router.push('/chat'); }}
-      onDeleteSession={() => {}}
-      onSwitchAssistant={(t: any) => {
-        localStorage.setItem('permitops_active_agent', t);
-        router.push('/chat');
-      }}
-      token={token}
-      mobileOpen={open}
-      onMobileClose={() => setOpen(false)}
-      refreshTrigger={0}
-      mobileOnly
-    />
     </>
   );
 }

@@ -4,7 +4,13 @@ import { motion } from 'framer-motion';
 import { Cpu, ArrowRight, X, MessageSquare, BarChart3, Mic } from 'lucide-react';
 
 interface OnboardingWizardProps {
-  onDismiss: () => void;
+  /**
+   * `remember: true` means never show this again — it is the only path that
+   * persists anything. Continue and the close button pass false, so the wizard
+   * returns next visit; that is what gives the "Don't show again" button a
+   * reason to exist rather than duplicating Continue.
+   */
+  onDismiss: (remember: boolean) => void;
 }
 
 const CAPABILITIES = [
@@ -34,7 +40,7 @@ export default function OnboardingWizard({ onDismiss }: OnboardingWizardProps) {
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--muted)] opacity-40 mb-0.5">TurkGateway AI</p>
             <h2 className="text-sm sm:text-base font-black text-[var(--text)] leading-tight">Welcome! Here&apos;s how it works</h2>
           </div>
-          <button onClick={onDismiss} className="w-7 h-7 rounded-xl flex items-center justify-center text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-all shrink-0 ml-3">
+          <button onClick={() => onDismiss(false)} className="w-7 h-7 rounded-xl flex items-center justify-center text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-all shrink-0 ml-3">
             <X size={14} />
           </button>
         </div>
@@ -61,11 +67,16 @@ export default function OnboardingWizard({ onDismiss }: OnboardingWizardProps) {
 
         {/* Footer */}
         <div className="px-4 sm:px-6 pb-4 sm:pb-6 flex items-center justify-between border-t border-[var(--border)] pt-3">
-          <p className="text-[9px] text-[var(--muted)] opacity-30 hidden sm:block">Won&apos;t show again after testing</p>
+          <button
+            onClick={() => onDismiss(true)}
+            className="text-[11px] font-medium text-[var(--muted)] hover:text-[var(--text)] underline underline-offset-2 decoration-[var(--border)] hover:decoration-current transition-colors"
+          >
+            Don&apos;t show again
+          </button>
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            onClick={onDismiss}
+            onClick={() => onDismiss(false)}
             className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-black shadow-[0_4px_20px_rgba(239,68,68,0.3)] ml-auto"
           >
             Continue <ArrowRight size={12} />

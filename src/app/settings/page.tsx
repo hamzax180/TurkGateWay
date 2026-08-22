@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, User, Moon, Sun, Languages, History, Shield, LogOut, ChevronRight, ArrowLeft, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Settings, User, Moon, Sun, Languages, History, Shield, LogOut, ChevronRight, ArrowLeft, AlertCircle, CheckCircle2, Coins } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +10,9 @@ import ThemeToggle from '../components/ThemeToggle';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
+import MobileMenuButton from '../components/MobileMenuButton';
+import BackButton from '../components/BackButton';
+import UsagePanel from './UsagePanel';
 import { apiFetch } from '../utils/api';
 
 export default function SettingsPage() {
@@ -30,9 +33,29 @@ export default function SettingsPage() {
   
   const [securityStatus, setSecurityStatus] = useState<{id: string, message: string, type: 'success' | 'info'} | null>(null);
 
+  const [mfaEnabled, setMfaEnabled] = useState<boolean | null>(null);
+  const [mfaSecret, setMfaSecret] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaBusy, setMfaBusy] = useState(false);
+  const [mfaError, setMfaError] = useState('');
+
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const loadMfaStatus = async () => {
+      try {
+        const res = await apiFetch('/auth/mfa');
+        if (res?.ok) {
+          const json = await res.json();
+          setMfaEnabled(Boolean(json.mfa_enabled));
+        }
+      } catch { /* ignore */ }
+    };
+    loadMfaStatus();
+  }, [isAuthenticated, activeTab]);
 
   if (!mounted) return null;
 
@@ -40,7 +63,7 @@ export default function SettingsPage() {
     if (!token) return;
     try {
       setIsClearing(true);
-      const res = await apiFetch(`/chat/sessions/clear?token=${token}`, {
+      const res = await apiFetch(`/chat/sessions/clear`, {
         method: 'DELETE'
       });
       if (res?.ok) {
@@ -63,7 +86,7 @@ export default function SettingsPage() {
     if (!token) return;
     try {
       setIsDeleting(true);
-      const res = await apiFetch(`/auth/account?token=${token}`, {
+      const res = await apiFetch(`/auth/account`, {
         method: 'DELETE'
       });
       if (res?.ok) {
@@ -82,10 +105,82 @@ export default function SettingsPage() {
     setTimeout(() => setSecurityStatus(null), 3000);
   };
 
+  const mfaDone = language === 'ar' ? 'تم تفعيل المصادقة الثنائية بنجاح' : language === 'tr' ? 'İki adımlı doğrulama etkinleştirildi' : language === 'tk' ? 'Iki basgançakly tassyklama açyldy' : 'Two-factor authentication enabled';
+  const mfaOff = language === 'ar' ? 'تم إيقاف المصادقة الثنائية' : language === 'tr' ? 'İki adımlı doğrulama kapatıldı' : language === 'tk' ? 'Iki basgançakly tassyklama ýapyldy' : 'Two-factor authentication disabled';
+
+  const handleMfaEnable = async () => {
+    setMfaBusy(true);
+    setMfaError('');
+    try {
+      const res = await apiFetch('/auth/mfa/setup', { method: 'POST' });
+      if (res?.ok) {
+        const json = await res.json();
+        setMfaSecret(json.secret);
+      } else {
+        const json = await res?.json().catch(() => ({}));
+        setMfaError(json?.detail || 'Error');
+      }
+    } catch {
+      setMfaError('Error');
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
+  const handleMfaVerify = async () => {
+    setMfaBusy(true);
+    setMfaError('');
+    try {
+      const res = await apiFetch('/auth/mfa/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: mfaCode }),
+      });
+      if (res?.ok) {
+        setMfaEnabled(true);
+        setMfaSecret(null);
+        setMfaCode('');
+        showSecurityTip('2fa', mfaDone);
+      } else {
+        const json = await res?.json().catch(() => ({}));
+        setMfaError(json?.detail || 'Invalid code');
+      }
+    } catch {
+      setMfaError('Error');
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
+  const handleMfaDisable = async () => {
+    setMfaBusy(true);
+    setMfaError('');
+    try {
+      const res = await apiFetch('/auth/mfa/disable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: mfaCode }),
+      });
+      if (res?.ok) {
+        setMfaEnabled(false);
+        setMfaCode('');
+        showSecurityTip('2fa', mfaOff);
+      } else {
+        const json = await res?.json().catch(() => ({}));
+        setMfaError(json?.detail || 'Invalid code');
+      }
+    } catch {
+      setMfaError('Error');
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
   const tabs = [
     { id: 'general', icon: Settings, label: t('settings_appearance') },
     { id: 'profile', icon: User, label: t('settings_profile') },
     { id: 'history', icon: History, label: t('settings_history') },
+    { id: 'usage', icon: Coins, label: t('settings_usage') || 'Usage' },
     { id: 'security', icon: Shield, label: t('settings_security_title') },
   ];
 
@@ -114,8 +209,10 @@ export default function SettingsPage() {
 
       <main className="flex-1 flex flex-col min-w-0 transition-colors duration-300 relative overflow-y-auto slim-scroll">
         <Navbar isAppPage onMobileMenuClick={() => setMobileMenuOpen(true)} />
+        <MobileMenuButton onClick={() => setMobileMenuOpen(true)} />
 
         <div className="w-full px-4 md:px-12 py-6 md:py-12 relative z-10">
+          <BackButton className="mb-5 ml-2 md:ml-0" />
 
           {/* Mobile: Header + Horizontal pill tabs */}
           <div className="md:hidden mb-6">
@@ -204,7 +301,7 @@ export default function SettingsPage() {
                               </div>
                             </div>
                             <span className={`text-sm font-bold ${mounted && !document.documentElement.classList.contains('dark') ? 'text-blue-600' : 'text-gray-500'}`}>
-                              {language === 'ar' ? 'فاتح' : (language === 'tr' ? 'Açık' : 'Light')}
+                              {language === 'ar' ? 'فاتح' : language === 'tr' ? 'Açık' : language === 'tk' ? 'Açyk' : 'Light'}
                             </span>
                             {mounted && !document.documentElement.classList.contains('dark') && (
                               <div className="absolute top-2 right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-white">
@@ -236,7 +333,7 @@ export default function SettingsPage() {
                               </div>
                             </div>
                             <span className={`text-sm font-bold ${mounted && document.documentElement.classList.contains('dark') ? 'text-blue-400' : 'text-gray-500'}`}>
-                              {language === 'ar' ? 'داكن' : (language === 'tr' ? 'Koyu' : 'Dark')}
+                              {language === 'ar' ? 'داكن' : language === 'tr' ? 'Koyu' : language === 'tk' ? 'Garaňky' : 'Dark'}
                             </span>
                             {mounted && document.documentElement.classList.contains('dark') && (
                               <div className="absolute top-2 right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-white">
@@ -297,6 +394,8 @@ export default function SettingsPage() {
                   </div>
                 </div>
               )}
+
+              {activeTab === 'usage' && <UsagePanel />}
 
               {activeTab === 'history' && (
                 <div className="space-y-6">
@@ -374,22 +473,78 @@ export default function SettingsPage() {
                     </h2>
                     
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--surface-2)]/40 border border-[var(--border)] relative overflow-hidden">
-                        <div>
-                          <p className="font-bold">{t('settings_2fa_title')}</p>
-                          <p className="text-xs text-[var(--muted)]">{t('settings_2fa_desc')}</p>
+                      <div className="p-4 rounded-2xl bg-[var(--surface-2)]/40 border border-[var(--border)] relative overflow-hidden">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="font-bold">{t('settings_2fa_title')}</p>
+                            <p className="text-xs text-[var(--muted)]">{t('settings_2fa_desc')}</p>
+                          </div>
+                          {mfaEnabled === null ? (
+                            <span className="text-xs text-[var(--muted)]">…</span>
+                          ) : mfaEnabled ? (
+                            <span className="px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 text-xs font-bold">
+                              {language === 'ar' ? 'مفعّلة' : language === 'tr' ? 'Açık' : language === 'tk' ? 'Açyk' : 'Enabled'}
+                            </span>
+                          ) : (
+                            <button
+                              onClick={handleMfaEnable}
+                              disabled={mfaBusy}
+                              className="px-4 py-1.5 rounded-full border border-[var(--border)] text-xs font-bold hover:bg-[var(--surface-2)] transition-all active:scale-95 disabled:opacity-50"
+                            >
+                              {t('settings_2fa_enable')}
+                            </button>
+                          )}
                         </div>
-                        <button 
-                          onClick={() => showSecurityTip('2fa', language === 'en' ? '2FA request sent to your email' : (language === 'ar' ? 'تم إرسال طلب تفعيل المصادقة الثنائية لبريدك' : '2FA isteği e-postanıza gönderildi'))}
-                          className="px-4 py-1.5 rounded-full border border-[var(--border)] text-xs font-bold hover:bg-[var(--surface-2)] transition-all active:scale-95"
-                        >
-                          {securityStatus?.id === '2fa' ? <CheckCircle2 size={16} className="text-emerald-500" /> : t('settings_2fa_enable')}
-                        </button>
-                        {securityStatus?.id === '2fa' && (
-                          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="absolute right-20 text-[10px] text-emerald-500 font-bold whitespace-nowrap">
-                            {securityStatus.message}
-                          </motion.div>
+
+                        {mfaSecret && !mfaEnabled && (
+                          <div className="mt-4 space-y-2.5">
+                            <p className="text-xs text-[var(--muted)] leading-relaxed">
+                              {language === 'ar' ? 'أضف هذا المفتاح إلى Google Authenticator أو Authy، ثم أدخل الرمز المكوّن من 6 أرقام:' : language === 'tr' ? 'Bu anahtarı Google Authenticator veya Authy uygulamasına ekleyin, ardından 6 haneli kodu girin:' : language === 'tk' ? 'Bu açary Google Authenticator ýa-da Authy goşundysyna goşuň, soňra 6 sanly kody giriziň:' : 'Add this key to Google Authenticator or Authy, then enter the 6-digit code:'}
+                            </p>
+                            <code className="block w-full rounded-xl border border-[var(--border)] bg-[var(--surface-1)] px-3 py-2 text-[11px] font-mono break-all select-all text-[var(--text)]">{mfaSecret}</code>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={6}
+                                value={mfaCode}
+                                onChange={(e) => setMfaCode(e.target.value.replace(/[^0-9]/g, ''))}
+                                placeholder="123456"
+                                className="flex-1 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] text-xs font-mono tracking-widest text-center focus:border-emerald-500 focus:outline-none"
+                              />
+                              <button
+                                onClick={handleMfaVerify}
+                                disabled={mfaBusy || mfaCode.length !== 6}
+                                className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-40 disabled:grayscale"
+                              >
+                                {language === 'ar' ? 'تأكيد' : language === 'tr' ? 'Doğrula' : language === 'tk' ? 'Tassykla' : 'Verify'}
+                              </button>
+                            </div>
+                          </div>
                         )}
+
+                        {mfaEnabled && (
+                          <div className="mt-4 flex gap-2">
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              maxLength={6}
+                              value={mfaCode}
+                              onChange={(e) => setMfaCode(e.target.value.replace(/[^0-9]/g, ''))}
+                              placeholder={language === 'ar' ? 'الرمز الحالي' : language === 'tr' ? 'Mevcut kod' : language === 'tk' ? 'Häzirki kod' : 'Current code'}
+                              className="flex-1 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] text-xs font-mono tracking-widest text-center focus:border-red-500 focus:outline-none"
+                            />
+                            <button
+                              onClick={handleMfaDisable}
+                              disabled={mfaBusy || mfaCode.length !== 6}
+                              className="px-4 py-2 rounded-xl bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition-all active:scale-95 disabled:opacity-40 disabled:grayscale"
+                            >
+                              {language === 'ar' ? 'إيقاف' : language === 'tr' ? 'Kapat' : language === 'tk' ? 'Öçür' : 'Disable'}
+                            </button>
+                          </div>
+                        )}
+
+                        {mfaError && <p className="mt-2 text-xs text-red-500 font-medium">{mfaError}</p>}
                       </div>
 
                       <div className="flex items-center justify-between p-4 rounded-2xl bg-[var(--surface-2)]/40 border border-[var(--border)] relative overflow-hidden">
@@ -398,7 +553,7 @@ export default function SettingsPage() {
                           <p className="text-xs text-[var(--muted)]">{t('settings_sessions_desc')}</p>
                         </div>
                         <button 
-                          onClick={() => showSecurityTip('logout', language === 'en' ? 'Other sessions ended' : (language === 'ar' ? 'تم إنهاء الجلسات الأخرى' : 'Diğer oturumlar sonlandırıldı'))}
+                          onClick={() => showSecurityTip('logout', language === 'ar' ? 'تم إنهاء الجلسات الأخرى' : language === 'tr' ? 'Diğer oturumlar sonlandırıldı' : language === 'tk' ? 'Beýleki sessiýalar tamamlandy' : 'Other sessions ended')}
                           className="px-4 py-1.5 rounded-full border border-[var(--border)] text-xs font-bold hover:bg-[var(--surface-2)] transition-all active:scale-95 text-center"
                         >
                            {securityStatus?.id === 'logout' ? <CheckCircle2 size={16} className="text-emerald-500" /> : t('settings_sessions_logout')}
@@ -430,7 +585,7 @@ export default function SettingsPage() {
                               type="text"
                               value={deleteConfirmText}
                               onChange={(e) => setDeleteConfirmText(e.target.value)}
-                              placeholder={language === 'ar' ? 'اكتب "DELETE" هنا' : (language === 'tr' ? '"DELETE" yazın' : 'Type "DELETE" here')}
+                              placeholder={language === 'ar' ? 'اكتب "DELETE" هنا' : language === 'tr' ? '"DELETE" yazın' : language === 'tk' ? '"DELETE" ýazyň' : 'Type "DELETE" here'}
                               className="w-full max-w-xs mx-auto block px-4 py-3 rounded-2xl border-2 border-red-500/20 bg-white dark:bg-black/20 text-center font-black text-red-500 placeholder:text-red-500/30 focus:border-red-500 focus:outline-none transition-all shadow-inner"
                             />
                           </div>

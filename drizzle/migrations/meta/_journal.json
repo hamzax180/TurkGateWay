@@ -8,6 +8,69 @@
       "when": 1781296858479,
       "tag": "0000_kind_menace",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786981234213,
+      "tag": "0001_drop_canned_response_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787016744133,
+      "tag": "0002_add_service_credits",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787091664694,
+      "tag": "0003_add_applications",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787227091771,
+      "tag": "0004_unify_knowledge_embedding",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787173809469,
+      "tag": "0005_chat_attachments",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787280000000,
+      "tag": "0006_support_tickets",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787352863075,
+      "tag": "0007_usage_events",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787414967920,
+      "tag": "0008_voice_transcripts",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787424966549,
+      "tag": "0009_voice_call_outcome",
+      "breakpoints": true
     }
   ]
 }

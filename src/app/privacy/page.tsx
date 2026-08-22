@@ -7,6 +7,8 @@ import {
   Server, Trash2, Bell, Globe, ChevronRight, Check
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import MobileMenuButton from '../components/MobileMenuButton';
+import BackButton from '../components/BackButton';
 import Footer from '../components/Footer';
 import MobileToc from '../components/MobileToc';
 
@@ -51,6 +53,7 @@ export default function PrivacyPage() {
     <div className="flex flex-col h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)] selection:bg-emerald-500/30">
     <main id="privacy-scroll" className="flex-1 flex flex-col min-w-0 relative overflow-y-auto slim-scroll">
       <Navbar isAppPage />
+      <MobileMenuButton />
       <MobileToc sections={sections} activeSection={activeSection} onSelect={scrollTo} C={C} scrollContainerId="privacy-scroll" />
 
       {/* Ambient glow — only visible in dark */}
@@ -62,12 +65,13 @@ export default function PrivacyPage() {
       {/* Hero */}
       <div className="relative z-10 border-b border-[var(--border)]">
         <div className="max-w-6xl mx-auto px-6 py-24 md:py-28">
+          <BackButton className="mb-8" />
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-6 text-[var(--text)] leading-none">
               Privacy<br />Policy
             </h1>
             <p className="text-lg text-[var(--muted)] leading-relaxed max-w-2xl mb-10">
-              At TurkGateway, your administrative data is treated as a matter of personal sovereignty. Our platform is built on data ephemerality, local-first storage, and zero-knowledge principles.
+              At TurkGateway, your administrative data is treated as a matter of personal sovereignty. Our agency is built on data ephemerality, local-first storage, and zero-knowledge principles.
             </p>
             <div className="flex flex-wrap items-center gap-6">
               {['KVKK No. 6698 Compliant', 'AES-256 Encryption', 'Zero credential storage'].map((label) => (
@@ -130,7 +134,7 @@ export default function PrivacyPage() {
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
-                { title: 'Data Controller',       body: 'TurkGateway Platform, registered under Turkish commercial law.' },
+                { title: 'Data Controller',       body: 'TurkGateway, registered under Turkish commercial law.' },
                 { title: 'Legal Basis',            body: 'Explicit consent obtained at registration and renewed on material change.' },
                 { title: 'DPO Contact',            body: 'privacy@turkgateway.ai — respond within 30 days per KVKK.' },
                 { title: 'Supervisory Authority',  body: 'Kişisel Verileri Koruma Kurumu (KVKK Board), Ankara, Turkey.' },
@@ -167,7 +171,7 @@ export default function PrivacyPage() {
             <div className={`p-5 rounded-2xl ${C.purple.light} border ${C.purple.border} mb-6`}>
               <p className={`${C.purple.text} text-sm font-semibold mb-2`}>Security Standard</p>
               <p className="text-[var(--muted)] text-sm leading-relaxed">
-                Documents uploaded for permit processing are stored in encrypted S3 buckets with <strong className="text-[var(--text)]">AES-256-bit encryption</strong> at rest and TLS 1.3 in transit. Access is restricted exclusively to the Agentic sub-routines required to extract metadata for your application.
+                Documents you upload — such as a university acceptance letter — are stored in our managed PostgreSQL database, encrypted at rest by the database provider and sent over TLS in transit. They are readable only by the staff account that processes your application. We keep them for <strong className="text-[var(--text)]">no more than 30 days</strong>, and they are deleted as soon as your appointment is booked. You can ask us to delete them sooner at any time.
               </p>
             </div>
             <ul className="space-y-3">

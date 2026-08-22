@@ -1,0 +1,50 @@
+{
+  "_comment": "Copy this file to applicant.json (same folder) and fill in real values. applicant.json is git-ignored — it holds passport-level PII and must never be committed.",
+
+  "_dateFormat": "Every date field accepts DD/MM/YYYY or YYYY-MM-DD. Both are converted to the ISO format the site's native date inputs require.",
+
+  "firstName": "",
+  "lastName": "",
+  "_nameNote": "Split deliberately — the form has separate Name and Surname fields. 'fullName' is still accepted as a fallback for older files, but filling these two is more reliable.",
+
+  "gender": "",
+  "_genderOptions": ["Male", "Female"],
+
+  "dateOfBirth": "",
+  "placeOfBirth": "",
+
+  "maritalStatus": "",
+  "_maritalStatusOptions": ["Single", "Married"],
+
+  "fatherName": "",
+  "motherName": "",
+
+  "occupation": "",
+  "_occupationNote": "The form's Occupation is a dropdown. Whatever you write here is matched against the real options on the page; if nothing matches it is left empty for you rather than guessed.",
+
+  "nationality": "Turkmenistan",
+  "travelDocumentType": "Ordinary Passport",
+  "passportNumber": "",
+  "passportIssuedPlace": "",
+  "_passportIssuedPlaceNote": "A city or country (e.g. 'Ashgabat') — NOT the passport number.",
+  "passportIssueDate": "",
+  "passportExpiryDate": "",
+
+  "email": "",
+  "phone": "",
+  "_phoneFormat": "Include country code, e.g. +99312xxxxxxx",
+
+  "residenceAddress": "",
+  "residenceCity": "",
+  "residenceZipcode": "",
+
+  "departureDate": "",
+  "returnDate": "",
+
+  "mainSupportingDocumentPath": "",
+  "_mainSupportingDocumentNote": "Absolute path to the acceptance/invitation letter from the Turkish institution. The script attaches this file to the form's upload field. It never ticks the confirmation checkbox and never clicks Next Step — those stay your clicks.",
+
+  "applicantCount": "1",
+
+  "_note": "This file only covers the appointment-booking form's own fields. It does NOT replace the physical documents you must bring to the appointment — run the script to see the printed checklist, sourced from Mosaic Visa's own required-documents page for the Türkiye Student Visa (Ashgabat)."
+}

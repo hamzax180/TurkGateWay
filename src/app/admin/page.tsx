@@ -9,10 +9,12 @@ import {
   RefreshCw, Zap, TrendingUp, Database, BookOpen,
   ChevronRight, X, Trash2, Eye, GraduationCap, Scale,
   Building2, Star, CheckCircle2, XCircle, Clock, Filter,
-  ArrowUpRight, Hash, Globe, ChevronLeft, ChevronDown,
+  ArrowUpRight, Hash, Globe, ChevronLeft, ChevronDown, Headset, LifeBuoy, Coins, ArrowDownLeft,
 } from 'lucide-react';
 import { apiFetch } from '../utils/api';
+import TokensPanel from './TokensPanel';
 import Navbar from '../components/Navbar';
+import MobileMenuButton from '../components/MobileMenuButton';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Stats {
@@ -22,7 +24,7 @@ interface Stats {
   mrr: number;
   total_sessions: number;
   total_messages: number;
-  sessions_by_type: { permit: number; student: number; lawyer: number };
+  sessions_by_type: { permit: number; student: number; lawyer: number; support: number };
 }
 
 interface UserRow {
@@ -33,6 +35,9 @@ interface UserRow {
   subscription_reference_code: string | null;
   token_balance: number;
   is_admin: boolean;
+  /** Spendable now — not consumed, not expired. This is what unlocks services. */
+  credits: number;
+  credits_spent: number;
 }
 
 interface SessionRow {
@@ -58,7 +63,51 @@ interface SessionDetail extends SessionRow {
   } | null;
 }
 
-type Tab = 'overview' | 'users' | 'sessions';
+type Tab = 'overview' | 'users' | 'sessions' | 'tickets' | 'tokens';
+
+type TicketRow = {
+  id: number; ref: string; session_id: string; subject: string;
+  status: string; priority: string; category: string;
+  agent: string | null; language: string | null;
+  created_at: string | null; last_message_at: string | null;
+  first_response_at: string | null; resolved_at: string | null;
+  rating: number | null; internal_note: string | null;
+  user_email: string | null; message_count: number;
+};
+
+type TicketStats = {
+  open: number; pending: number; resolved: number; closed: number;
+  total: number; last24h: number; avgFirstResponseSeconds: number;
+};
+
+type TicketDetail = {
+  ticket: TicketRow & { user_name: string | null };
+  messages: { id: number; role: string; content: string; timestamp: string | null }[];
+};
+
+const TICKET_STATUS_STYLE: Record<string, string> = {
+  open: 'bg-red-500/10 text-red-400 border-red-500/20',
+  pending: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  resolved: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  closed: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+};
+
+const TICKET_PRIORITY_STYLE: Record<string, string> = {
+  urgent: 'bg-red-500/15 text-red-400 border-red-500/30',
+  high: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+  normal: 'bg-[var(--surface-2)] text-[var(--muted)] border-[var(--border)]',
+  low: 'bg-[var(--surface-2)] text-[var(--muted)] border-[var(--border)]',
+};
+
+/** "4m 12s" reads faster than 252 at a glance in an ops table. */
+function fmtDuration(seconds: number) {
+  if (!seconds) return '—';
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const m = Math.floor(seconds / 60);
+  const rem = Math.round(seconds % 60);
+  if (m < 60) return `${m}m ${rem}s`;
+  return `${Math.floor(m / 60)}h ${m % 60}m`;
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function statusBadge(status: string) {
@@ -77,6 +126,11 @@ function statusBadge(status: string) {
 }
 
 function typeBadge(type: string) {
+  if (type === 'support') return (
+    <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/20">
+      <Headset size={10} /> Support
+    </span>
+  );
   if (type === 'student') return (
     <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
       <GraduationCap size={10} /> Student
@@ -115,6 +169,13 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [sessionsTotal, setSessionsTotal] = useState(0);
+  const [tickets, setTickets] = useState<TicketRow[]>([]);
+  const [ticketsTotal, setTicketsTotal] = useState(0);
+  const [ticketStats, setTicketStats] = useState<TicketStats | null>(null);
+  const [ticketStatus, setTicketStatus] = useState('all');
+  const [ticketPriority, setTicketPriority] = useState('all');
+  const [ticketSearch, setTicketSearch] = useState('');
+  const [selectedTicket, setSelectedTicket] = useState<TicketDetail | null>(null);
   const [selectedSession, setSelectedSession] = useState<SessionDetail | null>(null);
   const [sessionModalLoading, setSessionModalLoading] = useState(false);
 
@@ -141,7 +202,7 @@ export default function AdminPage() {
       const t = token();
       if (!t) { router.push('/login'); return; }
       const res = await apiFetch(`/api/admin/subscribers`);
-      if (!res || res.status === 403) { router.push('/dashboard'); return; }
+      if (!res || res.status === 403) { router.push('/applications'); return; }
       if (!res.ok) { router.push('/login'); return; }
       const data = await res.json();
       setUsers(data);
@@ -170,12 +231,51 @@ export default function AdminPage() {
     if (tab === 'sessions') loadSessions();
   }, [tab, sessionPage, sessionType]);
 
+  const loadTickets = useCallback(async () => {
+    const params = new URLSearchParams();
+    if (ticketStatus !== 'all') params.set('status', ticketStatus);
+    if (ticketPriority !== 'all') params.set('priority', ticketPriority);
+    if (ticketSearch.trim()) params.set('search', ticketSearch.trim());
+    const res = await apiFetch(`/api/admin/tickets?${params}`);
+    if (res?.ok) {
+      const d = await res.json();
+      setTickets(d.tickets);
+      setTicketsTotal(d.total);
+      setTicketStats(d.stats);
+    }
+  }, [ticketStatus, ticketPriority, ticketSearch]);
+
+  useEffect(() => {
+    if (tab === 'tickets') loadTickets();
+  }, [tab, ticketStatus, ticketPriority]);
+
+
+  const openTicket = async (id: number) => {
+    const res = await apiFetch(`/api/admin/tickets/${id}`);
+    if (res?.ok) setSelectedTicket(await res.json());
+  };
+
+  /** Optimistic — the row updates immediately, the list refreshes behind it. */
+  const patchTicket = async (id: number, patch: Record<string, string>) => {
+    setTickets(prev => prev.map(t => (t.id === id ? { ...t, ...patch } : t)));
+    setSelectedTicket(prev =>
+      prev && prev.ticket.id === id ? { ...prev, ticket: { ...prev.ticket, ...patch } } : prev,
+    );
+    await apiFetch(`/api/admin/tickets/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+    loadTickets();
+  };
+
   const refreshAll = async () => {
     setLoading(true);
     const res = await apiFetch(`/api/admin/subscribers`);
     if (res?.ok) setUsers(await res.json());
     await loadStats();
     if (tab === 'sessions') await loadSessions();
+    if (tab === 'tickets') await loadTickets();
     setLoading(false);
   };
 
@@ -184,7 +284,24 @@ export default function AdminPage() {
     setActionLoading(id);
     const res = await apiFetch(`/api/admin/users/${id}/upgrade`, { method: 'POST' });
     if (res?.ok) {
-      setUsers(prev => prev.map(u => u.id === id ? { ...u, subscription_status: 'active', token_balance: 100 } : u));
+      // Take the balances from the SERVER's reply rather than assuming them.
+      // The row used to be hand-patched with a status and 100 questions, which
+      // silently left the credits the upgrade had just granted off the screen —
+      // the grant worked, it simply was not shown, which looked identical to it
+      // not happening.
+      const body = await res.json().catch(() => null);
+      setUsers(prev =>
+        prev.map(u =>
+          u.id === id
+            ? {
+                ...u,
+                subscription_status: 'active',
+                token_balance: 100,
+                credits: Number(body?.credits_available ?? u.credits ?? 0),
+              }
+            : u,
+        ),
+      );
       loadStats();
     }
     setActionLoading(null);
@@ -242,6 +359,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] relative overflow-x-hidden">
       <Navbar />
+      <MobileMenuButton />
 
       {/* Background */}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-20 dark:opacity-40">
@@ -259,7 +377,7 @@ export default function AdminPage() {
             </div>
             <div>
               <h1 className="text-2xl font-black tracking-tight">Admin Panel</h1>
-              <p className="text-[var(--muted)] text-xs font-medium">Platform management & oversight</p>
+              <p className="text-[var(--muted)] text-xs font-medium">Agency management & oversight</p>
             </div>
           </div>
           <button onClick={refreshAll}
@@ -273,7 +391,9 @@ export default function AdminPage() {
           {([
             { id: 'overview', label: 'Overview', icon: BarChart3 },
             { id: 'users', label: 'Users', icon: Users },
+            { id: 'tickets', label: 'Tickets', icon: LifeBuoy },
             { id: 'sessions', label: 'Sessions', icon: MessageSquare },
+            { id: 'tokens', label: 'Credits', icon: Coins },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -322,6 +442,7 @@ export default function AdminPage() {
                     { label: 'Business Agent', key: 'permit', color: 'bg-blue-500', textColor: 'text-blue-400' },
                     { label: 'Student', key: 'student', color: 'bg-emerald-500', textColor: 'text-emerald-400' },
                     { label: 'Lawyer / Legal', key: 'lawyer', color: 'bg-amber-500', textColor: 'text-amber-400' },
+                    { label: 'Support', key: 'support', color: 'bg-red-500', textColor: 'text-red-400' },
                   ] as const).map(({ label, key, color, textColor }) => {
                     const count = stats.sessions_by_type[key];
                     const pct = stats.total_sessions > 0 ? Math.round((count / stats.total_sessions) * 100) : 0;
@@ -412,7 +533,7 @@ export default function AdminPage() {
                 <table className="w-full text-left">
                   <thead>
                     <tr className="bg-[var(--surface-2)] border-b border-[var(--border)]">
-                      {['User', 'Status', 'Tokens', 'Reference', 'Actions'].map(h => (
+                      {['User', 'Status', 'Free questions', 'Credits', 'Reference', 'Actions'].map(h => (
                         <th key={h} className="px-5 py-3.5 text-[10px] font-black uppercase tracking-widest text-[var(--muted)] whitespace-nowrap">
                           {h}
                         </th>
@@ -422,7 +543,7 @@ export default function AdminPage() {
                   <tbody className="divide-y divide-[var(--border)]">
                     {filteredUsers.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-5 py-16 text-center text-[var(--muted)] text-sm">
+                        <td colSpan={6} className="px-5 py-16 text-center text-[var(--muted)] text-sm">
                           No users match your filter.
                         </td>
                       </tr>
@@ -445,6 +566,26 @@ export default function AdminPage() {
                         <td className="px-5 py-4">{statusBadge(u.subscription_status)}</td>
                         <td className="px-5 py-4">
                           <span className="text-sm font-bold">{u.token_balance ?? '—'}</span>
+                        </td>
+                        {/* Credits, not questions. An account can hold 100
+                            questions and still be unable to start a placement —
+                            only this number unlocks the paid services, so it
+                            sits beside the other balance rather than replacing
+                            it. Zero is called out because it is the state that
+                            makes every paid feature refuse. */}
+                        <td className="px-5 py-4">
+                          <span
+                            className={`text-sm font-bold ${
+                              Number(u.credits ?? 0) > 0 ? 'text-emerald-500' : 'text-[var(--muted)]'
+                            }`}
+                          >
+                            {Number(u.credits ?? 0)}
+                          </span>
+                          {Number(u.credits_spent ?? 0) > 0 && (
+                            <span className="text-[11px] text-[var(--muted)]">
+                              {' '}· {Number(u.credits_spent)} used
+                            </span>
+                          )}
                         </td>
                         <td className="px-5 py-4">
                           <code className="text-[11px] font-mono text-[var(--muted)] bg-[var(--surface-2)] px-2 py-0.5 rounded">
@@ -484,6 +625,136 @@ export default function AdminPage() {
         )}
 
         {/* ── TAB: SESSIONS ─────────────────────────────────────────────── */}
+        {/* ── TAB: TICKETS ──────────────────────────────────────────────── */}
+        {tab === 'tickets' && (
+          <div className="space-y-5">
+            {/* Headline numbers — what an operator checks before anything else */}
+            {ticketStats && (
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {[
+                  { label: 'Open', value: ticketStats.open, tone: 'text-red-400' },
+                  { label: 'Pending', value: ticketStats.pending, tone: 'text-amber-400' },
+                  { label: 'Resolved', value: ticketStats.resolved, tone: 'text-emerald-400' },
+                  { label: 'Last 24h', value: ticketStats.last24h, tone: 'text-[var(--text)]' },
+                  {
+                    label: 'Avg 1st reply',
+                    value: fmtDuration(ticketStats.avgFirstResponseSeconds),
+                    tone: 'text-[var(--text)]',
+                  },
+                ].map(card => (
+                  <div key={card.label} className="glass-card p-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--muted)]">{card.label}</p>
+                    <p className={`mt-1 text-2xl font-black ${card.tone}`}>{card.value}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Controls */}
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="relative flex-1 max-w-sm">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
+                <input
+                  value={ticketSearch}
+                  onChange={e => setTicketSearch(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && loadTickets()}
+                  placeholder="Search subject or TG-1042…"
+                  className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl pl-9 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {(['all', 'open', 'pending', 'resolved', 'closed'] as const).map(st => (
+                  <button
+                    key={st}
+                    onClick={() => setTicketStatus(st)}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
+                      ticketStatus === st
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-[var(--surface)] border-[var(--border)] text-[var(--muted)] hover:border-indigo-500/40'
+                    }`}
+                  >
+                    {st.charAt(0).toUpperCase() + st.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <select
+                value={ticketPriority}
+                onChange={e => setTicketPriority(e.target.value)}
+                className="bg-[var(--surface)] border border-[var(--border)] rounded-xl px-3 py-2 text-xs font-bold text-[var(--muted)] outline-none"
+              >
+                {['all', 'urgent', 'high', 'normal', 'low'].map(pr => (
+                  <option key={pr} value={pr}>{pr === 'all' ? 'Any priority' : pr}</option>
+                ))}
+              </select>
+              <span className="text-xs text-[var(--muted)] self-center ml-auto shrink-0">
+                {ticketsTotal} ticket{ticketsTotal !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {/* Table */}
+            <div className="glass-card overflow-hidden shadow-xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-[var(--surface-2)] border-b border-[var(--border)]">
+                      {['Ref', 'Subject', 'Customer', 'Agent', 'Priority', 'Status', 'Activity', ''].map(h => (
+                        <th key={h} className="px-5 py-3.5 text-[10px] font-black uppercase tracking-widest text-[var(--muted)] whitespace-nowrap">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tickets.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="px-5 py-10 text-center text-sm text-[var(--muted)]">
+                          No tickets yet. One opens whenever a customer starts a live chat.
+                        </td>
+                      </tr>
+                    )}
+                    {tickets.map(tk => (
+                      <tr key={tk.id} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-2)]/50 transition-colors">
+                        <td className="px-5 py-3.5 text-xs font-black tabular-nums text-[var(--text)] whitespace-nowrap">{tk.ref}</td>
+                        <td className="px-5 py-3.5 max-w-xs">
+                          <p className="text-sm font-bold text-[var(--text)] truncate">{tk.subject}</p>
+                          <p className="text-[11px] text-[var(--muted)]">{tk.category} · {tk.message_count} msg</p>
+                        </td>
+                        <td className="px-5 py-3.5 text-xs text-[var(--muted)] whitespace-nowrap">{tk.user_email ?? 'Guest'}</td>
+                        <td className="px-5 py-3.5 text-xs text-[var(--muted)] whitespace-nowrap">{tk.agent ?? '—'}</td>
+                        <td className="px-5 py-3.5">
+                          <span className={`badge border ${TICKET_PRIORITY_STYLE[tk.priority] ?? ''}`}>{tk.priority}</span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <select
+                            value={tk.status}
+                            onChange={e => patchTicket(tk.id, { status: e.target.value })}
+                            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold outline-none cursor-pointer ${TICKET_STATUS_STYLE[tk.status] ?? ''}`}
+                          >
+                            {['open', 'pending', 'resolved', 'closed'].map(st => (
+                              <option key={st} value={st}>{st}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-5 py-3.5 text-xs text-[var(--muted)] whitespace-nowrap">{fmtDate(tk.last_message_at)}</td>
+                        <td className="px-5 py-3.5">
+                          <button
+                            onClick={() => openTicket(tk.id)}
+                            className="btn btn-outline !py-1.5 !px-3 !text-[11px]"
+                          >
+                            <Eye size={13} /> Open
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === 'tokens' && <TokensPanel />}
+
         {tab === 'sessions' && (
           <div className="space-y-5">
             {/* Controls */}
@@ -499,7 +770,7 @@ export default function AdminPage() {
                 />
               </div>
               <div className="flex gap-2 flex-wrap">
-                {(['all', 'permit', 'student', 'lawyer'] as const).map(t => (
+                {(['all', 'permit', 'student', 'lawyer', 'support'] as const).map(t => (
                   <button
                     key={t}
                     onClick={() => { setSessionType(t); setSessionPage(0); }}
@@ -694,7 +965,7 @@ export default function AdminPage() {
                           <p className="text-xs text-[var(--muted)]">{selectedSession.user.email}</p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-xs text-[var(--muted)]">Tokens</p>
+                          <p className="text-xs text-[var(--muted)]">Free questions</p>
                           <p className="text-sm font-black">{selectedSession.user.token_balance}</p>
                         </div>
                       </div>
@@ -773,6 +1044,138 @@ export default function AdminPage() {
                   </div>
                 </div>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Ticket detail drawer ──────────────────────────────────────────── */}
+      <AnimatePresence>
+        {selectedTicket && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex justify-end"
+            onClick={() => setSelectedTicket(null)}
+          >
+            <motion.div
+              initial={{ x: 40, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 40, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-2xl h-full bg-[var(--bg)] border-l border-[var(--border)] overflow-y-auto slim-scroll"
+            >
+              {/* Header */}
+              <div className="sticky top-0 z-10 bg-[var(--bg)] border-b border-[var(--border)] px-6 py-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black tabular-nums text-[var(--muted)]">{selectedTicket.ticket.ref}</span>
+                      <span className={`badge border ${TICKET_STATUS_STYLE[selectedTicket.ticket.status] ?? ''}`}>
+                        {selectedTicket.ticket.status}
+                      </span>
+                      <span className={`badge border ${TICKET_PRIORITY_STYLE[selectedTicket.ticket.priority] ?? ''}`}>
+                        {selectedTicket.ticket.priority}
+                      </span>
+                    </div>
+                    <h3 className="mt-2 text-lg font-black text-[var(--text)] truncate">{selectedTicket.ticket.subject}</h3>
+                    <p className="mt-1 text-xs text-[var(--muted)]">
+                      {selectedTicket.ticket.user_email ?? 'Guest'}
+                      {selectedTicket.ticket.agent ? ` · handled by ${selectedTicket.ticket.agent}` : ''}
+                      {selectedTicket.ticket.language ? ` · ${selectedTicket.ticket.language}` : ''}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedTicket(null)}
+                    className="h-8 w-8 rounded-lg border border-[var(--border)] flex items-center justify-center text-[var(--muted)] hover:text-[var(--text)] shrink-0"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {/* Operator controls */}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {(['open', 'pending', 'resolved', 'closed'] as const).map(st => (
+                    <button
+                      key={st}
+                      onClick={() => patchTicket(selectedTicket.ticket.id, { status: st })}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${
+                        selectedTicket.ticket.status === st
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-[var(--surface)] border-[var(--border)] text-[var(--muted)] hover:border-indigo-500/40'
+                      }`}
+                    >
+                      {st}
+                    </button>
+                  ))}
+                  <select
+                    value={selectedTicket.ticket.priority}
+                    onChange={e => patchTicket(selectedTicket.ticket.id, { priority: e.target.value })}
+                    className="bg-[var(--surface)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-[var(--muted)] outline-none cursor-pointer"
+                  >
+                    {['urgent', 'high', 'normal', 'low'].map(pr => (
+                      <option key={pr} value={pr}>{pr}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Service levels — the numbers a support lead is judged on */}
+                <div className="mt-4 flex flex-wrap gap-4 text-[11px] text-[var(--muted)]">
+                  <span>Opened {fmtDate(selectedTicket.ticket.created_at)}</span>
+                  <span>
+                    First reply{' '}
+                    {selectedTicket.ticket.first_response_at && selectedTicket.ticket.created_at
+                      ? fmtDuration(
+                          (new Date(selectedTicket.ticket.first_response_at).getTime() -
+                            new Date(selectedTicket.ticket.created_at).getTime()) / 1000,
+                        )
+                      : '—'}
+                  </span>
+                  <span>{selectedTicket.messages.length} messages</span>
+                </div>
+              </div>
+
+              {/* Transcript */}
+              <div className="px-6 py-5 space-y-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--muted)]">Transcript</p>
+                {selectedTicket.messages.length === 0 ? (
+                  <p className="text-sm text-[var(--muted)]">No messages recorded.</p>
+                ) : selectedTicket.messages.map(m => (
+                  <div key={m.id} className={`flex gap-3 ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <div className={`h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
+                      m.role === 'user'
+                        ? 'bg-indigo-500 text-white'
+                        : 'bg-red-500/15 text-red-400 border border-red-500/25'
+                    }`}>
+                      {m.role === 'user' ? 'U' : 'CS'}
+                    </div>
+                    <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                      m.role === 'user'
+                        ? 'bg-indigo-600/20 border border-indigo-500/20 text-[var(--text)]'
+                        : 'bg-[var(--surface)] border border-[var(--border)] text-[var(--text)]'
+                    }`}>
+                      <div className="prose prose-sm prose-invert max-w-none text-inherit [&_p]:mb-1 [&_ul]:pl-4 [&_li]:mb-0.5">
+                        <ReactMarkdown>{m.content}</ReactMarkdown>
+                      </div>
+                      {m.timestamp && <p className="text-[10px] text-[var(--muted)] mt-1">{fmtDate(m.timestamp)}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Internal note — never shown to the customer */}
+              <div className="px-6 pb-8">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--muted)] mb-2">Internal note</p>
+                <textarea
+                  defaultValue={selectedTicket.ticket.internal_note ?? ''}
+                  onBlur={e => patchTicket(selectedTicket.ticket.id, { internal_note: e.target.value })}
+                  rows={3}
+                  placeholder="Only visible to operators…"
+                  className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                />
+              </div>
             </motion.div>
           </motion.div>
         )}

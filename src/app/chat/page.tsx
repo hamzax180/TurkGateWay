@@ -4,40 +4,168 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Sparkles, User, Mic, Plus, ChevronDown, Building2, FileText, Search, Clock, HelpCircle, Scale, Menu, GraduationCap, Cpu, X, Volume2, VolumeX, ArrowRight } from 'lucide-react';
+import { Send, Sparkles, User, Mic, Plus, ChevronDown, Building2, FileText, Search, Clock, HelpCircle, Scale, Menu, GraduationCap, Cpu, X, Volume2, VolumeX, ArrowRight, ArrowUp, AudioLines, Download } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../utils/api';
+import VisaIntakeCard, { type VisaIntakeState } from '../components/VisaIntakeCard';
+import DocumentChecklistCard, { type ChecklistSeed } from '../components/DocumentChecklistCard';
+import { DEFAULT_AGENT, isAgentDisabled, resolveAgent } from '@/lib/agents-config';
 
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import LoadingScreen from '../components/LoadingScreen';
 import OnboardingWizard from '../components/OnboardingWizard';
+import { RealtimeCall } from '@/lib/realtime-voice';
+import { Dictation, LEVEL_BARS } from '@/lib/voice-dictation';
+
+/**
+ * Accent colours for the call orb, one row per agent.
+ *
+ * The same three-way ternary used to be restated in the gradient, the lit glow
+ * and the resting glow — three places to edit for one colour, and the fallback
+ * silently differed between them.
+ */
+/**
+ * Service ids the voice call speaks in, mapped to the chip ids the UI has
+ * always used. The call's vocabulary matches the document checklists exactly
+ * (ikamet_new vs ikamet_renewal are genuinely different lists), while the chip
+ * only needs to say "Residence Permit" for both.
+ */
+const SERVICE_TO_CHIP: Record<string, string> = {
+  university_registration: 'university',
+  student_visa: 'visa',
+  ikamet_new: 'ikamet',
+  ikamet_renewal: 'ikamet',
+  health_insurance: 'insurance',
+};
+
+const AGENT_ACCENT: Record<string, { gradient: string; glow: string }> = {
+  student: { gradient: 'linear-gradient(160deg, #a7f3d0 0%, #34d399 40%, #059669 100%)', glow: '52,211,153' },
+  lawyer:  { gradient: 'linear-gradient(160deg, #fef3c7 0%, #fcd34d 40%, #d97706 100%)', glow: '252,211,77' },
+  permit:  { gradient: 'linear-gradient(160deg, #e0f2fe 0%, #7dd3fc 40%, #3b82f6 100%)', glow: '125,211,252' },
+};
 
 type Role = 'assistant' | 'user';
-interface Msg { id: number; role: Role; content: string; }
+interface Msg {
+  id: number;
+  role: Role;
+  content: string;
+  /** A generated document (filled application form PDF) delivered by the agent. */
+  attachment?: { id: number; filename: string } | null;
+  /**
+   * Said out loud on a voice call. These are kept in memory for the duration of
+   * the call — the model needs them as context and the call UI shows them — but
+   * they are never rendered into the thread and never written to chat_messages.
+   * On hang-up they are collected into a transcript and dropped.
+   */
+  voice?: boolean;
+  /** A filed voice call. Set on the single line a finished call leaves behind. */
+  transcript?: { id: number } | null;
+}
 
-// ── Pre-written demo answers for Student Help Quick Topics — no API needed ──
-const CANNED_RESPONSES: Record<string, string> = {
-  // Quick Topics
-  "'How do I register for university?'": "🎓 **University Registration**\n\nCongratulations on your acceptance! 🎉 Registration happens in two phases:\n\n✅ **Action Steps:**\n1. **Online:** Pre-register via your university portal or YÖKSİS.\n2. **In-Person:** Submit your original physical documents to Student Affairs.\n\n💬 Which university are you enrolling in?",
-  "How do I register for university?": "🎓 **University Registration**\n\nCongratulations on your acceptance! 🎉 Registration happens in two phases:\n\n✅ **Action Steps:**\n1. **Online:** Pre-register via your university portal or YÖKSİS.\n2. **In-Person:** Submit your original physical documents to Student Affairs.\n\n💬 Which university are you enrolling in?",
-  "'I lost my student ID card.'": "🎓 **Lost Student ID?**\n\nDon't panic! Here is the exact process to get a replacement:\n\n✅ **Action Steps:**\n1. **Police Report:** Go to the nearest police station to get a loss declaration (Kayıp Tutanağı).\n2. **Student Affairs:** Take this report, a photo, and your enrollment certificate to your university.\n\n💬 Have you filed the police report yet?",
-  "I lost my student ID card.": "🎓 **Lost Student ID?**\n\nDon't panic! Here is the exact process to get a replacement:\n\n✅ **Action Steps:**\n1. **Police Report:** Go to the nearest police station to get a loss declaration (Kayıp Tutanağı).\n2. **Student Affairs:** Take this report, a photo, and your enrollment certificate to your university.\n\n💬 Have you filed the police report yet?",
-  "'How to get a student transport card?'": "🎓 **Student Transport Card**\n\nGetting a discounted transport card (like the Istanbulkart) is a massive money-saver! 🚌\n\n✅ **Action Steps:**\n1. Ensure your university has registered you on the YÖKSİS system.\n2. Apply online via the city's transport app or visit a main kiosk.\n\n💬 Which city are you studying in?",
-  "How to get a student transport card?": "🎓 **Student Transport Card**\n\nGetting a discounted transport card (like the Istanbulkart) is a massive money-saver! 🚌\n\n✅ **Action Steps:**\n1. Ensure your university has registered you on the YÖKSİS system.\n2. Apply online via the city's transport app or visit a main kiosk.\n\n💬 Which city are you studying in?",
-  "'Am I allowed to work as a student?'": "🎓 **International Student Work Permits**\n\nCan you work while studying? Yes, but with strict rules! 💼\n\n⚠️ **The Law:** Undergraduate students (Bachelors) can legally work part-time ONLY after completing their first year of study.\n\n💬 Are you currently in your first year?",
-  "Am I allowed to work as a student?": "🎓 **International Student Work Permits**\n\nCan you work while studying? Yes, but with strict rules! 💼\n\n⚠️ **The Law:** Undergraduate students (Bachelors) can legally work part-time ONLY after completing their first year of study.\n\n💬 Are you currently in your first year?",
+/**
+ * A roadmap costs one service credit, so the server refuses to build one until
+ * the user has explicitly agreed to spend it. It says so in two places: as an
+ * HTTP 402 before the stream begins (chip flow), or as a mid-stream frame when
+ * the model reached for the roadmap tool on its own.
+ */
+export interface PendingConfirm {
+  service: string;
+  location: string;
+  creditsAvailable: number;
+  nextExpiry: string | null;
+  requiresAuth: boolean;
+}
 
-  // Suggestion Chips
-  "Student Visas": "🎓 **Student Visa Guide**\n\nYou must apply for a Student Visa (Öğrenci Vizesi) at the Turkish Embassy/Consulate in your home country before traveling.\n\n📄 **Key Requirements:**\n• Official Acceptance Letter from your university\n• Valid Passport (at least 6 months validity)\n• 2 Biometric Photos\n• Proof of sufficient funds & health insurance\n\n⏳ **Duration:** Typically **3 months (90 days)**. Once you arrive in Turkey, you must apply for your Resident ID (**Ikamet**) before this expires!\n\n💬 Need help finding the nearest Turkish consulate?",
-  "Renew Kimlik/ID": "🎓 **Student ID Renewal**\n\nTo renew your University ID (Kimlik), simply head to your faculty's **Student Affairs Office**.\n\n📄 **Bring with you:**\n• Your expired ID\n• 1 recent passport photo\n• Current enrollment certificate (Öğrenci Belgesi)\n\n💬 Have your documents ready? They usually print the new one in 3-5 days!",
-  "Best Universities": "🎓 **Turkey's Top Universities**\n\nTurkey hosts fantastic, globally ranked institutions! 🌟\n\nHere are the top most competitive:\n1. Boğaziçi University (Istanbul)\n2. METU (Ankara)\n3. Koç University (Istanbul)\n4. ITU (Istanbul)\n\n💬 Are you looking for Engineering, Medical, or Business programs?",
-  "Register Roadmap": "🎓 **University Registration**\n\nCongratulations on your acceptance! 🎉 Registration happens in two phases:\n\n✅ **Action Steps:**\n1. **Online:** Pre-register via your university portal or YÖKSİS.\n2. **In-Person:** Submit your original physical documents to Student Affairs.\n\n💬 Which university are you enrolling in?",
-  "Deadlines": "🎓 **University Deadlines**\n\nI can certainly help you with registration calendars! 🎓 Which university are you targeting? \n\nPlease type the name (e.g., **Boğaziçi, METU, Istanbul University, Altınbaş**) and I will find the specific deadline and build your registration roadmap!",
-  "Student Help": "🎓 **Student Support Center** 🆘\n\nI am designed to make your student life in Turkey seamless. \n\n🚀 **Quick Topics:**\n1. 'How do I register for university?'\n2. 'I lost my student ID card.'\n3. 'How to get a student transport card?'\n4. 'Am I allowed to work as a student?'\n\n💬 Is there a specific procedure you're stuck on right now?",
+// ── /agent/query server-sent event reader ────────────────────────────────────
+// Frames: meta { source, token_balance, session_title } · delta { t }
+//         dashboard { state } · confirm_required { ...PendingConfirm }
+//         visa_intake { collected, missing, documentAttached, status }
+//         done {} · error { detail }
+// Returns the fully accumulated reply text once the stream closes.
+interface AgentStreamHandlers {
+  onMeta?: (meta: { source?: string; token_balance?: number | null; session_title?: string | null }) => void;
+  onDelta?: (chunk: string) => void;
+  onDashboard?: (state: Record<string, unknown>) => void;
+  onConfirmRequired?: (pending: PendingConfirm) => void;
+  onVisaIntake?: (state: VisaIntakeState) => void;
+  onDocumentChecklist?: (seed: ChecklistSeed) => void;
+  onAttachment?: (attachment: { filename: string; documentId: number }) => void;
+  onError?: (detail: string) => void;
+}
+
+async function readAgentStream(res: Response, handlers: AgentStreamHandlers): Promise<string> {
+  if (!res.body) throw new Error('No response body');
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let full = '';
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+
+    let split: number;
+    while ((split = buffer.indexOf('\n\n')) !== -1) {
+      const raw = buffer.slice(0, split);
+      buffer = buffer.slice(split + 2);
+
+      let event = 'message';
+      let data = '';
+      for (const line of raw.split('\n')) {
+        if (line.startsWith('event:')) event = line.slice(6).trim();
+        else if (line.startsWith('data:')) data += line.slice(5).trim();
+      }
+      if (!data) continue;
+
+      let payload: any;
+      try { payload = JSON.parse(data); } catch { continue; }
+
+      if (event === 'meta') handlers.onMeta?.(payload);
+      else if (event === 'delta') { full += payload.t ?? ''; handlers.onDelta?.(payload.t ?? ''); }
+      else if (event === 'dashboard') handlers.onDashboard?.(payload.state);
+      else if (event === 'confirm_required') handlers.onConfirmRequired?.(payload);
+      else if (event === 'visa_intake') handlers.onVisaIntake?.(payload);
+      else if (event === 'document_checklist') handlers.onDocumentChecklist?.(payload);
+      else if (event === 'attachment') handlers.onAttachment?.(payload);
+      else if (event === 'error') handlers.onError?.(payload.detail ?? 'Unknown error');
+    }
+  }
+
+  return full;
+}
+
+
+/**
+ * Upload limits. These mirror ALLOWED_MIME_TYPES / MAX_DOCUMENT_BYTES in
+ * src/lib/application-documents.ts, which is what actually enforces them —
+ * the client checks first only so the user gets told immediately rather than
+ * after uploading a large file.
+ */
+const ACCEPTED_UPLOAD_TYPES = 'application/pdf,image/jpeg,image/png';
+const MAX_UPLOAD_MB = 5;
+const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
+
+// ── Voice-call opening line, spoken immediately when a call starts. Short and
+//    conversational per the same voice-style rules the server uses (see
+//    VOICE_STYLE in src/lib/prompts.ts) — this one just never touches the model.
+/**
+ * The opening line of a call.
+ *
+ * Keyed by language only. It used to be keyed by agent as well and would
+ * announce which department had picked up — but the call now covers four
+ * services and its whole job is finding out which one the caller wants, so
+ * asserting one up front is exactly the wrong opening.
+ */
+const VOICE_GREETINGS: Record<string, string> = {
+  en: "Hi, TurkGateway here. Are you calling about university, a visa, ikamet, or insurance?",
+  tr: "Merhaba, TurkGateway. Üniversite, vize, ikamet mi, yoksa sigorta için mi arıyorsunuz?",
+  ar: "أهلاً، معك TurkGateway. اتصالك بخصوص الجامعة، التأشيرة، الإقامة، أم التأمين؟",
+  tk: "Salam, TurkGateway. Uniwersitet, wiza, ýaşaýyş rugsady ýa-da ätiýaçlandyryş barada jaň edýärsiňizmi?",
 };
 
 // ── Services that support New vs Renewal/Start flow ──
@@ -52,101 +180,65 @@ const RENEWAL_SERVICES = [
 ];
 
 // ── Dynamic responses based on New vs Renewal selection ──
-const SERVICE_FLOW_RESPONSES: Record<string, { ask: string; new: string; renewal: string }> = {
+const SERVICE_FLOW_RESPONSES: Record<string, { ask: string }> = {
   // ── STUDENT ──────────────────────────────────────────────────
   'ID / İkamet': {
-    ask: '🪪 **ID / İkamet (Residence Permit)**\n\nGreat choice! To give you the exact steps and documents, I need to know:\n\n**Is this a New application or a Renewal?**',
-    new: '🪪 **New Student Residence Permit (İkamet)**\n\nWelcome to Turkey! 🇹🇷 Here is your complete roadmap for a **first-time** İkamet application:\n\n📋 **Required Documents:**\n• Valid Passport + photocopy of all pages\n• Student Visa entry stamp page\n• Öğrenci Belgesi (Active Student Certificate)\n• Health Insurance Policy (min. 1 year)\n• 4 Biometric Photos (white background)\n• Proof of Address (rental contract or dorm letter)\n• Tax Number (Vergi Numarası)\n• İkamet application fee receipt\n\n✅ **Steps:**\n1. Get your **Tax Number** from the nearest Tax Office.\n2. Buy **Health Insurance** — must meet SEDDK 2025 minimums (compliant policies typically cost 3,000–5,000+ TL/year; student-specific plans may start lower — compare at your insurer).\n3. Fill out the online application at **e-ikamet.goc.gov.tr**.\n4. Book your **appointment** at the Provincial Migration Office.\n5. Attend your appointment with **all original documents**.\n6. Your İkamet card will be mailed to your Turkish address.\n\n⏳ **Timeline:** Apply within **30 days** of arrival!\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**',
-    renewal: '🪪 **İkamet Renewal (Uzatma)**\n\nTime to renew! 🔄 Here is your complete checklist for a **renewal** application:\n\n📋 **Required Documents:**\n• Current/expired İkamet card (original)\n• Valid Passport + photocopy\n• Updated Öğrenci Belgesi (current semester)\n• Updated Health Insurance Policy (covering the new period)\n• 2 Biometric Photos\n• Updated Proof of Address (if changed)\n• Renewal application fee receipt\n\n✅ **Steps:**\n1. Start your renewal application at **e-ikamet.goc.gov.tr** (up to **60 days before** expiry).\n2. Upload your updated documents online.\n3. Book your renewal appointment at the Migration Office.\n4. Attend your appointment with all original documents.\n5. Your new İkamet card will be mailed to you.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**'
+    ask: '🪪 **ID / İkamet (Residence Permit)**\n\nGreat choice! To give you the exact steps and documents, I need to know:\n\n**Is this a New application or a Renewal?**'
   },
   'Student Visa': {
-    ask: '✈️ **Student Visa**\n\nI can guide you through the full process! First, I need to know:\n\n**Is this a New visa application or a Renewal/Extension?**',
-    new: '✈️ **New Student Visa Application**\n\nYou must apply **before** traveling to Turkey! 🛂\n\n📋 **Required Documents:**\n• Valid Passport (at least 6 months validity)\n• Official University Acceptance Letter\n• 2 Biometric Photos\n• Completed Visa Application Form\n• Proof of Sufficient Funds (bank statement)\n• Health Insurance for Travel\n• Return/onward flight reservation\n• Accommodation proof in Turkey\n\n✅ **Steps:**\n1. Get your **university acceptance letter**.\n2. Locate the nearest **Turkish Embassy/Consulate**.\n3. Book a visa appointment online.\n4. Submit all documents + pay the visa fee.\n5. Wait **2-4 weeks** for processing.\n6. Collect your passport with the visa sticker.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**',
-    renewal: '✈️ **Student Visa Extension/Renewal**\n\nIf you are already in Turkey, you typically transition to a **Residence Permit (İkamet)** rather than renewing the visa itself. 🔄\n\n📋 **Required Documents:**\n• Current Passport with existing visa\n• Proof of continued enrollment (Öğrenci Belgesi)\n• Valid Health Insurance\n• Financial proof for the extended period\n\n✅ **Steps:**\n1. Apply for your **Student İkamet** at e-ikamet.goc.gov.tr (this replaces the visa).\n2. If you must leave and re-enter, apply for a **new visa** at the Turkish consulate abroad.\n3. With a valid İkamet, you can **re-enter Turkey** without a new visa.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**'
+    ask: '✈️ **Student Visa**\n\nI can guide you through the full process! First, I need to know:\n\n**Is this a New visa application or a Renewal/Extension?**'
   },
   'Denklik (Equivalency)': {
-    ask: '📜 **Denklik (Diploma Equivalency)**\n\nTo give you the right guidance, I need to know:\n\n**Is this a New Denklik application or are you following up on a previous one?**',
-    new: '📜 **New Denklik Application**\n\nDenklik is the official recognition of your high school diploma by the Turkish Ministry of Education. It is **mandatory** for undergraduate enrollment! 📜\n\n📋 **Required Documents:**\n• Original High School Diploma (Apostilled)\n• Official Transcript of Grades (Apostilled)\n• Notarized Turkish Translation of both documents\n• Valid Passport + photocopy\n• 2 Biometric Photos\n• University Acceptance Letter (if available)\n\n✅ **Steps:**\n1. **Apostille** your diploma & transcript in your home country.\n2. Get them **translated** and notarized by a sworn translator in Turkey.\n3. Visit the **e-Denklik** online portal and create an account.\n4. Upload all documents to the portal.\n5. Book an appointment at the **Ministry of Education (MEB)** office.\n6. Submit originals at your appointment.\n7. Wait **2-4 weeks** for the Denklik certificate.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**',
-    renewal: '📜 **Denklik Follow-up / Correction**\n\nIf you have already applied and need to follow up or correct your Denklik: 🔄\n\n📋 **What You May Need:**\n• Previous Denklik application receipt/reference number\n• Any additional documents requested by MEB\n• Corrected or re-apostilled documents (if rejected)\n• Updated transcript (if additional courses were required)\n\n✅ **Steps:**\n1. Log in to the **e-Denklik portal** to check your application status.\n2. If documents are missing, upload the requested items.\n3. If your application was **conditionally approved**, complete the required exams.\n4. If **rejected**, review the reason and re-apply with corrected documents.\n5. Contact MEB directly at **+90 312 413 1475** for urgent inquiries.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**'
+    ask: '📜 **Denklik (Diploma Equivalency)**\n\nTo give you the right guidance, I need to know:\n\n**Is this a New Denklik application or are you following up on a previous one?**'
   },
   'University Registration': {
-    ask: '🏛️ **University Registration**\n\nAre you registering at a university for the **first time** in Turkey, or handling a **re-registration / transfer**?',
-    new: '🏛️ **New University Registration**\n\nWelcome to your Turkish university! 🎓 Here are the steps to complete your enrollment:\n\n📋 **Required Documents:**\n• Official Acceptance Letter (Kabul Mektubu)\n• Denklik Certificate (High School Equivalency)\n• Valid Passport + notarized Turkish translation\n• 6 Biometric Photos\n• Student Visa or Entry Stamp\n• Health Certificate (from a Turkish hospital)\n• Proof of Payment of Tuition\n\n✅ **Steps:**\n1. Obtain your **Denklik** certificate if not yet done.\n2. Visit the **Student Affairs Office (Öğrenci İşleri)** with your documents.\n3. Complete the **online YÖKSİS / ÖYS registration** as directed by your university.\n4. Pay tuition and obtain **payment receipt**.\n5. Get your **student ID card** from the registrars.\n6. Register for the **Öğrenci Belgesi** (student certificate) through the portal.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**',
-    renewal: '🏛️ **University Re-registration / Semester Renewal**\n\nMaking sure your enrollment stays active! 🔄\n\n✅ **Steps:**\n1. Log in to your university\'s **Student Information System (ÖBS)**.\n2. Confirm your course selections for the new semester.\n3. Pay any outstanding **tuition or fees**.\n4. Download your updated **Öğrenci Belgesi** (student certificate).\n5. Renew your **student ID** at the registrars if expired.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**'
+    ask: '🏛️ **University Registration**\n\nAre you registering at a university for the **first time** in Turkey, or handling a **re-registration / transfer**?'
   },
   'Dormitory & Housing': {
-    ask: '🛏️ **Dormitory & Housing**\n\nAre you looking for housing for the **first time**, or renewing/changing your current arrangement?',
-    new: '🛏️ **Finding Student Housing in Turkey**\n\nHere\'s how to secure your accommodation as an international student: 🏠\n\n📋 **Options Available:**\n• KYK (Government) Dormitories — Cheapest, apply via **KYK portal**\n• University Dormitories — Apply via your university\'s housing office\n• Private Dormitories — Apply directly online\n• Rental Apartment — Through agents or platforms\n\n✅ **Steps:**\n1. Apply to **KYK dormitory** through **e-Devlet** (turkiye.gov.tr) — this is now the official application channel. Foreign students with a residence permit can apply, but Turkish students get priority.\n2. Apply to your **university\'s dorm** simultaneously.\n3. If both fail, search private dorms or apartments on **sahibinden.com** or **emlakjet.com**.\n4. For apartments, you will need a **guarantor (kefil)** or 3-6 months\' deposit.\n5. Register your address at the **local Muhtarlık** (neighborhood office) for official records.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**',
-    renewal: '🛏️ **Housing Renewal / Change**\n\nUpdating your living situation: 🔄\n\n✅ **Steps:**\n1. If renewing your current dorm: apply for the next term via the dorm portal before deadlines.\n2. If moving to a new place: notify your university\'s **Student Affairs Office** of your new address.\n3. Update your address at the **local Muhtarlık**.\n4. Update your address in your **İkamet (Residence Permit)** records at Göç İdaresi.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**'
+    ask: '🛏️ **Dormitory & Housing**\n\nAre you looking for housing for the **first time**, or renewing/changing your current arrangement?'
   },
   'IstanbulKart': {
-    ask: '🚌 **IstanbulKart (Student Transport Card)**\n\nDo you need to **get a new** student IstanbulKart, or **renew/reload** an existing one?',
-    new: '🚌 **Getting Your Student IstanbulKart**\n\nSave up to 50% on all Istanbul public transport with your student card! 🚇\n\n📋 **Required Documents:**\n• Active Student Certificate (Öğrenci Belgesi) from your university\n• Valid Passport or Turkish ID\n• **Valid Turkish Residence Permit (İkamet)** — required for foreign students to receive the discounted student card\n• 1 Passport-size photo\n\n✅ **Steps:**\n1. Get an updated **Öğrenci Belgesi** from your university\'s Student Affairs office.\n2. Go to the nearest **IstanbulKart Application Center** (Metrokent, Üsküdar, etc.) OR apply online.\n3. Fill out the application form and submit your documents.\n4. You will receive your **Student IstanbulKart** in 5-10 business days via post OR collect it in person.\n5. Load credit at any **top-up machine** or online via the İBB app.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**',
-    renewal: '🚌 **IstanbulKart Renewal**\n\nKeep your student discount active! 🔄\n\n✅ **Steps:**\n1. Get your new **Öğrenci Belgesi** showing your current enrollment.\n2. Visit an IstanbulKart center or go to **istanbulkart.istanbul** online.\n3. Submit the updated student document to refresh your **student discount status**.\n4. Your card will be re-validated for the new academic year.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**'
+    ask: '🚌 **IstanbulKart (Student Transport Card)**\n\nDo you need to **get a new** student IstanbulKart, or **renew/reload** an existing one?'
   },
 
   // ── PERMIT (Business) ──────────────────────────────────────────
   'Cafe & Restaurant': {
-    ask: '☕ **Cafe & Restaurant**\n\nAre you opening a **new** cafe or restaurant, or making changes to an **existing** one?',
-    new: '☕ **Opening a New Cafe or Restaurant in Istanbul**\n\nHere is your complete business permit roadmap! 🍽️\n\n📋 **Required Permits:**\n• Business License (İşyeri Açma ve Çalışma Ruhsatı)\n• Food Safety Certificate (Gıda Sicil)\n• Fire Safety Certificate (İtfaiye Raporu)\n• Alcohol License (if serving alcohol)\n• Sign License (Tabela Ruhsatı)\n\n✅ **Steps:**\n1. Register on **MERSİS** and establish your company (LLC or sole trader).\n2. Rent premises and get a **notarized lease agreement**.\n3. Apply for your **İşyeri Ruhsatı** at the local Belediye.\n4. Obtain **Fire Safety** inspection and certificate.\n5. Register with **Gıda Sicil** (Ministry of Food & Agriculture portal).\n6. If serving alcohol, apply for **Alkol Satış Ruhsatı** through the **Ministry of Agriculture and Forestry** portal at `tadbsatisbelgesi.tarimorman.gov.tr` (TAPDK was dissolved in 2017).\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**',
-    renewal: '☕ **Renewing Cafe / Restaurant Licenses**\n\n🔄 Annual renewal checklist:\n\n✅ **Steps:**\n1. Renew **İşyeri Ruhsatı** at the local Belediye (usually annual).\n2. Renew **Gıda Sicil** certificate.\n3. Book a new **Fire Safety inspection** if required.\n4. Renew any **Alcohol License** via the Ministry of Agriculture and Forestry portal (`tadbsatisbelgesi.tarimorman.gov.tr`).\n5. Check sign license status and renew if needed.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**'
+    ask: '☕ **Cafe & Restaurant**\n\nAre you opening a **new** cafe or restaurant, or making changes to an **existing** one?'
   },
   'Retail Shop': {
-    ask: '🛍️ **Retail Shop**\n\nAre you opening a **new** retail store, or renewing licenses for an **existing** one?',
-    new: '🛍️ **Opening a Retail Shop in Istanbul**\n\nHere is your complete permit roadmap! 🏪\n\n📋 **Required Permits:**\n• Company Registration (MERSİS)\n• İşyeri Açma Ruhsatı (Business Operating License)\n• Fire Safety Certificate\n• Sign License (Tabela Ruhsatı)\n• Tax Registration (Vergi Dairesi)\n\n✅ **Steps:**\n1. Register your company on **MERSİS** portal.\n2. Open a **tax account** at the local Vergi Dairesi.\n3. Apply for **İşyeri Ruhsatı** at the local Belediye with lease + company docs.\n4. Get a **Fire Safety** inspection and certificate from İtfaiye.\n5. Apply for a **Sign License** if you will have outdoor signage.\n6. Register with **e-Arşiv** for invoices over 3,000 TL. Full **e-Fatura** enrollment is mandatory once annual turnover exceeds 3 million TL — all invoicing will be fully electronic from 2026.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**',
-    renewal: '🛍️ **Retail Shop License Renewal**\n\n🔄 Annual renewal process:\n\n✅ **Steps:**\n1. Renew **İşyeri Ruhsatı** at the local Belediye.\n2. Renew **Fire Safety Certificate** if expired.\n3. Update business registration details on **MERSİS** if anything changed.\n4. Renew the **Sign License** if applicable.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**'
+    ask: '🛍️ **Retail Shop**\n\nAre you opening a **new** retail store, or renewing licenses for an **existing** one?'
   },
   'Office & Tech': {
-    ask: '💻 **Office & Tech Business**\n\nAre you setting up a **new** office or tech company, or updating an **existing** setup?',
-    new: '💻 **Opening an Office / Tech Company in Istanbul**\n\nIdeal for software companies, freelancers, and startups! 🚀\n\n📋 **Required Steps:**\n• Company Formation via MERSİS (LLC — Limited Şirketi)\n• Notary-signed Articles of Association\n• Tax Registration (Vergi Numarası)\n• Social Security (SGK) employer registration\n• İşyeri Ruhsatı (if client-facing premises)\n\n✅ **Steps:**\n1. Reserve your company name and register on **MERSİS**.\n2. Prepare **Articles of Association** and sign before a notary.\n3. Open a **company bank account** and deposit minimum capital (50,000 TL for LLC as of 2024).\n4. Register with **Vergi Dairesi** for tax and invoicing.\n5. Register with **SGK** as an employer.\n6. If you have physical premises, apply for **İşyeri Ruhsatı** at the Belediye.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**',
-    renewal: '💻 **Annual Office Compliance Renewal**\n\n🔄 Keep your office compliant:\n\n✅ **Steps:**\n1. File **annual corporate tax returns** with the Vergi Dairesi.\n2. Renew **İşyeri Ruhsatı** if you have physical premises.\n3. Update **SGK** records for any new employees.\n4. Update company details on **MERSİS** if address or partners changed.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**'
+    ask: '💻 **Office & Tech Business**\n\nAre you setting up a **new** office or tech company, or updating an **existing** setup?'
   },
   'Pharmacy': {
-    ask: '🏥 **Pharmacy**\n\nAre you opening a **new** pharmacy, or renewing licenses for an **existing** one?',
-    new: '🏥 **Opening a Pharmacy in Istanbul**\n\n⚠️ **Important Legal Notice:** Under Turkish **Law No. 6197**, pharmacy ownership is **restricted to Turkish citizens** who hold a Turkish pharmacy degree. Foreign nationals cannot own or operate a pharmacy in Turkey, regardless of their qualifications abroad.\n\nIf you are a Turkish citizen or have obtained Turkish citizenship, here is the process:\n\n📋 **Required Permits:**\n• Eczacı Ruhsatnamesi (Turkish Pharmacist License)\n• İşyeri Ruhsatı (Local Business License)\n• Sağlık Bakanlığı Approval (Ministry of Health)\n• TEB (Turkish Pharmacists Association) Membership\n• Fire Safety Certificate\n\n✅ **Steps (Turkish citizens only):**\n1. Verify your **Eczacı Ruhsatnamesi** is valid with the Ministry of Health.\n2. Register with **TEB (Türk Eczacıları Birliği)** and your local chamber.\n3. Find compliant premises (min. 40m²; distance rules apply — pharmacies cannot be too close to each other).\n4. Apply for **Ministry of Health pharmacy opening permit**.\n5. Obtain **İşyeri Ruhsatı** from the local Belediye.\n6. Install required **ECZANE BİS** pharmacy management software.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**',
-    renewal: '🏥 **Pharmacy License Renewal**\n\n🔄 Annual compliance:\n\n✅ **Steps:**\n1. Renew **TEB membership** and pay annual dues.\n2. Renew **İşyeri Ruhsatı** at the local Belediye.\n3. Update **Ministry of Health** records if any changes occurred.\n4. Ensure **ECZANE BİS** software is up to date.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**'
+    ask: '🏥 **Pharmacy**\n\nAre you opening a **new** pharmacy, or renewing licenses for an **existing** one?'
   },
   'Clinic': {
-    ask: '🩺 **Medical Clinic**\n\nAre you opening a **new** private clinic, or renewing licenses for an **existing** one?',
-    new: '🩺 **Opening a Private Clinic in Istanbul**\n\nPrivate healthcare in Turkey requires multiple approvals! 🏥\n\n📋 **Required Permits:**\n• Özel Sağlık Kuruluşu Ruhsatı (Ministry of Health License)\n• Tıp Fakültesi / Specialty Board Certification\n• İşyeri Ruhsatı (Local Business License)\n• Fire Safety Certificate\n• Waste Disposal Certification\n\n✅ **Steps:**\n1. Confirm your **medical specialty certification** is valid in Turkey.\n2. Apply to the **Ministry of Health (Sağlık Bakanlığı)** for private clinic authorization.\n3. Prepare premises meeting Ministry specifications (size, equipment, layout).\n4. Obtain **Fire Safety Certificate** from İtfaiye.\n5. Get **medical waste disposal** agreement with a licensed firm.\n6. Apply for **İşyeri Ruhsatı** at the local Belediye.\n7. Register with the **Ministry of Health Private Healthcare Services** system and your medical specialty chamber.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**',
-    renewal: '🩺 **Clinic License Renewal**\n\n🔄 Annual compliance:\n\n✅ **Steps:**\n1. Renew **Ministry of Health authorization** certificate.\n2. Renew **İşyeri Ruhsatı** at the local Belediye.\n3. Update **medical waste disposal** contract.\n4. Renew **Fire Safety Certificate** if expired.\n5. Submit annual report to your **specialty chamber**.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**'
+    ask: '🩺 **Medical Clinic**\n\nAre you opening a **new** private clinic, or renewing licenses for an **existing** one?'
   },
   'Residence Permit': {
-    ask: '🏠 **Residence Permit (İkamet)**\n\nIs this for a **new** residence permit application, or renewing an **existing** one?',
-    new: '🏠 **New Residence Permit (İkamet) — Work/Business**\n\nYou can stay legally in Turkey with a valid İkamet! 🇹🇷\n\n📋 **Required Documents:**\n• Valid Passport + photocopy\n• 4 Biometric Photos\n• Health Insurance Policy (1 year)\n• Proof of Address (lease/ownership)\n• Tax Number\n• Application Fee Receipt\n• Supporting document for purpose (work contract, business registration, etc.)\n\n✅ **Steps:**\n1. Get your **Tax Number** from the Vergi Dairesi.\n2. Purchase **Health Insurance** from a Turkish provider.\n3. Register on **e-ikamet.goc.gov.tr** and fill the application.\n4. Book your **Migration Office appointment**.\n5. Attend the appointment with all original documents.\n6. Receive your **İkamet card** by mail.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**',
-    renewal: '🏠 **Residence Permit Renewal**\n\n🔄 Time to renew your İkamet:\n\n✅ **Steps:**\n1. Apply up to **60 days before** your current permit expires on **e-ikamet.goc.gov.tr**.\n2. Renew your **Health Insurance** for the new period.\n3. Get updated **Proof of Address** if you have moved.\n4. Attend your **Migration Office appointment** with all originals.\n5. Receive your renewed **İkamet card** by mail.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**'
+    ask: '🏠 **Residence Permit (İkamet)**\n\nIs this for a **new** residence permit application, or renewing an **existing** one?'
   },
 
   // ── LAWYER (Legal) ──────────────────────────────────────────────
   'Company Formation': {
-    ask: '🏗️ **Company Formation**\n\nAre you forming a **brand new** company, or restructuring an **existing** entity?',
-    new: '🏗️ **Forming a New Company in Turkey**\n\nTurkey is very investor-friendly! Here\'s how to set up your LLC (LTD Şti): 🏢\n\n📋 **Required Steps:**\n• MERSİS registration\n• Notarized Articles of Association\n• Founding partner passports + notarized translations\n• Minimum capital deposit (50,000 TL for LLC as of 2024)\n• SGK employer registration\n• Vergi Dairesi (Tax Office) registration\n\n✅ **Steps:**\n1. Choose your company type (LLC, Joint Stock, Branch Office, or Liaison Office).\n2. Register on **MERSİS** and select your company name.\n3. Prepare and sign **Articles of Association** before a notary.\n4. Deposit **minimum capital** into a company bank account.\n5. Register with the **Trade Registry**.\n6. Register with **Vergi Dairesi** for taxes.\n7. Register with **SGK** for employee social security.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**',
-    renewal: '🏗️ **Company Restructuring / Annual Compliance**\n\n🔄 Keeping your entity compliant:\n\n✅ **Steps:**\n1. File **annual financial statements** with the Trade Registry.\n2. Hold **Annual General Meeting (AGM)** and file minutes.\n3. Update **MERSİS** if directors or address changed.\n4. Renew any **branch licenses** or **operational permits**.\n5. Ensure **tax filings** are up to date with the Vergi Dairesi.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**'
+    ask: '🏗️ **Company Formation**\n\nAre you forming a **brand new** company, or restructuring an **existing** entity?'
   },
   'Contract Review': {
-    ask: '📑 **Contract Review**\n\nAre you reviewing a **new** contract, or revisiting/amending an **existing** agreement?',
-    new: '📑 **New Contract Review**\n\nProtect your rights under Turkish law! ⚖️\n\n📋 **What to Check:**\n• Governing law (Turkish law preferred for enforceability)\n• Dispute resolution clause (arbitration vs. court)\n• Payment terms and currency\n• Termination and penalty clauses\n• Intellectual property ownership\n• Confidentiality and non-compete terms\n\n✅ **Steps:**\n1. Provide the contract text to your **Turkish legal advisor**.\n2. Verify all parties are **legally identified** with correct tax/company numbers.\n3. Ensure the contract is in **Turkish** or has a certified Turkish translation.\n4. Review **penalty clauses** for compliance with Turkish Commercial Code.\n5. Have the contract **notarized** if it involves real estate or high-value transactions.\n6. Sign and retain **certified copies** of the executed contract.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**',
-    renewal: '📑 **Contract Amendment / Renewal**\n\n🔄 Updating an existing agreement:\n\n✅ **Steps:**\n1. Draft a **Contract Amendment Addendum** specifying the changes.\n2. Ensure both parties **sign the amendment** with the same formality as the original.\n3. If the original was notarized, **notarize the amendment** too.\n4. Update the contract duration and any changed terms.\n5. Retain updated copies with all signatories.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**'
+    ask: '📑 **Contract Review**\n\nAre you reviewing a **new** contract, or revisiting/amending an **existing** agreement?'
   },
   'Employment Law': {
-    ask: '🤝 **Employment Law**\n\nAre you **hiring new** employees and need employment contracts, or resolving **ongoing** employment issues?',
-    new: '🤝 **Hiring Employees in Turkey**\n\nTurkish labor law provides strong employee protections. Here\'s how to hire legally: 👷\n\n📋 **Key Requirements:**\n• Written employment contract (mandatory)\n• SGK registration of employee **at least 1 day before** start\n• Minimum wage compliance (2025: gross 26,005 TL / net 22,104 TL per month)\n• Annual leave entitlement (14 days minimum)\n• Termination notice periods\n\n✅ **Steps:**\n1. Draft a **Turkish employment contract** compliant with İş Kanunu (Labor Law No. 4857).\n2. Register the employee with **SGK (Social Security) at least one day before** their start date — same-day registration incurs fines under Law No. 5510 Article 8.\n3. Set up **payroll** including income tax withholding and SGK contributions.\n4. Register with **e-Bildirge** for monthly SGK declarations.\n5. Provide a **signed copy** of the employment contract to the employee.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**',
-    renewal: '🤝 **Employment Issue Resolution**\n\n🔄 Handling existing employment matters:\n\n✅ **Steps:**\n1. Review current contracts for **compliance with latest minimum wage** and leave laws.\n2. If terminating, follow **notice periods** and calculate **severance pay** correctly.\n3. File any disputes with **İş Mahkemesi** (Labor Court) within the statute of limitations.\n4. For renewals, issue a **contract extension addendum**.\n5. Update **SGK records** for any changes in role or salary.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**'
+    ask: '🤝 **Employment Law**\n\nAre you **hiring new** employees and need employment contracts, or resolving **ongoing** employment issues?'
   },
   'Legal Disputes': {
-    ask: '⚖️ **Legal Disputes**\n\nAre you **initiating** a new legal case, or managing an **ongoing** dispute?',
-    new: '⚖️ **Initiating a Legal Case in Turkey**\n\nNavigating the Turkish court system: 🏛️\n\n📋 **Key Steps:**\n• Identify the correct court (Civil, Commercial, or Labor Court)\n• Prepare evidence and documentation\n• Calculate court fees (proportional to claim value)\n• Engage a licensed Turkish attorney (Avukat)\n\n✅ **Steps:**\n1. Consult a **licensed Turkish attorney (Avukat)** immediately.\n2. Collect all **evidence**: contracts, invoices, communications, receipts.\n3. File a **petition (dava dilekçesi)** with the appropriate court.\n4. Pay the **court fees** (harç) at the courthouse treasury.\n5. Serve the opposing party and await the **first hearing date**.\n6. Attend all hearings or authorize your attorney to represent you.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**',
-    renewal: '⚖️ **Ongoing Dispute / Appeal**\n\n🔄 Managing an active legal case:\n\n✅ **Steps:**\n1. Review latest court decisions with your **Turkish attorney**.\n2. If unfavorable, calculate **appeal deadlines** (usually 2 weeks from decision).\n3. File an **appeal (istinaf or temyiz)** at the appropriate appellate court.\n4. Submit any outstanding evidence or expert witness requests.\n5. Attend scheduled **hearings** with your legal representative.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**'
+    ask: '⚖️ **Legal Disputes**\n\nAre you **initiating** a new legal case, or managing an **ongoing** dispute?'
   },
   'Residency & Visas': {
-    ask: '🏠 **Residency & Visas (Legal Advice)**\n\nAre you navigating a **new** residency/visa matter, or handling an **ongoing** issue such as appeal or extension?',
-    new: '🏠 **New Residency or Visa Matter — Legal Guidance**\n\nSolid legal advice on residency in Turkey: 🇹🇷\n\n📋 **Common Matters:**\n• Tourist to Resident transition\n• Work Permit (Çalışma İzni) application\n• Long-Term Residence Permit (8 years)\n• Turkish Citizenship by Investment\n• Business Visa / Investor Residence\n\n✅ **Steps:**\n1. Consult a lawyer to identify the **right permit type** for your situation.\n2. Gather all required documents (passport, financial proof, health insurance, etc.).\n3. Apply through **e-ikamet.goc.gov.tr** or the relevant government portal.\n4. Attend the **Migration Office appointment**.\n5. If citizenship is the goal, consult on **Citizenship by Investment** options (400K USD real estate held 3 years; or 500K USD converted to **Turkish Lira** via Central Bank and placed in a 3-year TRY fixed deposit — USD/EUR direct deposits no longer qualify).\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**',
-    renewal: '🏠 **Residency Appeal / Extension**\n\n🔄 Managing an existing residency matter:\n\n✅ **Steps:**\n1. If denied, file an **administrative appeal** within 60 days.\n2. If overstayed, consult a lawyer immediately to minimize **fines and bans**.\n3. For extensions, apply on **e-ikamet.goc.gov.tr** up to 60 days before expiry.\n4. Update all **supporting documents** (insurance, address, financial proof).\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**'
+    ask: '🏠 **Residency & Visas (Legal Advice)**\n\nAre you navigating a **new** residency/visa matter, or handling an **ongoing** issue such as appeal or extension?'
   },
   'Real Estate Law': {
-    ask: '🏢 **Real Estate Law**\n\nAre you handling a **new** property transaction, or resolving an **ongoing** real estate legal matter?',
-    new: '🏢 **Buying Property in Istanbul**\n\nForeigners can own property in Turkey! Here\'s how: 🏡\n\n📋 **Required Steps:**\n• Property valuation (mandatory for foreigners)\n• Title Deed Check (Tapu Sicil Müdürlüğü)\n• Tax Number (Vergi Numarası)\n• Notarized Power of Attorney (if using a lawyer)\n• DASK earthquake insurance\n\n✅ **Steps:**\n1. Engage a licensed **Turkish real estate lawyer (Gayrimenkul Avukatı)**.\n2. Conduct a **title deed (Tapu) search** to verify ownership and liens.\n3. Order an official **property valuation** from a licensed appraiser.\n4. Sign a **Preliminary Sales Agreement (Ön Sözleşme)** and pay deposit.\n5. The **Land Registry (TKGM)** automatically checks for military/security zone restrictions — no separate application needed since 2019. Purchases in actual forbidden zones will be blocked at the registry.\n6. Complete the transfer at the **Tapu Sicil Müdürlüğü** (Land Registry Office).\n7. Purchase **DASK earthquake insurance**.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**',
-    renewal: '🏢 **Real Estate Legal Issue Resolution**\n\n🔄 Handling ongoing property matters:\n\n✅ **Steps:**\n1. Consult your **Turkish real estate lawyer** on the specific issue.\n2. For tenant disputes, apply to the **Sulh Hukuk Mahkemesi** (Civil Court of Peace).\n3. For title disputes, file at the **Asliye Hukuk Mahkemesi**.\n4. Renew **DASK insurance** annually.\n5. For rental agreements, ensure they are updated with current legal rent increase caps.\n\n⬇️ **Your full roadmap is being prepared on the Dashboard...**'
+    ask: '🏢 **Real Estate Law**\n\nAre you handling a **new** property transaction, or resolving an **ongoing** real estate legal matter?'
   },
 };
 
@@ -327,49 +419,62 @@ const SERVICE_BUTTON_LABELS_TR: Record<string, { primary: string; secondary: str
   'IstanbulKart':             { primary: '🆕 Yeni Kart Al',         secondary: '🔄 Yenile / Doldur' },
 };
 
+const SERVICE_ASK_TK: Record<string, string> = {
+  'ID / İkamet':              '🪪 **ID / İkamet (Ýaşaýyş rugsatnamasy)**\n\nGowy saýlaw! Size takyk ädimleri we resminamalary bermek üçin bilmeli:\n\n**Bu Täze arza mы ýa-da Täzeleme mi?**',
+  'Student Visa':             '✈️ **Talyp Wizasy**\n\nSizi doly prosesden geçirip bilerin! Ilki bilmeli:\n\n**Bu Täze wiza arzasy mы ýa-da Uzaltma/Täzeleme mi?**',
+  'Denklik (Equivalency)':    '📜 **Denklik (Diplom Deňleşdirme)**\n\nSize dogry maslahat bermek üçin bilmeli:\n\n**Bu Täze Denklik arzasy mы ýa-da öňki arzaňyzy yzarlaýarsyňyzmy?**',
+  'University Registration':  '🏛️ **Uniwersitet Bellige Alşy**\n\nTürkiýede uniwersitete **ilkinji gezek** bellige durýarsyňyzmy, ýa-da **täzeden bellige alyş/geçiş** edýärsiňizmi?',
+  'Dormitory & Housing':      '🛏️ **Ýatakhana we Ýaşaýyş jaý**\n\n**Ilkinji gezek** ýaşaýyş jaý gözleýärsiňizmi, ýa-da häzirki ýagdaýyňyzy täzeleýärsiňizmi/üýtgedýärsiňizmi?',
+  'IstanbulKart':             '🚌 **IstanbulKart (Talyp Transport Kartasy)**\n\n**Täze** talyp IstanbulKart almak isleýärsiňizmi, ýa-da barlyny **täzelemek/doldurmak** isleýärsiňizmi?',
+  'Cafe & Restaurant':        '☕ **Kafe we Restoran**\n\n**Täze** kafe ýa-da restoran açýarsyňyzmy, ýa-da **bar** birine üýtgeşme girizýärsiňizmi?',
+  'Retail Shop':              '🛍️ **Bölek satuw dükany**\n\n**Täze** dükan açýarsyňyzmy, ýa-da **bar** dükanyň rugsatnamalaryny täzeleýärsiňizmi?',
+  'Office & Tech':            '💻 **Ofis we Tehnologiýa**\n\n**Täze** ofis ýa-da tehnologiýa kompaniýasy gurýarsyňyzmy, ýa-da **bar** gurluşy täzeleýärsiňizmi?',
+  'Pharmacy':                 '🏥 **Dermanhana**\n\n**Täze** dermanhana açýarsyňyzmy, ýa-da **bar** biriniň rugsatnamalaryny täzeleýärsiňizmi?',
+  'Clinic':                   '🩺 **Lukmançylyk Klinikasy**\n\n**Täze** hususy klinika açýarsyňyzmy, ýa-da **bar** biriniň rugsatnamalaryny täzeleýärsiňizmi?',
+  'Residence Permit':         '🏠 **Ýaşaýyş Rugsatnamasy (İkamet)**\n\nBu **täze** ýaşaýyş rugsatnamasy arzasymy, ýa-da **bar** birini täzelemekmi?',
+  'Company Formation':        '🏗️ **Kompaniýa Döretmek**\n\n**Düýbünden täze** kompaniýa döredýärsiňizmi, ýa-da **bar** edarany täzeden gurýarsyňyzmy?',
+  'Contract Review':          '📑 **Şertnama Barlagy**\n\n**Täze** şertnamany barlaýarsyňyzmy, ýa-da **bar** ylalaşygy täzeden gözden geçirýärsiňizmi/üýtgedýärsiňizmi?',
+  'Employment Law':           '🤝 **Zähmet Hukugy**\n\n**Täze işgär işe alýarsyňyzmy** we zähmet şertnamasy gerekmi, ýa-da **dowam edýän** zähmet meselesini çözýärsiňizmi?',
+  'Legal Disputes':           '⚖️ **Hukuk Jedeller**\n\n**Täze** hukuk işini başladýarsyňyzmy, ýa-da **dowam edýän** jedeli dolandyrýarsyňyzmy?',
+  'Residency & Visas':        '🏠 **Ýaşaýyş we Wizalar (Hukuk Maslahaty)**\n\n**Täze** ýaşaýyş/wiza meselesini çözýärsiňizmi, ýa-da **dowam edýän** mesele (şikaýat ýa-da uzaltma ýaly) bilen meşgullanýarsyňyzmy?',
+  'Real Estate Law':          '🏢 **Gozgalmaýan Emläk Hukugy**\n\n**Täze** emläk amalyny geçirýärsiňizmi, ýa-da **dowam edýän** gozgalmaýan emläk hukuk meselesini çözýärsiňizmi?',
+};
+
+const SERVICE_BUTTON_LABELS_TK: Record<string, { primary: string; secondary: string }> = {
+  'ID / İkamet':              { primary: '🆕 Täze Arza',            secondary: '🔄 Täzeleme' },
+  'Student Visa':             { primary: '🆕 Täze Wiza',            secondary: '✏️ Uzaltma / Täzeleme' },
+  'Denklik (Equivalency)':    { primary: '🆕 Täze Arza',            secondary: '🔍 Yzarlama / Düzediş' },
+  'University Registration':  { primary: '🆕 Ilkinji Bellige Alyş', secondary: '🔄 Geçiş / Täzeden Bellige Alyş' },
+  'Dormitory & Housing':      { primary: '🆕 Täze Ýaşaýyş Jaý Tap', secondary: '🔄 Täzele / Üýtget' },
+  'IstanbulKart':             { primary: '🆕 Täze Karta Al',        secondary: '🔄 Täzele / Doldur' },
+  'Cafe & Restaurant':        { primary: '🆕 Täze Aç',              secondary: '🔄 Rugsatnamalary Täzele' },
+  'Retail Shop':              { primary: '🆕 Täze Aç',              secondary: '🔄 Rugsatnamalary Täzele' },
+  'Office & Tech':            { primary: '🆕 Täze Gur',             secondary: '🔄 Ýyllyk Laýyklyk' },
+  'Pharmacy':                 { primary: '🆕 Täze Aç',              secondary: '🔄 Rugsatnamalary Täzele' },
+  'Clinic':                   { primary: '🆕 Täze Aç',              secondary: '🔄 Rugsatnamalary Täzele' },
+  'Residence Permit':         { primary: '🆕 Täze Arza',            secondary: '🔄 Täzeleme' },
+  'Company Formation':        { primary: '🆕 Täze Kompaniýa Gur',   secondary: '🔄 Täzeden Gur / Laýyklyk' },
+  'Contract Review':          { primary: '🆕 Täze Şertnamany Barla', secondary: '✏️ Barlary Üýtget' },
+  'Employment Law':           { primary: '🆕 Işe Al / Täze Şertnama', secondary: '⚠️ Bar Mesele' },
+  'Legal Disputes':           { primary: '🆕 Täze Iş Aç',           secondary: '⏳ Dowam edýän Iş / Şikaýat' },
+  'Residency & Visas':        { primary: '🆕 Täze Mesele',          secondary: '🔄 Şikaýat / Uzaltma' },
+  'Real Estate Law':          { primary: '🆕 Täze Amal',            secondary: '⚠️ Dowam edýän Mesele' },
+};
+
 function getLocalizedAsk(service: string, lang: string): string {
   if (lang === 'ar') return SERVICE_ASK_AR[service] ?? SERVICE_FLOW_RESPONSES[service]?.ask ?? '';
   if (lang === 'tr') return SERVICE_ASK_TR[service] ?? SERVICE_FLOW_RESPONSES[service]?.ask ?? '';
+  if (lang === 'tk') return SERVICE_ASK_TK[service] ?? SERVICE_FLOW_RESPONSES[service]?.ask ?? '';
   return SERVICE_FLOW_RESPONSES[service]?.ask ?? '';
 }
 
 function getLocalizedBtnLabels(service: string, lang: string) {
   if (lang === 'ar') return SERVICE_BUTTON_LABELS_AR[service] ?? SERVICE_BUTTON_LABELS[service] ?? DEFAULT_BUTTON_LABELS;
   if (lang === 'tr') return SERVICE_BUTTON_LABELS_TR[service] ?? SERVICE_BUTTON_LABELS[service] ?? DEFAULT_BUTTON_LABELS;
+  if (lang === 'tk') return SERVICE_BUTTON_LABELS_TK[service] ?? SERVICE_BUTTON_LABELS[service] ?? DEFAULT_BUTTON_LABELS;
   return SERVICE_BUTTON_LABELS[service] ?? DEFAULT_BUTTON_LABELS;
 }
 
-// ── Builds a guest-compatible workflow object from SERVICE_FLOW_RESPONSES content ─
-const buildGuestWorkflow = (service: string, content: string, area: string, agentType: string) => {
-  // Extract bullet-point docs from "📋 Required…" section
-  const docsMatch = content.match(/📋[^\n]*\n((?:[^\n]*•[^\n]*\n?)+)/);
-  const docs = docsMatch
-    ? (docsMatch[1].match(/•\s*([^\n]+)/g) || []).map(d => d.replace(/^•\s*/, '').replace(/\*\*/g, '').trim()).filter(Boolean)
-    : [];
-
-  // Extract numbered steps
-  const stepLines = content.match(/\n\d+\.[^\n]+/g) || [];
-  const steps = stepLines.map((line, i) => {
-    const text = line.replace(/^\n\d+\.\s*/, '').replace(/\*\*/g, '').trim();
-    return {
-      id: i + 1,
-      title: text.length > 70 ? text.slice(0, 67) + '…' : text,
-      responsible: 'You',
-      status: i === 0 ? 'in-progress' : 'pending',
-      notes: text,
-      docs: i === 0 ? docs : [],
-    };
-  });
-
-  return {
-    service,
-    area,
-    execution_plan: { steps },
-    last_updated: new Date().toISOString(),
-    assistant_type: agentType,
-    _session_id: null,
-  };
-};
 
 // Maps English service chip labels → i18n translation keys (for LanguageContext)
 const CHIP_I18N_KEY: Record<string, string> = {
@@ -391,6 +496,7 @@ const CHIP_I18N_KEY: Record<string, string> = {
   'Legal Disputes':          'chip_legal_disputes',
   'Residency & Visas':       'chip_residency_visas',
   'Real Estate Law':         'chip_real_estate',
+  'Criminal Defense':        'chip_criminal_defense',
 };
 
 // ── Service options per agent — the only suggestions we show. Picking one starts
@@ -437,17 +543,19 @@ export default function ChatPage() {
     if (!lastTokenReset) return '12 hours';
     const resetDate = new Date(lastTokenReset);
     resetDate.setHours(resetDate.getHours() + 12);
-    return resetDate.toLocaleString(language === 'ar' ? 'ar-SA' : (language === 'tr' ? 'tr-TR' : 'en-US'), {
+    return resetDate.toLocaleString(language === 'ar' ? 'ar-SA' : language === 'tr' ? 'tr-TR' : language === 'tk' ? 'tk-TM' : 'en-US', {
       year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
     });
   };
   const [sessionId, setSessionId] = useState<string | null>(null);
+  /** In-flight lazy session creation, so two quick sends share one row. */
+  const sessionCreationRef = useRef<Promise<string | null> | null>(null);
   const [sessionTitle, setSessionTitle] = useState<string>('');
   const [sidebarRefresh, setSidebarRefresh] = useState(0);
   const [allSessions, setAllSessions] = useState<any[]>([]);
   const [showQuotaWarning, setShowQuotaWarning] = useState(false);
   const [quotaRefreshTime, setQuotaRefreshTime] = useState('');
-  const [assistantType, setAssistantType] = useState<'permit' | 'student' | 'lawyer'>('permit');
+  const [assistantType, setAssistantType] = useState<'permit' | 'student' | 'lawyer'>(DEFAULT_AGENT);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -463,9 +571,13 @@ export default function ChatPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Show onboarding instructions on every visit (testing mode — remove condition when done)
+  // Show the walkthrough until the visitor asks us to stop. The flag was
+  // already being written on dismiss; nothing ever read it, so the modal came
+  // back on every single visit.
   useEffect(() => {
-    setShowOnboarding(true);
+    if (localStorage.getItem('turkgateway_onboarding_done') !== 'true') {
+      setShowOnboarding(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -485,9 +597,61 @@ export default function ChatPage() {
     t('chat_q4'),
   ];
   const [msgs, setMsgs] = useState<Msg[]>([]);
+  /**
+   * Live mirror of msgs. hangUpCall runs from timers (the auto-hangup after a
+   * closing line, the 3s teardown) that captured an older render, so reading
+   * the state variable there would file a transcript missing its last turns.
+   */
+  const msgsRef = useRef<Msg[]>([]);
+  useEffect(() => { msgsRef.current = msgs; }, [msgs]);
   const [input, setInput] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  /** Set when the server asks the user to approve spending a service credit. */
+  const [pendingConfirm, setPendingConfirm] = useState<(PendingConfirm & { query: string }) | null>(null);
+  /**
+   * Visa intake progress. Only the latest snapshot is kept — the state is
+   * cumulative, so older cards would just be stale copies of the same thing.
+   * `visaIntakeMsgId` anchors it below the reply that produced it.
+   */
+  const [visaIntake, setVisaIntake] = useState<VisaIntakeState | null>(null);
+  const [visaIntakeMsgId, setVisaIntakeMsgId] = useState<number | null>(null);
+  /**
+   * The document checklist the agent listed, anchored to the reply that
+   * produced it. Kept per message rather than as one global card so a
+   * conversation covering two services shows both lists in place.
+   */
+  const [checklists, setChecklists] = useState<Record<number, ChecklistSeed>>({});
+
+  /**
+   * Check the file before it is ever attached, so someone who picks a 40 MB
+   * scan finds out immediately instead of after a slow upload. The server
+   * enforces the same limits independently — this is for the person, not for
+   * security.
+   */
+  const pickFile = (picked: File) => {
+    if (picked.size > MAX_UPLOAD_BYTES) {
+      setUploadError(
+        `${picked.name} is ${(picked.size / (1024 * 1024)).toFixed(1)} MB. The limit is ${MAX_UPLOAD_MB} MB — please upload a smaller scan.`,
+      );
+      return;
+    }
+    if (!ACCEPTED_UPLOAD_TYPES.split(',').includes(picked.type)) {
+      setUploadError(`${picked.name} isn't a PDF, JPG, or PNG.`);
+      return;
+    }
+    setUploadError(null);
+    setFile(picked);
+  };
+
   const [busy, setBusy] = useState(false);
+
+  // True once the reply is visibly arriving. The placeholder assistant message
+  // is pushed with empty content before the first token, so without this the
+  // "thinking" indicator and an empty bubble render at the same time — and
+  // then the indicator stays pinned under a bubble that is already answering.
+  const lastMsg = msgs[msgs.length - 1];
+  const replyStarted = lastMsg?.role === 'assistant' && !!lastMsg.content;
   const [visibleChars, setVisibleChars] = useState<Record<number, number>>({});
   const [isLoaded, setIsLoaded] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -496,16 +660,95 @@ export default function ChatPage() {
   const recognitionRef = useRef<any>(null);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  /** Live mirror of isSpeaking for the mic callbacks — see markSpeaking(). */
+  const isSpeakingRef = useRef(false);
+  /** Set speaking state and its live mirror together. */
+  const markSpeaking = (value: boolean) => {
+    isSpeakingRef.current = value;
+    setIsSpeaking(value);
+  };
+
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [isVoiceMode, setIsVoiceMode] = useState(false);
+  /** True while the server is being asked whether a call may start. */
+  const [voiceGateChecking, setVoiceGateChecking] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  /** Same count as callDuration, readable from timers that captured an old render. */
+  const callSecondsRef = useRef(0);
+  /** The live Realtime session, when the call is running on that path. */
+  const realtimeCallRef = useRef<RealtimeCall | null>(null);
+  /**
+   * Turns spoken on a Realtime call. They never pass through send(), so they
+   * are collected here for the transcript instead of being read off msgs.
+   */
+  const realtimeTurnsRef = useRef<{ role: Role; content: string }[]>([]);
+  /** Agent speech arrives as deltas; accumulated here until the turn is done. */
+  const agentSpeechRef = useRef('');
+  /**
+   * How loud the agent's voice is right now, 0..1.
+   *
+   * Drives the orb so it breathes with the actual speech. The previous orb
+   * pulsed on a fixed timer, which kept pulsing through pauses and stayed flat
+   * through emphasis — convincing for two seconds, then obviously decoration.
+   */
+  const [voiceLevel, setVoiceLevel] = useState(0);
+  /**
+   * What the caller has settled on so far, shown on the call screen.
+   *
+   * A phone call keeps no record of itself while it is happening — somebody
+   * says "Bahcesehir, computer engineering" and then spends the rest of the
+   * call wondering whether it was heard right. This is that read-back, without
+   * spending a turn of conversation on it.
+   */
+  const [voiceChoices, setVoiceChoices] = useState<{ university?: string; major?: string; service?: string }>({});
+  /** What the call decided, captured from end_call and filed on hang-up. */
+  const callOutcomeRef = useRef<{ service: string | null; detail: string | null }>({ service: null, detail: null });
+
+  // ── Dictation: the composer's microphone, distinct from the phone call ────
+  const dictationRef = useRef<Dictation | null>(null);
+  const [isDictating, setIsDictating] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [dictationLevels, setDictationLevels] = useState<number[]>(() => new Array(LEVEL_BARS).fill(0));
+  /**
+   * Why the call could not start, shown on the call screen.
+   *
+   * A voice call that fails has no way of telling anyone: there is no voice to
+   * say it with. Without this the caller sees "Connecting…", then the line
+   * drops, and the only explanation is a console warning nobody reads. An
+   * expired API key looked identical to a broken feature.
+   */
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+
+  /**
+   * Leaving the page mid-call must release the microphone. Closing the peer
+   * connection alone leaves the track live and the browser's recording dot on,
+   * so RealtimeCall.hangUp stops the tracks explicitly — this just makes sure
+   * it is called when React tears the component down.
+   */
+  useEffect(() => () => {
+    realtimeCallRef.current?.hangUp();
+    realtimeCallRef.current = null;
+  }, []);
+  /**
+   * Guards against filing the same call twice. hangUpCall has more than one
+   * caller — the button, the [CALL_COMPLETE] handler, and its 45s backstop —
+   * and two of them landing in the same tick would both still see the spoken
+   * turns in msgsRef, producing two transcript rows and two thread lines.
+   */
+  const transcriptFiledRef = useRef(false);
   const [detectedService, setDetectedService] = useState<string | null>(null);
   const [callEnded, setCallEnded] = useState(false);
   const [switchingAgent, setSwitchingAgent] = useState(false);
   const [pendingServiceChoice, setPendingServiceChoice] = useState<string | null>(null);
   const [awaitingAreaService, setAwaitingAreaService] = useState<string | null>(null);
   const [fetchingRoadmap, setFetchingRoadmap] = useState(false);
-  const [showTextInput, setShowTextInput] = useState(false);
+  /**
+   * Suggested mode is gone, so the text input is the only way in and this
+   * starts — and stays — true. Nothing sets it false any more; it remains
+   * state purely so the few branches still reading it keep compiling, rather
+   * than forcing a large refactor of the input area in the same change.
+   */
+  const [showTextInput, setShowTextInput] = useState(true);
   const [dashboardCountdown, setDashboardCountdown] = useState<number | null>(null);
   const [redirectingToDashboard, setRedirectingToDashboard] = useState(false);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -516,50 +759,25 @@ export default function ChatPage() {
   const voiceLoopRef = useRef(false);
   const msgIdRef = useRef(1);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const voicesLoadedRef = useRef(false);
-  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const speechQueueRef = useRef<string[]>([]);
-  const ttsKeepaliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const isSpeechQueueActiveRef = useRef(false);
+  /** The neural clip currently playing, so it can be cut off mid-sentence. */
+  const neuralAudioRef = useRef<HTMLAudioElement | null>(null);
+  /** Bumped on every new utterance so a superseded run stops speaking. */
+  const speakRunIdRef = useRef(0);
   const typewriterIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [fullCleanText, setFullCleanText] = useState('');
   const [spokenWordIndex, setSpokenWordIndex] = useState(-1);
-
-  // Initialize Speech Voices — load early, retry until populated
-  useEffect(() => {
-    const synth = window.speechSynthesis;
-    if (!synth) return;
-
-    const loadVoices = () => {
-      const voices = synth.getVoices();
-      if (voices.length > 0) {
-        setAvailableVoices(voices);
-        voicesLoadedRef.current = true;
-      }
-    };
-
-    loadVoices();
-    if (synth.onvoiceschanged !== undefined) {
-      synth.onvoiceschanged = loadVoices;
-    }
-    // Fallback polling — some browsers fire onvoiceschanged late
-    const poll = setInterval(() => {
-      if (!voicesLoadedRef.current) loadVoices();
-      else clearInterval(poll);
-    }, 300);
-    return () => clearInterval(poll);
-  }, []);
 
   // Load sessions on mount or when auth changes
   useEffect(() => {
     let mounted = true;
     const initSession = async () => {
       // Check for forced type from dashboard/sidebar
-      const forcedType = localStorage.getItem('permitops_assistant_type') as 'permit' | 'student' | 'lawyer' | null;
+      // A stored type can point at an agent that has since been disabled, so it
+      // is coerced back to an enabled one before it reaches the UI.
+      const forcedType = localStorage.getItem('permitops_assistant_type');
       if (forcedType) {
-        setAssistantType(forcedType);
+        setAssistantType(resolveAgent(forcedType));
       }
 
       if (isAuthenticated && token) {
@@ -578,7 +796,7 @@ export default function ChatPage() {
               setSessionId(forcedSessionId);
               setSessionTitle(fSession ? (fSession.title || '') : '');
               if (fSession && fSession.assistant_type) {
-                setAssistantType(fSession.assistant_type);
+                setAssistantType(resolveAgent(fSession.assistant_type));
               }
               return;
             }
@@ -592,17 +810,22 @@ export default function ChatPage() {
               setSessionTitle(activeSession.title || '');
               // Only override assistant type if no forced type exists
               if (!forcedType && activeSession.assistant_type) {
-                setAssistantType(activeSession.assistant_type);
+                setAssistantType(resolveAgent(activeSession.assistant_type));
               }
             } else if (!activeSessionId && forcedType) {
-              // Redirected from dashboard with a SPECIFIC agent but NO session
-              handleNewChat();
+              // Redirected from dashboard with a SPECIFIC agent but NO session.
+              // Start blank; the row is created on the first message.
+              setSessionId(null);
+              setSessionTitle('');
             } else if (data.length > 0) {
               setSessionId(data[0].id);
               setSessionTitle(data[0].title || '');
-              if (!forcedType && data[0].assistant_type) setAssistantType(data[0].assistant_type);
+              if (!forcedType && data[0].assistant_type) setAssistantType(resolveAgent(data[0].assistant_type));
             } else {
-              handleNewChat();
+              // Brand-new account with nothing to resume. Opening the page is
+              // not a conversation, so no row is written yet.
+              setSessionId(null);
+              setSessionTitle('');
             }
           }
         } catch (e) {
@@ -647,7 +870,15 @@ export default function ChatPage() {
           const res = await apiFetch(`/chat/history/${sessionId}`);
           if (res?.ok) {
             const data = await res.json();
-            setMsgs(data);
+            setMsgs((data as any[]).map((m: any) => ({
+              id: m.id,
+              role: m.role,
+              content: m.content,
+              attachment: m.attachment_id
+                ? { id: m.attachment_id, filename: m.attachment_filename ?? 'document.pdf' }
+                : null,
+              transcript: m.transcript_id ? { id: m.transcript_id } : null,
+            })));
             if (data.length > 0) {
               msgIdRef.current = Math.max(...data.map((m: any) => m.id)) + 1;
               // Detect if this session already produced a dashboard so we show the
@@ -665,6 +896,31 @@ export default function ChatPage() {
             } else {
               msgIdRef.current = 1;
               setHasDashboard(false);
+            }
+
+            // Rebuild any upload checklists this conversation started. Without
+            // this the card only ever existed for the life of the stream that
+            // created it, so reopening a chat showed the document list with no
+            // way to upload and no sign of what had already been sent.
+            try {
+              const svcRes = await apiFetch(
+                `/api/applications/session?session_id=${encodeURIComponent(sessionId)}&lang=${language}`,
+              );
+              if (svcRes?.ok) {
+                const { services } = await svcRes.json();
+                if (Array.isArray(services) && services.length && data.length) {
+                  // Anchor to the last assistant message, which is where the
+                  // conversation left off.
+                  const lastAssistant = [...data].reverse().find((m: any) => m.role === 'assistant');
+                  if (lastAssistant) {
+                    setChecklists(
+                      Object.fromEntries(services.map((svc: ChecklistSeed) => [lastAssistant.id, svc])),
+                    );
+                  }
+                }
+              }
+            } catch {
+              // The transcript still renders; only the card is missing.
             }
           }
         } catch (e) {
@@ -713,7 +969,9 @@ export default function ChatPage() {
 
   // Auto-send a question if navigated from "Ask AI about this step"
   useEffect(() => {
-    if (!sessionId || !isLoaded) return;
+    // No sessionId requirement: send() creates the row itself now, and a chat
+    // arriving from "Ask AI about this step" often has none yet.
+    if (!isLoaded) return;
     const pending = localStorage.getItem('permitops_ask_step');
     if (!pending) return;
     localStorage.removeItem('permitops_ask_step');
@@ -722,20 +980,55 @@ export default function ChatPage() {
     return () => clearTimeout(timer);
   }, [sessionId, isLoaded]);
 
-  const handleNewChat = async (forceType?: string) => {
-    const typeToUse = forceType || assistantType;
-    if (isAuthenticated && token) {
+  /**
+   * Returns the session id to send with, creating the row the first time it is
+   * actually needed. Returns null if creation failed, so the caller can stop
+   * rather than post a message that cannot be stored.
+   *
+   * The row used to be created up front — on page load and again on every agent
+   * switch — which meant simply opening the chat inserted a chat_sessions row
+   * that usually never received a message. 36% of all rows were empty that way,
+   * and the admin session counter climbed for visitors who never typed
+   * anything. Nothing is written now until there is a message to write.
+   */
+  const ensureSession = async (): Promise<string | null> => {
+    if (sessionId) return sessionId;
+
+    if (!(isAuthenticated && token)) {
+      const guestId = `guest-${Math.random().toString(36).substring(2, 15)}`;
+      setSessionId(guestId);
+      localStorage.setItem('permitops_active_session_id', guestId);
+      return guestId;
+    }
+
+    // Two sends fired back to back must not create two rows.
+    if (sessionCreationRef.current) return sessionCreationRef.current;
+
+    const creation = (async (): Promise<string | null> => {
       try {
-        const res = await apiFetch(`/chat/sessions?assistant_type=${typeToUse}`, { method: 'POST' });
-        if (res?.ok) {
-          const data = await res.json();
-          setAllSessions(prev => [data, ...prev]);
-          setSessionId(data.id);
-          setMsgs([]);
-        }
+        const res = await apiFetch(`/chat/sessions?assistant_type=${assistantType}`, { method: 'POST' });
+        if (!res?.ok) return null;
+        const data = await res.json();
+        setAllSessions(prev => [data, ...prev]);
+        setSessionId(data.id);
+        localStorage.setItem('permitops_active_session_id', data.id);
+        return data.id as string;
       } catch (e) {
-        console.error("Failed to create new session", e);
+        console.error('Failed to create new session', e);
+        return null;
+      } finally {
+        sessionCreationRef.current = null;
       }
+    })();
+
+    sessionCreationRef.current = creation;
+    return creation;
+  };
+
+  const handleNewChat = async () => {
+    if (isAuthenticated && token) {
+      // No row yet — ensureSession() creates it when the first message is sent.
+      setSessionId(null);
     } else {
       // Ephemeral GUEST reset
       const newGuestId = `guest-${Math.random().toString(36).substring(2, 15)}`;
@@ -766,8 +1059,28 @@ export default function ChatPage() {
     }, 1000);
   };
 
+  /**
+   * Route a credit prompt to the right place.
+   *
+   * "You have no credits" is information, not a decision — a modal that asks
+   * nothing but still has to be dismissed is friction, and this one floated a
+   * hardcoded white card over a dark transcript. It reads as a normal reply
+   * instead. A prompt that genuinely asks something ("use 1 credit?") still
+   * gets the dialog, because that one wants an answer.
+   */
+  const presentCreditPrompt = (pending: PendingConfirm, query: string) => {
+    const hasCredits = (pending.creditsAvailable ?? 0) > 0;
+    if (hasCredits || pending.requiresAuth) {
+      setPendingConfirm({ ...pending, query });
+      return;
+    }
+    const id = msgIdRef.current++;
+    setVisibleChars(prev => ({ ...prev, [id]: Number.MAX_SAFE_INTEGER }));
+    setMsgs(p => [...p, { id, role: 'assistant', content: t('chat_no_credits_msg') }]);
+  };
+
   const switchAssistant = (newType: 'permit' | 'student' | 'lawyer') => {
-    if (newType === assistantType) return;
+    if (newType === assistantType || isAgentDisabled(newType)) return;
 
     setSwitchingAgent(true);
     setAssistantType(newType);
@@ -781,7 +1094,12 @@ export default function ChatPage() {
         setSessionId(recentSession.id);
         setSessionTitle(recentSession.title || '');
       } else {
-        handleNewChat(newType);
+        // No chat with this agent yet. Switching tabs is not a conversation —
+        // the row waits until something is actually sent.
+        setSessionId(null);
+        setSessionTitle('');
+        setMsgs([]);
+        setHasDashboard(false);
       }
 
       // Keep loading for at least 1.5s for the wow factor
@@ -790,45 +1108,404 @@ export default function ChatPage() {
   };
 
   // --- Voice Chat Logic ---
-  const toggleVoice = () => {
-    if (isListening || isVoiceMode) {
-      hangUpCall();
-    } else {
-      startCall();
+  /**
+   * Start or end the call.
+   *
+   * A call needs a purchased credit to open, but never spends one. The call is
+   * how somebody tells us what they need; charging for that would be charging
+   * before we have done anything. The credit is spent later, when the service
+   * they asked for actually starts. The server decides — asking it rather than
+   * reading a cached balance means the answer cannot drift from the truth, and
+   * the endpoint it asks has no code path that consumes anything.
+   */
+  /**
+   * Start dictating into the message box.
+   *
+   * Not gated on a service credit the way a call is: this is one upload with
+   * no session and no per-minute billing, and putting the microphone behind a
+   * paywall would make it dead for most of the people who would use it.
+   */
+  const startDictation = async () => {
+    if (isDictating || busy) return;
+    try {
+      const d = await Dictation.start({
+        onLevels: setDictationLevels,
+        onError: (detail) => console.warn('[dictation]', detail),
+      });
+      dictationRef.current = d;
+      setIsDictating(true);
+      setShowTextInput(true);   // the words need somewhere visible to land
+    } catch {
+      // Almost always a refused microphone. Said plainly rather than silently.
+      setVoiceError('Microphone access is needed to dictate. Allow it in your browser and try again.');
     }
   };
 
-  const startCall = () => {
+  const cancelDictation = () => {
+    dictationRef.current?.cancel();
+    dictationRef.current = null;
+    setIsDictating(false);
+    setDictationLevels(new Array(LEVEL_BARS).fill(0));
+  };
+
+  /**
+   * Stop recording and put the words in the box.
+   *
+   * `andSend` is the up-arrow: transcribe and send in one gesture. Everything
+   * else lands as editable text first, which is the whole reason this is not
+   * the browser's live recogniser — a misheard word should be fixable, not
+   * already sent.
+   */
+  const finishDictation = async (andSend: boolean) => {
+    const d = dictationRef.current;
+    if (!d) return;
+    dictationRef.current = null;
+    setIsDictating(false);
+    setDictationLevels(new Array(LEVEL_BARS).fill(0));
+
+    const clip = await d.stop();
+    if (!clip) return;   // too short to be anything but a mis-tap
+
+    setIsTranscribing(true);
+    try {
+      const form = new FormData();
+      form.append('audio', clip.blob, 'dictation.webm');
+      form.append('language', language);
+      const res = await apiFetch('/api/voice/transcribe', { method: 'POST', body: form });
+      const text = res?.ok ? String((await res.json())?.text ?? '').trim() : '';
+
+      if (!text) {
+        setVoiceError(res?.ok ? null : 'Could not transcribe that. Please try again.');
+        return;
+      }
+
+      // Appended, not replaced — dictating after typing should extend the
+      // message rather than throw away what is already there.
+      const merged = input.trim() ? `${input.trim()} ${text}` : text;
+      if (andSend) {
+        void send(merged);
+        setInput('');
+      } else {
+        setInput(merged);
+        inputRef.current?.focus();
+      }
+    } catch {
+      setVoiceError('Could not transcribe that. Please try again.');
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  /** Leaving the page mid-recording must release the microphone. */
+  useEffect(() => () => { dictationRef.current?.cancel(); dictationRef.current = null; }, []);
+
+  const toggleVoice = async () => {
+    if (isListening || isVoiceMode) {
+      hangUpCall();
+      return;
+    }
+
+    setVoiceGateChecking(true);
+    let gate: { allowed?: boolean; reason?: string; credits?: number } | null = null;
+    try {
+      const res = await apiFetch('/api/voice/eligibility');
+      if (res?.ok) gate = await res.json();
+    } catch {
+      // Treated as not allowed below — better than opening a call we cannot back.
+    }
+    setVoiceGateChecking(false);
+
+    if (!gate?.allowed) {
+      // Said in the chat rather than an alert, so it sits with the rest of the
+      // conversation and the pricing link is one tap away.
+      const id = msgIdRef.current++;
+      setVisibleChars(prev => ({ ...prev, [id]: Number.MAX_SAFE_INTEGER }));
+      setMsgs(p => [...p, {
+        id,
+        role: 'assistant',
+        content: gate?.reason === 'sign_in_required'
+          ? t('voice_sign_in')
+          : t('voice_needs_credit'),
+      }]);
+      return;
+    }
+
+    startCall();
+  };
+
+  /**
+   * Which voice engine a call runs on.
+   *
+   * 'realtime' is a single WebRTC session — the model hears the caller directly
+   * and answers as they finish, and can be interrupted. 'classic' is the older
+   * recognise → Qwen → text-to-speech chain, kept because Realtime cannot be
+   * exercised without a live OpenAI key and a rollback should not need a code
+   * change. Set NEXT_PUBLIC_VOICE_REALTIME=false to go back.
+   */
+  const useRealtimeVoice = process.env.NEXT_PUBLIC_VOICE_REALTIME !== 'false';
+
+  /** Shared reset for either engine. */
+  const beginCallUi = () => {
     setIsVoiceMode(true);
     setCallEnded(false);
     setCallDuration(0);
-    setDetectedService(assistantType); // show chip immediately
+    callSecondsRef.current = 0;
+    transcriptFiledRef.current = false;
+    realtimeTurnsRef.current = [];
+    agentSpeechRef.current = '';
+    callOutcomeRef.current = { service: null, detail: null };
+    setVoiceChoices({});
+    setVoiceLevel(0);
+    setVoiceError(null);
+    setDetectedService(null); // nothing assumed — the chip appears once a service is heard
     setVoiceTranscript('');
-    voiceLoopRef.current = true;
-    // Start call timer
-    callTimerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
+    setFullCleanText('');
+    setSpokenWordIndex(-1);
+    callTimerRef.current = setInterval(() => {
+      callSecondsRef.current += 1;
+      setCallDuration(callSecondsRef.current);
+    }, 1000);
+  };
 
-    // Initial Greeting — short, punchy, human
-    const greeting = assistantType === 'student'
-      ? "Hey, I'm your student agent. What do you need?"
-      : assistantType === 'lawyer'
-        ? "Hello, legal agent here. Go ahead."
-        : "Hey! Business agent here. What business are you opening?";
+  const startCall = () => {
+    beginCallUi();
+    if (useRealtimeVoice) { void startRealtimeCall(); return; }
+
+    // ── classic path ──
+    voiceLoopRef.current = true;
+
+    // Initial Greeting — short, punchy, human. Spoken aloud, so it must match
+    // the call's language: a Turkmen call opening in English reads as broken.
+    const greeting = VOICE_GREETINGS[language] ?? VOICE_GREETINGS.en;
 
     // Small delay for UI transition, then greet immediately
     setTimeout(() => { speak(greeting); }, 400);
   };
 
+  /**
+   * Open a Realtime call.
+   *
+   * There is no greeting to play here: the model opens the conversation itself
+   * from its instructions, which is why the first thing the caller hears
+   * arrives in well under a second instead of after a round trip.
+   */
+  const startRealtimeCall = async () => {
+    try {
+      const res = await apiFetch('/api/voice/realtime/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language, assistant_type: assistantType }),
+      });
+
+      if (!res?.ok) {
+        const detail = (await res?.json().catch(() => null))?.detail ?? 'voice unavailable';
+        console.warn('[voice] realtime session refused:', detail);
+        // 402 is the one the caller can act on themselves; everything else is
+        // ours to fix, so it is reported as such rather than blamed on them.
+        setVoiceError(
+          res?.status === 402
+            ? detail
+            : 'Voice is unavailable right now. Please try again shortly.',
+        );
+        hangUpCall();
+        return;
+      }
+
+      const { client_secret, model } = await res.json();
+
+      const call = await RealtimeCall.open({ client_secret, model }, {
+        onUserTranscript: (text, final) => {
+          setVoiceTranscript(text);
+          if (final && text.trim()) {
+            realtimeTurnsRef.current.push({ role: 'user', content: text.trim() });
+            setVoiceTranscript('');
+          }
+        },
+        onAgentTranscript: (text, final) => {
+          // Deltas arrive as increments; the done event carries the whole turn.
+          agentSpeechRef.current = final ? text : agentSpeechRef.current + text;
+          setFullCleanText(agentSpeechRef.current);
+          if (final && text.trim()) {
+            realtimeTurnsRef.current.push({ role: 'assistant', content: text.trim() });
+            agentSpeechRef.current = '';
+          }
+        },
+        onSpeakingChange: markSpeaking,
+        onListeningChange: setIsListening,
+        onAudioLevel: setVoiceLevel,
+        onToolCall: async (name, args) => {
+          // Realtime tools run in the browser, so this is the bridge to the
+          // server half. Only the lookups that make sense out loud are wired
+          // up — a roadmap or a document checklist read aloud is exactly what
+          // VOICE_STYLE exists to prevent.
+          if (name === 'record_choice') {
+            // Merged, not replaced: the university and the subject usually
+            // arrive in separate calls, and the second must not blank the first.
+            setVoiceChoices((prev) => ({
+              ...prev,
+              ...(args.university ? { university: String(args.university) } : {}),
+              ...(args.major ? { major: String(args.major) } : {}),
+              ...(args.service ? { service: String(args.service) } : {}),
+            }));
+            if (args.service) {
+              const chosen = String(args.service);
+              // Remembered now, not at the close: a caller who hangs up on
+              // their own never reaches end_call, and the requirements are the
+              // one thing they came for.
+              callOutcomeRef.current = { ...callOutcomeRef.current, service: chosen };
+              const chipId = SERVICE_TO_CHIP[chosen];
+              if (chipId) setDetectedService(chipId);
+            }
+            return { ok: true };
+          }
+
+          if (name === 'suggest_universities') {
+            const r = await apiFetch('/api/voice/universities', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(args),
+            });
+            if (!r?.ok) throw new Error('university lookup failed');
+            return r.json();
+          }
+          return {
+            error: 'unknown_tool',
+            message: 'That is not something you can do on a call. Say so briefly and carry on.',
+          };
+        },
+        onEndCall: (args) => {
+          // Same job the [CALL_COMPLETE] token did on the classic path: the
+          // model has what it needs, so the line drops. RealtimeCall waits for
+          // the closing sentence to finish playing before tearing down.
+          //
+          // The tool's enum is spelled for the model's benefit — 'residence_permit'
+          // is unambiguous to it — while the UI has always keyed its chips on
+          // shorter ids. Without this map the chip silently never appeared.
+          const chosen = args.service ?? null;
+          callOutcomeRef.current = { service: chosen, detail: args.detail ?? null };
+          const chipId = chosen ? (SERVICE_TO_CHIP[chosen] ?? null) : null;
+          if (chipId) setDetectedService(chipId);
+        },
+        onClosed: () => { hangUpCall(); },
+        onError: (detail) => console.warn('[voice] realtime:', detail),
+      });
+
+      realtimeCallRef.current = call;
+    } catch (e) {
+      // Mic refused, SDP rejected, network gone — all end the call rather than
+      // leaving the caller on a screen that looks connected.
+      console.warn('[voice] could not start realtime call', e);
+      const denied = e instanceof DOMException &&
+        (e.name === 'NotAllowedError' || e.name === 'NotFoundError');
+      setVoiceError(
+        denied
+          ? 'Microphone access is needed for a voice call. Allow it in your browser and try again.'
+          : 'Voice is unavailable right now. Please try again shortly.',
+      );
+      hangUpCall();
+    }
+  };
+
+  /**
+   * File the call that just ended, then replace its turns in the thread with
+   * the single line the server wrote.
+   *
+   * The turns exist only in `msgs` at this point — /agent/query was told not to
+   * persist them — so this is the one chance to keep them. If it fails the
+   * transcript is lost, which is why a failure still clears the turns rather
+   * than leaving a half-call in the thread: a thread that silently gains forty
+   * rows of speech noise is worse than a call with no record.
+   */
+  const fileTranscript = async () => {
+    if (transcriptFiledRef.current) return;
+    transcriptFiledRef.current = true;
+
+    // Two engines, two places the turns come from. Realtime speech never
+    // passes through send(), so it is collected as it is transcribed; classic
+    // turns are the voice-flagged messages. Only one list is ever non-empty.
+    const turns = realtimeTurnsRef.current.length
+      ? realtimeTurnsRef.current.filter((t) => t.content.trim())
+      : msgsRef.current
+          .filter((m) => m.voice && m.content.trim())
+          .map((m) => ({ role: m.role, content: m.content.trim() }));
+
+    // Always drop the spoken turns, whatever happens to the upload below.
+    const clearVoiceTurns = (extra?: Msg) => {
+      setMsgs((prev) => {
+        const kept = prev.filter((m) => !m.voice);
+        return extra ? [...kept, extra] : kept;
+      });
+    };
+
+    if (!turns.length) { clearVoiceTurns(); return; }
+
+    try {
+      const res = await apiFetch('/api/voice/transcript', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          turns,
+          duration_seconds: callSecondsRef.current,
+          language,
+          assistant_type: assistantType,
+          // What the call was for. Null when they hung up before deciding,
+          // which the server stores as-is rather than guessing.
+          service: callOutcomeRef.current.service,
+          detail: callOutcomeRef.current.detail,
+        }),
+      });
+
+      const data = res?.ok ? await res.json().catch(() => null) : null;
+      if (data?.saved && data.transcript_id) {
+        // A call started from an empty chat creates its own thread server-side.
+        // Adopting the id here is what moves the caller into it — without this
+        // the transcript and the document list exist in a session the UI is
+        // not looking at, which reads exactly like nothing was saved.
+        if (data.session_id && data.session_id !== sessionId) {
+          setSessionId(data.session_id);
+          setSidebarRefresh((n) => n + 1);
+        }
+        const summaryId = msgIdRef.current++;
+        clearVoiceTurns({
+          id: summaryId,
+          role: 'assistant',
+          content: String(data.label ?? 'Voice call'),
+          transcript: { id: data.transcript_id },
+        });
+        // The documents they now need, hung off the call's own entry. This is
+        // the point of the call: they said what they wanted out loud, and the
+        // upload list is waiting for them when they hang up.
+        if (data.checklist) {
+          setChecklists((prev) => ({ ...prev, [summaryId]: data.checklist }));
+        }
+        return;
+      }
+      // Guest or unsaved session: nothing to link, so the call simply leaves
+      // no trace rather than dumping its turns into an unsaved thread.
+      clearVoiceTurns();
+    } catch {
+      console.warn('[voice] could not file transcript');
+      clearVoiceTurns();
+    }
+  };
+
   const hangUpCall = () => {
+    // RealtimeCall reports its own closure, and that report calls back in here.
+    // Detaching the reference before hanging up is what stops the two bouncing
+    // off each other.
+    const live = realtimeCallRef.current;
+    realtimeCallRef.current = null;
+
     voiceLoopRef.current = false;
     if (recognitionRef.current) recognitionRef.current.stop();
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    stopNeuralAudio();
+    live?.hangUp();
     clearInterval(callTimerRef.current);
-    // Clear TTS keepalive
-    if (ttsKeepaliveRef.current) { clearInterval(ttsKeepaliveRef.current); ttsKeepaliveRef.current = null; }
     setIsListening(false);
-    setIsSpeaking(false);
+    markSpeaking(false);
     setCallEnded(true);
+    void fileTranscript();
     // Push to dashboard after 2s then close
     setTimeout(() => {
       setIsVoiceMode(false);
@@ -843,17 +1520,13 @@ export default function ChatPage() {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) { alert('Speech recognition not supported in this browser.'); return; }
 
-    // Prime audio context so TTS fires instantly after recognition (no muted-audio glitch)
-    try {
-      const synth = window.speechSynthesis;
-      if (synth && !synth.speaking) {
-        const silent = new SpeechSynthesisUtterance(' ');
-        silent.volume = 0;
-        synth.speak(silent);
-      }
-    } catch (e) { }
+    // The old setup queued a silent utterance here to wake the speech engine.
+    // The neural path plays through an <audio> element instead, and a queued
+    // utterance only competes with it, so nothing is primed any more.
 
     const rec = new SpeechRecognition();
+    // Browsers' Web Speech API has no Turkmen recognition locale — fall back to English rather
+    // than passing an unsupported tag that would silently break recognition.
     rec.lang = language === 'tr' ? 'tr-TR' : language === 'ar' ? 'ar-SA' : 'en-US';
     rec.continuous = true;       // phone-call style — keep listening
     rec.interimResults = true;   // show live transcript
@@ -864,14 +1537,14 @@ export default function ChatPage() {
     rec.onend = () => {
       setIsListening(false);
       // Auto-restart quickly if still in call and AI isn't speaking
-      if (voiceLoopRef.current && !isSpeaking) {
-        setTimeout(() => { if (voiceLoopRef.current && !isSpeaking) startListening(); }, 150);
+      if (voiceLoopRef.current && !isSpeakingRef.current) {
+        setTimeout(() => { if (voiceLoopRef.current && !isSpeakingRef.current) startListening(); }, 150);
       }
     };
 
     rec.onerror = (e: any) => {
       if ((e.error === 'no-speech' || e.error === 'aborted') && voiceLoopRef.current) {
-        setTimeout(() => { if (voiceLoopRef.current && !isSpeaking) startListening(); }, 200);
+        setTimeout(() => { if (voiceLoopRef.current && !isSpeakingRef.current) startListening(); }, 200);
       } else if (e.error !== 'not-allowed') {
         setIsListening(false);
       }
@@ -893,13 +1566,19 @@ export default function ChatPage() {
       if (liveText) setVoiceTranscript(liveText);
 
       // Live service detection
+      // The call covers exactly four services, so detection covers exactly
+      // four. Business and legal used to be matched here and are no longer
+      // offered — leaving them in would light up a chip for something the
+      // agent has just been told it cannot do.
       const lower = liveText.toLowerCase();
-      if (/cafe|coffee|restaurant|shop|retail|office|bakery|pharmacy|gym|barber|permit|ruhsat|محل|مطعم|كافيه/.test(lower)) {
-        setDetectedService('permit');
-      } else if (/university|student|visa|scholarship|dorm|ikamet|جامعة|طالب|منحة/.test(lower)) {
-        setDetectedService('student');
-      } else if (/lawyer|contract|company|lawsuit|legal|court|dispute|محامي|عقد|شركة/.test(lower)) {
-        setDetectedService('lawyer');
+      if (/insurance|sigorta|sağlık sigorta|saglik sigorta|تأمين|ätiýaçlandyryş/.test(lower)) {
+        setDetectedService('insurance');
+      } else if (/ikamet|residence permit|residency|kimlik|oturma izni|uzatma|إقامة|ýaşaýyş/.test(lower)) {
+        setDetectedService('ikamet');
+      } else if (/visa|vize|consulate|تأشيرة|wiza/.test(lower)) {
+        setDetectedService('visa');
+      } else if (/university|universite|üniversite|student|study|register|denklik|jamiat|جامعة|طالب|uniwersitet/.test(lower)) {
+        setDetectedService('university');
       }
 
       if (finalTranscript && finalTranscript !== lastFinalTranscript && finalTranscript.length > 2) {
@@ -936,38 +1615,9 @@ export default function ChatPage() {
     setIsListening(false);
   };
 
-  // ── Pick the best available male voice ──────────────────────────────────────
-  const pickMaleVoice = (voices: SpeechSynthesisVoice[], lang: string): SpeechSynthesisVoice | null => {
-    const searchLangs = [lang, lang.split('-')[0]];
-    const inLang = (v: SpeechSynthesisVoice) => searchLangs.some(l => v.lang.startsWith(l));
-
-    // Explicit male names across OS/browser combos — ordered by quality
-    const maleKeywords = [
-      'Google UK English Male',
-      'Microsoft David',
-      'Microsoft Mark',
-      'Microsoft Guy',
-      'Daniel',          // macOS high-quality male EN
-      'Aaron',           // macOS male EN-US
-      'Google US English',   // usually male-sounding
-      'Google UK English',
-      'Fred',
-      'Alex',
-      'Male',
-      'man',
-      'Guy',
-    ];
-
-    for (const kw of maleKeywords) {
-      const v = voices.find(v => inLang(v) && v.name.toLowerCase().includes(kw.toLowerCase()));
-      if (v) return v;
-    }
-    // Fallback: any voice in the correct language
-    return voices.find(inLang) ?? null;
-  };
-
   // ── Pre-process text for natural, fast TTS ───────────────────────────────────
   const cleanForSpeech = (raw: string): string => raw
+    .replace(/\[CALL_COMPLETE\]/gi, '')            // control token, never spoken
     .replace(/\[CTA: .+? \| .+?\]/g, '')           // remove CTA blocks
     .replace(/```[\s\S]*?```/g, '')                  // remove code blocks
     .replace(/`[^`]+`/g, '')                         // remove inline code
@@ -981,12 +1631,204 @@ export default function ChatPage() {
     .replace(/([.!?])([A-Z])/g, '$1 $2')             // ensure space after sentence
     .trim();
 
-  const speak = (text: string) => {
-    const synth = window.speechSynthesis;
-    if (!synth) return;
-    synth.cancel();
-    speechQueueRef.current = [];
-    isSpeechQueueActiveRef.current = false;
+  /** Settles the clip currently playing, if any. Installed by playNeural. */
+  const neuralFinishRef = useRef<((ok: boolean) => void) | null>(null);
+
+  /** Silence the neural voice immediately, mid-sentence if need be. */
+  const stopNeuralAudio = () => {
+    speakRunIdRef.current++;
+    const audio = neuralAudioRef.current;
+    const finish = neuralFinishRef.current;
+
+    if (audio) {
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch { /* already torn down */ }
+    }
+
+    // Pausing fires neither `ended` nor `error`, so the promise awaiting this
+    // clip would never settle — speakAll would sit on that await forever,
+    // holding the clip and its blob URL, once per interruption. Settle it here.
+    if (finish) finish(false);
+  };
+
+  /**
+   * Fetch one sentence as audio. NEVER rejects: it resolves to a blob URL, or
+   * null when the neural voice is unavailable — no key, no quota on the OpenAI
+   * account, language not enabled, upstream down.
+   *
+   * Fetching is deliberately a separate step from playing. They used to be one
+   * function, and the "prefetch the next sentence" call therefore started
+   * playing it the moment its download finished — on top of the sentence still
+   * being spoken. That is what two voices talking over each other was.
+   */
+  const fetchNeural = async (sentence: string): Promise<string | null> => {
+    try {
+      const res = await apiFetch('/api/voice/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: sentence, lang: language }),
+      });
+      if (!res?.ok) return null;
+
+      const blob = await res.blob();
+      if (!blob.size) return null;
+      return URL.createObjectURL(blob);
+    } catch {
+      return null;
+    }
+  };
+
+  /**
+   * Play one already-fetched clip through to the end.
+   *
+   * Resolves true when it finished and false when it could not play at all
+   * (autoplay blocked, decode failure). Never rejects.
+   */
+  const playNeural = (url: string, wordOffset: number, wordCount: number): Promise<boolean> =>
+    new Promise((resolve) => {
+      const audio = new Audio(url);
+      neuralAudioRef.current = audio;
+
+      // An <audio> element has no word-boundary event, so the caption
+      // highlight is interpolated from playback position instead. A blob's
+      // duration reads Infinity until metadata lands, hence the speaking-rate
+      // estimate rather than dividing by it unchecked.
+      const WORDS_PER_SECOND = 2.8;
+      audio.ontimeupdate = () => {
+        const total = audio.duration;
+        const spoken = Number.isFinite(total) && total > 0
+          ? (audio.currentTime / total) * wordCount
+          : audio.currentTime * WORDS_PER_SECOND;
+        setSpokenWordIndex(wordOffset + Math.min(Math.floor(spoken), wordCount));
+      };
+
+      const finish = (ok: boolean) => {
+        audio.ontimeupdate = null;
+        audio.onended = null;
+        audio.onerror = null;
+        if (neuralAudioRef.current === audio) neuralAudioRef.current = null;
+        if (neuralFinishRef.current === finish) neuralFinishRef.current = null;
+        URL.revokeObjectURL(url);
+        resolve(ok);   // resolving twice is a no-op, so races here are harmless
+      };
+      neuralFinishRef.current = finish;
+
+      audio.onended = () => finish(true);
+      audio.onerror = () => finish(false);
+      audio.play().catch(() => finish(false));
+    });
+
+  /**
+   * Group sentences into the chunks that actually get sent for synthesis.
+   *
+   * One request per sentence sounds slow for a reason that is not the voice:
+   * a request takes roughly 1.2-1.5s to come back, so any clip shorter than
+   * that leaves dead air after it while the next one downloads. "Sure." is
+   * half a second of audio and a second of silence.
+   *
+   * The first chunk is left as a single sentence, because time-to-first-sound
+   * is what makes the call feel answered and a short line synthesises fastest.
+   * Everything after it is packed up to CHUNK_CHARS, which is comfortably more
+   * audio than one request takes to fetch, so the pipeline stays ahead.
+   */
+  const chunkForSpeech = (sentences: string[]): string[] => {
+    const CHUNK_CHARS = 220;          // well under the route's 800-char limit
+    if (sentences.length <= 1) return sentences;
+
+    const chunks = [sentences[0]];
+    for (const sentence of sentences.slice(1)) {
+      const last = chunks[chunks.length - 1];
+      // Never merge into the opening line — that would undo the fast start.
+      if (chunks.length > 1 && last.length + 1 + sentence.length <= CHUNK_CHARS) {
+        chunks[chunks.length - 1] = last + ' ' + sentence;
+      } else {
+        chunks.push(sentence);
+      }
+    }
+    return chunks;
+  };
+
+  /**
+   * Say a whole reply, one chunk at a time.
+   *
+   * This also owns the call's turn-taking, which the browser utterance handlers
+   * used to own: the mic is closed for as long as the agent is talking and
+   * reopened once at the end, so the caller is never transcribed saying what
+   * the agent just said.
+   *
+   * Each chunk is downloaded while the previous one plays, which is what keeps
+   * the gap between them short enough to sound like one person talking.
+   */
+  const speakAll = async (sentences: string[], onDone?: () => void) => {
+    const runId = ++speakRunIdRef.current;
+    const superseded = () => runId !== speakRunIdRef.current;
+
+    // Word offsets for the caption, so sentence 3 highlights from where
+    // sentence 2 stopped rather than restarting at zero.
+    const counts = sentences.map((s) => s.split(/\s+/).filter(Boolean).length);
+    const offsets: number[] = [];
+    counts.reduce((acc, n) => { offsets.push(acc); return acc + n; }, 0);
+
+    // Take the turn straight away so the mic cannot reopen underneath us, but
+    // leave the visible "speaking" state alone: the first clip is still ~1.3s
+    // from arriving, and lighting up the speaking UI over silence is what made
+    // the start of a reply look hung.
+    isSpeakingRef.current = true;
+    if (recognitionRef.current) try { recognitionRef.current.stop(); } catch { }
+
+    let announced = false;
+    const announceSpeaking = () => {
+      if (announced) return;
+      announced = true;
+      setIsSpeaking(true);
+    };
+
+    let pending = fetchNeural(sentences[0]);
+    try {
+      for (let i = 0; i < sentences.length; i++) {
+        const url = await pending;
+        if (superseded()) return;
+
+        // Start the next download before playing this clip, not after.
+        pending = i + 1 < sentences.length
+          ? fetchNeural(sentences[i + 1])
+          : Promise.resolve(null);
+
+        if (!url) {
+          // There is no second voice to fall back to any more, so this is
+          // silence rather than a worse-sounding reply. Worth a line in the
+          // console: the usual cause is an OpenAI account with no quota, and
+          // /api/voice/tts logs the upstream error server-side.
+          console.warn('[voice] no neural audio for chunk', i, '— check /api/voice/tts');
+          break;
+        }
+
+        announceSpeaking();
+        const played = await playNeural(url, offsets[i], counts[i]);
+        if (superseded()) return;
+        if (!played) break;
+      }
+    } finally {
+      // A clip may already have downloaded for a sentence never reached.
+      void pending.then((u) => { if (u) URL.revokeObjectURL(u); }).catch(() => { });
+    }
+
+    if (superseded()) return;
+    markSpeaking(false);
+    setSpokenWordIndex(-1);
+    // Hand the turn back to the caller.
+    if (voiceLoopRef.current) {
+      setTimeout(() => { if (voiceLoopRef.current) startListening(); }, 120);
+    }
+    // Reached only when this reply finished (or gave up) and nothing replaced
+    // it — never when superseded, since then another reply owns the call.
+    onDone?.();
+  };
+
+  const speak = (text: string, onDone?: () => void) => {
+    stopNeuralAudio();
 
     const cleanText = cleanForSpeech(text);
     setFullCleanText(cleanText);
@@ -998,96 +1840,14 @@ export default function ChatPage() {
       ?.map(s => s.trim())
       .filter(s => s.length > 1) ?? [cleanText];
 
-    speechQueueRef.current = sentences;
-    if (speechQueueRef.current.length > 0) processSpeechQueue();
-  };
-
-  const processSpeechQueue = () => {
-    const synth = window.speechSynthesis;
-    if (!synth || speechQueueRef.current.length === 0) {
-      isSpeechQueueActiveRef.current = false;
-      return;
-    }
-
-    isSpeechQueueActiveRef.current = true;
-    const text = speechQueueRef.current.shift()!;
-    const utterance = new SpeechSynthesisUtterance(text);
-    currentUtteranceRef.current = utterance;
-
-    utterance.lang = language === 'tr' ? 'tr-TR' : language === 'ar' ? 'ar-SA' : 'en-US';
-
-    // ── Voice parameters — human-like male, conversational speed ──
-    const voices = availableVoices.length > 0 ? availableVoices : synth.getVoices();
-    const bestVoice = pickMaleVoice(voices, utterance.lang);
-    if (bestVoice) utterance.voice = bestVoice;
-
-    // Natural male prosody — slightly faster than default, deep pitch
-    utterance.rate = assistantType === 'lawyer' ? 1.05 : 1.12;   // conversational fast
-    utterance.pitch = assistantType === 'lawyer' ? 0.80 : 0.85;   // deep male tone
-    utterance.volume = 1.0;
-
-    utterance.onboundary = (event) => {
-      if (event.name === 'word') {
-        // Find which sentence we are in and add the word index
-        const spokenTextSoFar = text.substring(0, event.charIndex);
-        const wordCountInSentence = spokenTextSoFar.split(/\s+/).filter(Boolean).length;
-
-        // Find overall index in fullCleanText
-        const previousSentencesText = cleanForSpeech(text).split(text)[0] || ""; // This is tricky
-        // Simpler: just use a ref to track total words spoken so far in this session
-        setSpokenWordIndex(prev => prev + 1);
-      }
-    };
-
-    utterance.onstart = () => {
-      setIsSpeaking(true);
-      // Stop mic while AI speaks to prevent echo
-      if (recognitionRef.current) try { recognitionRef.current.stop(); } catch { }
-      // ── Chrome TTS keepalive: Chrome silently pauses synth after ~15s ──
-      // Calling pause()+resume() every 12s kicks it back alive without interrupting speech.
-      if (ttsKeepaliveRef.current) clearInterval(ttsKeepaliveRef.current);
-      ttsKeepaliveRef.current = setInterval(() => {
-        const s = window.speechSynthesis;
-        if (s && s.speaking) { s.pause(); s.resume(); }
-        else if (ttsKeepaliveRef.current) { clearInterval(ttsKeepaliveRef.current); ttsKeepaliveRef.current = null; }
-      }, 12000);
-    };
-
-    utterance.onend = () => {
-      if (speechQueueRef.current.length > 0) {
-        processSpeechQueue(); // immediately chain next sentence
-      } else {
-        // All sentences done — clear keepalive
-        if (ttsKeepaliveRef.current) { clearInterval(ttsKeepaliveRef.current); ttsKeepaliveRef.current = null; }
-        setIsSpeaking(false);
-        setSpokenWordIndex(-1);
-        currentUtteranceRef.current = null;
-        // Resume listening quickly — feels like a live call
-        if (voiceLoopRef.current) {
-          setTimeout(() => { if (voiceLoopRef.current) startListening(); }, 120);
-        }
-      }
-    };
-
-    utterance.onerror = (e: any) => {
-      if (e.error === 'interrupted' || e.error === 'canceled') return; // normal cancel
-      console.warn('TTS error — skipping sentence:', e.error);
-      if (ttsKeepaliveRef.current) { clearInterval(ttsKeepaliveRef.current); ttsKeepaliveRef.current = null; }
-      setIsSpeaking(false);
-      currentUtteranceRef.current = null;
-      if (speechQueueRef.current.length > 0) processSpeechQueue();
-      else if (voiceLoopRef.current) {
-        setTimeout(() => { if (voiceLoopRef.current) startListening(); }, 120);
-      }
-    };
-
-    synth.speak(utterance);
+    if (!sentences.length) { onDone?.(); return; }
+    void speakAll(chunkForSpeech(sentences), onDone);
   };
 
   const handleDeleteSession = async (id: string) => {
     if (!token) return;
     try {
-      const res = await apiFetch(`/chat/history/${id}?token=${token}`, { method: 'DELETE' });
+      const res = await apiFetch(`/chat/history/${id}`, { method: 'DELETE' });
       if (res?.ok) {
         setAllSessions(prev => prev.filter((s: any) => s.id !== id));
         if (sessionId === id) setSessionId(null);
@@ -1139,7 +1899,7 @@ export default function ChatPage() {
   };
 
   const handleAreaSubmit = async (areaName: string) => {
-    if (!awaitingAreaService || busy || !sessionId) return;
+    if (!awaitingAreaService || busy) return;
     const service = awaitingAreaService;
     setAwaitingAreaService(null);
 
@@ -1148,33 +1908,29 @@ export default function ChatPage() {
     setMsgs(p => [...p, userMsg]);
     setBusy(true);
 
+    const activeSessionId = await ensureSession();
+    if (!activeSessionId) {
+      setBusy(false);
+      return;
+    }
+
     try {
       const serviceAssistantType =
         ['ID / İkamet', 'Student Visa', 'Denklik (Equivalency)', 'University Registration', 'Dormitory & Housing', 'IstanbulKart'].includes(service) ? 'student' :
         ['Company Formation', 'Contract Review', 'Employment Law', 'Legal Disputes', 'Residency & Visas', 'Real Estate Law'].includes(service) ? 'lawyer' : 'permit';
 
-      // Insert assistant confirmation message with actual dynamic steps
-      const flow = SERVICE_FLOW_RESPONSES[service];
-      const stepsText = flow?.new || (
-        language === 'tr'
-          ? `🏛️ **${service} Yeni Başvuru**\n\nYol haritanız hazırlanıyor...`
-          : language === 'ar'
-          ? `🏛️ **${service} طلب جديد**\n\nيتم إعداد خارطة الطريق الخاصة بك...`
-          : `🏛️ **New ${service} Application**\n\nYour roadmap is being prepared...`
-      );
-
       const stepsMsgId = msgIdRef.current++;
-      setMsgs(p => [...p, { id: stepsMsgId, role: 'assistant', content: stepsText }]);
+      setMsgs(p => [...p, { id: stepsMsgId, role: 'assistant', content: '' }]);
 
       const body = JSON.stringify({
         query: `${service} - New Application in ${areaName}`,
         language: language,
-        context: { session_id: sessionId },
+        context: { session_id: activeSessionId },
         assistant_type: serviceAssistantType,
         save_history: false
       });
 
-      localStorage.setItem('permitops_active_session_id', sessionId);
+      localStorage.setItem('permitops_active_session_id', activeSessionId);
       localStorage.setItem('permitops_assistant_type', serviceAssistantType);
 
       // Start the query in the background immediately
@@ -1186,26 +1942,38 @@ export default function ChatPage() {
 
       if (!res || !res.ok) throw new Error("Failed to generate workflow steps");
 
+      // The roadmap arrives as a `dashboard` frame — keep it as-is rather than
+      // reconstructing steps by parsing the summary markdown.
+      let roadmap: Record<string, unknown> | null = null;
+      const stepsText = await readAgentStream(res, {
+        onDelta: chunk => {
+          setMsgs(p => p.map(m => (m.id === stepsMsgId ? { ...m, content: m.content + chunk } : m)));
+          setVisibleChars(prev => ({ ...prev, [stepsMsgId]: Number.MAX_SAFE_INTEGER }));
+        },
+        onDashboard: state => { roadmap = state; },
+      });
+
+      if (!roadmap) throw new Error("No roadmap returned");
+
       // Save messages to history
       await saveMessagesToHistory([
         { role: 'user', content: areaName },
         { role: 'assistant', content: stepsText }
       ], service, 'new');
 
+      // Save workflow locally so guests can see steps on the dashboard
+      localStorage.setItem('permitops_guest_workflow', JSON.stringify(roadmap));
+
       // Trigger dashboard reload event
       localStorage.setItem('permitops_workflow_update', Date.now().toString());
       window.dispatchEvent(new StorageEvent('storage', { key: 'permitops_workflow_update' }));
-
-      // Save workflow locally so guests can see steps on the dashboard
-      const guestWorkflow = buildGuestWorkflow(service, stepsText, areaName, serviceAssistantType);
-      localStorage.setItem('permitops_guest_workflow', JSON.stringify(guestWorkflow));
 
       // Show loading screen immediately, navigate to dashboard after 2s
       setFetchingRoadmap(true);
       setTimeout(() => {
         setFetchingRoadmap(false);
         setBusy(false);
-        router.push('/dashboard');
+        router.push('/applications');
       }, 2000);
 
     } catch (err) {
@@ -1219,29 +1987,30 @@ export default function ChatPage() {
           ? "⚠️ Yol haritası oluşturulurken bir hata oluştu. Lütfen tekrar deneyin."
           : language === 'ar'
           ? "⚠️ حدث خطأ أثناء إنشاء خارطة الطريق. يرجى المحاولة مرة أخرى."
+          : language === 'tk'
+          ? "⚠️ Ýol kartasyny döretmekde ýalňyşlyk ýüze çykdy. Gaýtadan synanyşyň."
           : "⚠️ Error occurred while generating the roadmap. Please try again."
       }]);
     }
   };
 
   const handleRenewalSubmit = async (service: string) => {
-    if (busy || !sessionId) return;
+    if (busy) return;
     setBusy(true);
+
+    const activeSessionId = await ensureSession();
+    if (!activeSessionId) {
+      setBusy(false);
+      return;
+    }
 
     try {
       const serviceAssistantType =
         ['ID / İkamet', 'Student Visa', 'Denklik (Equivalency)', 'University Registration', 'Dormitory & Housing', 'IstanbulKart'].includes(service) ? 'student' :
         ['Company Formation', 'Contract Review', 'Employment Law', 'Legal Disputes', 'Residency & Visas', 'Real Estate Law'].includes(service) ? 'lawyer' : 'permit';
 
-      // Insert assistant loading confirmation message
       const loadingMsgId = msgIdRef.current++;
-      const loadingText = language === 'tr'
-        ? `🔄 Yenileme işlemleri analiz ediliyor...`
-        : language === 'ar'
-        ? `🔄 يتم تحليل إجراءات التجديد...`
-        : `🔄 Analyzing renewal procedures...`;
-
-      setMsgs(p => [...p, { id: loadingMsgId, role: 'assistant', content: loadingText }]);
+      setMsgs(p => [...p, { id: loadingMsgId, role: 'assistant', content: '' }]);
 
       // Enable the fullscreen loading page overlay for fetching transition
       setFetchingRoadmap(true);
@@ -1249,12 +2018,12 @@ export default function ChatPage() {
       const body = JSON.stringify({
         query: `${service} - Renewal`,
         language: language,
-        context: { session_id: sessionId },
+        context: { session_id: activeSessionId },
         assistant_type: serviceAssistantType,
         save_history: false
       });
 
-      localStorage.setItem('permitops_active_session_id', sessionId);
+      localStorage.setItem('permitops_active_session_id', activeSessionId);
       localStorage.setItem('permitops_assistant_type', serviceAssistantType);
 
       const res = await apiFetch(`/agent/query`, {
@@ -1265,10 +2034,24 @@ export default function ChatPage() {
 
       if (!res || !res.ok) throw new Error("Failed to generate workflow steps");
 
+      let roadmap: Record<string, unknown> | null = null;
+      const summary = await readAgentStream(res, {
+        onDelta: chunk => {
+          setMsgs(p => p.map(m => (m.id === loadingMsgId ? { ...m, content: m.content + chunk } : m)));
+          setVisibleChars(prev => ({ ...prev, [loadingMsgId]: Number.MAX_SAFE_INTEGER }));
+        },
+        onDashboard: state => { roadmap = state; },
+      });
+
+      if (!roadmap) throw new Error("No roadmap returned");
+
       // Save messages to history
       await saveMessagesToHistory([
-        { role: 'assistant', content: loadingText }
+        { role: 'assistant', content: summary }
       ], service, 'renewal');
+
+      // Save workflow locally so guests can see steps on the dashboard
+      localStorage.setItem('permitops_guest_workflow', JSON.stringify(roadmap));
 
       // Trigger dashboard reload event
       localStorage.setItem('permitops_workflow_update', Date.now().toString());
@@ -1278,7 +2061,7 @@ export default function ChatPage() {
       setTimeout(() => {
         setFetchingRoadmap(false);
         setBusy(false);
-        router.push('/dashboard');
+        router.push('/applications');
       }, 1500);
 
     } catch (err) {
@@ -1292,6 +2075,8 @@ export default function ChatPage() {
           ? "⚠️ Yol haritası oluşturulurken bir hata oluştu. Lütfen tekrar deneyin."
           : language === 'ar'
           ? "⚠️ حدث خطأ أثناء إنشاء خارطة الطريق. يرجى المحاولة مرة أخرى."
+          : language === 'tk'
+          ? "⚠️ Ýol kartasyny döretmekde ýalňyşlyk ýüze çykdy. Gaýtadan synanyşyň."
           : "⚠️ Error occurred while generating the roadmap. Please try again."
       }]);
     }
@@ -1302,7 +2087,6 @@ export default function ChatPage() {
   // Suggested-mode service strip — the single entry point into a service flow.
   const startService = (label: string) => {
     if (RENEWAL_SERVICES.includes(label) && SERVICE_FLOW_RESPONSES[label]) {
-      const flow = SERVICE_FLOW_RESPONSES[label];
       const askText = getLocalizedAsk(label, language);
       const userMsg: Msg = { id: msgIdRef.current++, role: 'user', content: label };
       const askId = msgIdRef.current++;
@@ -1326,11 +2110,59 @@ export default function ChatPage() {
     }
   };
 
-  const send = async (text?: string, isFromVoice: boolean = false, isStepQuery: boolean = false) => {
-    const q = (text ?? input).trim();
-    if ((!q && !file) || busy || !sessionId) return;
+  /**
+   * Download a filed voice call as a .txt (GET /api/voice/transcript/[id]).
+   * The server renders the file; this only names it from the header it sends.
+   */
+  const downloadTranscript = async (transcriptId: number) => {
+    try {
+      const res = await apiFetch(`/api/voice/transcript/${transcriptId}`, { method: 'GET' });
+      if (!res?.ok) throw new Error('download failed');
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') ?? '';
+      const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? `voice-call-${transcriptId}.txt`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      console.warn('[chat] transcript download failed');
+    }
+  };
 
-    if (awaitingAreaService) {
+  /**
+   * Download a document the agent generated (GET /api/documents/[id]).
+   * Uses apiFetch so the Authorization header rides along — the route serves
+   * the file only to the application's owner.
+   */
+  const downloadAttachment = async (docId: number) => {
+    try {
+      const res = await apiFetch(`/api/documents/${docId}`, { method: 'GET' });
+      if (!res?.ok) throw new Error('download failed');
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') ?? '';
+      const nameMatch = disposition.match(/filename="([^"]+)"/);
+      const filename = nameMatch?.[1] ?? 'document.pdf';
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      console.warn('[chat] attachment download failed');
+    }
+  };
+
+  const send = async (text?: string, isFromVoice: boolean = false, isStepQuery: boolean = false, confirmCredit: boolean = false) => {
+    const q = (text ?? input).trim();
+    if ((!q && !file) || busy) return;    if (awaitingAreaService) {
       setInput('');
       handleAreaSubmit(q);
       return;
@@ -1338,11 +2170,15 @@ export default function ChatPage() {
 
     const wasListening = isListening; // Capture state before potential reset
     setInput('');
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
-    setIsSpeaking(false);
+    stopNeuralAudio();
+    markSpeaking(false);
 
     const displayQ = file ? `📎 [Attached: ${file.name}]\n${q}` : q;
-    const userMsg: Msg = { id: msgIdRef.current++, role: 'user', content: displayQ };
+    // Whether this turn belongs to a call rather than to the thread. Computed
+    // once here and reused for the reply, so a call that ends mid-exchange
+    // cannot leave the question filed as voice and the answer filed as chat.
+    const spokenTurn = isVoiceMode || isFromVoice || wasListening;
+    const userMsg: Msg = { id: msgIdRef.current++, role: 'user', content: displayQ, voice: spokenTurn };
     setMsgs(p => [...p, userMsg]);
 
     // ── Dashboard session lock — only step queries are allowed ──────────────
@@ -1351,6 +2187,8 @@ export default function ChatPage() {
         ? '📊 Bu sohbette yalnızca dashboard adımları hakkında soru sorabilirsiniz. Yeni bir hizmet için lütfen yeni bir sohbet başlatın 👇'
         : language === 'ar'
         ? '📊 في هذه المحادثة، يمكنك فقط طرح أسئلة حول خطوات لوحة التحكم. لبدء خدمة جديدة، يرجى إنشاء محادثة جديدة 👇'
+        : language === 'tk'
+        ? '📊 Bu söhbetdeşlikde diňe dolandyryş paneli ädimleri barada sorag berip bilersiňiz. Täze hyzmat üçin täze söhbetdeşlik başlaň 👇'
         : '📊 You can only ask about the steps in this chat. To start a new service, please **create a new chat** 👇';
       const blockId = msgIdRef.current++;
       setVisibleChars(prev => ({ ...prev, [blockId]: 0 }));
@@ -1361,27 +2199,6 @@ export default function ChatPage() {
         setVisibleChars(prev => ({ ...prev, [blockId]: chars }));
         if (chars >= blockMsg.length) clearInterval(iv);
       }, 30);
-      return;
-    }
-
-    // ── Canned response check for quick topics — instant answer, no API call ──
-    const canned = CANNED_RESPONSES[q.trim()];
-    
-    if (canned && !file) {
-      const cannedId = msgIdRef.current++;
-      setVisibleChars(prev => ({ ...prev, [cannedId]: 0 }));
-      setMsgs(p => [...p, { id: cannedId, role: 'assistant', content: canned }]);
-      let chars = 0;
-      const interval = setInterval(() => {
-        chars += 15; // Fast animation for mobile
-        setVisibleChars(prev => ({ ...prev, [cannedId]: chars }));
-        if (chars >= canned.length) clearInterval(interval);
-      }, 30);
-      setBusy(false);
-      saveMessagesToHistory([
-        { role: 'user', content: displayQ },
-        { role: 'assistant', content: canned }
-      ]);
       return;
     }
 
@@ -1410,6 +2227,20 @@ export default function ChatPage() {
       setSessionTitle(q.length > 35 ? q.slice(0, 32) + '...' : q || "Document Analysis");
     }
 
+    // The row is created here, on the first real message, not at page load.
+    // setSessionId is async, so the returned id — not the state — is what the
+    // request must carry.
+    const activeSessionId = await ensureSession();
+    if (!activeSessionId) {
+      setBusy(false);
+      setMsgs(p => [...p, {
+        id: msgIdRef.current++,
+        role: 'assistant',
+        content: '⚠️ Could not start the conversation. Please check your connection and try again.',
+      }]);
+      return;
+    }
+
     const currentFile = file;
     setFile(null);
 
@@ -1421,10 +2252,20 @@ export default function ChatPage() {
         const formData = new FormData();
         formData.append('query', q);
         formData.append('language', language);
-        formData.append('session_id', sessionId);
+        formData.append('session_id', activeSessionId);
         if (token) formData.append('token', token);
         formData.append('file', currentFile);
         formData.append('assistant_type', assistantType);
+        // Attaching a file used to silently strip all of these, so uploading
+        // dropped the conversation history and re-asked an already-confirmed
+        // credit prompt. Multipart values are strings, hence the String().
+        formData.append('is_step_query', String(isStepQuery));
+        formData.append('is_voice', String(spokenTurn));
+        // Spoken turns are filed as a transcript when the call ends, not as
+        // thread messages. /agent/query already honours this flag.
+        formData.append('save_history', String(!spokenTurn));
+        formData.append('confirm_credit', String(confirmCredit));
+        formData.append('history', JSON.stringify(msgs.map(m => ({ role: m.role, content: m.content }))));
         body = formData;
         // Browser sets Content-Type multipart/form-data boundary automatically
       } else {
@@ -1432,9 +2273,16 @@ export default function ChatPage() {
         body = JSON.stringify({
           query: q,
           language,
-          context: { session_id: sessionId },
+          context: { session_id: activeSessionId },
           assistant_type: assistantType,
           is_step_query: isStepQuery,
+          // Spoken replies must be plain text and much shorter — the server
+          // swaps in a voice-specific style when this is set.
+          is_voice: spokenTurn,
+          // Spoken turns are filed as a transcript when the call ends, not as
+          // thread messages. /agent/query already honours this flag.
+          save_history: !spokenTurn,
+          confirm_credit: confirmCredit,
           history: msgs.map(m => ({ role: m.role, content: m.content }))
         });
       }
@@ -1471,126 +2319,132 @@ export default function ChatPage() {
         return;
       }
 
-      if (!res || !res.ok) throw new Error();
-      const data = await res.json();
-      const source = data.source || "Unknown";
-      console.log(`%c[Data Message Source] %c${source}`, "color: #3b82f6; font-weight: bold", "color: inherit", { assistant: assistantType, session: sessionId, data });
-
-      // Update token balance if returned
-      if (data.token_balance !== undefined) {
-        setTokenBalance(data.token_balance);
-      } else if (user?.subscriptionStatus === 'free' && user.tokenBalance !== undefined) {
-        setTokenBalance(Math.max(0, user.tokenBalance - 1));
-      }
-
-      if (data.session_title && data.session_title !== sessionTitle) {
-        setSessionTitle(data.session_title);
-        setSidebarRefresh(prev => prev + 1);
-      }
-
-      let rawContent: string = data.content ?? data.answer ?? data.response ?? 'Done.';
-
-      // Clean up any leaked source prefixes from the text (e.g. [Backup Core], [Direct Reply])
-      rawContent = rawContent.replace(/^🛡️?\s*\[.*?\]\s*/, '').trim();
-
-      // Detect topic-switch redirect signal
-      if (rawContent.startsWith('REDIRECT_NEW_CHAT:')) {
-        const parts = rawContent.replace('REDIRECT_NEW_CHAT:', '').split('|');
-        const targetType = parts[0]?.trim() as any;
-        const displayMsg = parts[1]?.trim() || parts[0]?.trim();
-
-        setMsgs(p => [...p, { id: msgIdRef.current++, role: 'assistant', content: displayMsg }]);
+      if (res?.status === 503) {
+        const errorData = await res.json().catch(() => ({}));
+        setMsgs(p => [...p, {
+          id: msgIdRef.current++,
+          role: 'assistant',
+          content: `⚠️ ${errorData.detail || 'The assistant is not available right now.'}`
+        }]);
         setBusy(false);
-        // Auto-navigate to a new chat after 2 seconds
-        setTimeout(async () => {
-          if (['permit', 'student', 'lawyer'].includes(targetType)) {
-            setAssistantType(targetType);
-          }
-          await handleNewChat();
-          setMsgs([]);
-        }, 2000);
         return;
       }
 
-      // Not understood / off-topic — show redirect message and snap back to suggestion mode
-      if (rawContent.startsWith('NOT_UNDERSTOOD:')) {
-        const msg = rawContent.slice('NOT_UNDERSTOOD:'.length).trim();
-        const msgId = msgIdRef.current++;
-        setVisibleChars(prev => ({ ...prev, [msgId]: 0 }));
-        setMsgs(p => [...p, { id: msgId, role: 'assistant', content: msg }]);
-        setShowTextInput(false); // ensure suggestion chips are visible
-        setBusy(false);
-        let chars = 0;
-        const iv = setInterval(() => {
-          chars += 20;
-          setVisibleChars(prev => ({ ...prev, [msgId]: chars }));
-          if (chars >= msg.length) clearInterval(iv);
-        }, 30);
-        return;
-      }
-
-      // Student service auto-detected from typed text (e.g. "ikamet", "denklik", "vize").
-      // Triggers the same New / Renewal flow as clicking the service chip — no extra
-      // user message added since the typed query is already in msgs.
-      if (rawContent.startsWith('STUDENT_SERVICE_READY:')) {
-        const label = rawContent.slice('STUDENT_SERVICE_READY:'.length).trim();
-        if (RENEWAL_SERVICES.includes(label) && SERVICE_FLOW_RESPONSES[label]) {
-          const askText = getLocalizedAsk(label, language);
-          const askId = msgIdRef.current++;
-          setVisibleChars(prev => ({ ...prev, [askId]: 0 }));
-          setMsgs(p => [...p, { id: askId, role: 'assistant', content: askText }]);
-          setAwaitingAreaService(null);
-          setPendingServiceChoice(label);
-          let chars = 0;
-          const interval = setInterval(() => {
-            chars += 15;
-            setVisibleChars(prev => ({ ...prev, [askId]: chars }));
-            if (chars >= askText.length) clearInterval(interval);
-          }, 30);
-          setSessionTitle(label);
-          saveMessagesToHistory([{ role: 'user', content: q }, { role: 'assistant', content: askText }], label);
+      // A roadmap costs one service credit. The server built nothing and
+      // charged nothing — it is asking first. Show the prompt and stop here;
+      // confirming re-sends the same message with confirm_credit set.
+      if (res?.status === 402) {
+        const data = await res.json().catch(() => ({}));
+        if (data?.confirm_required) {
+          presentCreditPrompt(data.confirm_required, q);
+          setBusy(false);
           return;
         }
       }
 
-      const assistantMsgId = msgIdRef.current++;
-      setVisibleChars(prev => ({ ...prev, [assistantMsgId]: 0 }));
-      setMsgs(p => [...p, { id: assistantMsgId, role: 'assistant', content: rawContent }]);
+      if (!res || !res.ok) throw new Error();
 
-      // Start typewriter effect — smooth: 45 chars per 30ms ≈ 1,500 chars/sec (33fps)
-      let chars = 0;
-      const total = rawContent.length;
-      if (typewriterIntervalRef.current) clearInterval(typewriterIntervalRef.current);
-      typewriterIntervalRef.current = setInterval(() => {
-        chars += 45;
-        setVisibleChars(prev => ({ ...prev, [assistantMsgId]: chars }));
-        if (chars >= total) {
-          clearInterval(typewriterIntervalRef.current!);
-          typewriterIntervalRef.current = null;
-        }
-      }, 30);
+      // ── Stream the reply in as it is generated ──────────────────────────────
+      const assistantMsgId = msgIdRef.current++;
+      setMsgs(p => [...p, { id: assistantMsgId, role: 'assistant', content: '', voice: spokenTurn }]);
+      // Streamed text is revealed as it arrives, so the reveal counter is maxed
+      // out rather than animated by a timer.
+      setVisibleChars(prev => ({ ...prev, [assistantMsgId]: Number.MAX_SAFE_INTEGER }));
+
+      let roadmap: Record<string, unknown> | null = null;
+      let streamError: string | null = null;
+
+      const rawContent = await readAgentStream(res, {
+        onConfirmRequired: pending => {
+          presentCreditPrompt(pending, q);
+        },
+        onDocumentChecklist: seed => {
+          setChecklists(prev => ({ ...prev, [assistantMsgId]: seed }));
+        },
+        onVisaIntake: state => {
+          setVisaIntake(state);
+          setVisaIntakeMsgId(assistantMsgId);
+        },
+        onAttachment: attachment => {
+          setMsgs(p => p.map(m => (
+            m.id === assistantMsgId
+              ? { ...m, attachment: { id: attachment.documentId, filename: attachment.filename } }
+              : m
+          )));
+        },
+        onMeta: meta => {
+          console.log(`%c[Data Message Source] %c${meta.source ?? 'Unknown'}`, "color: #3b82f6; font-weight: bold", "color: inherit", { assistant: assistantType, session: sessionId });
+          if (meta.token_balance !== undefined && meta.token_balance !== null) {
+            setTokenBalance(meta.token_balance);
+          }
+          if (meta.session_title && meta.session_title !== sessionTitle) {
+            setSessionTitle(meta.session_title);
+            setSidebarRefresh(prev => prev + 1);
+          }
+        },
+        onDelta: chunk => {
+          setMsgs(p => p.map(m => (m.id === assistantMsgId ? { ...m, content: m.content + chunk } : m)));
+        },
+        onDashboard: state => { roadmap = state; },
+        onError: detail => { streamError = detail; },
+      });
+
+      if (streamError && !rawContent.trim()) {
+        setMsgs(p => p.map(m => (m.id === assistantMsgId ? { ...m, content: `⚠️ ${streamError}` } : m)));
+        setBusy(false);
+        return;
+      }
 
       // Auto-speak if it was a voice query or we are in call mode
       if (isVoiceMode || isFromVoice || wasListening) {
-        speak(rawContent);
+        // The agent ends the call itself once it knows which service the
+        // caller needs — that is the whole job of the call. The token is
+        // stripped before speaking, so the caller hears the closing line and
+        // not the marker, then the line drops on its own. A call that will not
+        // hang up is the thing people dislike most about phone support.
+        const done = /\[CALL_COMPLETE\]/i.test(rawContent);
+
+        // Hang up when the closing line has actually finished, not on a timer.
+        // It used to drop 3.2s after the reply arrived, which was fine when a
+        // sentence was spoken locally and instant; now the line is fetched and
+        // a goodbye of any length runs well past 3.2s, so the caller heard
+        // their own call cut off mid-word. A backstop still guarantees the
+        // line drops even if playback stalls — a call that will not hang up is
+        // worse than one that hangs up early.
+        let dropped = false;
+        const dropLine = () => {
+          if (dropped) return;
+          dropped = true;
+          hangUpCall();
+        };
+
+        speak(
+          rawContent.replace(/\[CALL_COMPLETE\]/gi, '').trim(),
+          done && isVoiceMode ? dropLine : undefined,
+        );
+        if (done && isVoiceMode) setTimeout(dropLine, 45000);
         setVoiceTranscript("");
+        if (done && isVoiceMode) {
+          voiceLoopRef.current = false;           // stop re-opening the mic
+          try { recognitionRef.current?.stop(); } catch { }
+          setIsListening(false);
+        }
       }
 
-      // Guided flow collected business + district → roadmap ready.
-      // Show the summary, then open the Dashboard after 3 seconds.
-      if (data.dashboard_state) {
+      // Roadmap ready — show the summary, then open the Dashboard after 3 seconds.
+      if (roadmap) {
         setHasDashboard(true);
         try {
-          localStorage.setItem('permitops_active_session_id', sessionId);
+          localStorage.setItem('permitops_active_session_id', activeSessionId);
           localStorage.setItem('permitops_assistant_type', assistantType);
           // Guests/offline read the workflow from localStorage on the dashboard.
-          localStorage.setItem('permitops_guest_workflow', JSON.stringify(data.dashboard_state));
+          localStorage.setItem('permitops_guest_workflow', JSON.stringify(roadmap));
           localStorage.setItem('permitops_workflow_update', Date.now().toString());
           window.dispatchEvent(new StorageEvent('storage', { key: 'permitops_workflow_update' }));
         } catch { /* ignore storage errors */ }
         setTimeout(() => {
           setFetchingRoadmap(true);
-          router.push('/dashboard');
+          router.push('/applications');
         }, 3000);
       }
     } catch {
@@ -1656,8 +2510,8 @@ export default function ChatPage() {
       <AnimatePresence>
         {showOnboarding && (
           <OnboardingWizard
-            onDismiss={() => {
-              localStorage.setItem('turkgateway_onboarding_done', 'true');
+            onDismiss={(remember) => {
+              if (remember) localStorage.setItem('turkgateway_onboarding_done', 'true');
               setShowOnboarding(false);
             }}
           />
@@ -1732,14 +2586,19 @@ export default function ChatPage() {
                         </div>
                         <button
                           onClick={() => switchAssistant('permit')}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${assistantType === 'permit' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' : 'hover:bg-white/5 text-[var(--muted)] hover:text-[var(--text)] border border-transparent'}`}
+                          disabled={isAgentDisabled('permit')}
+                          title={isAgentDisabled('permit') ? t('agent_disabled_note') : undefined}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${isAgentDisabled('permit') ? 'opacity-40 cursor-not-allowed text-[var(--muted)] border border-transparent' : assistantType === 'permit' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' : 'hover:bg-white/5 text-[var(--muted)] hover:text-[var(--text)] border border-transparent'}`}
                         >
-                          <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 overflow-hidden border ${assistantType === 'permit' ? 'bg-blue-500 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.4)]' : 'bg-blue-500/10 border-blue-500/20'
+                          <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 overflow-hidden border ${assistantType === 'permit' && !isAgentDisabled('permit') ? 'bg-blue-500 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.4)]' : 'bg-blue-500/10 border-blue-500/20'
                             }`}>
-                            <Cpu size={16} className={`relative z-10 ${assistantType === 'permit' ? 'text-white' : 'text-blue-500'}`} />
-                            {assistantType === 'permit' && <div className="absolute inset-0 bg-blue-400 opacity-40 blur-md animate-pulse" />}
+                            <Cpu size={16} className={`relative z-10 ${assistantType === 'permit' && !isAgentDisabled('permit') ? 'text-white' : 'text-blue-500'}`} />
+                            {assistantType === 'permit' && !isAgentDisabled('permit') && <div className="absolute inset-0 bg-blue-400 opacity-40 blur-md animate-pulse" />}
                           </div>
                           <span className="text-[13px] font-bold tracking-tight">{t('assistant_permit')}</span>
+                          {isAgentDisabled('permit') && (
+                            <span className="ml-auto text-[9px] font-black uppercase tracking-widest opacity-70">{t('services_status_disabled')}</span>
+                          )}
                         </button>
                         <button
                           onClick={() => switchAssistant('student')}
@@ -1754,14 +2613,19 @@ export default function ChatPage() {
                         </button>
                         <button
                           onClick={() => switchAssistant('lawyer')}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${assistantType === 'lawyer' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'hover:bg-white/5 text-[var(--muted)] hover:text-[var(--text)] border border-transparent'}`}
+                          disabled={isAgentDisabled('lawyer')}
+                          title={isAgentDisabled('lawyer') ? t('agent_disabled_note') : undefined}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${isAgentDisabled('lawyer') ? 'opacity-40 cursor-not-allowed text-[var(--muted)] border border-transparent' : assistantType === 'lawyer' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'hover:bg-white/5 text-[var(--muted)] hover:text-[var(--text)] border border-transparent'}`}
                         >
-                          <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 overflow-hidden border ${assistantType === 'lawyer' ? 'bg-amber-500 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-amber-500/10 border-amber-500/20'
+                          <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 overflow-hidden border ${assistantType === 'lawyer' && !isAgentDisabled('lawyer') ? 'bg-amber-500 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-amber-500/10 border-amber-500/20'
                             }`}>
-                            <Cpu size={16} className={`relative z-10 ${assistantType === 'lawyer' ? 'text-white' : 'text-amber-500'}`} />
-                            {assistantType === 'lawyer' && <div className="absolute inset-0 bg-amber-400 opacity-40 blur-md animate-pulse" />}
+                            <Cpu size={16} className={`relative z-10 ${assistantType === 'lawyer' && !isAgentDisabled('lawyer') ? 'text-white' : 'text-amber-500'}`} />
+                            {assistantType === 'lawyer' && !isAgentDisabled('lawyer') && <div className="absolute inset-0 bg-amber-400 opacity-40 blur-md animate-pulse" />}
                           </div>
                           <span className="text-[13px] font-bold tracking-tight">{t('assistant_lawyer')}</span>
+                          {isAgentDisabled('lawyer') && (
+                            <span className="ml-auto text-[9px] font-black uppercase tracking-widest opacity-70">{t('services_status_disabled')}</span>
+                          )}
                         </button>
                       </div>
                     </motion.div>
@@ -1817,9 +2681,13 @@ export default function ChatPage() {
 
         <div className="hidden md:block h-0 shrink-0" />
 
-        {/* Gemini-Style Content Header */}
-        <div className="flex flex-col items-center justify-center pt-8 pb-2 md:pt-12 md:pb-4 xl:pt-16 shrink-0 z-30 relative px-4 text-center">
-          <span className="font-bold text-[var(--text)] opacity-95 tracking-tight leading-tight" style={{ fontSize: 'clamp(16px, 1.5vw, 22px)' }}>
+        {/* Conversation title — sits directly under the agent badge.
+            It used to carry up to 64px of top padding (pt-8 md:pt-12 xl:pt-16),
+            which pushed the transcript down far enough that replies were cut
+            off after a couple of messages. The title is one line; it does not
+            need a band of its own. */}
+        <div className="flex flex-col items-center justify-center pt-2 pb-2 md:pt-3 md:pb-2.5 shrink-0 z-30 relative px-4 text-center">
+          <span className="font-bold text-[var(--text)] opacity-95 tracking-tight leading-tight" style={{ fontSize: 'clamp(15px, 1.3vw, 19px)' }}>
             {(() => {
               if (!sessionTitle || msgs.length === 0 || sessionTitle === t('chat_new')) return t('chat_new');
               const match = sessionTitle.toLowerCase().match(/^(.+?)\s+in\s+(.+)$/);
@@ -1859,18 +2727,22 @@ export default function ChatPage() {
                 <div className="flex flex-col gap-2.5 md:gap-3 px-2">
                   <button
                     onClick={() => switchAssistant('permit')}
-                    className={`flex items-center gap-4 p-4 w-full rounded-2xl transition-all duration-300 group ${assistantType === 'permit' ? 'bg-blue-500/10 border border-blue-500/30 shadow-[0_8px_30px_rgba(59,130,246,0.15)] scale-[1.02]' : 'bg-[var(--surface-2)] border border-[var(--border)] hover:border-blue-400 opacity-90 hover:opacity-100 shadow-sm'}`}
+                    disabled={isAgentDisabled('permit')}
+                    className={`flex items-center gap-4 p-4 w-full rounded-2xl transition-all duration-300 group ${isAgentDisabled('permit') ? 'bg-[var(--surface-2)] border border-[var(--border)] opacity-40 cursor-not-allowed' : assistantType === 'permit' ? 'bg-blue-500/10 border border-blue-500/30 shadow-[0_8px_30px_rgba(59,130,246,0.15)] scale-[1.02]' : 'bg-[var(--surface-2)] border border-[var(--border)] hover:border-blue-400 opacity-90 hover:opacity-100 shadow-sm'}`}
                   >
-                    <div className={`relative w-11 h-11 rounded-[14px] flex items-center justify-center transition-all duration-500 overflow-hidden shrink-0 border ${assistantType === 'permit' ? 'bg-blue-500 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.4)]' : 'bg-blue-500/10 border-blue-500/20 group-hover:bg-blue-500 group-hover:border-blue-400'
+                    <div className={`relative w-11 h-11 rounded-[14px] flex items-center justify-center transition-all duration-500 overflow-hidden shrink-0 border ${assistantType === 'permit' && !isAgentDisabled('permit') ? 'bg-blue-500 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.4)]' : 'bg-blue-500/10 border-blue-500/20'
                       }`}>
-                      <Cpu size={22} className={`relative z-10 transition-colors duration-300 ${assistantType === 'permit' ? 'text-white' : 'text-blue-500 group-hover:text-white'}`} />
-                      {(assistantType === 'permit' || true) && <div className={`absolute inset-0 opacity-40 blur-xl animate-pulse transition-opacity duration-500 ${assistantType === 'permit' ? 'bg-blue-400' : 'bg-blue-400 opacity-0 group-hover:opacity-40'}`} />}
+                      <Cpu size={22} className={`relative z-10 transition-colors duration-300 ${assistantType === 'permit' && !isAgentDisabled('permit') ? 'text-white' : 'text-blue-500'}`} />
                     </div>
                     <div className="flex flex-col text-left">
                       <span className="text-[15px] font-bold tracking-tight text-[var(--text)]">{t('assistant_permit')} {t('agent_badge')}</span>
-                      <span className="text-[11px] font-medium text-[var(--muted)] opacity-60">{t('chat_permit_desc')}</span>
+                      <span className="text-[11px] font-medium text-[var(--muted)] opacity-60">
+                        {isAgentDisabled('permit') ? t('agent_disabled_note') : t('chat_permit_desc')}
+                      </span>
                     </div>
-                    {assistantType === 'permit' && <div className="ml-auto w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6]" />}
+                    {isAgentDisabled('permit')
+                      ? <span className="ml-auto text-[9px] font-black uppercase tracking-widest text-[var(--muted)]">{t('services_status_disabled')}</span>
+                      : assistantType === 'permit' && <div className="ml-auto w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6]" />}
                   </button>
 
                   <button
@@ -1891,18 +2763,22 @@ export default function ChatPage() {
 
                   <button
                     onClick={() => switchAssistant('lawyer')}
-                    className={`flex items-center gap-4 p-4 w-full rounded-2xl transition-all duration-300 group ${assistantType === 'lawyer' ? 'bg-amber-500/10 border border-amber-500/30 shadow-[0_8px_30px_rgba(245,158,11,0.15)] scale-[1.02]' : 'bg-[var(--surface-2)] border border-[var(--border)] hover:border-amber-400 opacity-90 hover:opacity-100 shadow-sm'}`}
+                    disabled={isAgentDisabled('lawyer')}
+                    className={`flex items-center gap-4 p-4 w-full rounded-2xl transition-all duration-300 group ${isAgentDisabled('lawyer') ? 'bg-[var(--surface-2)] border border-[var(--border)] opacity-40 cursor-not-allowed' : assistantType === 'lawyer' ? 'bg-amber-500/10 border border-amber-500/30 shadow-[0_8px_30px_rgba(245,158,11,0.15)] scale-[1.02]' : 'bg-[var(--surface-2)] border border-[var(--border)] hover:border-amber-400 opacity-90 hover:opacity-100 shadow-sm'}`}
                   >
-                    <div className={`relative w-11 h-11 rounded-[14px] flex items-center justify-center transition-all duration-500 overflow-hidden shrink-0 border ${assistantType === 'lawyer' ? 'bg-amber-500 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.4)]' : 'bg-amber-500/10 border-amber-500/20 group-hover:bg-amber-500 group-hover:border-amber-400'
+                    <div className={`relative w-11 h-11 rounded-[14px] flex items-center justify-center transition-all duration-500 overflow-hidden shrink-0 border ${assistantType === 'lawyer' && !isAgentDisabled('lawyer') ? 'bg-amber-500 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.4)]' : 'bg-amber-500/10 border-amber-500/20'
                       }`}>
-                      <Cpu size={22} className={`relative z-10 transition-colors duration-300 ${assistantType === 'lawyer' ? 'text-white' : 'text-amber-500 group-hover:text-white'}`} />
-                      {(assistantType === 'lawyer' || true) && <div className={`absolute inset-0 opacity-40 blur-xl animate-pulse transition-opacity duration-500 ${assistantType === 'lawyer' ? 'bg-amber-400' : 'bg-amber-400 opacity-0 group-hover:opacity-40'}`} />}
+                      <Cpu size={22} className={`relative z-10 transition-colors duration-300 ${assistantType === 'lawyer' && !isAgentDisabled('lawyer') ? 'text-white' : 'text-amber-500'}`} />
                     </div>
                     <div className="flex flex-col text-left">
                       <span className="text-[15px] font-bold tracking-tight text-[var(--text)]">{t('assistant_lawyer')} {t('agent_badge')}</span>
-                      <span className="text-[11px] font-medium text-[var(--muted)] opacity-60">{t('chat_lawyer_desc')}</span>
+                      <span className="text-[11px] font-medium text-[var(--muted)] opacity-60">
+                        {isAgentDisabled('lawyer') ? t('agent_disabled_note') : t('chat_lawyer_desc')}
+                      </span>
                     </div>
-                    {assistantType === 'lawyer' && <div className="ml-auto w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_10px_#f59e0b]" />}
+                    {isAgentDisabled('lawyer')
+                      ? <span className="ml-auto text-[9px] font-black uppercase tracking-widest text-[var(--muted)]">{t('services_status_disabled')}</span>
+                      : assistantType === 'lawyer' && <div className="ml-auto w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_10px_#f59e0b]" />}
                   </button>
                 </div>
               </motion.div>
@@ -2113,7 +2989,8 @@ export default function ChatPage() {
                     { emoji: "🤝", label: "Employment Law", mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
                     { emoji: "⚖️", label: "Legal Disputes", mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
                     { emoji: "🏠", label: "Residency & Visas", mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
-                    { emoji: "🏢", label: "Real Estate Law", mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' }
+                    { emoji: "🏢", label: "Real Estate Law", mesh: 'mesh-amber', color: 'text-amber-500', border: 'hover:border-amber-400 hover:shadow-amber-500/20 hover:bg-amber-500/5' },
+                    { emoji: "🚨", label: "Criminal Defense", mesh: 'mesh-red', color: 'text-red-500', border: 'hover:border-red-400 hover:shadow-red-500/20 hover:bg-red-500/5' }
                   ] : [
                     { emoji: "☕", label: "Cafe & Restaurant", mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
                     { emoji: "🛍️", label: "Retail Shop", mesh: 'mesh-blue', color: 'text-blue-500', border: 'hover:border-blue-400 hover:shadow-blue-500/20 hover:bg-blue-500/5' },
@@ -2140,33 +3017,6 @@ export default function ChatPage() {
 
                 {/* Chat Input Pill (empty state) */}
                 <div className="w-full max-w-3xl xl:max-w-4xl mx-auto mb-2 md:mb-4 xl:mb-8 px-4 shrink-0">
-                  {/* Mode toggle */}
-                  <div className="flex justify-center mb-2.5">
-                    <div className="inline-flex items-center gap-0.5 p-0.5 rounded-full bg-[var(--surface-2)] border border-[var(--border)] shadow-sm">
-                      <button
-                        onClick={() => setShowTextInput(false)}
-                        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold tracking-tight transition-all duration-200 select-none ${
-                          !showTextInput
-                            ? 'bg-[var(--text)] text-[var(--bg)] shadow-sm'
-                            : 'text-[var(--muted)] hover:text-[var(--text)]'
-                        }`}
-                      >
-                        <Sparkles size={11} />
-                        {t('chat_tab_suggested')}
-                      </button>
-                      <button
-                        onClick={() => setShowTextInput(true)}
-                        className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold tracking-tight transition-all duration-200 select-none ${
-                          showTextInput
-                            ? 'bg-[var(--text)] text-[var(--bg)] shadow-sm'
-                            : 'text-[var(--muted)] hover:text-[var(--text)]'
-                        }`}
-                      >
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                        {t('chat_tab_chat')}
-                      </button>
-                    </div>
-                  </div>
                   <AnimatePresence>
                     {showTextInput && (
                       <motion.div
@@ -2176,13 +3026,69 @@ export default function ChatPage() {
                         transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
                         style={{ originY: 'bottom' }}
                       >
-                  <div className="relative flex items-center gap-2 rounded-full p-1.5 border border-[var(--border)] bg-[var(--surface-1)] shadow-sm focus-within:shadow-md transition-all">
+                  <div className="relative flex items-center gap-1 rounded-[28px] py-1 pl-2 pr-1.5 border border-[var(--border)]/70 bg-[var(--surface-1)] shadow-[0_2px_10px_rgba(0,0,0,0.06)] focus-within:shadow-[0_4px_18px_rgba(0,0,0,0.10)] transition-shadow">
+                    {/* Dictation bar. Sits over the composer rather than replacing its
+                        children, so the text already typed is untouched underneath and
+                        comes back exactly as it was if the recording is cancelled. */}
+                    {(isDictating || isTranscribing) && (
+                      <div className="absolute inset-0 z-10 flex items-center gap-2 rounded-[28px] bg-[var(--surface-1)] pl-2 pr-1.5">
+                        {isTranscribing ? (
+                          <div className="flex flex-1 items-center gap-2 px-2 text-[13px] text-[var(--muted)]">
+                            <span className="h-3.5 w-3.5 rounded-full border-2 border-[var(--muted)]/30 border-t-[var(--muted)] animate-spin" />
+                            <span>{t('chat_transcribing') || 'Transcribing…'}</span>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={cancelDictation}
+                              aria-label={t('chat_dictation_cancel') || 'Cancel dictation'}
+                              className="h-9 w-9 shrink-0 flex items-center justify-center rounded-full border border-[var(--border)] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors active:scale-95"
+                            >
+                              <X size={16} />
+                            </button>
+                        
+                            {/* Live level meter. Newest sample on the right, so it reads as
+                                moving forward the way every recorder people know does. */}
+                            <div className="flex h-9 flex-1 items-center justify-end gap-[3px] overflow-hidden" aria-hidden>
+                              {dictationLevels.map((lvl, i) => (
+                                <span
+                                  key={i}
+                                  className="w-[3px] shrink-0 rounded-full bg-[var(--muted)]/70"
+                                  style={{ height: `${Math.max(3, Math.round(lvl * 26))}px` }}
+                                />
+                              ))}
+                            </div>
+                        
+                            {/* Stop: the words land in the box to be read before sending. */}
+                            <button
+                              onClick={() => finishDictation(false)}
+                              aria-label={t('chat_dictation_stop') || 'Stop and insert text'}
+                              className="h-9 w-9 shrink-0 flex items-center justify-center rounded-full text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors active:scale-95"
+                            >
+                              <span className="block h-[13px] w-[13px] rounded-[3px] bg-current" />
+                            </button>
+                        
+                            {/* Stop and send, for when they already know what they said. */}
+                            <button
+                              onClick={() => finishDictation(true)}
+                              aria-label={t('chat_dictation_send') || 'Stop and send'}
+                              className="h-9 w-9 shrink-0 flex items-center justify-center rounded-full bg-[#2f7bf6] text-white hover:bg-[#2569db] transition-colors active:scale-95"
+                            >
+                              <ArrowUp size={19} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+
                     <input
                       type="file"
                       ref={fileInputRef}
+                      accept={ACCEPTED_UPLOAD_TYPES}
                       onChange={(e) => {
-                        if (e.target.files?.[0]) setFile(e.target.files[0]);
+                        const picked = e.target.files?.[0];
                         e.target.value = '';
+                        if (picked) pickFile(picked);
                       }}
                       className="hidden"
                     />
@@ -2220,62 +3126,50 @@ export default function ChatPage() {
                       </button>
                     )}
 
-                    <div className="flex items-center gap-1.5 pr-1">
-                      {input.trim() && !busy ? (
+                    {/* Right cluster: a plain mic, then one round action button.
+                        The action button is the only control that changes meaning —
+                        an arrow to send when there is text, a waveform to start voice
+                        when there is not — so there is never a question about which
+                        button does what. */}
+                    <div className="flex items-center gap-1 pr-1 shrink-0">
+                      {!busy && (
                         <button
-                          onClick={() => send()}
-                          className="h-9 w-9 flex items-center justify-center rounded-full bg-[var(--text)] text-[var(--bg)] hover:opacity-90 transition-all shrink-0"
+                          onClick={startDictation}
+                          aria-label={isDictating ? (t('chat_dictation_stop') || 'Recording') : (t('chat_dictate') || 'Dictate a message')}
+                          className={`h-9 w-9 flex items-center justify-center rounded-full transition-colors shrink-0 ${
+                            isDictating
+                              ? 'text-red-500'
+                              : 'text-[var(--muted)] hover:text-[var(--text)]'
+                          }`}
                         >
-                          <Send size={18} />
+                          <Mic size={19} className={isDictating ? 'animate-pulse' : ''} />
                         </button>
-                      ) : busy ? (
+                      )}
+                    
+                      {busy ? (
                         <button
                           onClick={cancelResponse}
-                          className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white transition-all shrink-0 font-bold text-[13px] active:scale-95"
+                          aria-label="Cancel"
+                          className="h-9 w-9 flex items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--text)] hover:bg-red-500 hover:text-white transition-all shrink-0 active:scale-95"
                         >
-                          <X size={14} />
-                          Cancel
+                          <X size={17} />
                         </button>
                       ) : (
                         <button
-                          onClick={toggleVoice}
-                          className={`relative flex items-center gap-2 px-4 py-2 rounded-full transition-all shrink-0 ${isListening
-                            ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]'
-                            : 'bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)]'
-                            }`}
+                          onClick={() => {
+                            if (input.trim()) {
+                              send();
+                              if (inputRef.current) inputRef.current.style.height = 'auto';
+                            } else {
+                              toggleVoice();
+                            }
+                          }}
+                          aria-label={input.trim() ? 'Send' : (t('chat_voice') || 'Voice')}
+                          className={`h-9 w-9 flex items-center justify-center rounded-full text-white shadow-sm transition-all shrink-0 active:scale-95 ${
+                            isListening ? 'bg-red-500' : 'bg-[#2f7bf6] hover:bg-[#2569db]'
+                          }`}
                         >
-                          {isListening && (
-                            <motion.div
-                              initial={{ scale: 0.8, opacity: 0.5 }}
-                              animate={{ scale: 1.5, opacity: 0 }}
-                              transition={{ repeat: Infinity, duration: 1.5 }}
-                              className="absolute inset-0 bg-red-500 rounded-full z-0"
-                            />
-                          )}
-                          <div className="relative z-10 flex items-center gap-2">
-                            {isListening ? (
-                              <div className="flex items-center gap-1">
-                                {[1, 2, 3].map(i => (
-                                  <motion.div
-                                    key={i}
-                                    animate={{ height: [8, 16, 8] }}
-                                    transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.1 }}
-                                    className="w-1 bg-white rounded-full"
-                                  />
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-0.5">
-                                <div className="w-0.5 h-3 bg-current rounded-full animate-pulse" />
-                                <div className="w-0.5 h-2 bg-current rounded-full" />
-                                <div className="w-0.5 h-3.5 bg-current rounded-full animate-pulse" />
-                              </div>
-                            )}
-                            <Mic size={18} className={isListening ? 'animate-pulse' : ''} />
-                            <span className="hidden sm:inline text-[13px] font-bold tracking-tight">
-                              {isListening ? (t('chat_listening') || "Listening...") : (t('chat_voice') || "Voice")}
-                            </span>
-                          </div>
+                          {input.trim() ? <ArrowUp size={19} /> : <AudioLines size={19} />}
                         </button>
                       )}
                     </div>
@@ -2291,6 +3185,17 @@ export default function ChatPage() {
                         </div>
                       </div>
                     )}
+
+                    {uploadError && (
+                      <div className="absolute -top-12 left-4">
+                        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/40 rounded-full px-3 py-1.5 text-[12px] text-red-400 shadow-sm">
+                          <span className="truncate max-w-[280px]">{uploadError}</span>
+                          <button onClick={() => setUploadError(null)} className="ml-1 hover:text-red-300 transition-colors">
+                            <Plus size={12} className="rotate-45" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                       </motion.div>
                     )}
@@ -2300,9 +3205,12 @@ export default function ChatPage() {
               </div> {/* Close my-auto wrapper */}
             </div>
           ) : (
-            <div className={`flex-1 overflow-y-auto w-full max-w-4xl mx-auto px-4 md:px-8 py-10 space-y-12 pb-44 slim-scroll bg-[var(--bg)]/40 rounded-t-[40px]`} dir={isRTL ? 'rtl' : 'ltr'}>
+            <div className={`flex-1 overflow-y-auto w-full max-w-4xl mx-auto px-4 md:px-8 pt-3 pb-40 space-y-8 slim-scroll bg-[var(--bg)]/40 rounded-t-[40px]`} dir={isRTL ? 'rtl' : 'ltr'}>
               <AnimatePresence initial={false}>
-                {msgs.map(m => (
+                {/* Spoken turns stay out of the thread: they live in msgs only
+                    for the model's context and the call overlay, and are traded
+                    for a single transcript line when the call ends. */}
+                {msgs.filter(m => !m.voice).filter(m => m.role !== 'assistant' || m.content).map(m => (
                   <motion.div
                     key={m.id}
                     initial={{ opacity: 0, y: 16, filter: 'blur(8px)' }}
@@ -2438,6 +3346,10 @@ export default function ChatPage() {
                                     ? (serviceChips?.question
                                         ? `📍 ${serviceChips.question} يرجى الاختيار أدناه أو الكتابة.`
                                         : "في أي منطقة أو بلدية في إسطنبول تقوم بالتقديم؟ يرجى اختيار إحدى المناطق أدناه أو كتابة المنطقة.")
+                                    : language === 'tk'
+                                    ? (serviceChips?.question
+                                        ? `📍 ${serviceChips.question} Aşakdan birini saýlaň ýa-da ýazyň.`
+                                        : "Stambulda haýsy etrapda ýa-da bölgede arza berýärsiňiz? Aşakdan birini saýlaň ýa-da etrabyňyzy ýazyň.")
                                     : (serviceChips?.question
                                         ? `📍 ${serviceChips.question}\n\nSelect one below or type your answer:`
                                         : "Which area or district in Istanbul are you applying in? Please select one below or type your district.");
@@ -2461,25 +3373,10 @@ export default function ChatPage() {
                                     { role: 'assistant', content: askAreaText }
                                   ], service, option.type);
                                 } else {
-                                  const responseId = msgIdRef.current++;
-                                  const responseText = flow.renewal;
-                                  setVisibleChars(prev => ({ ...prev, [responseId]: 0 }));
-                                  setMsgs(p => [...p, userMsg, { id: responseId, role: 'assistant', content: responseText }]);
+                                  // The renewal roadmap is built server-side —
+                                  // handleRenewalSubmit streams it in.
+                                  setMsgs(p => [...p, userMsg]);
                                   setPendingServiceChoice(null);
-
-                                  // Animate typewriter
-                                  let chars = 0;
-                                  const interval = setInterval(() => {
-                                    chars += 15;
-                                    setVisibleChars(prev => ({ ...prev, [responseId]: chars }));
-                                    if (chars >= responseText.length) clearInterval(interval);
-                                  }, 30);
-
-                                  saveMessagesToHistory([
-                                    { role: 'user', content: choiceLabel },
-                                    { role: 'assistant', content: responseText }
-                                  ], service, option.type);
-
                                   handleRenewalSubmit(service);
                                 }
 
@@ -2498,6 +3395,92 @@ export default function ChatPage() {
                             ));
                           })()}
                         </motion.div>
+                      )}
+
+                      {/* Everything this service needs, listed once and kept
+                          up to date: each row turns green as its document
+                          arrives, and the last one readies the application. */}
+                      {checklists[m.id] && m.role === 'assistant' && (
+                        <DocumentChecklistCard
+                          seed={checklists[m.id]}
+                          sessionId={sessionId}
+                          token={token}
+                          language={language}
+                          onSignIn={() => setIsLoginModalOpen(true)}
+                        />
+                      )}
+
+                      {/* Visa application progress — anchored to the reply that
+                          produced it, so it reads as part of the conversation
+                          rather than a floating panel. */}
+                      {visaIntake && visaIntakeMsgId === m.id && m.role === 'assistant' && (
+                        <VisaIntakeCard
+                          state={visaIntake}
+                          language={language}
+                          onAttach={() => fileInputRef.current?.click()}
+                        />
+                      )}
+
+                      {/* Generated document delivered by the agent — a filled
+                          application form the user can download. */}
+                      {m.attachment && m.role === 'assistant' && (
+                        <motion.button
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
+                          onClick={() => downloadAttachment(m.attachment!.id)}
+                          className="mt-2 flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 py-3 shadow-sm transition-all hover:border-indigo-500/50 hover:shadow-md active:scale-[0.98] cursor-pointer"
+                        >
+                          <span className="h-9 w-9 rounded-xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center shrink-0">
+                            <FileText size={16} className="text-indigo-400" />
+                          </span>
+                          <span className="flex-1 min-w-0 text-left">
+                            <span className="block text-[13px] font-bold text-[var(--text)] truncate">
+                              {m.attachment.filename}
+                            </span>
+                            <span className="block text-[11px] text-[var(--muted)]">
+                              {language === 'tr'
+                                ? 'Doldurulmuş başvuru belgeniz — indirmek için tıklayın'
+                                : language === 'ar'
+                                  ? 'نموذج طلبك المعبأ — انقر للتنزيل'
+                                  : language === 'tk'
+                                    ? 'Doldurylan arza resminamaňyz — ýükläp almak üçin basyň'
+                                    : 'Your filled application document — click to download'}
+                            </span>
+                          </span>
+                          <Download size={18} className="text-[var(--muted)] shrink-0" />
+                        </motion.button>
+                      )}
+
+                      {/* All a finished voice call leaves in the thread. The turns
+                          themselves live in voice_call_transcripts. */}
+                      {m.transcript && m.role === 'assistant' && (
+                        <motion.button
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
+                          onClick={() => downloadTranscript(m.transcript!.id)}
+                          className="mt-2 flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] px-4 py-3 shadow-sm transition-all hover:border-emerald-500/50 hover:shadow-md active:scale-[0.98] cursor-pointer"
+                        >
+                          <span className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center shrink-0">
+                            <AudioLines size={16} className="text-emerald-400" />
+                          </span>
+                          <span className="flex-1 min-w-0 text-left">
+                            <span className="block text-[13px] font-bold text-[var(--text)] truncate">
+                              {m.content}
+                            </span>
+                            <span className="block text-[11px] text-[var(--muted)]">
+                              {language === 'tr'
+                                ? 'Görüşme dökümü — indirmek için tıklayın'
+                                : language === 'ar'
+                                  ? 'نص المكالمة — انقر للتنزيل'
+                                  : language === 'tk'
+                                    ? 'Jaňyň ýazgysy — ýükläp almak üçin basyň'
+                                    : 'Call transcript — click to download'}
+                            </span>
+                          </span>
+                          <Download size={18} className="text-[var(--muted)] shrink-0" />
+                        </motion.button>
                       )}
 
                       {/* Area selection chips — show when awaitingAreaService is active */}
@@ -2555,66 +3538,8 @@ export default function ChatPage() {
                 </motion.div>
               )}
 
-              {!hasDashboard && !showTextInput && !busy && msgs.length > 0 && msgs[msgs.length - 1]?.role === 'assistant' && !pendingServiceChoice && !awaitingAreaService && (() => {
-                const services = SERVICE_OPTIONS[assistantType] ?? [];
-                if (services.length === 0) return null;
 
-                const iconBg = assistantType === 'student'
-                  ? 'bg-emerald-500/10 group-hover:bg-emerald-500/20'
-                  : assistantType === 'lawyer'
-                  ? 'bg-amber-500/10 group-hover:bg-amber-500/20'
-                  : 'bg-blue-500/10 group-hover:bg-blue-500/20';
-
-                const cardBg = assistantType === 'student'
-                  ? 'bg-emerald-500/[0.04] border-emerald-500/20 hover:bg-emerald-500/[0.09] hover:border-emerald-500/40 hover:shadow-emerald-500/5'
-                  : assistantType === 'lawyer'
-                  ? 'bg-amber-500/[0.04] border-amber-500/20 hover:bg-amber-500/[0.09] hover:border-amber-500/40 hover:shadow-amber-500/5'
-                  : 'bg-blue-500/[0.04] border-blue-500/20 hover:bg-blue-500/[0.09] hover:border-blue-500/40 hover:shadow-blue-500/5';
-
-                const labelColor = assistantType === 'student' ? 'text-emerald-300/90'
-                  : assistantType === 'lawyer' ? 'text-amber-300/90'
-                  : 'text-blue-300/90';
-
-                return (
-                  <div className="w-full mt-5 mb-1">
-                    {/* Section label */}
-                    <div className="flex items-center gap-3 mb-3 px-1">
-                      <div className="h-px flex-1 bg-[var(--border)] opacity-30" />
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--muted)] opacity-35 select-none">
-                        {language === 'ar' ? 'اختر خدمة' : language === 'tr' ? 'Hizmet seçin' : 'Choose a service'}
-                      </span>
-                      <div className="h-px flex-1 bg-[var(--border)] opacity-30" />
-                    </div>
-                    {/* Services grid */}
-                    <motion.div
-                      key={`svc-${msgs[msgs.length - 1]?.id}-${assistantType}`}
-                      initial="hidden"
-                      animate="visible"
-                      variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.05, delayChildren: 0.08 } } }}
-                      className="grid grid-cols-2 gap-2"
-                    >
-                      {services.map((svc) => (
-                        <motion.button
-                          key={svc.label}
-                          variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.28, ease: [0.2,0.8,0.2,1] } } }}
-                          onClick={() => startService(svc.label)}
-                          className={`group flex items-center gap-3 px-3.5 py-3.5 rounded-2xl border transition-all duration-200 active:scale-95 hover:scale-[1.02] cursor-pointer text-left shadow-sm hover:shadow-md ${cardBg}`}
-                        >
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-base transition-colors duration-200 ${iconBg}`}>
-                            {svc.emoji}
-                          </div>
-                          <span className={`flex-1 text-[12.5px] font-semibold leading-snug ${labelColor}`}>
-                            {t(CHIP_I18N_KEY[svc.label] ?? svc.label) || svc.label}
-                          </span>
-                          <ArrowRight size={12} className="text-[var(--muted)] opacity-20 shrink-0 group-hover:opacity-60 group-hover:translate-x-0.5 transition-all duration-200" />
-                        </motion.button>
-                      ))}
-                    </motion.div>
-                  </div>
-                );
-              })()}
-
-              {busy && (
+              {busy && !replyStarted && (
                 <motion.div
                   initial={{ opacity: 0, x: isRTL ? 10 : -10 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -2659,7 +3584,7 @@ export default function ChatPage() {
                   </div>
                   {isSpeaking && (
                     <button
-                      onClick={() => window.speechSynthesis.cancel()}
+                      onClick={() => { stopNeuralAudio(); markSpeaking(false); setSpokenWordIndex(-1); }}
                       className="ml-4 p-1.5 rounded-full bg-[var(--surface-2)] text-red-500 hover:text-white hover:bg-red-500 transition-all shadow-sm active:scale-95"
                       title="Stop Speaking"
                     >
@@ -2703,6 +3628,93 @@ export default function ChatPage() {
 
           {/* Claude-style Quota Notification Overlay */}
           <AnimatePresence>
+            {pendingConfirm && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                className="absolute bottom-24 left-1/2 -translate-x-1/2 w-full max-w-[440px] z-[60] px-4"
+              >
+                <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.25)] p-6 relative">
+                  <div className="flex gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+                      <FileText size={20} className="text-indigo-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-[15px] font-bold text-gray-900 mb-1">
+                        {t('confirm_credit_title')}
+                      </h4>
+
+                      {pendingConfirm.requiresAuth ? (
+                        <p className="text-[13px] text-gray-600 leading-relaxed mb-4">
+                          {t('confirm_credit_signin')}
+                        </p>
+                      ) : pendingConfirm.creditsAvailable > 0 ? (
+                        <>
+                          <p className="text-[13px] text-gray-600 leading-relaxed mb-4">
+                            {t('confirm_credit_desc')
+                              .replace('{service}', pendingConfirm.service)
+                              .replace('{location}', pendingConfirm.location)}
+                          </p>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                            <span className="text-[12px] font-medium text-indigo-600">
+                              {t('confirm_credit_balance').replace('{n}', String(pendingConfirm.creditsAvailable))}
+                            </span>
+                          </div>
+                          {pendingConfirm.nextExpiry && (
+                            <p className="text-[11px] text-gray-400 mb-4 pl-3.5">
+                              {t('confirm_credit_expiry').replace(
+                                '{date}',
+                                new Date(pendingConfirm.nextExpiry).toLocaleDateString(),
+                              )}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-[13px] text-gray-600 leading-relaxed mb-4">
+                          {t('confirm_credit_none')}
+                        </p>
+                      )}
+
+                      <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                        <button
+                          onClick={() => setPendingConfirm(null)}
+                          className="px-4 py-2 text-[13px] font-semibold text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          {t('confirm_credit_cancel')}
+                        </button>
+                        {pendingConfirm.requiresAuth || pendingConfirm.creditsAvailable < 1 ? (
+                          <button
+                            onClick={() => {
+                              const target = pendingConfirm.requiresAuth ? '/login' : '/pricing';
+                              setPendingConfirm(null);
+                              router.push(target);
+                            }}
+                            className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-[13px] font-semibold hover:bg-indigo-700 transition-colors"
+                          >
+                            {pendingConfirm.requiresAuth ? t('confirm_credit_signin_cta') : t('confirm_credit_buy')}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              const q = pendingConfirm.query;
+                              setPendingConfirm(null);
+                              // Same message, now with the user's explicit consent to spend.
+                              send(q, false, false, true);
+                            }}
+                            className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-[13px] font-semibold hover:bg-indigo-700 transition-colors"
+                          >
+                            {t('confirm_credit_confirm')}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             {showQuotaWarning && (
               <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.98 }}
@@ -2710,7 +3722,7 @@ export default function ChatPage() {
                 exit={{ opacity: 0, y: 10, scale: 0.98 }}
                 className="absolute bottom-24 left-1/2 -translate-x-1/2 w-full max-w-[440px] z-[60] px-4"
               >
-                <div className="bg-white border border-gray-200 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-6 relative">
+                <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.25)] p-6 relative">
                   <div className="flex gap-4">
                     <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
                       <Cpu size={20} className="text-indigo-600" />
@@ -2757,33 +3769,6 @@ export default function ChatPage() {
           {!isEmpty && (
             <div className="absolute bottom-0 left-0 w-full pt-16 pb-8 px-4 flex justify-center bg-gradient-to-t from-[var(--bg)] via-[var(--bg)]/90 to-transparent z-40">
               <div className="w-full max-w-3xl relative">
-                {/* Mode toggle */}
-                <div className="flex justify-center mb-2.5">
-                  <div className="inline-flex items-center gap-0.5 p-0.5 rounded-full bg-[var(--surface-2)] border border-[var(--border)] shadow-sm">
-                    <button
-                      onClick={() => setShowTextInput(false)}
-                      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold tracking-tight transition-all duration-200 select-none ${
-                        !showTextInput
-                          ? 'bg-[var(--text)] text-[var(--bg)] shadow-sm'
-                          : 'text-[var(--muted)] hover:text-[var(--text)]'
-                      }`}
-                    >
-                      <Sparkles size={11} />
-                      {t('chat_tab_suggested')}
-                    </button>
-                    <button
-                      onClick={() => setShowTextInput(true)}
-                      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold tracking-tight transition-all duration-200 select-none ${
-                        showTextInput
-                          ? 'bg-[var(--text)] text-[var(--bg)] shadow-sm'
-                          : 'text-[var(--muted)] hover:text-[var(--text)]'
-                      }`}
-                    >
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                      {t('chat_tab_chat')}
-                    </button>
-                  </div>
-                </div>
                 <AnimatePresence>
                   {showTextInput && (
                     <motion.div
@@ -2793,10 +3778,64 @@ export default function ChatPage() {
                       transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
                       style={{ originY: 'bottom' }}
                     >
-                <div className={`relative flex items-center gap-2 rounded-full p-1.5 border border-[var(--border)] transition-all duration-300 bg-[var(--surface-1)] shadow-sm ${busy ? 'opacity-70' : 'focus-within:shadow-md'}`}>
+                <div className={`relative flex items-center gap-1 rounded-[28px] py-1 pl-2 pr-1.5 border border-[var(--border)]/70 bg-[var(--surface-1)] shadow-[0_2px_10px_rgba(0,0,0,0.06)] transition-shadow ${busy ? 'opacity-70' : 'focus-within:shadow-[0_4px_18px_rgba(0,0,0,0.10)]'}`}>
+                  {/* Dictation bar. Sits over the composer rather than replacing its
+                      children, so the text already typed is untouched underneath and
+                      comes back exactly as it was if the recording is cancelled. */}
+                  {(isDictating || isTranscribing) && (
+                    <div className="absolute inset-0 z-10 flex items-center gap-2 rounded-[28px] bg-[var(--surface-1)] pl-2 pr-1.5">
+                      {isTranscribing ? (
+                        <div className="flex flex-1 items-center gap-2 px-2 text-[13px] text-[var(--muted)]">
+                          <span className="h-3.5 w-3.5 rounded-full border-2 border-[var(--muted)]/30 border-t-[var(--muted)] animate-spin" />
+                          <span>{t('chat_transcribing') || 'Transcribing…'}</span>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            onClick={cancelDictation}
+                            aria-label={t('chat_dictation_cancel') || 'Cancel dictation'}
+                            className="h-9 w-9 shrink-0 flex items-center justify-center rounded-full border border-[var(--border)] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors active:scale-95"
+                          >
+                            <X size={16} />
+                          </button>
+                      
+                          {/* Live level meter. Newest sample on the right, so it reads as
+                              moving forward the way every recorder people know does. */}
+                          <div className="flex h-9 flex-1 items-center justify-end gap-[3px] overflow-hidden" aria-hidden>
+                            {dictationLevels.map((lvl, i) => (
+                              <span
+                                key={i}
+                                className="w-[3px] shrink-0 rounded-full bg-[var(--muted)]/70"
+                                style={{ height: `${Math.max(3, Math.round(lvl * 26))}px` }}
+                              />
+                            ))}
+                          </div>
+                      
+                          {/* Stop: the words land in the box to be read before sending. */}
+                          <button
+                            onClick={() => finishDictation(false)}
+                            aria-label={t('chat_dictation_stop') || 'Stop and insert text'}
+                            className="h-9 w-9 shrink-0 flex items-center justify-center rounded-full text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors active:scale-95"
+                          >
+                            <span className="block h-[13px] w-[13px] rounded-[3px] bg-current" />
+                          </button>
+                      
+                          {/* Stop and send, for when they already know what they said. */}
+                          <button
+                            onClick={() => finishDictation(true)}
+                            aria-label={t('chat_dictation_send') || 'Stop and send'}
+                            className="h-9 w-9 shrink-0 flex items-center justify-center rounded-full bg-[#2f7bf6] text-white hover:bg-[#2569db] transition-colors active:scale-95"
+                          >
+                            <ArrowUp size={19} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="hidden sm:flex p-2 text-[var(--muted)] hover:text-[var(--accent)] transition-all shrink-0"
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors shrink-0"
                   >
                     <Plus size={22} />
                   </button>
@@ -2827,62 +3866,50 @@ export default function ChatPage() {
                       <span>Type a message...</span>
                     </button>
                   )}
-                  <div className="flex items-center gap-1.5 pr-1">
-                    {input.trim() && !busy ? (
+                  {/* Right cluster: a plain mic, then one round action button.
+                      The action button is the only control that changes meaning —
+                      an arrow to send when there is text, a waveform to start voice
+                      when there is not — so there is never a question about which
+                      button does what. */}
+                  <div className="flex items-center gap-1 pr-1 shrink-0">
+                    {!busy && (
                       <button
-                        onClick={() => { send(); if (inputRef.current) inputRef.current.style.height = 'auto'; }}
-                        className="h-9 w-9 flex items-center justify-center rounded-full bg-[var(--text)] text-[var(--bg)] shadow-sm hover:opacity-90 transition-all shrink-0"
+                        onClick={startDictation}
+                        aria-label={isDictating ? (t('chat_dictation_stop') || 'Recording') : (t('chat_dictate') || 'Dictate a message')}
+                        className={`h-9 w-9 flex items-center justify-center rounded-full transition-colors shrink-0 ${
+                          isDictating
+                            ? 'text-red-500'
+                            : 'text-[var(--muted)] hover:text-[var(--text)]'
+                        }`}
                       >
-                        <Send size={18} />
+                        <Mic size={19} className={isDictating ? 'animate-pulse' : ''} />
                       </button>
-                    ) : busy ? (
+                    )}
+                  
+                    {busy ? (
                       <button
                         onClick={cancelResponse}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white transition-all shrink-0 font-bold text-[13px] active:scale-95"
+                        aria-label="Cancel"
+                        className="h-9 w-9 flex items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--text)] hover:bg-red-500 hover:text-white transition-all shrink-0 active:scale-95"
                       >
-                        <X size={14} />
-                        Cancel
+                        <X size={17} />
                       </button>
                     ) : (
                       <button
-                        onClick={toggleVoice}
-                        className={`relative flex items-center gap-2 px-4 py-2 rounded-full transition-all shrink-0 ${isListening
-                          ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]'
-                          : 'bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)]'
-                          }`}
+                        onClick={() => {
+                          if (input.trim()) {
+                            send();
+                            if (inputRef.current) inputRef.current.style.height = 'auto';
+                          } else {
+                            toggleVoice();
+                          }
+                        }}
+                        aria-label={input.trim() ? 'Send' : (t('chat_voice') || 'Voice')}
+                        className={`h-9 w-9 flex items-center justify-center rounded-full text-white shadow-sm transition-all shrink-0 active:scale-95 ${
+                          isListening ? 'bg-red-500' : 'bg-[#2f7bf6] hover:bg-[#2569db]'
+                        }`}
                       >
-                        {isListening && (
-                          <motion.div
-                            initial={{ scale: 0.8, opacity: 0.5 }}
-                            animate={{ scale: 1.5, opacity: 0 }}
-                            transition={{ repeat: Infinity, duration: 1.5 }}
-                            className="absolute inset-0 bg-red-500 rounded-full z-0"
-                          />
-                        )}
-                        <div className="relative z-10 flex items-center gap-2">
-                          {isListening ? (
-                            <div className="flex items-center gap-1">
-                              {[1, 2, 3].map(i => (
-                                <motion.div
-                                  key={i}
-                                  animate={{ height: [8, 16, 8] }}
-                                  transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.1 }}
-                                  className="w-1 bg-white rounded-full"
-                                />
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-0.5">
-                              <div className="w-0.5 h-3 bg-current rounded-full animate-pulse" />
-                              <div className="w-0.5 h-2 bg-current rounded-full" />
-                              <div className="w-0.5 h-3.5 bg-current rounded-full animate-pulse" />
-                            </div>
-                          )}
-                          <Mic size={18} className={isListening ? 'animate-pulse' : ''} />
-                          <span className="hidden sm:inline text-[13px] font-bold tracking-tight">
-                            {isListening ? (t('chat_listening') || "Listening...") : (t('chat_voice') || "Voice")}
-                          </span>
-                        </div>
+                        {input.trim() ? <ArrowUp size={19} /> : <AudioLines size={19} />}
                       </button>
                     )}
                   </div>
@@ -2893,6 +3920,17 @@ export default function ChatPage() {
                         <FileText size={12} className="text-indigo-400" />
                         <span className="truncate max-w-[120px]">{file.name}</span>
                         <button onClick={() => setFile(null)} className="ml-1 text-[var(--muted)] hover:text-red-400 transition-colors">
+                          <Plus size={12} className="rotate-45" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {uploadError && (
+                    <div className="absolute -top-12 left-4">
+                      <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/40 rounded-full px-3 py-1.5 text-[12px] text-red-400 shadow-sm">
+                        <span className="truncate max-w-[280px]">{uploadError}</span>
+                        <button onClick={() => setUploadError(null)} className="ml-1 hover:text-red-300 transition-colors">
                           <Plus size={12} className="rotate-45" />
                         </button>
                       </div>
@@ -2917,7 +3955,7 @@ export default function ChatPage() {
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.35 }}
               className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden"
-              style={{ background: 'radial-gradient(ellipse at 50% 60%, #0a0a14 0%, #05050a 100%)' }}
+              style={{ background: 'radial-gradient(ellipse at 50% 55%, rgba(var(--surface-2-rgb), 0.85) 0%, var(--bg) 72%)' }}
             >
               {/* ── Ambient background glow ── */}
               <div className="absolute inset-0 pointer-events-none">
@@ -2926,93 +3964,77 @@ export default function ChatPage() {
                   transition={{ duration: isSpeaking ? 1.2 : 3, repeat: Infinity, ease: 'easeInOut' }}
                   className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full"
                   style={{
-                    background: assistantType === 'student'
-                      ? 'radial-gradient(circle, rgba(16,185,129,0.4) 0%, transparent 70%)'
-                      : assistantType === 'lawyer'
-                        ? 'radial-gradient(circle, rgba(245,158,11,0.4) 0%, transparent 70%)'
-                        : 'radial-gradient(circle, rgba(96,165,250,0.45) 0%, transparent 70%)'
+                    background: `radial-gradient(circle, rgba(${(AGENT_ACCENT[assistantType] ?? AGENT_ACCENT.permit).glow}, ${0.16 + (isSpeaking ? voiceLevel : 0) * 0.30}) 0%, transparent 70%)`,
                   }}
                 />
               </div>
 
               {/* ── Top bar: chip + hang up ── */}
               <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-8 pt-8 z-10">
-                <div /> {/* Left flex spacer to keep chip centered and X on the right if needed, or chip left */}
+                <div />   {/* spacer, so the chip stays centred */}
 
-                {/* Detected service chip */}
+                {/* What the call has worked out so far. One lookup rather than the
+                    same conditional restated in the border, icon, glow and label. */}
                 <AnimatePresence>
-                  {detectedService && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.8, y: -10 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      className={`flex items-center gap-2.5 px-4 py-2 rounded-full border backdrop-blur-xl shadow-lg transition-all ${detectedService === 'student'
-                        ? 'border-emerald-500/20 bg-emerald-500/10 shadow-emerald-500/10'
-                        : detectedService === 'lawyer'
-                          ? 'border-amber-500/20 bg-amber-500/10 shadow-amber-500/10'
-                          : 'border-blue-500/20 bg-blue-500/10 shadow-blue-500/10'
-                        }`}
-                    >
-                      {/* Cpu icon with animated glow — identical to navbar chip */}
-                      <div className="relative flex items-center justify-center">
-                        <Cpu
-                          size={15}
-                          className={`animate-[pulse_1.5s_easeInOut_infinite] relative z-10 ${detectedService === 'student' ? 'text-emerald-400'
-                            : detectedService === 'lawyer' ? 'text-amber-400'
-                              : 'text-blue-400'
-                            }`}
-                        />
-                        <div className={`absolute inset-0 blur-md rounded-full animate-pulse ${detectedService === 'student' ? 'bg-emerald-500/30'
-                          : detectedService === 'lawyer' ? 'bg-amber-500/30'
-                            : 'bg-blue-500/30'
-                          }`} />
-                      </div>
-                      <span className={`text-[12px] font-black uppercase tracking-[0.15em] ${detectedService === 'student' ? 'text-emerald-400'
-                        : detectedService === 'lawyer' ? 'text-amber-400'
-                          : 'text-blue-400'
-                        }`}>
-                        {detectedService === 'permit' ? 'Business Agent' : detectedService === 'student' ? 'Student Agent' : 'Legal Agent'}
-                      </span>
-                    </motion.div>
-                  )}
+                  {detectedService && (() => {
+                    const SERVICE_CHIP: Record<string, { label: string; tone: string; text: string; glow: string }> = {
+                      university: { label: 'University',       tone: 'border-emerald-500/20 bg-emerald-500/10 shadow-emerald-500/10', text: 'text-emerald-400', glow: 'bg-emerald-500/30' },
+                      visa:       { label: 'Student Visa',     tone: 'border-blue-500/20 bg-blue-500/10 shadow-blue-500/10',          text: 'text-blue-400',    glow: 'bg-blue-500/30' },
+                      ikamet:     { label: 'Residence Permit', tone: 'border-violet-500/20 bg-violet-500/10 shadow-violet-500/10',    text: 'text-violet-400',  glow: 'bg-violet-500/30' },
+                      insurance:  { label: 'Health Insurance', tone: 'border-amber-500/20 bg-amber-500/10 shadow-amber-500/10',       text: 'text-amber-400',   glow: 'bg-amber-500/30' },
+                    };
+                    const chip = SERVICE_CHIP[detectedService];
+                    if (!chip) return null;   // nothing recognised yet — no chip at all
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8, y: -10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className={`flex items-center gap-2.5 px-4 py-2 rounded-full border backdrop-blur-xl shadow-lg transition-all ${chip.tone}`}
+                      >
+                        <div className="relative flex items-center justify-center">
+                          <Cpu size={15} className={`animate-[pulse_1.5s_easeInOut_infinite] relative z-10 ${chip.text}`} />
+                          <div className={`absolute inset-0 blur-md rounded-full animate-pulse ${chip.glow}`} />
+                        </div>
+                        <span className={`text-[12px] font-black uppercase tracking-[0.15em] ${chip.text}`}>
+                          {chip.label}
+                        </span>
+                      </motion.div>
+                    );
+                  })()}
                 </AnimatePresence>
 
                 {/* Close / hang up */}
                 <button
                   onClick={hangUpCall}
-                  className="w-11 h-11 flex items-center justify-center rounded-full bg-white/8 hover:bg-red-500/20 border border-white/10 hover:border-red-500/40 text-white/60 hover:text-red-400 transition-all active:scale-90"
+                  className="w-11 h-11 flex items-center justify-center rounded-full bg-[var(--surface-2)] hover:bg-red-500/20 border border-[var(--border)] hover:border-red-500/40 text-[var(--muted)] hover:text-red-400 transition-all active:scale-90"
                 >
                   <X size={20} />
                 </button>
               </div>
 
-              {/* ── ChatGPT-Exact Voice Orb ── */}
+              {/* ── Voice orb ── */}
               <div className="relative flex items-center justify-center" style={{ width: 260, height: 260 }}>
 
-                {/* The perfect circle container — clips everything inside */}
+                {/* The circle itself. Scale and glow follow how loud the agent
+                    actually is, not a looping keyframe — a canned pulse keeps
+                    beating through pauses and stays flat through emphasis. */}
                 <motion.div
-                  animate={{ scale: isSpeaking ? [1, 1.04, 0.98, 1.03, 1] : isListening ? [1, 1.02, 0.99, 1.02, 1] : 1 }}
-                  transition={{ duration: isSpeaking ? 1.0 : 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                  animate={{ scale: isSpeaking ? 1 + voiceLevel * 0.13 : isListening ? 1 + voiceLevel * 0.05 : 1 }}
+                  transition={{ type: 'spring', stiffness: 240, damping: 20, mass: 0.6 }}
                   className="relative overflow-hidden"
                   style={{
                     width: 220, height: 220,
                     borderRadius: '50%',
-                    background: assistantType === 'student'
-                      ? 'linear-gradient(160deg, #a7f3d0 0%, #34d399 40%, #059669 100%)'
-                      : assistantType === 'lawyer'
-                        ? 'linear-gradient(160deg, #fef3c7 0%, #fcd34d 40%, #d97706 100%)'
-                        : 'linear-gradient(160deg, #e0f2fe 0%, #7dd3fc 40%, #3b82f6 100%)',
-                    boxShadow: isSpeaking
-                      ? assistantType === 'student'
-                        ? '0 0 80px 30px rgba(52,211,153,0.45), 0 0 140px 60px rgba(16,185,129,0.2)'
-                        : assistantType === 'lawyer'
-                          ? '0 0 80px 30px rgba(252,211,77,0.45), 0 0 140px 60px rgba(245,158,11,0.2)'
-                          : '0 0 80px 30px rgba(125,211,252,0.45), 0 0 140px 60px rgba(59,130,246,0.2)'
-                      : assistantType === 'student'
-                        ? '0 0 40px 10px rgba(52,211,153,0.2)'
-                        : assistantType === 'lawyer'
-                          ? '0 0 40px 10px rgba(252,211,77,0.2)'
-                          : '0 0 40px 10px rgba(125,211,252,0.2)'
+                    background: (AGENT_ACCENT[assistantType] ?? AGENT_ACCENT.permit).gradient,
+                    boxShadow: (() => {
+                      const g = (AGENT_ACCENT[assistantType] ?? AGENT_ACCENT.permit).glow;
+                      const lit = isSpeaking ? voiceLevel : 0;
+                      const spread = 40 + lit * 55;
+                      const blur = 12 + lit * 26;
+                      return `0 0 ${spread}px ${blur}px rgba(${g}, ${0.18 + lit * 0.32}), `
+                        + `0 0 ${spread * 1.9}px ${blur * 2.2}px rgba(${g}, ${0.06 + lit * 0.16})`;
+                    })(),
                   }}
                 >
                   {/* Cloud blob 1 — large bright wisp, top-left */}
@@ -3090,16 +4112,15 @@ export default function ChatPage() {
 
                 {/* Soft outer glow ring — pulses on speak */}
                 <motion.div
-                  animate={{ opacity: isSpeaking ? [0.4, 0.8, 0.4] : isListening ? [0.2, 0.4, 0.2] : [0.1, 0.2, 0.1], scale: isSpeaking ? [1, 1.12, 1] : [1, 1.04, 1] }}
-                  transition={{ duration: isSpeaking ? 1.0 : 3, repeat: Infinity, ease: 'easeInOut' }}
+                  animate={{
+                    opacity: isSpeaking ? 0.25 + voiceLevel * 0.55 : isListening ? 0.22 : 0.12,
+                    scale: isSpeaking ? 1 + voiceLevel * 0.16 : 1,
+                  }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 24, mass: 0.7 }}
                   className="absolute rounded-full pointer-events-none"
                   style={{
                     width: 240, height: 240,
-                    background: assistantType === 'student'
-                      ? 'radial-gradient(circle, rgba(52,211,153,0.35) 0%, transparent 70%)'
-                      : assistantType === 'lawyer'
-                        ? 'radial-gradient(circle, rgba(252,211,77,0.35) 0%, transparent 70%)'
-                        : 'radial-gradient(circle, rgba(125,211,252,0.4) 0%, transparent 70%)',
+                    background: `radial-gradient(circle, rgba(${(AGENT_ACCENT[assistantType] ?? AGENT_ACCENT.permit).glow}, 0.38) 0%, transparent 70%)`,
                     filter: 'blur(20px)',
                   }}
                 />
@@ -3125,24 +4146,76 @@ export default function ChatPage() {
                 )}
               </div>
 
+              {/* ── What they have chosen so far ──
+                  Appears the moment record_choice fires, so the caller can SEE
+                  that they were heard correctly instead of waiting until the end
+                  of the call to find out. Each field animates in on its own, so a
+                  university named now and a subject named later do not re-animate
+                  each other. */}
+              <AnimatePresence>
+                {!callEnded && (voiceChoices.university || voiceChoices.major) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 12, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                    className="mt-10 flex flex-wrap items-center justify-center gap-2 px-6 z-10"
+                  >
+                    {([
+                      ['university', voiceChoices.university] as const,
+                      ['major', voiceChoices.major] as const,
+                    ] as const).map(([kind, value]) => value ? (
+                      <motion.div
+                        key={kind}
+                        layout
+                        initial={{ opacity: 0, scale: 0.85 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex items-center gap-2.5 rounded-2xl border border-[var(--border)] bg-[var(--surface-1)]/85 px-4 py-2.5 shadow-lg backdrop-blur-xl"
+                      >
+                        {kind === 'university'
+                          ? <Building2 size={15} className="shrink-0 text-[var(--muted)]" />
+                          : <GraduationCap size={15} className="shrink-0 text-[var(--muted)]" />}
+                        <span className="text-left">
+                          <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-[var(--muted)]/70">
+                            {kind === 'university'
+                              ? (t('voice_choice_university') || 'University')
+                              : (t('voice_choice_major') || 'Major')}
+                          </span>
+                          <span className="block text-[14px] font-bold leading-tight text-[var(--text)]">{value}</span>
+                        </span>
+                      </motion.div>
+                    ) : null)}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* ── Status text + transcript ── */}
               <div className="mt-20 text-center max-w-lg px-6 z-10">
                 <AnimatePresence mode="wait">
                   {callEnded ? (
                     <motion.div key="ended" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center gap-3">
-                      <p className="text-white/90 text-xl font-bold">Call Summary Saved</p>
-                      <p className="text-white/40 text-sm">Your dashboard has been updated with the conversation roadmap.</p>
+                      {voiceError ? (
+                        <>
+                          <p className="text-[var(--text)] text-xl font-bold">Call Ended</p>
+                          <p className="text-[var(--muted)] text-sm max-w-xs text-center">{voiceError}</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-[var(--text)] text-xl font-bold">Call Summary Saved</p>
+                          <p className="text-[var(--muted)]/80 text-sm">Your dashboard has been updated with the conversation roadmap.</p>
+                        </>
+                      )}
                     </motion.div>
                   ) : (
                     <motion.div key="active" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                      <p className="text-white/35 text-[11px] font-black uppercase tracking-[0.35em] mb-3">
+                      <p className="text-[var(--muted)]/75 text-[11px] font-black uppercase tracking-[0.35em] mb-3">
                         {isSpeaking ? 'Assistant Speaking…' : isListening ? 'Listening…' : 'Connecting…'}
                       </p>
                       <motion.div
                         key={voiceTranscript}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="text-white/80 text-lg font-semibold leading-relaxed min-h-[32px]"
+                        className="text-[var(--text)]/85 text-lg font-semibold leading-relaxed min-h-[32px]"
                       >
                         {isListening ? (
                           voiceTranscript ? voiceTranscript : (
@@ -3158,9 +4231,18 @@ export default function ChatPage() {
                             </div>
                           )
                         ) : isSpeaking ? (
-                          fullCleanText.split(' ').slice(0, 12).map((w, i) => (
-                            <motion.span key={i} animate={{ opacity: i < spokenWordIndex ? 1 : 0.2 }} transition={{ duration: 0.08 }} className="inline-block mr-1">{w}</motion.span>
-                          ))
+                          (() => {
+                            // The caption rendered words 0-11 of the whole reply while spokenWordIndex
+                            // counted across all of it, so on anything longer than twelve words the
+                            // highlight filled up in the first second or two and then sat there,
+                            // frozen, for the rest of the reply. Follow the spoken position instead.
+                            const WINDOW = 12;
+                            const words = fullCleanText.split(' ');
+                            const start = Math.max(0, Math.min(spokenWordIndex - WINDOW + 4, words.length - WINDOW));
+                            return words.slice(start, start + WINDOW).map((w, i) => (
+                              <motion.span key={start + i} animate={{ opacity: start + i < spokenWordIndex ? 1 : 0.2 }} transition={{ duration: 0.08 }} className="inline-block mr-1">{w}</motion.span>
+                            ));
+                          })()
                         ) : null}
                       </motion.div>
                     </motion.div>

@@ -2,31 +2,71 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, ArrowLeft, RefreshCw, X, Building, GraduationCap, Scale, Cpu, Users, Building2 } from 'lucide-react';
+import { Check, ArrowLeft, RefreshCw, X, Users, Cpu, Building2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
+import MobileMenuButton from '../components/MobileMenuButton';
+import BackButton from '../components/BackButton';
 import Footer from '../components/Footer';
 import { apiFetch } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { PLANS, plansByTier, minorToDecimalString, type PlanId } from '@/lib/plans';
+
+const INDIVIDUAL_PLANS = plansByTier('individual');
+const FAMILY_PLANS = plansByTier('family');
+
+const PLAN_ICON: Record<PlanId, React.ReactNode> = {
+  single: <Cpu className="text-white w-4 h-4 md:w-8 md:h-8" />,
+  triple: <Cpu className="text-white w-4 h-4 md:w-8 md:h-8" />,
+  six: <Cpu className="text-white w-4 h-4 md:w-8 md:h-8" />,
+  family: <Users size={32} className="text-white" />,
+  family_plus: <Users size={32} className="text-white" />,
+  business: <Building2 size={32} className="text-white" />,
+};
+
+const PLAN_COLOR: Record<PlanId, string> = {
+  single: 'bg-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.5)]',
+  triple: 'bg-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.5)]',
+  six: 'bg-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.5)]',
+  family: 'bg-indigo-500 shadow-[0_0_30px_rgba(99,102,241,0.5)]',
+  family_plus: 'bg-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.5)]',
+  business: 'bg-gray-800 shadow-[0_0_30px_rgba(31,41,55,0.5)]',
+};
+
+/** What each tier includes, beyond "N service credits" — shown as bullets. */
+const PLAN_FEATURES: Record<PlanId, string[]> = {
+  single: ['1 finalised roadmap', 'Valid for 12 months', 'All 3 AI Agents', 'EN, TR, AR, TM languages'],
+  triple: ['3 finalised roadmaps', 'Valid for 12 months', 'All 3 AI Agents', 'Priority generation queue'],
+  six: ['6 finalised roadmaps', 'Valid for 12 months', 'All 3 AI Agents', 'Priority generation queue', 'Best price per service'],
+  family: ['5 finalised roadmaps total', 'Invite up to 4 people by email', 'Each member gets their own service', 'Valid for 12 months'],
+  family_plus: ['10 finalised roadmaps total', 'Invite up to 9 people by email', 'Each member gets their own service', 'Valid for 12 months'],
+  business: ['25 finalised roadmaps total', 'Invite up to 24 team members', 'Centralized usage overview', 'Valid for 12 months'],
+};
+
+function usd(minor: number): string {
+  return `$${(minor / 100).toFixed(0)}`;
+}
+function tryFmt(minor: number): string {
+  return `₺${(minor / 100).toFixed(0)}`;
+}
 
 export default function PricingPage() {
   const router = useRouter();
   const { user } = useAuth();
 
-  const [checkoutPlan, setCheckoutPlan] = useState<'premium' | 'max' | null>(null);
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
-  const [billingPlan, setBillingPlan] = useState<'individual' | 'team'>('individual');
-  
+  const [checkoutPlan, setCheckoutPlan] = useState<PlanId | null>(null);
+  const [billingPlan, setBillingPlan] = useState<'individual' | 'family'>('individual');
+
   const [iyzicoFormHtml, setIyzicoFormHtml] = useState<string | null>(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Close iyzico form if user navigates back
   useEffect(() => {
     if (!checkoutPlan) setIyzicoFormHtml(null);
   }, [checkoutPlan]);
 
-  const handleSubscribeClick = async () => {
+  const handleBuyClick = async () => {
+    if (!checkoutPlan) return;
     try {
       setIsSubscribing(true);
       const token = localStorage.getItem('permitops_token');
@@ -35,125 +75,95 @@ export default function PricingPage() {
         router.push('/login');
         return;
       }
-      
-      const planCode = checkoutPlan === 'premium' 
-        ? (billingCycle === 'yearly' ? 'P66275815_YEARLY' : 'P66275815_MONTHLY')
-        : (billingCycle === 'yearly' ? 'MAX_YEARLY' : 'MAX_MONTHLY');
 
-      const res = await apiFetch(`/payment/subscribe?token=${token}&plan_code=${planCode}`, { method: 'POST' });
+      const res = await apiFetch(`/payment/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: checkoutPlan }),
+      });
       if (res && res.ok) {
         const json = await res.json();
         if (json.status === 'success' && json.checkoutFormContent) {
           setIyzicoFormHtml(json.checkoutFormContent);
         } else {
-          throw new Error(json.errorMessage || 'Initialization failed');
+          throw new Error(json.errorMessage || json.detail || 'Initialization failed');
         }
       } else {
-        throw new Error('Payment server unreachable');
+        const detail = await res?.json().catch(() => null);
+        throw new Error(detail?.detail || 'Payment server unreachable');
       }
     } catch (e: any) {
-      setToast({ message: e.message || 'Failed to start subscription', type: 'error' });
+      setToast({ message: e.message || 'Failed to start checkout', type: 'error' });
     } finally {
       setIsSubscribing(false);
     }
   };
 
-  const premiumMonthly = 300;
-  const premiumYearly = 1000;
-  const maxMonthly = 400;
-  const maxYearly = 1500;
-
-  const subtotal = checkoutPlan === 'premium' ? (billingCycle === 'yearly' ? premiumYearly : premiumMonthly) : (billingCycle === 'yearly' ? maxYearly : maxMonthly);
-  const tax = Math.round(subtotal * 0.20); // 20% VAT
-  const total = subtotal + tax;
-
   const renderCheckmark = () => <Check size={14} className="text-gray-400 mt-0.5 shrink-0" />;
 
   // ────────────────────────────────────────────────────────────
-  // CHECKOUT SCREEN (Image 2 Match)
+  // CHECKOUT SCREEN — one-time purchase, no billing-cycle toggle:
+  // credits don't renew, they're bought once and spent over time.
   // ────────────────────────────────────────────────────────────
   if (checkoutPlan) {
+    const plan = PLANS[checkoutPlan];
+    // Flat VAT display, matching how iyzico settles — see minorToDecimalString.
+    const tax = Math.round(plan.priceTryMinor * 0.20);
+    const total = plan.priceTryMinor + tax;
+
     return (
       <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans selection:bg-blue-500/30 pt-20 pb-24">
         <Navbar />
+        <MobileMenuButton />
         <main className="max-w-2xl mx-auto px-6 pt-12">
-          <button 
+          <button
             onClick={() => setCheckoutPlan(null)}
             className="mb-8 text-[var(--muted)] hover:text-[var(--text)] transition-colors"
           >
             <ArrowLeft size={24} />
           </button>
 
-          <h1 className="text-2xl font-semibold text-[var(--text)] mb-8 capitalize">{checkoutPlan} plan</h1>
-
-          {/* Cycle Toggles */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <button
-              onClick={() => setBillingCycle('monthly')}
-              className={`p-4 rounded-xl border text-left transition-all ${billingCycle === 'monthly' ? 'bg-[var(--surface-2)] border-blue-500 shadow-[0_0_0_1px_rgba(59,130,246,1)]' : 'bg-[var(--surface-1)] border-[var(--border)] hover:border-gray-500'}`}
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${billingCycle === 'monthly' ? 'border-blue-500' : 'border-gray-500'}`}>
-                  {billingCycle === 'monthly' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
-                </div>
-                <span className="font-semibold text-[var(--text)]">Monthly</span>
-              </div>
-              <div className="pl-7 text-sm text-[var(--muted)]">
-                TL {checkoutPlan === 'premium' ? premiumMonthly : maxMonthly}.00/month + tax
-              </div>
-            </button>
-
-            <button
-              onClick={() => setBillingCycle('yearly')}
-              className={`relative p-4 rounded-xl border text-left transition-all ${billingCycle === 'yearly' ? 'bg-blue-500/5 border-blue-500 shadow-[0_0_0_1px_rgba(59,130,246,1)]' : 'bg-[var(--surface-1)] border-[var(--border)] hover:border-gray-500'}`}
-            >
-              <div className="absolute top-3 right-3 text-[10px] font-bold bg-blue-600/30 text-blue-500 px-2 py-0.5 rounded-sm">Save 12%</div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${billingCycle === 'yearly' ? 'border-blue-500' : 'border-gray-500'}`}>
-                  {billingCycle === 'yearly' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
-                </div>
-                <span className="font-semibold text-[var(--text)]">Yearly</span>
-              </div>
-              <div className="pl-7 text-sm text-[var(--muted)]">
-                TL {checkoutPlan === 'premium' ? premiumYearly : maxYearly}.00/year + tax
-              </div>
-            </button>
-          </div>
+          <h1 className="text-2xl font-semibold text-[var(--text)] mb-2">{plan.name}</h1>
+          <p className="text-sm text-[var(--muted)] mb-8">{plan.tagline}</p>
 
           {/* Order details */}
           <div className="border border-[var(--border)] rounded-xl p-6 mb-6 bg-[var(--surface-1)]">
             <h2 className="font-semibold text-[var(--text)] mb-6">Order details</h2>
             <div className="space-y-4 text-sm">
               <div className="flex justify-between text-[var(--muted)]">
-                <span><span className="capitalize">{checkoutPlan}</span> plan<br/><span className="text-[var(--text)]/50">{billingCycle === 'yearly' ? 'Annually' : 'Monthly'}</span></span>
-                <span>TL {subtotal}</span>
+                <span>{plan.name}<br /><span className="text-[var(--text)]/50">{plan.credits} service credit{plan.credits > 1 ? 's' : ''} · one-time purchase</span></span>
+                <span>{minorToDecimalString(plan.priceTryMinor)} TL</span>
               </div>
               <div className="h-px w-full bg-[var(--border)] my-2" />
               <div className="flex justify-between text-[var(--muted)]">
                 <span>Subtotal</span>
-                <span>TL {subtotal}</span>
+                <span>{minorToDecimalString(plan.priceTryMinor)} TL</span>
               </div>
               <div className="flex justify-between text-[var(--muted)]">
                 <span>Tax (VAT 20%)</span>
-                <span>TL {tax}</span>
+                <span>{minorToDecimalString(tax)} TL</span>
               </div>
               <div className="h-px w-full bg-[var(--border)] my-2" />
               <div className="flex justify-between font-semibold text-[var(--text)]">
                 <span>Total due today</span>
-                <span>TL {total}</span>
+                <span>{minorToDecimalString(total)} TL</span>
               </div>
             </div>
-            
+
             <div className="mt-6 p-4 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] text-xs text-[var(--muted)] flex gap-3 leading-relaxed">
               <span className="shrink-0 w-4 h-4 rounded-full border border-gray-500 flex items-center justify-center font-serif italic text-[10px]">i</span>
-              <span>Your subscription will auto renew on {new Date(Date.now() + (billingCycle === 'yearly' ? 365 : 30) * 24 * 60 * 60 * 1000).toLocaleDateString()}. You will be charged TL {subtotal}.00/{billingCycle === 'yearly' ? 'year' : 'month'} + tax.</span>
+              <span>
+                One-time charge — no subscription, no auto-renewal. Your {plan.credits} credit{plan.credits > 1 ? 's' : ''} expire
+                {' '}{new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString()} if unused.
+                {plan.invitableSeats > 0 && ' Invite people to your plan any time from Settings → Family.'}
+              </span>
             </div>
           </div>
 
           {/* Payment Method */}
           <div className="border border-[var(--border)] rounded-xl p-6 bg-[var(--surface-1)]">
             <h2 className="font-semibold text-[var(--text)] mb-6">Payment method</h2>
-            
+
             {!iyzicoFormHtml ? (
               <div className="space-y-4">
                 <div>
@@ -170,9 +180,9 @@ export default function PricingPage() {
                   <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">Address</label>
                   <input type="text" className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:border-blue-500" />
                 </div>
-                
+
                 <button
-                  onClick={handleSubscribeClick}
+                  onClick={handleBuyClick}
                   disabled={isSubscribing}
                   className="w-full mt-6 bg-[var(--text)] text-[var(--bg)] font-semibold rounded-lg py-3 hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
                 >
@@ -192,242 +202,98 @@ export default function PricingPage() {
   }
 
   // ────────────────────────────────────────────────────────────
-  // PRICING SCREEN (Image 1 Match)
+  // PRICING SCREEN — two separate ladders, 3 tiers each.
   // ────────────────────────────────────────────────────────────
+  const shownPlans = billingPlan === 'individual' ? INDIVIDUAL_PLANS : FAMILY_PLANS;
+
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans selection:bg-blue-500/30">
       <Navbar />
+      <MobileMenuButton />
 
       <main className="pt-24 md:pt-32 pb-24 relative z-10 px-2 md:px-6 overflow-hidden">
+        <div className="max-w-5xl mx-auto mb-6 px-2 md:px-0 relative z-10">
+          <BackButton />
+        </div>
         {/* Glow Effects */}
         <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none -z-10" />
         <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px] pointer-events-none -z-10" />
-        
+
         {/* Header */}
         <div className="text-center mb-6 md:mb-12">
           <h1 className="text-3xl md:text-5xl text-[var(--text)] mb-4 md:mb-8 font-serif tracking-tight" style={{ fontFamily: 'Georgia, serif' }}>
             Plan prices
           </h1>
-          
+          <p className="text-sm text-[var(--muted)] mb-6 max-w-xl mx-auto">
+            Chat with every agent for free. Pay only when you want a finalised, step-by-step roadmap — one credit per service.
+          </p>
+
           <div className="inline-flex items-center p-1 bg-[var(--surface-1)] rounded-xl border border-[var(--border)] shadow-inner">
-            <button 
+            <button
               onClick={() => setBillingPlan('individual')}
               className={`px-6 py-2 rounded-lg text-sm font-semibold transition-colors ${billingPlan === 'individual' ? 'bg-[var(--surface-3)] text-[var(--text)] shadow-sm border border-[var(--border)]' : 'text-[var(--muted)] hover:text-[var(--text)] border border-transparent'}`}
             >
               Individual
             </button>
-            <button 
-              onClick={() => setBillingPlan('team')}
-              className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${billingPlan === 'team' ? 'bg-[var(--surface-3)] text-[var(--text)] shadow-sm border border-[var(--border)]' : 'text-[var(--muted)] hover:text-[var(--text)] border border-transparent'}`}
+            <button
+              onClick={() => setBillingPlan('family')}
+              className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${billingPlan === 'family' ? 'bg-[var(--surface-3)] text-[var(--text)] shadow-sm border border-[var(--border)]' : 'text-[var(--muted)] hover:text-[var(--text)] border border-transparent'}`}
             >
-              Team and Enterprise
+              Family
             </button>
           </div>
         </div>
 
-        {/* Pricing Cards */}
-        {billingPlan === 'individual' ? (
-        <div className="max-w-5xl mx-auto grid grid-cols-3 gap-1.5 md:gap-6">
-
-          {/* Free Card */}
-          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl md:rounded-2xl p-2.5 md:p-8 flex flex-col">
-            <div className="mb-2 md:mb-6 md:h-16 flex items-start">
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4">
-                <div className="relative shrink-0 h-9 w-9 md:h-16 md:w-16 rounded-lg md:rounded-2xl flex items-center justify-center bg-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.5)]">
-                  <Cpu className="text-white animate-pulse w-4 h-4 md:w-8 md:h-8" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs md:text-base font-bold text-[var(--text)]">Monthly</span>
-                  <span className="text-[10px] md:text-xs text-[var(--muted)] hidden md:block">Standard plan</span>
-                </div>
-              </div>
-            </div>
-            <h2 className="text-lg md:text-2xl font-semibold text-[var(--text)] mb-1">Free</h2>
-            <p className="text-[11px] md:text-sm text-[var(--muted)] mb-2 md:mb-6 leading-snug min-h-[2.25rem] md:min-h-0">Meet TurkGateway</p>
-
-            <div className="flex items-baseline gap-1.5 md:gap-2 mb-2.5 md:mb-8 min-h-[1.75rem] md:min-h-0">
-              <div className="text-2xl md:text-3xl font-semibold text-[var(--text)]">₺0</div>
-            </div>
-
-            <button disabled className="w-full py-2 md:py-2.5 rounded-lg border border-[var(--border)] text-[var(--muted)] font-medium text-[11px] md:text-sm mb-2 bg-[var(--surface-2)] leading-tight">
-              Use for free
-            </button>
-            <p className="text-[8px] md:text-[9px] text-center mb-2 md:mb-5 font-medium opacity-0 select-none" aria-hidden="true">Free forever</p>
-
-            <div className="space-y-1 md:space-y-4 text-[11px] md:text-[13px] text-[var(--muted)] flex-1 border-t border-[var(--border)] pt-2.5 md:pt-6">
-              <p className="font-semibold text-[var(--text)] text-[10px] md:text-xs mb-2">Includes:</p>
-              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>Web, iOS &amp; Android</span></div>
-              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>All 3 AI Agents</span></div>
-              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>Residency &amp; permit roadmaps</span></div>
-              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>EN, TR, AR languages</span></div>
-              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>Web search for legal updates</span></div>
-            </div>
-          </div>
-
-          {/* Pro Card */}
-          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl md:rounded-2xl p-2.5 md:p-8 flex flex-col relative">
-            <div className="mb-2 md:mb-6 md:h-16 flex justify-between items-start">
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4">
-                <div className="relative shrink-0 h-9 w-9 md:h-16 md:w-16 rounded-lg md:rounded-2xl flex items-center justify-center bg-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.5)]">
-                  <Cpu className="text-white animate-pulse w-4 h-4 md:w-8 md:h-8" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs md:text-base font-bold text-[var(--text)]">Monthly</span>
-                  <span className="text-[10px] md:text-xs text-[var(--muted)] hidden md:block">Best value</span>
+        {/* Pricing Cards — same 3-card grid shape for both tabs */}
+        <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
+          {shownPlans.map((plan) => (
+            <div key={plan.id} className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl md:rounded-2xl p-4 md:p-8 flex flex-col">
+              <div className="mb-3 md:mb-6 md:h-16 flex items-start">
+                <div className="flex items-center gap-3 md:gap-4">
+                  <div className={`relative shrink-0 h-10 w-10 md:h-16 md:w-16 rounded-lg md:rounded-2xl flex items-center justify-center ${PLAN_COLOR[plan.id]}`}>
+                    {PLAN_ICON[plan.id]}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm md:text-base font-bold text-[var(--text)]">{plan.name}</span>
+                    <span className="text-[10px] md:text-xs text-[var(--muted)]">{plan.credits} service{plan.credits > 1 ? 's' : ''}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <h2 className="text-lg md:text-2xl font-semibold text-[var(--text)] mb-1">Premium</h2>
-            <p className="text-[11px] md:text-sm text-[var(--muted)] mb-2 md:mb-6 leading-snug min-h-[2.25rem] md:min-h-0">Advanced AI for Turkish procedures</p>
+              <p className="text-[11px] md:text-sm text-[var(--muted)] mb-3 md:mb-6 leading-snug min-h-[2.25rem]">{plan.tagline}</p>
 
-            <div className="flex items-baseline gap-1.5 md:gap-2 mb-2.5 md:mb-8 min-h-[1.75rem] md:min-h-0">
-              <div className="text-2xl md:text-3xl font-semibold text-[var(--text)]">₺{premiumMonthly}</div>
-              <div className="text-[9px] md:text-[10px] text-[var(--muted)] flex flex-col">
-                <span>TL / month</span>
-                <span className="hidden md:block">billed monthly</span>
+              <div className="flex items-baseline gap-2 mb-4 md:mb-8">
+                <div className="text-2xl md:text-3xl font-semibold text-[var(--text)]">{usd(plan.priceUsdMinor)}</div>
+                <div className="text-xs md:text-sm text-[var(--muted)]">/ {tryFmt(plan.priceTryMinor)}</div>
+              </div>
+
+              <button
+                onClick={() => setCheckoutPlan(plan.id)}
+                className="w-full py-2.5 rounded-lg bg-[var(--text)] text-[var(--bg)] font-semibold text-[13px] md:text-sm mb-2 hover:opacity-90 transition-opacity"
+              >
+                Get {plan.name}
+              </button>
+              <p className="text-[9px] md:text-[10px] text-[var(--muted)] text-center mb-4 md:mb-5 font-medium">One-time purchase · no subscription</p>
+
+              <div className="space-y-2 md:space-y-4 text-[12px] md:text-[13px] text-[var(--muted)] flex-1 border-t border-[var(--border)] pt-4 md:pt-6">
+                {PLAN_FEATURES[plan.id].map((f, i) => (
+                  <div key={i} className="flex items-start gap-2 md:gap-3 leading-tight">
+                    {renderCheckmark()} <span>{f}</span>
+                  </div>
+                ))}
               </div>
             </div>
-
-            <button onClick={() => setCheckoutPlan('premium')} className="w-full py-2 md:py-2.5 rounded-lg bg-[var(--text)] text-[var(--bg)] font-semibold text-[11px] md:text-sm mb-2 hover:opacity-90 transition-opacity leading-tight">
-              Get Premium
-            </button>
-            <p className="text-[8px] md:text-[9px] text-[var(--muted)] text-center mb-2 md:mb-5 font-medium">No commitment · Cancel anytime</p>
-
-            <div className="space-y-1 md:space-y-4 text-[11px] md:text-[13px] text-[var(--muted)] flex-1 border-t border-[var(--border)] pt-2.5 md:pt-6">
-              <p className="font-semibold text-[var(--text)] text-[10px] md:text-xs mb-2">Everything in Free and:</p>
-              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span className="font-medium text-[var(--text)]">Desktop App + Voice mode</span></div>
-              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>100 AI Tokens / month</span></div>
-              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>Doc review &amp; translation</span></div>
-              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>Auto-fill official docs</span></div>
-              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>Advanced legal deep-dives</span></div>
-            </div>
-          </div>
-
-          {/* Max Card */}
-          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl md:rounded-2xl p-2.5 md:p-8 flex flex-col">
-            <div className="mb-2 md:mb-6 md:h-16 flex items-start">
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4">
-                <div className="relative shrink-0 h-9 w-9 md:h-16 md:w-16 rounded-lg md:rounded-2xl flex items-center justify-center bg-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.5)]">
-                  <Cpu className="text-white animate-pulse w-4 h-4 md:w-8 md:h-8" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs md:text-base font-bold text-[var(--text)]">Yearly</span>
-                  <span className="text-[10px] md:text-xs text-[var(--muted)] hidden md:block">Maximum power</span>
-                </div>
-              </div>
-            </div>
-
-            <h2 className="text-lg md:text-2xl font-semibold text-[var(--text)] mb-1">Max</h2>
-            <p className="text-[11px] md:text-sm text-[var(--muted)] mb-2 md:mb-6 leading-snug min-h-[2.25rem] md:min-h-0">Unlimited tokens forever</p>
-
-            <div className="flex items-baseline gap-1.5 md:gap-2 mb-2.5 md:mb-8 min-h-[1.75rem] md:min-h-0">
-              <div className="text-2xl md:text-3xl font-semibold text-[var(--text)]">₺{maxYearly}</div>
-              <div className="text-[9px] md:text-[10px] text-[var(--muted)] flex flex-col">
-                <span>TL / year</span>
-                <span className="hidden md:block">billed annually</span>
-              </div>
-            </div>
-
-            <button onClick={() => setCheckoutPlan('max')} className="w-full py-2 md:py-2.5 rounded-lg bg-[var(--text)] text-[var(--bg)] font-semibold text-[11px] md:text-sm mb-2 hover:opacity-90 transition-opacity leading-tight">
-              Get Max
-            </button>
-            <p className="text-[8px] md:text-[9px] text-[var(--muted)] text-center mb-2 md:mb-5 font-medium">No commitment · Cancel anytime</p>
-
-            <div className="space-y-1 md:space-y-4 text-[11px] md:text-[13px] text-[var(--muted)] flex-1 border-t border-[var(--border)] pt-2.5 md:pt-6">
-              <p className="font-semibold text-[var(--text)] text-[10px] md:text-xs mb-2">Everything in Premium, plus:</p>
-              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span className="font-medium text-[var(--text)] text-blue-400">Unlimited tokens forever</span></div>
-              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>Full app management</span></div>
-              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>Unlimited consultations</span></div>
-              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>Dedicated manager</span></div>
-              <div className="flex items-start gap-1.5 md:gap-3 leading-tight">{renderCheckmark()} <span>VIP priority processing</span></div>
-            </div>
-          </div>
-
+          ))}
         </div>
-        ) : (
-        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Team Card */}
-          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl p-8 flex flex-col relative">
-            <div className="mb-6 h-16 flex items-start">
-              <div className="flex items-center gap-4">
-                <div className="relative shrink-0 h-16 w-16 rounded-2xl flex items-center justify-center bg-indigo-500 shadow-[0_0_30px_rgba(99,102,241,0.5)]">
-                  <Users size={32} className="text-white animate-pulse" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-base font-bold text-[var(--text)]">Team</span>
-                  <span className="text-xs text-[var(--muted)]">Shared workspace</span>
-                </div>
-              </div>
-            </div>
-            <h2 className="text-2xl font-semibold text-[var(--text)] mb-1">Business</h2>
-            <p className="text-sm text-[var(--muted)] mb-6">For growing teams & agencies</p>
-            
-            <div className="flex items-baseline gap-2 mb-8">
-              <div className="text-3xl font-semibold text-[var(--text)]">₺4990</div>
-              <div className="text-[10px] text-[var(--muted)] flex flex-col">
-                <span>TL / month</span>
-                <span>billed annually</span>
-              </div>
-            </div>
-            
-            <button className="w-full py-2.5 rounded-lg bg-[var(--text)] text-[var(--bg)] font-semibold text-sm mb-8 hover:opacity-90 transition-opacity">
-              Start Team Trial
-            </button>
-
-            <div className="space-y-4 text-[13px] text-[var(--muted)] flex-1 border-t border-[var(--border)] pt-6">
-              <p className="font-semibold text-[var(--text)] text-xs mb-2">Everything in Premium, plus:</p>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>Centralized admin dashboard</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>Shared team document storage</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>Unlimited sub-accounts (up to 5)</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>Consolidated monthly billing</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>API access (10k requests)</span></div>
-            </div>
-          </div>
-
-          {/* Enterprise Card */}
-          <div className="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl p-8 flex flex-col">
-            <div className="mb-6 h-16 flex items-start">
-              <div className="flex items-center gap-4">
-                <div className="relative shrink-0 h-16 w-16 rounded-2xl flex items-center justify-center bg-gray-800 shadow-[0_0_30px_rgba(31,41,55,0.5)]">
-                  <Building2 size={32} className="text-white animate-pulse" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-base font-bold text-[var(--text)]">Enterprise</span>
-                  <span className="text-xs text-[var(--muted)]">Custom solutions</span>
-                </div>
-              </div>
-            </div>
-            <h2 className="text-2xl font-semibold text-[var(--text)] mb-1">Custom</h2>
-            <p className="text-sm text-[var(--muted)] mb-6">Scale without limits</p>
-            
-            <div className="text-3xl font-semibold text-[var(--text)] mb-8">Let's talk</div>
-            
-            <button className="w-full py-2.5 rounded-lg border border-[var(--border)] text-[var(--text)] font-semibold text-sm mb-8 hover:bg-[var(--surface-2)] transition-colors">
-              Contact Sales
-            </button>
-
-            <div className="space-y-4 text-[13px] text-[var(--muted)] flex-1 border-t border-[var(--border)] pt-6">
-              <p className="font-semibold text-[var(--text)] text-xs mb-2">Everything in Team, plus:</p>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span className="font-medium text-[var(--text)]">Custom AI Model fine-tuning</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>White-label platform integration</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>Dedicated Slack/Teams channel</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>On-premise deployment options</span></div>
-              <div className="flex items-start gap-3">{renderCheckmark()} <span>Custom compliance reporting</span></div>
-            </div>
-          </div>
-        </div>
-        )}
 
         <p className="text-center text-[11px] text-[var(--muted)] mt-12 max-w-2xl mx-auto">
-          *Usage limits apply. Prices shown don't include applicable tax. Prices and plans are subject to change at TurkGateway's discretion.
+          *Chat is always free. Credits are spent only when you confirm building a roadmap, and never automatically.
+          Prices shown don't include applicable tax. Prices and plans are subject to change at TurkGateway's discretion.
         </p>
-
       </main>
-      
+
       <Footer />
 
-      {/* Custom Toast */}
       <AnimatePresence>
         {toast && (
           <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200]">

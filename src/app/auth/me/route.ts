@@ -27,6 +27,12 @@ export async function GET(req: Request) {
     });
   } catch (e: any) {
     if (e instanceof Response) return e;
-    return Response.json({ detail: 'Unauthorized' }, { status: 401 });
+    // DB outage must not read as "you are signed out" — the token is fine,
+    // the account store is temporarily unreachable.
+    console.error('[auth/me]', e);
+    return Response.json(
+      { detail: 'Account service unavailable right now. Please try again in a moment.' },
+      { status: 503 },
+    );
   }
 }

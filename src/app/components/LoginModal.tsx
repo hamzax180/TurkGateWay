@@ -39,7 +39,8 @@ export default function LoginModal() {
                     if (res.status === 404) {
                         throw new Error(t('auth_email_not_found') || "No account found with this email. Please sign up first.");
                     }
-                    throw new Error('Verification failed');
+                    const data = await res.json().catch(() => null);
+                    throw new Error(data?.detail || 'Verification failed');
                 }
                 setStep(2);
                 return;

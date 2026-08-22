@@ -1,38 +1,71 @@
 export const runtime = 'nodejs';
 
-import { db } from '@/lib/db';
-import { users } from '@/lib/schema';
 import { eq } from 'drizzle-orm';
+import { db } from '@/lib/db';
+import { purchases } from '@/lib/schema';
 import { requireUser } from '@/lib/user-helper';
+import { hasIyzicoConfig, initializeCheckout } from '@/lib/iyzico';
+import { PLANS, isPlanId, minorToDecimalString } from '@/lib/plans';
 
+/**
+ * Start a checkout.
+ *
+ * The client picks a plan id; the price comes from the server-side price list
+ * in plans.ts. A `pending` purchase row is written first so the callback has
+ * something authoritative to reconcile against — the plan and expected amount
+ * are never read back out of the provider's response.
+ */
 export async function POST(req: Request) {
   try {
     const user = await requireUser(req);
-    const body = await req.json().catch(() => ({}));
 
-    // iyzipay integration — forward to payment provider
-    const IYZIPAY_API_KEY = process.env.IYZIPAY_API_KEY;
-    const IYZIPAY_SECRET_KEY = process.env.IYZIPAY_SECRET_KEY;
-    const IYZIPAY_BASE_URL = process.env.IYZIPAY_BASE_URL ?? 'https://sandbox-api.iyzipay.com';
+    const url = new URL(req.url);
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+    const requested = body.plan ?? url.searchParams.get('plan');
 
-    if (!IYZIPAY_API_KEY || !IYZIPAY_SECRET_KEY) {
+    if (!isPlanId(requested)) {
+      return Response.json({ detail: 'Unknown plan' }, { status: 400 });
+    }
+    const plan = PLANS[requested];
+
+    if (!hasIyzicoConfig()) {
       return Response.json({ detail: 'Payment provider not configured' }, { status: 503 });
     }
 
-    // Build iyzipay checkout form request
-    const conversationId = `tg-${user.id}-${Date.now()}`;
-    const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/payment/callback`;
+    // conversationId is the only identifier that survives the round trip, so it
+    // carries the purchase row id. It is still treated as untrusted on the way
+    // back — the callback re-reads the row and verifies with iyzico.
+    const [purchase] = await db
+      .insert(purchases)
+      .values({
+        user_id: user.id,
+        plan: plan.id,
+        amount_try_minor: plan.priceTryMinor,
+        amount_usd_minor: plan.priceUsdMinor,
+        credits_granted: plan.credits,
+        status: 'pending',
+      })
+      .returning({ id: purchases.id });
 
-    const requestBody = {
+    const conversationId = `tg-${user.id}-${purchase.id}-${Date.now()}`;
+    await db
+      .update(purchases)
+      .set({ conversation_id: conversationId })
+      .where(eq(purchases.id, purchase.id));
+
+    const price = minorToDecimalString(plan.priceTryMinor);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+
+    const data = await initializeCheckout({
       locale: 'tr',
       conversationId,
-      price: '299',
-      paidPrice: '299',
+      price,
+      paidPrice: price,
       currency: 'TRY',
       installment: '1',
       paymentChannel: 'WEB',
-      paymentGroup: 'SUBSCRIPTION',
-      callbackUrl,
+      paymentGroup: 'PRODUCT',
+      callbackUrl: `${appUrl}/payment/callback`,
       buyer: {
         id: String(user.id),
         name: user.full_name?.split(' ')[0] ?? 'User',
@@ -42,33 +75,29 @@ export async function POST(req: Request) {
         registrationAddress: 'Istanbul, Turkey',
         city: 'Istanbul',
         country: 'Turkey',
-        ip: '127.0.0.1',
+        ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1',
       },
       shippingAddress: { contactName: user.full_name ?? 'User', city: 'Istanbul', country: 'Turkey', address: 'Istanbul, Turkey' },
       billingAddress: { contactName: user.full_name ?? 'User', city: 'Istanbul', country: 'Turkey', address: 'Istanbul, Turkey' },
       basketItems: [{
-        id: 'premium-monthly',
-        name: 'TurkGateWay Premium - Monthly',
+        id: `${plan.id}-credits`,
+        name: plan.label,
         category1: 'SaaS',
         itemType: 'VIRTUAL',
-        price: '299',
+        price,
       }],
-    };
-
-    // Call iyzipay (simplified — use iyzipay npm package for production)
-    const res = await fetch(`${IYZIPAY_BASE_URL}/payment/iyzipos/checkoutform/initialize/auth/ecommerce`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `IYZWS apiKey:${IYZIPAY_API_KEY}`,
-      },
-      body: JSON.stringify(requestBody),
     });
 
-    const data = await res.json();
+    if (data.status !== 'success' || !data.checkoutFormContent) {
+      console.error('[payment/subscribe] iyzico init failed', data.errorMessage);
+      await db.update(purchases).set({ status: 'failed' }).where(eq(purchases.id, purchase.id));
+      return Response.json({ detail: data.errorMessage ?? 'Payment init failed' }, { status: 502 });
+    }
+
     return Response.json(data);
   } catch (e: any) {
     if (e instanceof Response) return e;
+    console.error('[payment/subscribe]', e);
     return Response.json({ detail: 'Payment init failed' }, { status: 500 });
   }
 }

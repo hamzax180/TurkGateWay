@@ -1,21 +1,24 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight, CheckCircle, Bot, Globe, Database,
   Clock, Building2, FileText, ShieldCheck,
-  ChevronDown, Search, Sparkles, Plus, Mic, Send
+  ChevronDown, Search, Sparkles, Plus, Mic, Send, ArrowUp, AudioLines
 } from 'lucide-react';
 import type { Variants } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from './context/LanguageContext';
 import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
+import MobileMenuButton from './components/MobileMenuButton';
 import Sidebar from './components/Sidebar';
 import TypewriterText from './components/TypewriterText';
 import Footer from './components/Footer';
+import CountryGate from './components/CountryGate';
+import { useRegion } from './utils/useRegion';
 
 /* ── Animation Variants ── */
 const fade: Variants = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
@@ -84,7 +87,7 @@ const FlipCard = ({ step, i, isRTL, t, openIndex, setOpenIndex }: { step: any; i
   };
 
   // Mushroom-pop: the active card springs bigger and sits above its neighbors
-  const popScale = isMobile && flipped ? 1.22 : 1;
+  const popScale = isMobile && flipped ? 1.04 : 1;
 
   return (
     <motion.div
@@ -93,7 +96,7 @@ const FlipCard = ({ step, i, isRTL, t, openIndex, setOpenIndex }: { step: any; i
       viewport={{ once: true }}
       transition={{ delay: i * 0.15, duration: 0.8, ease: "easeOut" }}
       style={{ zIndex: isMobile && flipped ? 30 : 1 }}
-      className="relative w-full h-[160px] md:h-[400px] cursor-pointer group [perspective:1200px]"
+      className="relative w-full h-[180px] sm:h-[220px] md:h-[400px] cursor-pointer group [perspective:1200px]"
       onClick={handleToggle}
     >
       <motion.div
@@ -113,7 +116,7 @@ const FlipCard = ({ step, i, isRTL, t, openIndex, setOpenIndex }: { step: any; i
 
         {/* Back */}
         <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] flex flex-col justify-center items-center text-center rounded-2xl md:rounded-[32px] bg-gradient-to-br from-[#1a1a2e]/40 to-[#16213e]/40 backdrop-blur-2xl border border-white/20 p-2.5 md:p-10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all duration-500">
-          <p className="text-[9px] md:text-[22px] text-white/90 leading-snug md:leading-relaxed font-light">
+          <p className="text-sm sm:text-base md:text-[22px] text-white/90 leading-snug md:leading-relaxed font-light">
             {step.desc}
           </p>
         </div>
@@ -127,7 +130,36 @@ export default function Home() {
   const { user, token } = useAuth();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  /** What the visitor typed into the hero box. */
+  const [heroQuery, setHeroQuery] = useState('');
+
+  /**
+   * Carry the hero question into the chat instead of throwing it away.
+   *
+   * The box used to be pure decoration — both buttons were links to /chat, so
+   * anything typed was discarded on arrival and had to be typed again. It is
+   * handed over through the same key the dashboard's "Ask AI about this step"
+   * uses, which the chat page already watches for and auto-sends.
+   */
+  const openChatWithQuery = () => {
+    const q = heroQuery.trim();
+    if (q) localStorage.setItem('permitops_ask_step', q);
+    router.push('/chat');
+  };
   const [openCard, setOpenCard] = useState<number | null>(null); // single-open flip cards (mobile)
+  const [gateOpen, setGateOpen] = useState(false);
+  const region = useRegion();
+
+  // First visit only: show the country gate until the visitor picks their
+  // country of origin (stored once, never shown again). Wait for the geo
+  // lookup first — region.inTurkey is false while loading, so opening early
+  // flashes the country grid at visitors who are already inside Türkiye.
+  useEffect(() => {
+    if (region.loading) return;
+    if (!localStorage.getItem('tg_country_selected')) {
+      setGateOpen(true);
+    }
+  }, [region.loading]);
 
   const stepsData = howItWorksSteps(t);
   const featureData = featuresData(t);
@@ -146,20 +178,30 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--bg)] transition-colors duration-500 relative">
-      <Sidebar
-        currentSessionId={null}
-        assistantType="permit"
-        onSessionSelect={handleSessionSelect}
-        onNewChat={() => router.push('/chat')}
-        onDeleteSession={() => {}} // History deletion mostly done in chat or dashboard
-        token={token}
-        mobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
-      />
-      <div className="flex-1 h-full overflow-y-auto relative slim-scroll block">
+    <div className="flex min-h-screen bg-[var(--bg)] transition-colors duration-500 relative">
+      {token && (
+        <Sidebar
+          currentSessionId={null}
+          assistantType="permit"
+          onSessionSelect={handleSessionSelect}
+          onNewChat={() => router.push('/chat')}
+          onDeleteSession={() => {}} // History deletion mostly done in chat or dashboard
+          token={token}
+          mobileOpen={mobileMenuOpen}
+          onMobileClose={() => setMobileMenuOpen(false)}
+        />
+      )}
+      <div className="flex-1 min-w-0 min-h-screen relative slim-scroll block">
         <Navbar isAppPage={true} transparentTop={true} onMobileMenuClick={() => setMobileMenuOpen(true)} />
-        <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col items-center justify-start overflow-x-hidden relative transition-colors duration-500 -mt-[64px]">
+        {/* The page's own Sidebar only mounts for signed-in visitors, so a
+            guest pressing the button would have had nothing to open. Passing
+            no handler makes the button bring its own drawer instead. */}
+        <MobileMenuButton onClick={token ? () => setMobileMenuOpen(true) : undefined} />
+        {/* The -64px pulls the hero up under the navbar so the flag video runs
+            behind it. The navbar is not rendered below `md`, so applying it
+            there pulled the greeting and the top of the title clean off the
+            screen — hence md: only. */}
+        <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col items-center justify-start overflow-x-hidden relative transition-colors duration-500 md:-mt-[64px]">
           
           {/* Real Turkish Flag Video Background */}
         <div className="absolute inset-x-0 top-0 h-[52vh] md:h-[58vh] xl:h-[90vh] dark:bg-[#a00000] bg-gradient-to-br from-white via-red-50 to-red-100 pointer-events-none z-0 select-none overflow-hidden">
@@ -265,34 +307,46 @@ export default function Home() {
           className="w-full max-w-2xl relative group px-4"
         >
           <div className="absolute inset-0 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-all duration-300 -z-10" />
-          <div className="relative flex items-center gap-2 rounded-full p-1.5 border border-[var(--border)] bg-[var(--surface-1)] shadow-lg focus-within:shadow-xl transition-all">
-            <button className="hidden sm:flex p-2.5 text-[var(--muted)] hover:text-[var(--text)] transition-colors shrink-0">
+          {/* Same composer as the chat page, so the first thing a visitor
+              touches is the thing they will keep using. One round action
+              button: an arrow to send what they typed, a waveform to start
+              voice when they have not. */}
+          <div className="relative flex items-center gap-1 rounded-[28px] py-1 pl-2 pr-1.5 border border-[var(--border)]/70 bg-[var(--surface-1)] shadow-[0_2px_14px_rgba(0,0,0,0.08)] focus-within:shadow-[0_4px_22px_rgba(0,0,0,0.12)] transition-shadow">
+            <button
+              onClick={openChatWithQuery}
+              aria-label="Attach"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors shrink-0"
+            >
               <Plus size={22} />
             </button>
-            
+
             <input
               type="text"
+              value={heroQuery}
+              onChange={(e) => setHeroQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') openChatWithQuery();
+              }}
               placeholder={t('chat_placeholder') || "Ask TurkGateway AI agents..."}
               className="flex-1 bg-transparent py-3 px-2 md:px-1 text-[16px] md:text-[18px] text-[var(--text)] placeholder:text-[var(--muted)]/50 focus:outline-none min-w-0"
             />
 
-            <div className="flex items-center gap-1 md:gap-1.5 pr-1 shrink-0">
-              <Link href="/chat">
-                <button className="flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-full bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-all shrink-0">
-                  <div className="flex items-center gap-0.5">
-                    <div className="w-0.5 h-3 bg-current rounded-full animate-pulse" />
-                    <div className="w-0.5 h-2 bg-current rounded-full" />
-                    <div className="w-0.5 h-3.5 bg-current rounded-full animate-pulse" />
-                  </div>
-                  <span className="hidden sm:inline text-[13px] font-bold tracking-tight">{t('chat_voice') || "Voice"}</span>
-                </button>
-              </Link>
-              
-              <Link href="/chat">
-                <button className="h-10 w-10 flex items-center justify-center rounded-full bg-[var(--text)] text-[var(--bg)] hover:opacity-90 transition-all shrink-0 shadow-sm">
-                  <ArrowRight size={20} />
-                </button>
-              </Link>
+            <div className="flex items-center gap-1 pr-0.5 shrink-0">
+              <button
+                onClick={openChatWithQuery}
+                aria-label={t('chat_voice') || 'Voice'}
+                className="h-10 w-10 flex items-center justify-center rounded-full text-[var(--muted)] hover:text-[var(--text)] transition-colors shrink-0"
+              >
+                <Mic size={20} />
+              </button>
+
+              <button
+                onClick={openChatWithQuery}
+                aria-label={heroQuery.trim() ? 'Send' : (t('chat_voice') || 'Voice')}
+                className="h-10 w-10 flex items-center justify-center rounded-full bg-[#2f7bf6] hover:bg-[#2569db] text-white shadow-sm transition-all shrink-0 active:scale-95"
+              >
+                {heroQuery.trim() ? <ArrowUp size={20} /> : <AudioLines size={20} />}
+              </button>
             </div>
           </div>
         </motion.div>
@@ -321,7 +375,7 @@ export default function Home() {
       </section>
 
       {/* ═══════════════ HOW IT WORKS SECTION ═══════════════ */}
-      <section id="how-it-works" className="w-full relative overflow-hidden py-40">
+      <section id="how-it-works" className="w-full relative overflow-hidden py-20 md:py-40">
         {/* Live Video Background - Brighter & Full Fit */}
         <div className="absolute inset-0 z-0 w-full h-full">
           <video
@@ -362,7 +416,7 @@ export default function Home() {
             <h2 className="text-2xl md:text-7xl font-medium text-white drop-shadow-[0_6px_10px_rgba(0,0,0,0.9)] tracking-tight leading-tight max-w-4xl mx-auto">{t('process_subtitle')}</h2>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 md:gap-16 px-1 md:px-0">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-16 px-4 md:px-0">
             {stepsData.map((step, i) => (
               <div key={i}>
                 <FlipCard step={step} i={i} isRTL={isRTL} t={t} openIndex={openCard} setOpenIndex={setOpenCard} />
@@ -375,6 +429,23 @@ export default function Home() {
 
     {/* ── Minimalist Footer ── */}
     <Footer />
+
+    {/* ── First-visit country gate ── */}
+    <AnimatePresence>
+      {gateOpen && (
+        <CountryGate
+          inTurkey={region.inTurkey}
+          onSelect={(country) => {
+            localStorage.setItem('tg_country_selected', JSON.stringify(country));
+            setGateOpen(false);
+          }}
+          onContinue={() => {
+            localStorage.setItem('tg_country_selected', JSON.stringify({ code: 'TR', name: 'Türkiye' }));
+            setGateOpen(false);
+          }}
+        />
+      )}
+    </AnimatePresence>
       </div>
     </div>
   );

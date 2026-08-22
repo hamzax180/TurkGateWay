@@ -17,6 +17,7 @@ export async function GET(req: Request) {
     const [{ permit_sessions }] = await db.select({ permit_sessions: count() }).from(chatSessions).where(eq(chatSessions.assistant_type, 'permit'));
     const [{ student_sessions }] = await db.select({ student_sessions: count() }).from(chatSessions).where(eq(chatSessions.assistant_type, 'student'));
     const [{ lawyer_sessions }] = await db.select({ lawyer_sessions: count() }).from(chatSessions).where(eq(chatSessions.assistant_type, 'lawyer'));
+    const [{ support_sessions }] = await db.select({ support_sessions: count() }).from(chatSessions).where(eq(chatSessions.assistant_type, 'support'));
 
     return Response.json({
       total_users,
@@ -25,7 +26,7 @@ export async function GET(req: Request) {
       mrr: premium_users * 299,
       total_sessions,
       total_messages,
-      sessions_by_type: { permit: permit_sessions, student: student_sessions, lawyer: lawyer_sessions },
+      sessions_by_type: { permit: permit_sessions, student: student_sessions, lawyer: lawyer_sessions, support: support_sessions },
     });
   } catch (e: any) {
     if (e instanceof Response) return e;

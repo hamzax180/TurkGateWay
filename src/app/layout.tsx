@@ -7,8 +7,8 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import LoginModal from "./components/LoginModal";
 
 export const metadata: Metadata = {
-  title: "TurkGateway AI — Turkish Business Permit Platform",
-  description: "TurkGateway AI-powered multi-agent platform to obtain Turkish business permits fast.",
+  title: "TurkGateway AI — University, Visa & Residence Agency",
+  description: "TurkGateway — the AI agency for university registration, student visas and residence permits in Türkiye.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
