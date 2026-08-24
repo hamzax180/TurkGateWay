@@ -19,6 +19,7 @@ import { totpCodeAt, verifyTotp, generateTotpSecret } from '../src/lib/auth';
 import { toMinorUnits } from '../src/lib/iyzico';
 import { policyFor, TIERS } from '../src/lib/rate-limit-policy';
 import { PLANS, isPlanId } from '../src/lib/plans';
+import nextConfig from '../next.config';
 
 // ---------------------------------------------------------------------------
 // TOTP — RFC 6238
@@ -210,6 +211,43 @@ describe('rate-limit policy', () => {
 // `credits - invitableSeats`. A plan where that goes negative would mint
 // credits owned by nobody and strand the buyer's own purchase.
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Security headers
+//
+// These are set once in next.config.ts and never thought about again, which is
+// exactly how one goes missing during an unrelated edit.
+// ---------------------------------------------------------------------------
+
+describe('security headers', () => {
+  const headersFor = async (source: string) => {
+    const groups = await nextConfig.headers!();
+    const group = groups.find((g) => g.source === source);
+    assert.ok(group, `no header group for ${source}`);
+    return new Map(group.headers.map((h) => [h.key, h.value]));
+  };
+
+  test('the baseline set is applied to every path', async () => {
+    const h = await headersFor('/:path*');
+    assert.equal(h.get('X-Content-Type-Options'), 'nosniff');
+    assert.equal(h.get('Referrer-Policy'), 'strict-origin-when-cross-origin');
+    assert.match(h.get('Strict-Transport-Security')!, /max-age=\d+/);
+    assert.ok(h.get('Permissions-Policy')?.includes('camera=()'));
+  });
+
+  test('framing is SAMEORIGIN, not DENY', async () => {
+    // DENY also forbids same-origin framing, which breaks 3D Secure card
+    // challenges that post back to a merchant URL inside an iframe. Checkout
+    // is the one flow that must not break, so this value is load-bearing.
+    const h = await headersFor('/:path*');
+    assert.equal(h.get('X-Frame-Options'), 'SAMEORIGIN');
+  });
+
+  test('API responses are never cached', async () => {
+    const h = await headersFor('/api/:path*');
+    assert.equal(h.get('Cache-Control'), 'no-store');
+  });
+});
 
 describe('plan catalogue', () => {
   test('a buyer always keeps at least one credit', () => {

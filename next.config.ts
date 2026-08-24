@@ -19,10 +19,16 @@ const securityHeaders = [
   // as something else.
   { key: 'X-Content-Type-Options', value: 'nosniff' },
 
-  // No framing: the app is not meant to be embedded, and clickjacking a
-  // signed-in session onto a payment or account-deletion control is the reason
-  // this header exists.
-  { key: 'X-Frame-Options', value: 'DENY' },
+  // Clickjacking: an attacker framing a signed-in session over a payment or
+  // account-deletion control is the threat, and SAMEORIGIN stops it completely.
+  //
+  // Not DENY, deliberately. DENY additionally forbids the app framing its OWN
+  // pages, which buys nothing against the threat above and breaks real things:
+  // it blocked the local preview pane outright when first set, and 3D Secure
+  // card flows commonly render a challenge that posts back to a merchant URL
+  // inside an iframe. Breaking checkout to harden against a same-origin frame
+  // is the wrong trade.
+  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
 
   // Referrer carries the path, and paths here contain session and application
   // ids. Send the origin to other sites, the full URL only to ourselves.
