@@ -96,7 +96,11 @@ const FlipCard = ({ step, i, isRTL, t, openIndex, setOpenIndex }: { step: any; i
       viewport={{ once: true }}
       transition={{ delay: i * 0.15, duration: 0.8, ease: "easeOut" }}
       style={{ zIndex: isMobile && flipped ? 30 : 1 }}
-      className="relative w-full h-[180px] sm:h-[220px] md:h-[400px] cursor-pointer group [perspective:1200px]"
+      /* Heights step at lg/xl, not md. The md: jump was sized for a desktop
+         card, but this is a 3-column grid: at 768-1279px each card is only
+         ~220px wide, so md:p-10 with md:text-[22px] left ~139px for the text
+         and the description ran straight out of the box. */
+      className="relative w-full h-[180px] sm:h-[220px] md:h-[260px] lg:h-[300px] xl:h-[400px] cursor-pointer group [perspective:1200px]"
       onClick={handleToggle}
     >
       <motion.div
@@ -108,15 +112,18 @@ const FlipCard = ({ step, i, isRTL, t, openIndex, setOpenIndex }: { step: any; i
         }}
       >
         {/* Front */}
-        <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] flex flex-col justify-center items-center text-center rounded-2xl md:rounded-[32px] bg-gradient-to-br from-white/10 to-white/0 backdrop-blur-md border border-white/20 p-2.5 md:p-10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:bg-white/10 hover:border-white/30 transition-all duration-500">
-          <h4 className="text-sm md:text-5xl font-medium text-white drop-shadow-md tracking-tight leading-tight mb-0 md:mb-6">{step.title}</h4>
+        <div className="absolute inset-0 w-full h-full overflow-hidden [backface-visibility:hidden] flex flex-col justify-center items-center text-center rounded-2xl lg:rounded-[32px] bg-gradient-to-br from-white/10 to-white/0 backdrop-blur-md border border-white/20 p-2.5 sm:p-4 md:p-4 lg:p-7 xl:p-10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:bg-white/10 hover:border-white/30 transition-all duration-500">
+          <h4 className="text-sm sm:text-base md:text-2xl lg:text-3xl xl:text-5xl font-medium text-white drop-shadow-md tracking-tight leading-tight mb-0 lg:mb-4 xl:mb-6 [overflow-wrap:anywhere]">{step.title}</h4>
 
 
         </div>
 
         {/* Back */}
-        <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] flex flex-col justify-center items-center text-center rounded-2xl md:rounded-[32px] bg-gradient-to-br from-[#1a1a2e]/40 to-[#16213e]/40 backdrop-blur-2xl border border-white/20 p-2.5 md:p-10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all duration-500">
-          <p className="text-sm sm:text-base md:text-[22px] text-white/90 leading-snug md:leading-relaxed font-light">
+        <div className="absolute inset-0 w-full h-full overflow-hidden [backface-visibility:hidden] [transform:rotateY(180deg)] flex flex-col justify-center items-center text-center rounded-2xl lg:rounded-[32px] bg-gradient-to-br from-[#1a1a2e]/40 to-[#16213e]/40 backdrop-blur-2xl border border-white/20 p-2.5 sm:p-4 md:p-4 lg:p-6 xl:p-10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all duration-500">
+          {/* overflow-hidden on the face is the backstop, not the plan: the
+              sizes above are meant to fit. It is here so a longer translation
+              can crop rather than spill across the section. */}
+          <p className="text-[11px] sm:text-[13px] md:text-sm lg:text-base xl:text-[22px] text-white/90 leading-snug xl:leading-relaxed font-light [overflow-wrap:anywhere]">
             {step.desc}
           </p>
         </div>
@@ -215,7 +222,7 @@ export default function Home() {
             and filling it with inset-0 means the backdrop cannot end anywhere
             but where the hero ends, at any width.
           */}
-        <div className="relative w-full">
+        <div className="relative w-full z-10">
 
           {/* Real Turkish Flag Video Background */}
         {/* dark:bg-none is load-bearing. `dark:bg-[#a00000]` only sets a
@@ -225,12 +232,12 @@ export default function Home() {
             placeholder used to cover this until the video started, and the
             video covered it afterwards. With the placeholder gone the light
             gradient showed through in dark mode. */}
-        <div className="absolute inset-0 dark:bg-[#a00000] dark:bg-none bg-gradient-to-br from-white via-red-50 to-red-100 pointer-events-none z-0 select-none overflow-hidden">
+        <div className="hero-backdrop-fade absolute inset-0 dark:bg-[#a00000] dark:bg-none bg-gradient-to-br from-white via-red-50 to-red-100 pointer-events-none z-0 select-none overflow-hidden">
           {/* No mount-time fade here any more. It animated this container from
               transparent whether or not the video had a frame ready, so the
               first frame still arrived as a jump. The video below fades itself
               in when it actually starts playing. */}
-          <div className={`absolute inset-0 turkish-flag-mask dark:opacity-100 opacity-30`}>
+          <div className={`absolute inset-0 dark:opacity-100 opacity-30`}>
             <video
               autoPlay
               loop
@@ -262,11 +269,10 @@ export default function Home() {
             <div className="absolute inset-0 opacity-10 cloth-shimmer z-10" />
           </div>
 
-          {/* Carries the hero into the section below. Height in percent, not a
-              fixed h-64: the hero is 476px on a tablet and 973px on a wide
-              monitor, so a fixed fade reads completely differently per device.
-              Clamped so it stays a fade rather than swallowing a short hero. */}
-          <div className="scrim-up absolute inset-x-0 bottom-[-2px] h-[clamp(150px,42%,340px)] z-30 pointer-events-none" />
+          {/* No scrim here any more. An opaque --bg overlay between two images
+              IS the black bar — the page showing through the join. The
+              backdrop's own mask fades it to transparent instead, and the
+              section below slides up to meet it. */}
         </div>
 
       {/* ═══════════════ PERMIT ASSISTANT CONTENT ═══════════════ */}
@@ -396,7 +402,15 @@ export default function Home() {
       </section>
         </div>
 
-      <section id="how-it-works" className="w-full relative overflow-hidden py-20 md:py-40">
+      <section
+        id="how-it-works"
+        /* Slides up 120px under the hero's faded edge so the flag dissolves
+           into this video instead of into the page background, then adds the
+           same 120px back as padding so only the backdrop moves and the
+           heading stays where it was. Literal values: Tailwind will not
+           generate -mt-[var(--x)] or pt-[calc(...+var(--x))]. */
+        className="w-full relative z-0 overflow-hidden -mt-[120px] pb-20 md:pb-40 pt-[200px] md:pt-[280px]"
+      >
         {/* Live Video Background - Brighter & Full Fit */}
         <div className="absolute inset-0 z-0 w-full h-full">
           <video
@@ -425,10 +439,15 @@ export default function Home() {
               is white, so something dark has to be behind it before the first
               frame lands — but it no longer fades, so there is only ever the
               one transition: the video itself arriving on top of it. */}
-          <div className="absolute inset-0 w-full h-full bg-white dark:bg-black z-[-1] pointer-events-none" />
+          {/* --bg, not black. This panel now starts 120px higher than the
+              section used to, i.e. underneath the hero's half-faded edge — and
+              pure black against the page's own #100d0a put a step right where
+              it began. Matching the page background means the hero fades over
+              a continuous surface. */}
+          <div className="absolute inset-0 w-full h-full bg-[var(--bg)] z-[-1] pointer-events-none" />
 
-          {/* The other half of the seam, matched to the hero's scrim. */}
-          <div className="scrim-down absolute inset-x-0 top-0 h-[clamp(120px,26%,260px)] z-30 pointer-events-none" />
+          {/* The matching scrim is gone too — the video is now what the hero
+              fades into, so painting --bg over its top would put the bar back. */}
         </div>
 
         <div className="max-w-6xl mx-auto relative z-10 px-6 text-center">
@@ -436,7 +455,7 @@ export default function Home() {
             <h2 className="text-2xl md:text-7xl font-medium text-white drop-shadow-[0_6px_10px_rgba(0,0,0,0.9)] tracking-tight leading-tight max-w-4xl mx-auto">{t('process_subtitle')}</h2>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-16 px-4 md:px-0">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 lg:gap-10 xl:gap-16 px-4 md:px-0">
             {stepsData.map((step, i) => (
               <div key={i}>
                 <FlipCard step={step} i={i} isRTL={isRTL} t={t} openIndex={openCard} setOpenIndex={setOpenCard} />
