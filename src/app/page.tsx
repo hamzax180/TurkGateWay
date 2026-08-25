@@ -218,13 +218,19 @@ export default function Home() {
         <div className="relative w-full">
 
           {/* Real Turkish Flag Video Background */}
-        <div className="absolute inset-0 dark:bg-[#a00000] bg-gradient-to-br from-white via-red-50 to-red-100 pointer-events-none z-0 select-none overflow-hidden">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 2 }}
-            className={`absolute inset-0 turkish-flag-mask dark:opacity-100 opacity-30`}
-          >
+        {/* dark:bg-none is load-bearing. `dark:bg-[#a00000]` only sets a
+            background-COLOR, and the gradient beside it is a background-IMAGE
+            that paints straight over it — so the dark theme's red was never
+            actually visible here. It went unnoticed because a flat black
+            placeholder used to cover this until the video started, and the
+            video covered it afterwards. With the placeholder gone the light
+            gradient showed through in dark mode. */}
+        <div className="absolute inset-0 dark:bg-[#a00000] dark:bg-none bg-gradient-to-br from-white via-red-50 to-red-100 pointer-events-none z-0 select-none overflow-hidden">
+          {/* No mount-time fade here any more. It animated this container from
+              transparent whether or not the video had a frame ready, so the
+              first frame still arrived as a jump. The video below fades itself
+              in when it actually starts playing. */}
+          <div className={`absolute inset-0 turkish-flag-mask dark:opacity-100 opacity-30`}>
             <video
               autoPlay
               loop
@@ -241,25 +247,26 @@ export default function Home() {
                 } catch (err) {}
               }}
               onPlaying={(e) => {
-                const placeholder = (e.currentTarget as HTMLVideoElement).parentElement?.querySelector('.video-hero-placeholder') as HTMLElement;
-                if (placeholder) {
-                  placeholder.style.opacity = '0';
-                  placeholder.style.pointerEvents = 'none';
-                }
+                e.currentTarget.dataset.playing = 'true';
               }}
-              className="absolute inset-0 w-full h-full object-cover object-[50%_25%] scale-110 md:scale-105 dark:brightness-100 brightness-[1.2] grayscale-[0.2] bg-video-hidden z-0"
+              className="bg-video-fade absolute inset-0 w-full h-full object-cover object-[50%_25%] scale-110 md:scale-105 dark:brightness-100 brightness-[1.2] grayscale-[0.2] bg-video-hidden z-0"
               style={{ WebkitPlaysinline: 'true', WebkitBackfaceVisibility: 'hidden' } as any}
             />
 
-            {/* Placeholder ON TOP of video — covers iOS native play button until playback actually starts */}
-            <div className="video-hero-placeholder absolute inset-0 w-full h-full bg-white dark:bg-black transition-opacity duration-700 opacity-100 z-20 pointer-events-none" />
+            {/* The placeholder that used to sit here is gone. It existed to
+                cover the iOS native play button, which a transparent video
+                already does — and being flat white over a red backdrop, it WAS
+                the jump it was meant to hide. */}
 
             {/* Silk Texture Simulation Overlay (kept for added luxury feel) */}
             <div className="absolute inset-0 opacity-10 cloth-shimmer z-10" />
-          </motion.div>
+          </div>
 
-          {/* Depth Overlays — Added -1px bottom to bleed over any sub-pixel gaps */}
-          <div className="absolute inset-x-0 bottom-[-2px] h-64 bg-gradient-to-t from-[var(--bg)] via-[var(--bg)]/80 to-transparent z-30" />
+          {/* Carries the hero into the section below. Height in percent, not a
+              fixed h-64: the hero is 476px on a tablet and 973px on a wide
+              monitor, so a fixed fade reads completely differently per device.
+              Clamped so it stays a fade rather than swallowing a short hero. */}
+          <div className="scrim-up absolute inset-x-0 bottom-[-2px] h-[clamp(150px,42%,340px)] z-30 pointer-events-none" />
         </div>
 
       {/* ═══════════════ PERMIT ASSISTANT CONTENT ═══════════════ */}
@@ -408,21 +415,20 @@ export default function Home() {
               } catch (err) {}
             }}
             onPlaying={(e) => {
-              const placeholder = (e.currentTarget as HTMLVideoElement).parentElement?.querySelector('.video-section-placeholder') as HTMLElement;
-              if (placeholder) {
-                placeholder.style.opacity = '0';
-                placeholder.style.pointerEvents = 'none';
-              }
+              e.currentTarget.dataset.playing = 'true';
             }}
-            className="absolute inset-0 w-full h-full object-cover bg-video-hidden z-0"
+            className="bg-video-fade absolute inset-0 w-full h-full object-cover bg-video-hidden z-0"
             style={{ WebkitPlaysinline: 'true', WebkitBackfaceVisibility: 'hidden' } as any}
           />
 
-          {/* Placeholder ON TOP of video — covers iOS native play button until playback actually starts */}
-          <div className="video-section-placeholder absolute inset-0 w-full h-full bg-white dark:bg-black transition-opacity duration-700 opacity-100 z-20 pointer-events-none" />
+          {/* Base panel UNDER the video rather than over it. The heading here
+              is white, so something dark has to be behind it before the first
+              frame lands — but it no longer fades, so there is only ever the
+              one transition: the video itself arriving on top of it. */}
+          <div className="absolute inset-0 w-full h-full bg-white dark:bg-black z-[-1] pointer-events-none" />
 
-          {/* Sharp Gradual Transitions (The Split) */}
-          <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[var(--bg)] to-transparent z-30" />
+          {/* The other half of the seam, matched to the hero's scrim. */}
+          <div className="scrim-down absolute inset-x-0 top-0 h-[clamp(120px,26%,260px)] z-30 pointer-events-none" />
         </div>
 
         <div className="max-w-6xl mx-auto relative z-10 px-6 text-center">
