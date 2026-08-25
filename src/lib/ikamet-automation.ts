@@ -39,8 +39,8 @@ const runbookSchema = z.object({
   notes: z.array(z.string()),
 });
 
-const IKAMET_FIRST_URL = 'https://e-ikamet.goc.gov.tr/Ikamet/Basvuru/IlkBasvuru';
-const IKAMET_EXT_URL = 'https://e-ikamet.goc.gov.tr/Ikamet/Basvuru/UzatmaBasvuru';
+export const IKAMET_FIRST_URL = 'https://e-ikamet.goc.gov.tr/Ikamet/Basvuru/IlkBasvuru';
+export const IKAMET_EXT_URL = 'https://e-ikamet.goc.gov.tr/Ikamet/Basvuru/UzatmaBasvuru';
 
 function staticIkametRunbook(fields: Record<string, string>, isExtension: boolean): PortalRunbook {
   const order: Array<[string, string]> = [

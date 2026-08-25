@@ -15,6 +15,8 @@ never-operate guard, the label reading and the field resolution exist once.
 2. Opens a visible Chromium window at the İlk Başvuru (or Uzatma) page.
 3. You sign in and start the application. It fills each form as it appears —
    text boxes, dropdowns, date pickers and radio groups alike.
+4. **Stops at the e-mail verification link** and says so, instead of telling you
+   to press a button that cannot advance. See below.
 4. Attaches each document to the upload slot whose label names it — passport
    to *Pasaport Fotokopisi*, insurance to *Sağlık Sigortası*, and so on.
 5. **Stops and waits.** It does not click İleri, Kaydet, Başvuru Yap or
@@ -53,6 +55,25 @@ key, the fields whose label admits exactly one answer are still filled from the
 matcher list — identity and contact details, the two-letter name boxes, the
 card number, and all three entry-page dropdowns — and anything more open-ended
 is left to you.
+
+## The e-mail verification link
+
+After the entry page the portal e-mails a **one-time link**, and the application
+does not open until it is followed. This matters more than it sounds, because
+the token is bound to the session cookie created when you typed your e-mail —
+and that cookie lives in the window this script opened.
+
+So: **copy the link, do not click it.** Clicking it in your phone's mail app
+opens it in a browser that does not have that cookie; best case the portal
+starts you over, worst case the one-time token is spent and the window holding
+your half-filled application is stranded.
+
+Paste it into the address bar of the window on screen, or into the prompt the
+run puts on the terminal — they do the same thing. If you already clicked it,
+press *Tekrar Gönder / Resend* on the page and copy the new one.
+
+A short **code** e-mailed instead of a link needs none of this: it goes in the
+box on the page, like the image code, and the run reports it as yours to type.
 
 ## How the portal is actually built
 

@@ -16,6 +16,7 @@
 import { chromium } from 'playwright';
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
+import { createInterface } from 'node:readline/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { fillCurrentPage, readEmptyFields, resetFieldCache, clearMangledFields } from '../visa-booking-assistant/find-slot.mjs';
@@ -30,6 +31,11 @@ import {
   IKAMET_NEVER_FILL,
 } from './documents.mjs';
 import { KENDO_WIDGETS } from './kendo.mjs';
+import {
+  readVerificationGate,
+  resumeFromVerificationLink,
+  verificationInstructions,
+} from './verification.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const APPLICANT_PATH = join(HERE, 'applicant.json');
@@ -221,6 +227,74 @@ export function resolveApplicationType(applicant, argv = process.argv.slice(2)) 
 const DEBUG = process.argv.slice(2).includes('--debug');
 
 /**
+ * Identify the page by its FORM, not by its text length.
+ *
+ * innerText.length shifts whenever a mask template appears, a tooltip opens or
+ * a validation note renders — none of which mean a new step. Every such flicker
+ * was read as "new page", so the filler ran again, clicked back into a field
+ * and stole the cursor from under whoever was typing. The set of field names is
+ * stable within a step and different between steps, which is exactly the signal
+ * wanted.
+ */
+export async function pageSignature(page) {
+  return page.evaluate(() => {
+    const sel = 'input:not([type=hidden]):not([type=submit]):not([type=button]), select, textarea';
+    const names = [...document.querySelectorAll(sel)]
+      .map((el) => el.getAttribute('name') || el.id || el.tagName)
+      .join(',');
+    return document.title + '|' + location.href + '|' + names;
+  });
+}
+
+/**
+ * Wait at the e-mail gate until the applicant gets us past it.
+ *
+ * There are two ways through and both end in the same place, because the only
+ * thing that matters is that the link opens in THIS window: its session holds
+ * the cookie the token was minted against. Pasting into the address bar of the
+ * window already on screen is the obvious one, and needs no help from us — the
+ * loop notices the navigation. The prompt here is the convenience for anyone
+ * whose hands are already on the terminal.
+ *
+ * So the question is raced against the page itself. Whichever happens first
+ * wins, and neither leaves the other hanging: an address-bar paste aborts the
+ * prompt rather than deadlocking the run on a line nobody is going to type.
+ */
+async function awaitVerificationLink(page, gate, signature) {
+  console.log('');
+  console.log('📧 e-İkamet is waiting for you to verify your e-mail address.');
+  for (const line of verificationInstructions(gate.sentTo)) console.log(`   ${line}`);
+  console.log('   Paste it into this window’s address bar, or here and press Enter.');
+  console.log('');
+
+  const abort = new AbortController();
+  const watch = setInterval(async () => {
+    if (page.isClosed()) return abort.abort();
+    const now = await pageSignature(page).catch(() => signature);
+    if (now !== signature) abort.abort();
+  }, POLL_INTERVAL_MS);
+
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    for (;;) {
+      const answer = await rl.question('   Verification link: ', { signal: abort.signal });
+      const result = await resumeFromVerificationLink(page, answer);
+      if (result.ok) {
+        console.log(`   ✓ Opened ${result.where} — continuing.\n`);
+        return true;
+      }
+      console.log(`   ✗ ${result.reason}`);
+    }
+  } catch {
+    // Aborted: they used the address bar, or closed the window. Either is fine.
+    return false;
+  } finally {
+    clearInterval(watch);
+    rl.close();
+  }
+}
+
+/**
  * Describe every control still unset, in enough detail to fix a matcher.
  *
  * Enhanced dropdowns and masked boxes do not look like what they are from the
@@ -344,22 +418,7 @@ export async function main() {
 
   while (!page.isClosed()) {
     try {
-      // Identify the page by its FORM, not by its text length.
-      //
-      // innerText.length shifts whenever a mask template appears, a tooltip
-      // opens or a validation note renders — none of which mean a new step.
-      // Every such flicker was read as "new page", so the filler ran again,
-      // clicked back into a field and stole the cursor from under whoever was
-      // typing. The set of field names is stable within a step and different
-      // between steps, which is exactly the signal wanted.
-      const signature = await page.evaluate(() => {
-        const sel =
-          'input:not([type=hidden]):not([type=submit]):not([type=button]), select, textarea';
-        const names = [...document.querySelectorAll(sel)]
-          .map((el) => el.getAttribute('name') || el.id || el.tagName)
-          .join(',');
-        return document.title + '|' + location.href + '|' + names;
-      });
+      const signature = await pageSignature(page);
 
       if (signature !== lastSignature) {
         lastSignature = signature;
@@ -405,6 +464,20 @@ export async function main() {
           announced = true;
           await restCursor(page).catch(() => {});
 
+          // Checked only now, once the page has settled. A form that explains
+          // the verification step in its own help text reads exactly like the
+          // page that is waiting for it, and stopping on that would strand the
+          // applicant on a page this could have filled.
+          const gate = await readVerificationGate(page).catch(() => null);
+
+          if (gate?.present && gate.kind === 'link') {
+            // Telling them to press İleri here would be worse than saying
+            // nothing: there is no button on this page that advances it.
+            const resumed = await awaitVerificationLink(page, gate, signature);
+            if (resumed) lastSignature = '';
+            continue;
+          }
+
           // Two different things, reported separately. A box that is the
           // applicant's by design is not a failure, and burying the boxes the
           // assistant could not fill in the same list as the CAPTCHA is how a
@@ -419,6 +492,9 @@ export async function main() {
           }
           if (yours.length) {
             console.log(`  ✋ Yours to enter: ${yours.join(', ')}`);
+          }
+          if (gate?.kind === 'code') {
+            console.log('  📧 The code e-İkamet e-mailed you goes in the box on this page.');
           }
           console.log('  ⏸  Page ready for review — click İleri / Kaydet yourself when ready.');
           console.log('     (The confirmation checkbox is yours to tick — this script never will.)\n');

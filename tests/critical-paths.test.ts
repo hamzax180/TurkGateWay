@@ -19,6 +19,8 @@ import { totpCodeAt, verifyTotp, generateTotpSecret } from '../src/lib/auth';
 import { toMinorUnits } from '../src/lib/iyzico';
 import { policyFor, TIERS } from '../src/lib/rate-limit-policy';
 import { PLANS, isPlanId } from '../src/lib/plans';
+import { DOCUMENT_KIND_MAP, documentSlotFor, toAssistantApplicant } from '../src/lib/ikamet-applicant';
+import { checklistById, itemKey } from '../src/lib/document-checklists';
 import nextConfig from '../next.config';
 
 // ---------------------------------------------------------------------------
@@ -272,5 +274,119 @@ describe('plan catalogue', () => {
     for (const id of Object.keys(PLANS)) assert.equal(isPlanId(id), true, id);
     assert.equal(isPlanId('free'), false);
     assert.equal(isPlanId(''), false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// İkamet applicant mapping
+//
+// Two vocabularies meet in ikamet-applicant.ts: the intake fields the web side
+// collects, and the applicant.json shape the assistant reads. A rename missed
+// on either side does not throw — it leaves a box on a government form empty,
+// which is noticed weeks later by somebody whose application was rejected.
+// ---------------------------------------------------------------------------
+
+describe('İkamet applicant mapping', () => {
+  const intake = {
+    firstName: 'Test',
+    lastName: 'Al-Applicant',
+    passportNumber: 'A01234567',
+    passportExpiry: '2030-01-01',
+    nationality: 'Yemen',
+    dateOfBirth: '2003-06-15',
+    fatherName: 'Baba Test',
+    motherName: 'Ana Test',
+    gender: 'Male',
+    email: 'test@example.com',
+    phone: '+90 555 111 22 33',
+    addressInTr: 'Kadıköy, İstanbul',
+    entryDate: '2025-09-01',
+    permitNumber: '317445',
+  };
+
+  test('renames the keys the assistant spells differently', () => {
+    const applicant = toAssistantApplicant(intake, false);
+
+    assert.equal(applicant.passportExpiryDate, '2030-01-01');
+    assert.equal(applicant.addressInTurkey, 'Kadıköy, İstanbul');
+    assert.equal(applicant.residenceCardNo, '317445');
+
+    // The old names must not survive alongside the new ones: a matcher reading
+    // the wrong one would look filled while the portal box stayed empty.
+    assert.equal(applicant.passportExpiry, undefined);
+    assert.equal(applicant.addressInTr, undefined);
+    assert.equal(applicant.permitNumber, undefined);
+  });
+
+  test('passes everything else through untouched', () => {
+    const applicant = toAssistantApplicant(intake, false);
+    for (const key of ['firstName', 'lastName', 'passportNumber', 'nationality', 'dateOfBirth', 'fatherName', 'motherName', 'gender', 'email', 'phone', 'entryDate']) {
+      assert.equal(applicant[key], intake[key as keyof typeof intake], key);
+    }
+  });
+
+  test('derives fullName, which givenNames() depends on', () => {
+    // documents.mjs works out what belongs in the portal's "Name" box — every
+    // given name — by taking the surname off the end of the full name. Without
+    // fullName it falls back to the first name alone and under-fills the box.
+    const applicant = toAssistantApplicant(intake, false);
+    assert.equal(applicant.fullName, 'Test Al-Applicant');
+  });
+
+  test('applicationType comes from the service, not from a guess', () => {
+    assert.equal(toAssistantApplicant(intake, true).applicationType, 'extension');
+    assert.equal(toAssistantApplicant(intake, false).applicationType, 'first');
+    // A first application can legitimately carry a permit number (a previous,
+    // expired one), so it must never be what decides which form opens.
+    assert.equal(toAssistantApplicant({ permitNumber: '1' }, false).applicationType, 'first');
+  });
+
+  test('drops blank answers rather than filling boxes with empty strings', () => {
+    const applicant = toAssistantApplicant({ firstName: 'A', lastName: '  ', email: '' }, false);
+    assert.equal(applicant.firstName, 'A');
+    assert.equal(applicant.lastName, undefined);
+    assert.equal(applicant.email, undefined);
+  });
+});
+
+describe('İkamet document slots', () => {
+  // itemKey() suffixes each kind with the item's INDEX, so inserting a
+  // checklist item silently renumbers every kind after it — orphaning both the
+  // uploads already filed and this map. This is the test that notices.
+  const kindsFor = (id: string) =>
+    (checklistById(id)?.items ?? []).map((item, i) => itemKey(item, i));
+
+  for (const id of ['ikamet_new', 'ikamet_renewal']) {
+    test(`every ${id} kind is either mapped or deliberately unmapped`, () => {
+      const kinds = kindsFor(id);
+      assert.ok(kinds.length > 0, `${id} has no items — did the checklist id change?`);
+
+      // The application form is the one item with no upload slot: the portal
+      // produces it at the end of the run rather than asking for it.
+      const unmapped = kinds.filter((k) => !documentSlotFor(k));
+      for (const kind of unmapped) {
+        assert.match(kind, /application-form/, `unexpected unmapped kind: ${kind}`);
+      }
+    });
+
+    test(`no ${id} kind in the map has gone stale`, () => {
+      const kinds = new Set(kindsFor(id));
+      const prefix = id === 'ikamet_new' ? ['passport-copy-1', '4-biometric-photos-2'] : ['current-i-kamet-card-number-0'];
+      for (const kind of prefix) {
+        assert.ok(kinds.has(kind), `${kind} is no longer a ${id} kind — the map needs updating`);
+      }
+    });
+  }
+
+  test('maps only to slots the assistant knows', () => {
+    // These are the keys matchDocument() in scripts/ikamet-assistant resolves
+    // portal labels to. A value outside this set attaches nothing, silently.
+    const slots = new Set([
+      'passport', 'photo', 'insurance', 'studentCertificate',
+      'addressProof', 'feeReceipt', 'previousPermit',
+    ]);
+    for (const [kind, slot] of Object.entries(DOCUMENT_KIND_MAP)) {
+      assert.ok(slots.has(slot), `${kind} maps to unknown slot "${slot}"`);
+    }
   });
 });

@@ -26,11 +26,18 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { attachDocuments, IKAMET_ENGINE_OPTS } from './run.mjs';
 import { initials, isYoursByDesign, matchDocument } from './documents.mjs';
 import { matchOption } from './kendo.mjs';
+import {
+  classifyVerificationText,
+  isPortalLink,
+  readVerificationGate,
+  resumeFromVerificationLink,
+} from './verification.mjs';
 import { fillCurrentPage, readEmptyFields, resetFieldCache } from '../visa-booking-assistant/find-slot.mjs';
 import { hasQwenKey } from '../visa-booking-assistant/qwen-field-fill.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIXTURE = pathToFileURL(join(HERE, 'fixture.html')).href;
+const GATE_FIXTURE = pathToFileURL(join(HERE, 'verification-fixture.html')).href;
 
 let passed = 0;
 let failed = 0;
@@ -118,6 +125,56 @@ async function main() {
   // own — if it ever comes back empty that is a miss and has to read as one.
   check('the card serial is no longer excused', !isYoursByDesign('Residence Permit Card Serial Number'));
   check('a real dropdown is NOT classed that way', !isYoursByDesign('Country of Nationality'));
+
+  // ── the e-mail verification gate ───────────────────────────────────────
+  // Wording first, page shape second, and the two failure directions pull
+  // opposite ways: too loose and the run stops on a form it could have filled,
+  // too tight and it goes back to telling people to press a button that cannot
+  // advance the page.
+  check(
+    'a completed send is a gate',
+    classifyVerificationText('E-posta adresinize gönderilen doğrulama bağlantısına tıklayınız.').kind === 'link',
+  );
+  // The regression that hides everywhere in this codebase: /i does not fold the
+  // dotted capital İ, so a shouted Turkish heading slips past a lowercase
+  // pattern and the gate is simply never seen.
+  check(
+    'a SHOUTED Turkish gate still matches',
+    classifyVerificationText('E-POSTA ADRESİNİZE GÖNDERİLEN BAĞLANTIYA TIKLAYIN').kind === 'link',
+  );
+  check(
+    'the address it names is lifted',
+    classifyVerificationText('E-postanızı kontrol edin: h***a@example.com').sentTo === 'h***a@example.com',
+  );
+  // Tense, and only tense, separates these two from the one above.
+  check(
+    'a page saying a link WILL be sent is not a gate',
+    classifyVerificationText('Doğrulama e-postası bu adrese gönderilecektir.').present === false,
+  );
+  check(
+    'merely naming a verification link is not a gate',
+    classifyVerificationText('Doğrulama bağlantısı için e-posta adresinizi giriniz').present === false,
+  );
+  check(
+    'an emailed CODE is a different thing from a link',
+    classifyVerificationText('E-posta adresinize gönderilen doğrulama kodunu giriniz').kind === 'code',
+  );
+
+  // The allowlist. Everything here is a URL somebody could paste into a box
+  // that makes a browser inside our own network fetch it.
+  check('the portal link is accepted', isPortalLink('https://e-ikamet.goc.gov.tr/Ikamet/Dogrula?t=abc').ok);
+  check('a goc.gov.tr subdomain is accepted', isPortalLink('https://api.goc.gov.tr/x').ok);
+  check('http is refused', !isPortalLink('http://e-ikamet.goc.gov.tr/x').ok);
+  check('another host entirely is refused', !isPortalLink('https://evil.example.com/x').ok);
+  // The lookalike that beats string matching: everything before the @ is
+  // userinfo, and the host is evil.example.
+  check(
+    'a userinfo lookalike is refused',
+    !isPortalLink('https://e-ikamet.goc.gov.tr@evil.example/x').ok,
+  );
+  // And the one that beats a missing leading dot in the suffix check.
+  check('a suffix lookalike is refused', !isPortalLink('https://notgoc.gov.tr/x').ok);
+  check('nothing pasted is refused', !isPortalLink('').ok);
 
   resetFieldCache(applicant);
 
@@ -376,6 +433,41 @@ async function main() {
 
   console.log(`\n  Filled on the first pass: ${filledFirst.length} field(s)`);
   console.log(`  Still-empty report: ${empty.length ? empty.join(', ') : '(none)'}`);
+
+  // ── the gate, against a page ───────────────────────────────────────────
+  // The form fixture is the important half of this pair. It is a real İkamet
+  // page with real fields, and it must not read as a gate however much
+  // verification wording surrounds it.
+  const onForm = await readVerificationGate(page);
+  check('the filled form page is not a gate', onForm.present === false, JSON.stringify(onForm));
+
+  const gatePage = await browser.newPage();
+  await gatePage.goto(GATE_FIXTURE, { waitUntil: 'domcontentloaded' });
+
+  const gate = await readVerificationGate(gatePage);
+  check('the wait page IS a gate', gate.present && gate.kind === 'link', JSON.stringify(gate));
+  check('the gate names the inbox', gate.sentTo === 'h***a@example.com', String(gate.sentTo));
+
+  const refused = await resumeFromVerificationLink(gatePage, 'https://evil.example.com/steal');
+  check('a foreign link is refused rather than followed', !refused.ok, JSON.stringify(refused));
+  check(
+    'and refusing it did not navigate',
+    gatePage.url().startsWith('file:'),
+    gatePage.url(),
+  );
+
+  // A real one navigates the page it was given — the whole point, since that is
+  // where the session cookie the token belongs to lives. `file:` stands in for
+  // the portal so nothing reaches goc.gov.tr.
+  await gatePage.goto(FIXTURE, { waitUntil: 'domcontentloaded' });
+  check('a portal link would be followed on this same page', gatePage.url() === FIXTURE);
+
+  // Nothing on that page may be pressed for them — Resend least of all, since
+  // it spends a fresh token.
+  const gateViolations = await gatePage.evaluate(() => window.__violations);
+  check('nothing was clicked on the gate page', gateViolations.length === 0, JSON.stringify(gateViolations));
+
+  await gatePage.close();
 
   await browser.close();
   rmSync(dir, { recursive: true, force: true });

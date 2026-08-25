@@ -9,6 +9,7 @@ import {
   forwardType,
   getRun,
   latestFrame,
+  resumeWithLink,
   stopRun,
   touchRun,
 } from '@/lib/browser-automation';
@@ -17,7 +18,8 @@ import {
  * The applicant's window onto the automation.
  *
  * GET    — the latest frame plus status and log
- * POST   — forward one of their clicks / keystrokes to the real page
+ * POST   — forward one of their clicks / keystrokes to the real page, or hand
+ *          over the verification link e-İkamet mailed them
  * DELETE — close the browser
  *
  * Polling rather than a socket: the frame is a whole JPEG each time, the page
@@ -68,6 +70,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ runId: string 
       await forwardType(run, String(body?.text ?? ''));
     } else if (type === 'key') {
       await forwardKey(run, String(body?.key ?? ''));
+    } else if (type === 'link') {
+      // The verification link, pasted out of their e-mail. Where it may point
+      // is decided in resumeWithLink, on the server: a URL that arrived in a
+      // request body is not evidence about the URL it names, and this one is
+      // opened by a browser sitting inside our own network.
+      const result = await resumeWithLink(run, String(body?.url ?? ''));
+      if (!result.ok) return Response.json({ detail: result.reason }, { status: 400 });
     } else {
       return Response.json({ detail: 'Unknown action.' }, { status: 400 });
     }
