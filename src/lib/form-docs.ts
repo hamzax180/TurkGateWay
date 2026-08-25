@@ -112,6 +112,9 @@ function rowsFor(kind: FormKind, data: Record<string, string>): Row[] {
         ['Telefon (Phone)', data.phone],
         ['Türkiye\'deki Adres (Address in Türkiye)', data.addressInTr],
         ['Türkiye\'ye Giriş Tarihi (Entry date)', data.entryDate],
+        ['Pasaport Türü (Passport type)', data.passportType],
+        ['İl Değişikliği (Changing province)', data.changeProvinceOfResidence],
+        ['İletişim Tercihi (Contact preference)', data.communicationPreference],
       ];
     case 'ikamet_renewal':
       return [

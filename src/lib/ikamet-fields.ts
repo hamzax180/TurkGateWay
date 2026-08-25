@@ -29,6 +29,34 @@ export const IKAMET_FIELDS: FieldDef[] = [
     short: 'Address in Türkiye',
   },
   { key: 'entryDate', label: 'date of entry into Türkiye', short: 'Entry date' },
+  /**
+   * Three boxes the portal asks for that no scan carries and nothing can be
+   * assumed about.
+   *
+   * Optional because they must never block the automation from starting — but
+   * present, because without them the run reaches the portal with nothing to
+   * put in three mandatory boxes and leaves them for the applicant to work out
+   * on a form in Turkish.
+   *
+   * Defaulting them was the tempting alternative and is the wrong one. Most
+   * people hold an ordinary passport, are not changing province and want
+   * e-mail — but "most" is not a residence application. A service-passport
+   * holder submitting "Ordinary Passport" under their own name is exactly the
+   * invented answer the assistant's never-guess rule exists to prevent.
+   */
+  { key: 'passportType', label: 'passport type (ordinary, service, diplomatic…)', short: 'Passport type', optional: true },
+  {
+    key: 'changeProvinceOfResidence',
+    label: 'whether you are moving to a different province (Yes or No)',
+    short: 'Changing province',
+    optional: true,
+  },
+  {
+    key: 'communicationPreference',
+    label: 'how the portal should contact you (e-mail or SMS)',
+    short: 'Contact preference',
+    optional: true,
+  },
   { key: 'permitNumber', label: 'current ikamet permit number (renewal only)', short: 'Permit number', optional: true },
   { key: 'permitExpiry', label: 'current ikamet expiry date (renewal only)', short: 'Permit expiry', optional: true },
 ];

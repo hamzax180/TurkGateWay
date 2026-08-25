@@ -711,10 +711,10 @@ export async function fillCurrentPage(page, applicant, opts = {}) {
 /**
  * Did the field end up holding what we meant?
  *
- * Punctuation a mask adds is fine — `(536) 429-20-64` is the same phone as
- * `5364292064`. A leftover placeholder character is NOT fine: it means the
+ * Punctuation a mask adds is fine — `(555) 000-00-00` is the same phone as
+ * `5550000000`. A leftover placeholder character is NOT fine: it means the
  * mask template survived and our text was spliced into it rather than typed
- * through it. The live portal produced `(___) ___-__-__05364292064` that way,
+ * through it. The live portal produced `(___) ___-__-__05550000000` that way,
  * and stripping underscores before comparing would call that a match, which is
  * precisely the bug this guard exists to catch.
  */
@@ -731,7 +731,7 @@ function sameValue(actual, intended) {
  * Input masks are the reason this exists. `fill()` sets the value directly,
  * which a JS mask on a phone or card field does not always see, so the result
  * can end up spliced into the mask template — a real run produced
- * `(___) ___-__-__05364292064` from a clean phone number. Typing key by key
+ * `(___) ___-__-__05550000000` from a clean phone number. Typing key by key
  * lets the mask do its job, so that is the second attempt.
  *
  * If neither produces the intended value the field is CLEARED and reported as
@@ -854,8 +854,8 @@ export async function clearMangledFields(page) {
     //
     // The splice signature is the mask template surviving with the raw text
     // stuck after it — placeholder characters, then digits:
-    // "(___) ___-__-__5364292064". A partially typed number reads the other
-    // way round, "(536) 429-2_-__", and that is someone's half-finished work,
+    // "(___) ___-__-__5550000000". A partially typed number reads the other
+    // way round, "(555) 000-0_-__", and that is someone's half-finished work,
     // not corruption. Clearing on any underscore deleted good phone numbers.
     const spliced = /_[^0-9]*\d/.test(value);
     if (!spliced) continue;

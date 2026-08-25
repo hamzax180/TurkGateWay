@@ -71,7 +71,7 @@ async function main() {
     fatherName: 'Baba Test',
     gender: 'Erkek',
     passportNumber: 'A01234567',
-    foreignerIdNumber: '99945855004',
+    foreignerIdNumber: '99900000001',
     residenceCardSerialNo: 'YAF',
     residenceCardNo: '317445',
     passportType: 'Umuma Mahsus Pasaport',
@@ -82,7 +82,7 @@ async function main() {
     // Written with a country code on purpose: the portal's mask has ten slots,
     // and a number that arrives longer than that used to be truncated into a
     // plausible-looking wrong number.
-    phone: '+90 536 429 20 64',
+    phone: '+90 555 000 00 00',
     communicationPreference: 'e-mail',
     changeProvinceOfResidence: 'No',
     documents: {
@@ -281,7 +281,7 @@ async function main() {
   // model key, because a mandatory identity field left blank with no
   // explanation is the failure this project keeps coming back to.
   check('e-mail filled', values.email === 'test@example.com', `got "${values.email}"`);
-  check('Foreigners ID No filled', values.yabanciKimlikNo === '99945855004', `got "${values.yabanciKimlikNo}"`);
+  check('Foreigners ID No filled', values.yabanciKimlikNo === '99900000001', `got "${values.yabanciKimlikNo}"`);
   check('Card Number filled', values.belgeNo === '317445', `got "${values.belgeNo}"`);
   check('first two letters of the given name', values.ad === 'TE', `got "${values.ad}"`);
   check('first two letters of the surname', values.soyad === 'AL', `got "${values.soyad}"`);
@@ -310,7 +310,7 @@ async function main() {
   );
   check(
     'masked Cell Phone typed through the mask (never spliced)',
-    values.cepTelefon === '(536) 429-20-64',
+    values.cepTelefon === '(555) 000-00-00',
     `got "${values.cepTelefon}"`,
   );
   check('masked field never left half-mangled', !/_/.test(values.cepTelefon), `got "${values.cepTelefon}"`);
@@ -331,7 +331,7 @@ async function main() {
   );
   check(
     'phone reached the model too',
-    values.model['Iletisim.CepTelefon'] === '(536) 429-20-64',
+    values.model['Iletisim.CepTelefon'] === '(555) 000-00-00',
     JSON.stringify(values.model['Iletisim.CepTelefon']),
   );
 
