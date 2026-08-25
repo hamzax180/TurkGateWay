@@ -203,8 +203,22 @@ export default function Home() {
             screen — hence md: only. */}
         <main className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col items-center justify-start overflow-x-hidden relative transition-colors duration-500 md:-mt-[64px]">
           
+          {/*
+            The hero and its backdrop, in one full-bleed box.
+
+            The backdrop used to size itself in viewport fractions — 52vh, 58vh,
+            90vh — while the hero below it is content-sized at every width
+            except xl, where it happens to be 90vh too. Those two numbers only
+            ever agreed on a desktop: between md and xl the flag painted ~700px
+            over a ~475px hero and the leftover ran a hard red edge straight
+            across the middle of "How it works". Sizing the wrapper by the hero
+            and filling it with inset-0 means the backdrop cannot end anywhere
+            but where the hero ends, at any width.
+          */}
+        <div className="relative w-full">
+
           {/* Real Turkish Flag Video Background */}
-        <div className="absolute inset-x-0 top-0 h-[52vh] md:h-[58vh] xl:h-[90vh] dark:bg-[#a00000] bg-gradient-to-br from-white via-red-50 to-red-100 pointer-events-none z-0 select-none overflow-hidden">
+        <div className="absolute inset-0 dark:bg-[#a00000] bg-gradient-to-br from-white via-red-50 to-red-100 pointer-events-none z-0 select-none overflow-hidden">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -373,8 +387,8 @@ export default function Home() {
         </motion.div>
 
       </section>
+        </div>
 
-      {/* ═══════════════ HOW IT WORKS SECTION ═══════════════ */}
       <section id="how-it-works" className="w-full relative overflow-hidden py-20 md:py-40">
         {/* Live Video Background - Brighter & Full Fit */}
         <div className="absolute inset-0 z-0 w-full h-full">
