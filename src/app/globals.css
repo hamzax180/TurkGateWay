@@ -1195,15 +1195,156 @@ body {
     radial-gradient(at 100% 100%, rgba(5, 150, 105, 0.1) 0px, transparent 50%);
 }
 
+/*
+ * Where the flag stops being the flag.
+ *
+ * A two-stop mask runs its alpha down a straight line, and the eye finds the
+ * place where that line lands — a faint but real edge across the bottom of
+ * the hero. These stops approximate a smoothstep instead: most of the travel
+ * happens in the middle and the last stretch is nearly flat, so there is no
+ * landing point to notice. Same endpoints as before, different curve between
+ * them.
+ */
 .turkish-flag-mask {
-  mask-image: linear-gradient(to bottom, black 75%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, black 75%, transparent 100%);
+  --flag-fade-start: 68%;
+  mask-image: linear-gradient(
+    to bottom,
+    black var(--flag-fade-start),
+    rgba(0, 0, 0, 0.92) 76%,
+    rgba(0, 0, 0, 0.74) 83%,
+    rgba(0, 0, 0, 0.48) 89%,
+    rgba(0, 0, 0, 0.22) 94%,
+    rgba(0, 0, 0, 0.07) 97.5%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black var(--flag-fade-start),
+    rgba(0, 0, 0, 0.92) 76%,
+    rgba(0, 0, 0, 0.74) 83%,
+    rgba(0, 0, 0, 0.48) 89%,
+    rgba(0, 0, 0, 0.22) 94%,
+    rgba(0, 0, 0, 0.07) 97.5%,
+    transparent 100%
+  );
 }
 
 @media (min-width: 768px) {
   .turkish-flag-mask {
-    mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+    --flag-fade-start: 78%;
+  }
+}
+
+/*
+ * The hero's own bottom edge.
+ *
+ * The fade has to live on the BACKDROP, not on the video inside it. The video
+ * had a mask; the red behind it did not, so the red ended on a hard line and
+ * only the flag dissolved. Masking the container fades red and flag together
+ * as one thing.
+ *
+ * And it fades to TRANSPARENT, not to the page background. Fading two
+ * neighbouring sections to --bg each is what put a black bar between the flag
+ * and the office video below — the page showing through the gap between two
+ * images. Transparent plus an overlap means the flag dissolves straight into
+ * the next section's video with nothing in between.
+ */
+.hero-backdrop-fade {
+  --hero-fade: 30%;
+  mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - var(--hero-fade)),
+    rgba(0, 0, 0, 0.93) calc(100% - var(--hero-fade) * 0.84),
+    rgba(0, 0, 0, 0.78) calc(100% - var(--hero-fade) * 0.69),
+    rgba(0, 0, 0, 0.55) calc(100% - var(--hero-fade) * 0.52),
+    rgba(0, 0, 0, 0.31) calc(100% - var(--hero-fade) * 0.35),
+    rgba(0, 0, 0, 0.13) calc(100% - var(--hero-fade) * 0.2),
+    rgba(0, 0, 0, 0.04) calc(100% - var(--hero-fade) * 0.09),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - var(--hero-fade)),
+    rgba(0, 0, 0, 0.93) calc(100% - var(--hero-fade) * 0.84),
+    rgba(0, 0, 0, 0.78) calc(100% - var(--hero-fade) * 0.69),
+    rgba(0, 0, 0, 0.55) calc(100% - var(--hero-fade) * 0.52),
+    rgba(0, 0, 0, 0.31) calc(100% - var(--hero-fade) * 0.35),
+    rgba(0, 0, 0, 0.13) calc(100% - var(--hero-fade) * 0.2),
+    rgba(0, 0, 0, 0.04) calc(100% - var(--hero-fade) * 0.09),
+    transparent 100%
+  );
+}
+
+/*
+ * Section scrims — the fade that carries one section into the next.
+ *
+ * Two problems with the plain `from-[var(--bg)] to-transparent` these replace.
+ * The alpha ramp was linear, so it ended on a visible line; and the height was
+ * a fixed h-64/h-32, which is half of a 476px hero on a tablet and a quarter
+ * of a 973px one on a wide monitor — the same fade reading completely
+ * differently per device, which is exactly what "smooth on all devices" rules
+ * out. Percent heights and an eased ramp fix both.
+ *
+ * color-mix rather than an --bg-rgb triple because Tailwind v4 already emits
+ * color-mix for its own opacity modifiers here, so it is no new baseline.
+ */
+.scrim-up,
+.scrim-down {
+  --scrim: var(--bg);
+}
+
+.scrim-up {
+  background-image: linear-gradient(
+    to top,
+    var(--scrim) 0%,
+    color-mix(in srgb, var(--scrim) 93%, transparent) 16%,
+    color-mix(in srgb, var(--scrim) 78%, transparent) 31%,
+    color-mix(in srgb, var(--scrim) 55%, transparent) 48%,
+    color-mix(in srgb, var(--scrim) 31%, transparent) 65%,
+    color-mix(in srgb, var(--scrim) 13%, transparent) 80%,
+    color-mix(in srgb, var(--scrim) 4%, transparent) 91%,
+    transparent 100%
+  );
+}
+
+.scrim-down {
+  background-image: linear-gradient(
+    to bottom,
+    var(--scrim) 0%,
+    color-mix(in srgb, var(--scrim) 93%, transparent) 16%,
+    color-mix(in srgb, var(--scrim) 78%, transparent) 31%,
+    color-mix(in srgb, var(--scrim) 55%, transparent) 48%,
+    color-mix(in srgb, var(--scrim) 31%, transparent) 65%,
+    color-mix(in srgb, var(--scrim) 13%, transparent) 80%,
+    color-mix(in srgb, var(--scrim) 4%, transparent) 91%,
+    transparent 100%
+  );
+}
+
+/*
+ * Background videos arrive by fading themselves in, not by having a cover
+ * pulled off them.
+ *
+ * The old sequence ran two uncoordinated animations: a 2s container fade that
+ * started on mount whether or not there was a frame to show, and a 700ms
+ * placeholder fade that started when playback did. Between them the first
+ * frame appeared as a jump from a flat white or black panel. Starting the
+ * video transparent means the backdrop behind it simply stays visible until
+ * there is something to cross-fade to — and it hides the iOS native play
+ * button on the way, which is what the placeholder was for.
+ */
+.bg-video-fade {
+  opacity: 0;
+  transition: opacity 1100ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.bg-video-fade[data-playing='true'] {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-video-fade {
+    transition-duration: 1ms;
   }
 }
 

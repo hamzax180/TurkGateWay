@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <title>e-İkamet — E-Posta Doğrulama</title>
+  </head>
+  <body>
+    <!--
+      The wall the portal puts up after the entry page: a message, the address
+      it wrote to, and a Resend button. No form.
+
+      Two things about it are load-bearing for the test and neither is
+      decoration. The heading is SHOUTED, because JavaScript's /i flag does not
+      fold the dotted capital İ onto ASCII i — a matcher written against
+      lowercase Turkish silently misses this page, which is the failure this
+      whole module is built to avoid. And there is nothing to fill: that is the
+      structural signal separating a real gate from a form that merely explains
+      the verification step in its help text.
+    -->
+    <main>
+      <h1>E-POSTA DOĞRULAMA</h1>
+      <p>
+        E-posta adresinize gönderilen doğrulama bağlantısına tıklayarak
+        başvurunuza devam edebilirsiniz.
+      </p>
+      <p>Gönderildi: h***a@example.com</p>
+      <p>
+        Bağlantı yalnızca bir kez kullanılabilir. E-postayı almadıysanız tekrar
+        gönderebilirsiniz.
+      </p>
+
+      <button id="tekrarGonder" type="button">Tekrar Gönder</button>
+      <button id="ileri" type="button">İleri</button>
+    </main>
+
+    <script>
+      // Same guarantee as the main fixture, checked by the page rather than by
+      // reading the code: nothing here may be pressed on the applicant's
+      // behalf — least of all Resend, which spends a fresh token.
+      window.__violations = [];
+      for (const id of ['tekrarGonder', 'ileri']) {
+        document.getElementById(id).addEventListener('click', () => {
+          window.__violations.push(id);
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -63,6 +63,10 @@ type Copy = {
   formReady: string;
   needDetails: string;
   runNow: string;
+  /** The same button, for the residence permit — there is no slot to book. */
+  runNowIkamet: string;
+  panelTitleVisa: string;
+  panelTitleIkamet: string;
   watching: string;
   reading: string;
   slow: string;
@@ -90,6 +94,9 @@ const COPY: Record<string, Copy> = {
     formReady: 'Your filled application form is ready',
     needDetails: 'Still needed before we can fill your form: {fields}',
     runNow: 'Book my appointment now',
+    runNowIkamet: 'Start my İkamet application',
+    panelTitleVisa: 'Your visa appointment',
+    panelTitleIkamet: 'Your residence permit application',
     watching: 'Watch it happen',
     reading: 'Reading your documents…',
     slow: 'This takes up to half a minute the first time.',
@@ -115,6 +122,9 @@ const COPY: Record<string, Copy> = {
     formReady: 'Doldurulmuş başvuru formunuz hazır',
     needDetails: 'Formunuzu doldurmadan önce gerekenler: {fields}',
     runNow: 'Randevumu şimdi al',
+    runNowIkamet: 'İkamet başvurumu başlat',
+    panelTitleVisa: 'Vize randevunuz',
+    panelTitleIkamet: 'İkamet başvurunuz',
     watching: 'İzle',
     reading: 'Belgeleriniz okunuyor…',
     slow: 'İlk seferde yarım dakika kadar sürebilir.',
@@ -140,6 +150,9 @@ const COPY: Record<string, Copy> = {
     formReady: 'نموذج طلبك المعبأ جاهز',
     needDetails: 'ما زال مطلوباً قبل تعبئة النموذج: {fields}',
     runNow: 'احجز موعدي الآن',
+    runNowIkamet: 'ابدأ طلب الإقامة',
+    panelTitleVisa: 'موعد التأشيرة',
+    panelTitleIkamet: 'طلب الإقامة الخاص بك',
     watching: 'شاهد العملية',
     reading: 'جارٍ قراءة مستنداتك…',
     slow: 'قد يستغرق هذا نصف دقيقة في المرة الأولى.',
@@ -165,6 +178,9 @@ const COPY: Record<string, Copy> = {
     formReady: 'Doldurylan arza formaňyz taýýar',
     needDetails: 'Formaňyzy doldurmazdan öň gerek: {fields}',
     runNow: 'Duşuşygymy indi belle',
+    runNowIkamet: 'İkamet arzamy başla',
+    panelTitleVisa: 'Wiza duşuşygyňyz',
+    panelTitleIkamet: 'İkamet arzaňyz',
     watching: 'Syn et',
     reading: 'Resminamalaryňyz okalýar…',
     slow: 'Ilkinji gezek ýarym minuda çenli dowam edip biler.',
@@ -190,6 +206,9 @@ const COPY: Record<string, Copy> = {
     formReady: 'Ваша заполненная анкета готова',
     needDetails: 'Ещё нужно, чтобы заполнить анкету: {fields}',
     runNow: 'Записаться на приём',
+    runNowIkamet: 'Начать заявку на ВНЖ',
+    panelTitleVisa: 'Ваша запись на визу',
+    panelTitleIkamet: 'Ваша заявка на ВНЖ',
     watching: 'Смотреть',
     reading: 'Читаем ваши документы…',
     slow: 'В первый раз это занимает до полуминуты.',
@@ -405,9 +424,13 @@ export default function DocumentChecklistCard({
   }, [sessionId, token, seed.service, details, savingDetails, t.failed]);
 
   /**
-   * Open the appointment site on the server and stream it back. This is the
-   * no-download path: the applicant watches it fill their form and presses
-   * the site's own buttons themselves, through the live view.
+   * Open the portal on the server and stream it back. This is the no-download
+   * path: the applicant watches it fill their form and presses the site's own
+   * buttons themselves, through the live view.
+   *
+   * The service goes with the request because the two portals it can open are
+   * different sites — and for İkamet, which of them depends on whether this is
+   * a first application or an extension.
    */
   const runAutomation = useCallback(async () => {
     if (!sessionId || !token || starting) return;
@@ -417,7 +440,7 @@ export default function DocumentChecklistCard({
       const res = await fetch('/api/automation/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ session_id: sessionId }),
+        body: JSON.stringify({ session_id: sessionId, service: seed.service }),
       });
       const d = await res.json().catch(() => null);
       if (res.ok && d?.runId) setRunId(d.runId);
@@ -427,7 +450,7 @@ export default function DocumentChecklistCard({
     } finally {
       setStarting(false);
     }
-  }, [sessionId, token, starting, t.failed]);
+  }, [sessionId, token, starting, seed.service, t.failed]);
 
   const remove = useCallback(
     async (key: string) => {
@@ -476,6 +499,18 @@ export default function DocumentChecklistCard({
   const pct = total ? Math.round((done / total) * 100) : 0;
   const complete = Boolean(status?.complete);
 
+  /**
+   * Which services open in the live panel rather than queueing for an operator.
+   *
+   * İkamet belongs here for a reason beyond convenience: the portal now mails a
+   * one-time verification link tied to the session that began the application,
+   * so a student sent off to e-ikamet.goc.gov.tr in their own tab has no way to
+   * be helped through it. Inside the panel the link can be handed back to the
+   * browser that owns the session.
+   */
+  const isIkamet = seed.service === 'ikamet_new' || seed.service === 'ikamet_renewal';
+  const hasLivePortal = isIkamet || seed.service === 'student_visa';
+
   // Withheld until the service is paid for. Rendering nothing rather than a
   // locked-looking list: the documents themselves are the product, and a
   // greyed-out list still tells you what they are.
@@ -483,7 +518,14 @@ export default function DocumentChecklistCard({
 
   return (
     <>
-      {runId && <AutomationViewer runId={runId} token={token} onClose={() => setRunId(null)} />}
+      {runId && (
+        <AutomationViewer
+          runId={runId}
+          token={token}
+          title={isIkamet ? t.panelTitleIkamet : t.panelTitleVisa}
+          onClose={() => setRunId(null)}
+        />
+      )}
 
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -691,11 +733,11 @@ export default function DocumentChecklistCard({
               </div>
             )}
 
-            {/* The last step, and the only one that leaves the site. Shown once
-                nothing is outstanding, so it never appears as a button that
-                immediately refuses. Only the visa appointment has a bookable
-                site wired up; other services are worked from the queue. */}
-            {seed.service === 'student_visa' &&
+            {/* The last step. Shown once nothing is outstanding, so it never
+                appears as a button that immediately refuses. It opens the
+                portal inside the panel above rather than in a tab — services
+                without one are worked from the queue instead. */}
+            {hasLivePortal &&
               automation?.started &&
               automation.missing.length === 0 && (
                 <button
@@ -704,7 +746,7 @@ export default function DocumentChecklistCard({
                   className="mt-3 inline-flex items-center gap-2 rounded-full bg-red-600 px-5 py-2.5 text-[12.5px] font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {starting ? <Loader2 size={13} className="animate-spin" /> : <PlayCircle size={14} />}
-                  {t.runNow}
+                  {isIkamet ? t.runNowIkamet : t.runNow}
                 </button>
               )}
         </div>

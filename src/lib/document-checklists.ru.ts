@@ -81,7 +81,7 @@ export const CHECKLIST_RU: Record<string, RuEntry> = {
   // ── ikamet_new ────────────────────────────────────────────────────────────
   'ikamet_new:i-kamet-application-form-fro-0': {
     title: 'Заявление на ВНЖ (İkamet) с портала e-ikamet',
-    whereToGet: 'Формируется на e-ikamet.goc.gov.tr после подачи — агент заполнит его с вами',
+    whereToGet: 'Мы открываем e-ikamet.goc.gov.tr здесь и заполняем вместе с вами — на середине портал присылает одноразовую ссылку, и открыть её нужно в том же окне',
   },
   'ikamet_new:passport-copy-1': {
     title: 'Паспорт + копия',
@@ -127,7 +127,7 @@ export const CHECKLIST_RU: Record<string, RuEntry> = {
   },
   'ikamet_renewal:renewal-application-form-e-i-4': {
     title: 'Заявление на продление (e-ikamet Uzatma)',
-    whereToGet: 'Формируется на e-ikamet.goc.gov.tr — подавайте до истечения срока, лучше за 60 дней',
+    whereToGet: 'Мы открываем e-ikamet.goc.gov.tr здесь и заполняем вместе с вами — подавайте до истечения срока, лучше за 60 дней',
   },
   'ikamet_renewal:4-biometric-photos-card-fee-5': {
     title: '4 биометрические фотографии + квитанция за карту',

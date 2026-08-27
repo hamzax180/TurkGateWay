@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Loader2, MousePointerClick, Square, X } from 'lucide-react';
+import { Loader2, Mail, MousePointerClick, Square, X } from 'lucide-react';
 
 /**
- * The applicant watching their own appointment being filled in.
+ * The applicant watching their own application being filled in.
  *
  * The browser runs on the server, so this is a live picture of it rather than
  * a window on their machine — which is what makes it work with no download.
@@ -14,17 +14,31 @@ import { Loader2, MousePointerClick, Square, X } from 'lucide-react';
  * their details and stops; every button on that site is pressed by the person
  * here, clicking where they want, and the coordinate is forwarded to the real
  * page. Nothing is submitted on their behalf.
+ *
+ * The same panel serves the visa appointment and e-İkamet. İkamet adds one
+ * thing: the portal mails a one-time verification link, and it has to be
+ * followed in THIS browser, because the session it belongs to is the one on
+ * screen. So there is a box to paste it into.
  */
 
 type RunState = {
   id: string;
-  status: 'starting' | 'searching' | 'filling' | 'waiting_for_you' | 'finished' | 'failed';
+  portal?: 'visa' | 'ikamet';
+  status:
+    | 'starting'
+    | 'searching'
+    | 'filling'
+    | 'waiting_for_you'
+    | 'waiting_for_email_link'
+    | 'finished'
+    | 'failed';
   events: { at: number; text: string }[];
   filled: string[];
   error: string | null;
   viewport: { width: number; height: number };
   frameAt: number;
   frame: string | null;
+  emailSentTo?: string | null;
 };
 
 const STATUS_COPY: Record<string, { label: string; tone: string }> = {
@@ -32,6 +46,10 @@ const STATUS_COPY: Record<string, { label: string; tone: string }> = {
   searching: { label: 'Finding the earliest appointment…', tone: 'text-indigo-500' },
   filling: { label: 'Filling your details…', tone: 'text-indigo-500' },
   waiting_for_you: { label: 'Your turn — review and click', tone: 'text-amber-600 dark:text-amber-400' },
+  waiting_for_email_link: {
+    label: 'Waiting for your e-mail verification link',
+    tone: 'text-amber-600 dark:text-amber-400',
+  },
   finished: { label: 'Finished', tone: 'text-emerald-600 dark:text-emerald-400' },
   failed: { label: 'Stopped', tone: 'text-red-500' },
 };
@@ -39,14 +57,19 @@ const STATUS_COPY: Record<string, { label: string; tone: string }> = {
 export default function AutomationViewer({
   runId,
   token,
+  title = 'Your visa appointment',
   onClose,
 }: {
   runId: string;
   token: string | null;
+  title?: string;
   onClose: () => void;
 }) {
   const [run, setRun] = useState<RunState | null>(null);
   const [frame, setFrame] = useState<string | null>(null);
+  const [link, setLink] = useState('');
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [sendingLink, setSendingLink] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
   const sinceRef = useRef(0);
   const stopped = useRef(false);
@@ -165,6 +188,39 @@ export default function AutomationViewer({
     [runId, token],
   );
 
+  /**
+   * Hand over the verification link.
+   *
+   * Sent as a URL rather than typed into the page, because the applicant is
+   * reading it in their e-mail somewhere else entirely and the streamed browser
+   * has no address bar of its own. The server decides whether it is a portal
+   * link — this only reports back what it said.
+   */
+  const submitLink = useCallback(async () => {
+    if (!token || sendingLink || !link.trim()) return;
+    setSendingLink(true);
+    setLinkError(null);
+    try {
+      const res = await fetch(`/api/automation/${runId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ type: 'link', url: link.trim() }),
+      });
+      if (res.ok) {
+        setLink('');
+        sinceRef.current = 0;
+        pokeRef.current();
+      } else {
+        const d = await res.json().catch(() => null);
+        setLinkError(d?.detail ?? 'That link could not be opened.');
+      }
+    } catch {
+      setLinkError('That link could not be sent. Check your connection and try again.');
+    } finally {
+      setSendingLink(false);
+    }
+  }, [runId, token, link, sendingLink]);
+
   const stop = useCallback(async () => {
     stopped.current = true;
     await fetch(`/api/automation/${runId}`, {
@@ -190,7 +246,7 @@ export default function AutomationViewer({
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)]">
           <div className="min-w-0 flex-1">
-            <p className="text-[14px] font-semibold text-[var(--text)]">Your visa appointment</p>
+            <p className="text-[14px] font-semibold text-[var(--text)]">{title}</p>
             <p className={`text-[12px] flex items-center gap-1.5 ${status.tone}`}>
               {busy && <Loader2 size={11} className="animate-spin" />}
               {status.label}
@@ -240,6 +296,51 @@ export default function AutomationViewer({
 
         {/* What it is doing, and whose move it is */}
         <div className="border-t border-[var(--border)] px-4 py-3">
+          {/* The e-mail gate. COPY, don't click, is the whole instruction: the
+              link works once, and only in this browser — the session it belongs
+              to is the one on screen, not the one on their phone. */}
+          {run?.status === 'waiting_for_email_link' && (
+            <div className="mb-3 rounded-xl border border-amber-500/40 bg-amber-500/5 px-3 py-3">
+              <p className="flex items-center gap-2 text-[12.5px] font-semibold text-amber-700 dark:text-amber-400">
+                <Mail size={13} className="shrink-0" />
+                Verification link needed
+                {run.emailSentTo && <span className="font-normal opacity-80">— sent to {run.emailSentTo}</span>}
+              </p>
+              <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--muted)]">
+                Open that e-mail and <span className="font-semibold text-[var(--text)]">copy the link — do not click it</span>.
+                It only works once, and it has to be opened here, in the browser holding your application. Keep this panel open.
+              </p>
+              <div className="mt-2.5 flex gap-2">
+                <input
+                  value={link}
+                  onChange={(e) => setLink(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') submitLink();
+                    // The panel forwards keystrokes to the portal; this box is
+                    // ours, so its typing must stop here.
+                    e.stopPropagation();
+                  }}
+                  placeholder="https://e-ikamet.goc.gov.tr/…"
+                  spellCheck={false}
+                  autoComplete="off"
+                  className="flex-1 min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[12.5px] text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--border-2)]"
+                />
+                <button
+                  onClick={submitLink}
+                  disabled={sendingLink || !link.trim()}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--text)] px-4 py-2 text-[12.5px] font-medium text-[var(--bg)] hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0"
+                >
+                  {sendingLink && <Loader2 size={12} className="animate-spin" />}
+                  Continue
+                </button>
+              </div>
+              {linkError && <p className="mt-1.5 text-[11.5px] text-red-500">{linkError}</p>}
+              <p className="mt-1.5 text-[11.5px] text-[var(--muted)]">
+                Already clicked it? Press <span className="font-medium">Tekrar Gönder / Resend</span> on the page above, then copy the new one.
+              </p>
+            </div>
+          )}
+
           <div className="flex items-start gap-2 text-[12px] text-[var(--muted)] mb-2">
             <MousePointerClick size={13} className="mt-0.5 shrink-0 text-[var(--text)]" />
             <p className="leading-relaxed">

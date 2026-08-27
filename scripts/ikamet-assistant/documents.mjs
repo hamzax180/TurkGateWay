@@ -165,7 +165,7 @@ export function initials(name) {
 /**
  * Every given name, which is what this portal's "Name" box wants.
  *
- * The card reads HAMZAH OTHMAN HASAN / AL-AHDAL: three given names in one box,
+ * A card reads e.g. AHMED OMAR HASAN / AL-SAYED: three given names in one box,
  * the surname in the next. `firstName` alone would under-fill it and
  * `fullName` would repeat the surname the neighbouring box already holds, so
  * it is the full name with the surname taken off the end. When the two do not
